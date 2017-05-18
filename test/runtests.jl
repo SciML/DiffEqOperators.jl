@@ -1,5 +1,10 @@
 using PDEOperators
 using Base.Test
 
-# write your own tests here
-@test 1 == 2
+L = 100
+x = collect(1:1.0:L).^2
+temp = FiniteDifferenceEvenGrid{Float64}(2,2)
+boundary_points = temp.boundary_point_count
+
+res = operate(temp, x)
+@time @test res[boundary_points + 1: L - boundary_points] == 2.0*ones(L - 2*boundary_points)

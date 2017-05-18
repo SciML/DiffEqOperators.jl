@@ -4,9 +4,8 @@ module PDEOperators
 
 export PDEOperator
 # package code goes here
-include("fornberg.jl")
-abstract FiniteDifferenceOperator
+include("operator.jl")
 
-PDEOperator(args...) = FiniteDifferenceEvenGrid{Float64}(args...)
-
+export operate
+export FiniteDifferenceEvenGrid
 end # module

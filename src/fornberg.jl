@@ -1,4 +1,5 @@
 abstract FiniteDifferenceOperator
+
 immutable FiniteDifferenceEvenGrid{T<:AbstractFloat} <: FiniteDifferenceOperator
     derivative_order    :: Int
     approximation_order :: Int
@@ -16,11 +17,13 @@ immutable FiniteDifferenceEvenGrid{T<:AbstractFloat} <: FiniteDifferenceOperator
         boundary_point_count = stencil_length - Int(ceil(stencil_length / 2))
         low_boundary_coefs   = Vector{T}[]
         high_boundary_coefs  = Vector{T}[]
-        for i in 1 : boundary_point_count
-            push!(low_boundary_coefs, calculate_weights(derivative_order, (i-1)*grid_step, collect(zero(T) : grid_step : (boundary_length-1) * grid_step)))
-            push!(high_boundary_coefs, reverse(low_boundary_coefs[i]))
-            isodd(derivative_order) ? high_boundary_coefs = -high_boundary_coefs : nothing
-        end
+        stencil_coefs        = calculate_weights(derivative_order, zero(T),
+                               grid_step .* collect(-div(stencil_length,2) : 1 : div(stencil_length,2)))
+        # for i in 1 : boundary_point_count
+        #     push!(low_boundary_coefs, calculate_weights(derivative_order, (i-1)*grid_step, collect(zero(T) : grid_step : (boundary_length-1) * grid_step)))
+        #     push!(high_boundary_coefs, reverse(low_boundary_coefs[i]))
+        #     isodd(derivative_order) ? high_boundary_coefs = -high_boundary_coefs : nothing
+        # end
         new(derivative_order, approximation_order, grid_step, stencil_length,
             calculate_weights(derivative_order, zero(T), grid_step .* collect(-div(stencil_length,2) : 1 : div(stencil_length,2))),
             boundary_point_count,
@@ -31,11 +34,13 @@ immutable FiniteDifferenceEvenGrid{T<:AbstractFloat} <: FiniteDifferenceOperator
     end
 end
 
+
 function derivative{T<:AbstractFloat}(y::Vector{T}, fd::FiniteDifferenceEvenGrid{T})
     dy = zeros(T, length(y))
     derivative!(dy, y, fd)
     return dy
 end
+
 
 function derivative!{T<:AbstractFloat}(dy::Vector{T}, y::Vector{T}, fd::FiniteDifferenceEvenGrid{T})
     N = length(y)
@@ -47,7 +52,9 @@ function derivative!{T<:AbstractFloat}(dy::Vector{T}, y::Vector{T}, fd::FiniteDi
         end
         dy[i] = tmp
     end
+
     d = div(fd.stencil_length, 2)
+
     @inbounds for i in fd.boundary_point_count+1 : N-fd.boundary_point_count
         c = fd.stencil_coefs
         tmp = zero(T)
@@ -56,6 +63,7 @@ function derivative!{T<:AbstractFloat}(dy::Vector{T}, y::Vector{T}, fd::FiniteDi
         end
         dy[i] = tmp
     end
+
     @inbounds for i in 1 : fd.boundary_point_count
         bc = fd.high_boundary_coefs[i]
         tmp = zero(T)
@@ -66,6 +74,7 @@ function derivative!{T<:AbstractFloat}(dy::Vector{T}, y::Vector{T}, fd::FiniteDi
     end
     return dy
 end
+
 
 function construct_differentiation_matrix{T<:AbstractFloat}(N::Int, fd::FiniteDifferenceEvenGrid{T})
     D = zeros(N, N)
@@ -81,7 +90,6 @@ function construct_differentiation_matrix{T<:AbstractFloat}(N::Int, fd::FiniteDi
     end
     return D
 end
-
 
 
 immutable FiniteDifference <: FiniteDifferenceOperator
