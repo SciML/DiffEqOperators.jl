@@ -3,9 +3,8 @@ __precompile__()
 module PDEOperators
 
 export PDEOperator
-# package code goes here
 include("operator.jl")
 
-export operate
-export FiniteDifferenceEvenGrid
+export operate, operate!
+export AbstractLinearOperator, LinearOperator
 end # module

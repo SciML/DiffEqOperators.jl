@@ -1,6 +1,7 @@
-abstract FiniteDifferenceOperator
+import LinearMaps: LinearMap, AbstractLinearMap
+abstract AbstractLinearOperator <: AbstractLinearMap
 
-immutable FiniteDifferenceEvenGrid{T<:AbstractFloat} <: FiniteDifferenceOperator
+immutable LinearOperator{T<:AbstractFloat} <: AbstractLinearOperator
     derivative_order    :: Int
     approximation_order :: Int
     grid_step           :: T
@@ -11,7 +12,7 @@ immutable FiniteDifferenceEvenGrid{T<:AbstractFloat} <: FiniteDifferenceOperator
     low_boundary_coefs  :: Vector{Vector{T}}
     high_boundary_coefs :: Vector{Vector{T}}
 
-    function FiniteDifferenceEvenGrid(derivative_order::Int=1, approximation_order::Int=2, grid_step::T=one(T))
+    function LinearOperator(derivative_order::Int=1, approximation_order::Int=2, grid_step::T=one(T))
         stencil_length       = derivative_order + approximation_order - 1
         boundary_length      = derivative_order + approximation_order
         boundary_point_count = stencil_length - Int(ceil(stencil_length / 2))
@@ -35,14 +36,14 @@ immutable FiniteDifferenceEvenGrid{T<:AbstractFloat} <: FiniteDifferenceOperator
 end
 
 
-function derivative{T<:AbstractFloat}(y::Vector{T}, fd::FiniteDifferenceEvenGrid{T})
+function derivative{T<:AbstractFloat}(y::Vector{T}, fd::LinearOperator{T})
     dy = zeros(T, length(y))
     derivative!(dy, y, fd)
     return dy
 end
 
 
-function derivative!{T<:AbstractFloat}(dy::Vector{T}, y::Vector{T}, fd::FiniteDifferenceEvenGrid{T})
+function derivative!{T<:AbstractFloat}(dy::Vector{T}, y::Vector{T}, fd::LinearOperator{T})
     N = length(y)
     @inbounds for i in 1 : fd.boundary_point_count
         bc = fd.low_boundary_coefs[i]
@@ -76,7 +77,7 @@ function derivative!{T<:AbstractFloat}(dy::Vector{T}, y::Vector{T}, fd::FiniteDi
 end
 
 
-function construct_differentiation_matrix{T<:AbstractFloat}(N::Int, fd::FiniteDifferenceEvenGrid{T})
+function construct_differentiation_matrix{T<:AbstractFloat}(N::Int, fd::LinearOperator{T})
     D = zeros(N, N)
     for i in 1 : fd.boundary_point_count
         D[i, 1 : fd.boundary_length] = fd.low_boundary_coefs[i]
@@ -92,7 +93,7 @@ function construct_differentiation_matrix{T<:AbstractFloat}(N::Int, fd::FiniteDi
 end
 
 
-immutable FiniteDifference <: FiniteDifferenceOperator
+immutable FiniteDifference <: AbstractLinearOperator
     # TODO: the general case
 end
 
