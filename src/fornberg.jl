@@ -1,7 +1,7 @@
 import LinearMaps: LinearMap, AbstractLinearMap
-abstract AbstractLinearOperator <: AbstractLinearMap
+abstract AbstractLinearOperator{T} <: AbstractLinearMap{T}
 
-immutable LinearOperator{T<:AbstractFloat} <: AbstractLinearOperator
+immutable LinearOperator{T<:AbstractFloat} <: AbstractLinearOperator{T}
     derivative_order    :: Int
     approximation_order :: Int
     grid_step           :: T
