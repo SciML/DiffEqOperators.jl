@@ -3,8 +3,7 @@ __precompile__()
 module PDEOperators
 
 export PDEOperator
-include("operator.jl")
+include("fornberg.jl")
 
-export operate, operate!
 export AbstractLinearOperator, LinearOperator
 end # module

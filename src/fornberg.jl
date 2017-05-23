@@ -1,10 +1,20 @@
 import LinearMaps: LinearMap, AbstractLinearMap
+import Base: *
+
 abstract AbstractLinearOperator{T} <: AbstractLinearMap{T}
 
-immutable LinearOperator{T<:AbstractFloat} <: AbstractLinearOperator{T}
+function *(A::AbstractLinearOperator,x::AbstractVector)
+    y = similar(x,promote_type(eltype(A),eltype(x)),size(x))
+    Base.A_mul_B!(y, A::AbstractLinearOperator, x::AbstractVector)
+    return y
+end
+
+Base.length(fdg::AbstractLinearOperator) = fdg.stencil_length
+Base.ndims(fdg::AbstractLinearOperator) = 1
+
+immutable LinearOperator{T<:Real} <: AbstractLinearOperator{T}
     derivative_order    :: Int
     approximation_order :: Int
-    grid_step           :: T
     stencil_length      :: Int
     stencil_coefs       :: Vector{T}
     boundary_point_count:: Int
@@ -12,21 +22,31 @@ immutable LinearOperator{T<:AbstractFloat} <: AbstractLinearOperator{T}
     low_boundary_coefs  :: Vector{Vector{T}}
     high_boundary_coefs :: Vector{Vector{T}}
 
-    function LinearOperator(derivative_order::Int=1, approximation_order::Int=2, grid_step::T=one(T))
+    function LinearOperator(derivative_order::Int, approximation_order::Int)
         stencil_length       = derivative_order + approximation_order - 1
         boundary_length      = derivative_order + approximation_order
-        boundary_point_count = stencil_length - Int(ceil(stencil_length / 2))
+        boundary_point_count = stencil_length - div(stencil_length,2) + 1
+        grid_step            = one(T)
         low_boundary_coefs   = Vector{T}[]
         high_boundary_coefs  = Vector{T}[]
         stencil_coefs        = calculate_weights(derivative_order, zero(T),
                                grid_step .* collect(-div(stencil_length,2) : 1 : div(stencil_length,2)))
+
+        # This is to fix the problem of numerical instability which occurs when the sum of the stencil_coefficients is not
+        # exactly 0.
+        # https://scicomp.stackexchange.com/questions/11249/numerical-derivative-and-finite-difference-coefficients-any-update-of-the-fornb
+        # Stack Overflow answer on this issue.
+        # http://epubs.siam.org/doi/pdf/10.1137/S0036144596322507 - Modified Fornberg Algorithm
+        stencil_coefs[div(stencil_length,2)+1] -= sum(stencil_coefs)
+
+        # println(stencil_coefs)
         # for i in 1 : boundary_point_count
         #     push!(low_boundary_coefs, calculate_weights(derivative_order, (i-1)*grid_step, collect(zero(T) : grid_step : (boundary_length-1) * grid_step)))
         #     push!(high_boundary_coefs, reverse(low_boundary_coefs[i]))
         #     isodd(derivative_order) ? high_boundary_coefs = -high_boundary_coefs : nothing
         # end
-        new(derivative_order, approximation_order, grid_step, stencil_length,
-            calculate_weights(derivative_order, zero(T), grid_step .* collect(-div(stencil_length,2) : 1 : div(stencil_length,2))),
+        new(derivative_order, approximation_order, stencil_length,
+            stencil_coefs,
             boundary_point_count,
             boundary_length,
             low_boundary_coefs,
@@ -36,14 +56,14 @@ immutable LinearOperator{T<:AbstractFloat} <: AbstractLinearOperator{T}
 end
 
 
-function derivative{T<:AbstractFloat}(y::Vector{T}, fd::LinearOperator{T})
+function derivative{T<:Real}(y::Vector{T}, fd::LinearOperator{T})
     dy = zeros(T, length(y))
     derivative!(dy, y, fd)
     return dy
 end
 
 
-function derivative!{T<:AbstractFloat}(dy::Vector{T}, y::Vector{T}, fd::LinearOperator{T})
+function derivative!{T<:Real}(dy::Vector{T}, y::Vector{T}, fd::LinearOperator{T})
     N = length(y)
     @inbounds for i in 1 : fd.boundary_point_count
         bc = fd.low_boundary_coefs[i]
@@ -77,8 +97,8 @@ function derivative!{T<:AbstractFloat}(dy::Vector{T}, y::Vector{T}, fd::LinearOp
 end
 
 
-function construct_differentiation_matrix{T<:AbstractFloat}(N::Int, fd::LinearOperator{T})
-    D = zeros(N, N)
+function construct_differentiation_matrix{T<:Real}(N::Int, fd::LinearOperator{T})
+    D = zeros(T, N, N)
     for i in 1 : fd.boundary_point_count
         D[i, 1 : fd.boundary_length] = fd.low_boundary_coefs[i]
     end
@@ -99,13 +119,13 @@ end
 
 
 # This implements the Fornberg algorithm to obtain FD weights over arbitrary points to arbitrary order
-function calculate_weights{T<:AbstractFloat}(order::Int, x0::T, x::Vector{T})
+function calculate_weights{T<:Real}(order::Int, x0::T, x::Vector{T})
     N = length(x)
     @assert order < N "Not enough points for the requested order."
     M = order
     c1 = one(T)
     c4 = x[1] - x0
-    C = zeros(N, M+1)
+    C = zeros(T, N, M+1)
     C[1,1] = 1
     @inbounds for i in 1 : N-1
         i1 = i + 1
@@ -136,3 +156,51 @@ function calculate_weights{T<:AbstractFloat}(order::Int, x0::T, x::Vector{T})
     # return C
 end
 
+function convolve!{T<:Real}(x_temp::Vector{T}, x::Vector{T}, coeffs::Array{T,1},
+                   i::Int64, mid::Int64, wndw_low::Int64, wndw_high::Int64)
+    x_temp[i] = sum(coeffs[wndw_low:wndw_high] .* x[(i-(mid-wndw_low)):(i+(wndw_high-mid))])
+end
+
+function Base.A_mul_B!{T1<:Real, T2<:Real}(x_temp::AbstractVector{T1}, fdg::AbstractLinearOperator{T1}, x::AbstractVector{T2})
+    coeffs = fdg.stencil_coefs
+    stencil_length = length(coeffs)
+    mid = div(stencil_length, 2) + 1
+    boundary_point_count = stencil_length - mid
+    L = length(x)
+    x = convert(Array{promote_type(T1, T2), 1}, x)
+
+    #=
+        The high and low functions determine the starting and ending indices of the weight vector.
+        As we move along the input vector to calculate the derivative at the point, the weights which
+        are to be considered to calculate the derivative are to be chosen carefully. eg. at the boundaries,
+        only half of the stencil is going to be used to calculate the derivative at that point.
+        So, observing that the left index grows as:-
+                  i ^
+                    |       mid = ceil(stencil_length/2)
+               mid--|       bpc = boundary_point_count
+                    |\
+                    | \
+               0  <_|__\________>
+                    |  bpc      i
+
+        And the right index grows as:-
+                  i ^       mid = ceil(stencil_length/2)
+                    |       bpc = boundary_point_count
+               mid--|_______
+                    |       \
+                    |        \
+               0  <_|_________\___>
+                    |        bpc  i
+        The high and low functions are basically equations of these graphs which are used to calculate
+        the left and right index of the stencil as a function of the index i (where we need to find the derivative).
+    =#
+
+    low(i) = mid + (i-1)*(1-mid)/boundary_point_count
+    high(i) = stencil_length - (stencil_length-mid)*(i-L+boundary_point_count)/(boundary_point_count)
+
+    for i in 1 : length(x)
+        wndw_low = Int(max(1, low(i)))
+        wndw_high = Int(min(stencil_length, high(i)))
+        convolve!(x_temp, x, coeffs, i, mid, wndw_low, wndw_high)
+    end
+end
