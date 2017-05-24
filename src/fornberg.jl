@@ -4,13 +4,18 @@ import Base: *
 abstract AbstractLinearOperator{T} <: AbstractLinearMap{T}
 
 function *(A::AbstractLinearOperator,x::AbstractVector)
-    y = similar(x,promote_type(eltype(A),eltype(x)),size(x))
+    #=
+        We will output a vector which is a supertype of the types of A and x
+        to ensure numerical stability
+    =#
+    y = similar(x, promote_type(eltype(A),eltype(x)), size(x))
     Base.A_mul_B!(y, A::AbstractLinearOperator, x::AbstractVector)
     return y
 end
 
 Base.length(fdg::AbstractLinearOperator) = fdg.stencil_length
 Base.ndims(fdg::AbstractLinearOperator) = 1
+Base.size(fdg::AbstractLinearOperator) = fdg.stencil_length
 
 immutable LinearOperator{T<:Real} <: AbstractLinearOperator{T}
     derivative_order    :: Int
@@ -32,14 +37,15 @@ immutable LinearOperator{T<:Real} <: AbstractLinearOperator{T}
         stencil_coefs        = calculate_weights(derivative_order, zero(T),
                                grid_step .* collect(-div(stencil_length,2) : 1 : div(stencil_length,2)))
 
-        # This is to fix the problem of numerical instability which occurs when the sum of the stencil_coefficients is not
-        # exactly 0.
-        # https://scicomp.stackexchange.com/questions/11249/numerical-derivative-and-finite-difference-coefficients-any-update-of-the-fornb
-        # Stack Overflow answer on this issue.
-        # http://epubs.siam.org/doi/pdf/10.1137/S0036144596322507 - Modified Fornberg Algorithm
+        #=
+            This is to fix the problem of numerical instability which occurs when the sum of the stencil_coefficients is not
+            exactly 0.
+            https://scicomp.stackexchange.com/questions/11249/numerical-derivative-and-finite-difference-coefficients-any-update-of-the-fornb
+            Stack Overflow answer on this issue.
+            http://epubs.siam.org/doi/pdf/10.1137/S0036144596322507 - Modified Fornberg Algorithm
+        =#
         stencil_coefs[div(stencil_length,2)+1] -= sum(stencil_coefs)
 
-        # println(stencil_coefs)
         # for i in 1 : boundary_point_count
         #     push!(low_boundary_coefs, calculate_weights(derivative_order, (i-1)*grid_step, collect(zero(T) : grid_step : (boundary_length-1) * grid_step)))
         #     push!(high_boundary_coefs, reverse(low_boundary_coefs[i]))
@@ -65,6 +71,12 @@ end
 
 function derivative!{T<:Real}(dy::Vector{T}, y::Vector{T}, fd::LinearOperator{T})
     N = length(y)
+    #=
+        Derivative is calculated in 3 parts:-
+            1. For the initial boundary points
+            2. For the middle points
+            3. For the terminating boundary points
+    =#
     @inbounds for i in 1 : fd.boundary_point_count
         bc = fd.low_boundary_coefs[i]
         tmp = zero(T)
@@ -98,6 +110,10 @@ end
 
 
 function construct_differentiation_matrix{T<:Real}(N::Int, fd::LinearOperator{T})
+    #=
+        This is for calculating the derivative in one go. But we are creating a function
+        which can calculate the derivative by-passing the costly matrix multiplication.
+    =#
     D = zeros(T, N, N)
     for i in 1 : fd.boundary_point_count
         D[i, 1 : fd.boundary_length] = fd.low_boundary_coefs[i]
@@ -114,7 +130,7 @@ end
 
 
 immutable FiniteDifference <: AbstractLinearOperator
-    # TODO: the general case
+    # TODO: the general case ie. with an uneven grid
 end
 
 
@@ -158,6 +174,10 @@ end
 
 function convolve!{T<:Real}(x_temp::Vector{T}, x::Vector{T}, coeffs::Array{T,1},
                    i::Int64, mid::Int64, wndw_low::Int64, wndw_high::Int64)
+    #=
+        Here we are taking the weighted sum of a window of the input vector to calculate the derivative
+        at the middle point. This requires choosing the end points carefully which are being passed from above.
+    =#
     x_temp[i] = sum(coeffs[wndw_low:wndw_high] .* x[(i-(mid-wndw_low)):(i+(wndw_high-mid))])
 end
 
