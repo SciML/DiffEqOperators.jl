@@ -1,5 +1,6 @@
 import LinearMaps: LinearMap, AbstractLinearMap
 import Base: *
+export sparse_full
 
 abstract AbstractLinearOperator{T} <: AbstractLinearMap{T}
 
@@ -13,9 +14,6 @@ function *(A::AbstractLinearOperator,x::AbstractVector)
     return y
 end
 
-Base.length(fdg::AbstractLinearOperator) = fdg.stencil_length
-Base.ndims(fdg::AbstractLinearOperator) = 1
-Base.size(fdg::AbstractLinearOperator) = fdg.stencil_length
 
 immutable LinearOperator{T<:Real} <: AbstractLinearOperator{T}
     derivative_order    :: Int
@@ -129,9 +127,9 @@ function construct_differentiation_matrix{T<:Real}(N::Int, fd::LinearOperator{T}
 end
 
 
-immutable FiniteDifference <: AbstractLinearOperator
-    # TODO: the general case ie. with an uneven grid
-end
+# immutable FiniteDifference <: AbstractLinearOperator
+#     # TODO: the general case ie. with an uneven grid
+# end
 
 
 # This implements the Fornberg algorithm to obtain FD weights over arbitrary points to arbitrary order
@@ -172,7 +170,7 @@ function calculate_weights{T<:Real}(order::Int, x0::T, x::Vector{T})
     # return C
 end
 
-function convolve!{T<:Real}(x_temp::Vector{T}, x::Vector{T}, coeffs::Array{T,1},
+function convolve!{T<:Real}(x_temp::AbstractVector{T}, x::AbstractVector{T}, coeffs::Array{T,1},
                    i::Int64, mid::Int64, wndw_low::Int64, wndw_high::Int64)
     #=
         Here we are taking the weighted sum of a window of the input vector to calculate the derivative
@@ -223,4 +221,48 @@ function Base.A_mul_B!{T1<:Real, T2<:Real}(x_temp::AbstractVector{T1}, fdg::Abst
         wndw_high = Int(min(stencil_length, high(i)))
         convolve!(x_temp, x, coeffs, i, mid, wndw_low, wndw_high)
     end
+end
+
+
+Base.length(fdg::LinearOperator) = fdg.stencil_length
+Base.ndims(fdg::LinearOperator) = 1
+Base.size(fdg::LinearOperator) = (fdg.stencil_length, fdg.stencil_length)
+
+#=
+    Currently, for the evenly spaced grid we have a symmetric matrix
+=#
+Base.transpose(fdg::LinearOperator) = fdg
+Base.ctranspose(fdg::LinearOperator) = fdg
+Base.issymmetric(::AbstractLinearOperator) = true
+
+function Base.full{T}(A::LinearOperator{T}, N::Int64)
+    @assert N >= A.stencil_length # stencil must be able to fit in the matrix
+    mat = zeros(T, (N, N))
+    v = zeros(T, N)
+    for i=1:N
+        v[i] = one(T)
+        #=
+            calculating the effect on a unit vector to get the matrix of transformation
+            to get the vector in the new vector space.
+        =#
+        A_mul_B!(view(mat,:,i), A, v)
+        v[i] = zero(T)
+    end
+    return mat
+end
+
+function sparse_full{T}(A::LinearOperator{T}, N::Int64)
+    @assert N >= A.stencil_length # stencil must be able to fit in the matrix
+    mat = spzeros(T, N, N)
+    v = zeros(T, N)
+    for i=1:N
+        v[i] = one(T)
+        #=
+            calculating the effect on a unit vector to get the matrix of transformation
+            to get the vector in the new vector space.
+        =#
+        A_mul_B!(view(mat,:,i), A, v)
+        v[i] = zero(T)
+    end
+    return mat
 end
