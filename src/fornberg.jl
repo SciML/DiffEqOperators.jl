@@ -9,7 +9,8 @@ function *(A::AbstractLinearOperator,x::AbstractVector)
         We will output a vector which is a supertype of the types of A and x
         to ensure numerical stability
     =#
-    y = similar(x, promote_type(eltype(A),eltype(x)), size(x))
+    y = zeros(promote_type(eltype(A),eltype(x)), size(A,1))
+
     Base.A_mul_B!(y, A::AbstractLinearOperator, x::AbstractVector)
     return y
 end
@@ -18,14 +19,16 @@ end
 immutable LinearOperator{T<:Real} <: AbstractLinearOperator{T}
     derivative_order    :: Int
     approximation_order :: Int
+    dimension           :: Int
     stencil_length      :: Int
     stencil_coefs       :: Vector{T}
     boundary_point_count:: Int
     boundary_length     :: Int
-    low_boundary_coefs  :: Vector{Vector{T}}
-    high_boundary_coefs :: Vector{Vector{T}}
+    # low_boundary_coefs  :: Vector{Vector{T}}
+    # high_boundary_coefs :: Vector{Vector{T}}
 
-    function LinearOperator(derivative_order::Int, approximation_order::Int)
+    function LinearOperator(derivative_order::Int, approximation_order::Int, dimension::Int)
+        dimension            = dimension
         stencil_length       = derivative_order + approximation_order - 1
         boundary_length      = derivative_order + approximation_order
         boundary_point_count = stencil_length - div(stencil_length,2) + 1
@@ -49,12 +52,12 @@ immutable LinearOperator{T<:Real} <: AbstractLinearOperator{T}
         #     push!(high_boundary_coefs, reverse(low_boundary_coefs[i]))
         #     isodd(derivative_order) ? high_boundary_coefs = -high_boundary_coefs : nothing
         # end
-        new(derivative_order, approximation_order, stencil_length,
+        new(derivative_order, approximation_order, dimension, stencil_length,
             stencil_coefs,
             boundary_point_count,
-            boundary_length,
-            low_boundary_coefs,
-            high_boundary_coefs
+            boundary_length
+            # low_boundary_coefs,
+            # high_boundary_coefs
         )
     end
 end
@@ -176,7 +179,9 @@ function convolve!{T<:Real}(x_temp::AbstractVector{T}, x::AbstractVector{T}, coe
         Here we are taking the weighted sum of a window of the input vector to calculate the derivative
         at the middle point. This requires choosing the end points carefully which are being passed from above.
     =#
-    x_temp[i] = sum(coeffs[wndw_low:wndw_high] .* x[(i-(mid-wndw_low)):(i+(wndw_high-mid))])
+    @inbounds for idx in wndw_low:wndw_high
+        x_temp[i] += coeffs[idx] * x[i - (mid-idx)]
+    end
 end
 
 function Base.A_mul_B!{T1<:Real, T2<:Real}(x_temp::AbstractVector{T1}, fdg::AbstractLinearOperator{T1}, x::AbstractVector{T2})
@@ -224,9 +229,10 @@ function Base.A_mul_B!{T1<:Real, T2<:Real}(x_temp::AbstractVector{T1}, fdg::Abst
 end
 
 
-Base.length(fdg::LinearOperator) = fdg.stencil_length
-Base.ndims(fdg::LinearOperator) = 1
-Base.size(fdg::LinearOperator) = (fdg.stencil_length, fdg.stencil_length)
+# Base.length(fdg::LinearOperator) = fdg.stencil_length
+Base.ndims(fdg::LinearOperator) = 2
+Base.size(fdg::LinearOperator) = (fdg.dimension, fdg.dimension)
+Base.length(A::LinearOperator) = reduce(*, size(A))
 
 #=
     Currently, for the evenly spaced grid we have a symmetric matrix
@@ -251,7 +257,7 @@ function Base.full{T}(A::LinearOperator{T}, N::Int64)
     return mat
 end
 
-function sparse_full{T}(A::LinearOperator{T}, N::Int64)
+function sparse_full{T}(A::LinearOperator{T}, N::Int64=A.dimension)
     @assert N >= A.stencil_length # stencil must be able to fit in the matrix
     mat = spzeros(T, N, N)
     v = zeros(T, N)
