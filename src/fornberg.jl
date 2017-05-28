@@ -1,6 +1,7 @@
 import LinearMaps: LinearMap, AbstractLinearMap
 import Base: *
 export sparse_full
+using StaticArrays
 
 abstract AbstractLinearOperator{T} <: AbstractLinearMap{T}
 
@@ -10,8 +11,7 @@ function *(A::AbstractLinearOperator,x::AbstractVector)
         to ensure numerical stability
     =#
     y = zeros(promote_type(eltype(A),eltype(x)), size(A,1))
-
-    Base.A_mul_B!(y, A::AbstractLinearOperator, x::AbstractVector)
+    Base.A_mul_B!(y, A::AbstractLinearOperator, x::AbstractVector, A.stencil_length)
     return y
 end
 
@@ -21,7 +21,7 @@ immutable LinearOperator{T<:Real} <: AbstractLinearOperator{T}
     approximation_order :: Int
     dimension           :: Int
     stencil_length      :: Int
-    stencil_coefs       :: Vector{T}
+    stencil_coefs       :: StaticArray{T}
     boundary_point_count:: Int
     boundary_length     :: Int
     # low_boundary_coefs  :: Vector{Vector{T}}
@@ -37,15 +37,6 @@ immutable LinearOperator{T<:Real} <: AbstractLinearOperator{T}
         high_boundary_coefs  = Vector{T}[]
         stencil_coefs        = calculate_weights(derivative_order, zero(T),
                                grid_step .* collect(-div(stencil_length,2) : 1 : div(stencil_length,2)))
-
-        #=
-            This is to fix the problem of numerical instability which occurs when the sum of the stencil_coefficients is not
-            exactly 0.
-            https://scicomp.stackexchange.com/questions/11249/numerical-derivative-and-finite-difference-coefficients-any-update-of-the-fornb
-            Stack Overflow answer on this issue.
-            http://epubs.siam.org/doi/pdf/10.1137/S0036144596322507 - Modified Fornberg Algorithm
-        =#
-        stencil_coefs[div(stencil_length,2)+1] -= sum(stencil_coefs)
 
         # for i in 1 : boundary_point_count
         #     push!(low_boundary_coefs, calculate_weights(derivative_order, (i-1)*grid_step, collect(zero(T) : grid_step : (boundary_length-1) * grid_step)))
@@ -160,7 +151,7 @@ function calculate_weights{T<:Real}(order::Int, x0::T, x::Vector{T})
                     C[i1,s1] = c1*(s*C[i,s] - c5*C[i,s1]) / c2
                 end
                 C[i1,1] = -c1*c5*C[i,1] / c2
-            end
+           end
             for s in mn : -1 : 1
                 s1 = s + 1
                 C[j1,s1] = (c4*C[j1,s1] - s*C[j1,s]) / c3
@@ -169,12 +160,20 @@ function calculate_weights{T<:Real}(order::Int, x0::T, x::Vector{T})
         end
         c1 = c2
     end
-    return C[:,end]
+    #=
+        This is to fix the problem of numerical instability which occurs when the sum of the stencil_coefficients is not
+        exactly 0.
+        https://scicomp.stackexchange.com/questions/11249/numerical-derivative-and-finite-difference-coefficients-any-update-of-the-fornb
+        Stack Overflow answer on this issue.
+        http://epubs.siam.org/doi/pdf/10.1137/S0036144596322507 - Modified Fornberg Algorithm
+    =#
+    C[:,end][div(N,2)+1] -= sum(C[:,end])
+    return convert(SVector{N, T}, C[:,end])
     # return C
 end
 
-function convolve!{T<:Real}(x_temp::AbstractVector{T}, x::AbstractVector{T}, coeffs::Array{T,1},
-                   i::Int64, mid::Int64, wndw_low::Int64, wndw_high::Int64)
+function convolve!{T<:Real}(x_temp::AbstractVector{T}, x::AbstractVector{T}, coeffs::SVector,
+                   i::Int, mid::Int, wndw_low::Int, wndw_high::Int)
     #=
         Here we are taking the weighted sum of a window of the input vector to calculate the derivative
         at the middle point. This requires choosing the end points carefully which are being passed from above.
@@ -184,13 +183,12 @@ function convolve!{T<:Real}(x_temp::AbstractVector{T}, x::AbstractVector{T}, coe
     end
 end
 
-function Base.A_mul_B!{T1<:Real, T2<:Real}(x_temp::AbstractVector{T1}, fdg::AbstractLinearOperator{T1}, x::AbstractVector{T2})
+function Base.A_mul_B!{T<:Real}(x_temp::AbstractVector{T}, fdg::AbstractLinearOperator{T}, x::AbstractVector{T}, stencil_length::Int)
     coeffs = fdg.stencil_coefs
-    stencil_length = length(coeffs)
     mid = div(stencil_length, 2) + 1
     boundary_point_count = stencil_length - mid
     L = length(x)
-    x = convert(Array{promote_type(T1, T2), 1}, x)
+    # x = convert(Array{T,1}, x)
 
     #=
         The high and low functions determine the starting and ending indices of the weight vector.
@@ -241,7 +239,7 @@ Base.transpose(fdg::LinearOperator) = fdg
 Base.ctranspose(fdg::LinearOperator) = fdg
 Base.issymmetric(::AbstractLinearOperator) = true
 
-function Base.full{T}(A::LinearOperator{T}, N::Int64)
+function Base.full{T}(A::LinearOperator{T}, N::Int)
     @assert N >= A.stencil_length # stencil must be able to fit in the matrix
     mat = zeros(T, (N, N))
     v = zeros(T, N)
@@ -257,7 +255,7 @@ function Base.full{T}(A::LinearOperator{T}, N::Int64)
     return mat
 end
 
-function sparse_full{T}(A::LinearOperator{T}, N::Int64=A.dimension)
+function sparse_full{T}(A::LinearOperator{T}, N::Int=A.dimension)
     @assert N >= A.stencil_length # stencil must be able to fit in the matrix
     mat = spzeros(T, N, N)
     v = zeros(T, N)
