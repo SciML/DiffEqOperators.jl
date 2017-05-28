@@ -16,12 +16,12 @@ function *(A::AbstractLinearOperator,x::AbstractVector)
 end
 
 
-immutable LinearOperator{T<:Real} <: AbstractLinearOperator{T}
+immutable LinearOperator{T<:Real,S<:SVector} <: AbstractLinearOperator{T}
     derivative_order    :: Int
     approximation_order :: Int
     dimension           :: Int
     stencil_length      :: Int
-    stencil_coefs       :: StaticArray{T}
+    stencil_coefs       :: S
     boundary_point_count:: Int
     boundary_length     :: Int
     # low_boundary_coefs  :: Vector{Vector{T}}
@@ -167,8 +167,9 @@ function calculate_weights{T<:Real}(order::Int, x0::T, x::Vector{T})
         Stack Overflow answer on this issue.
         http://epubs.siam.org/doi/pdf/10.1137/S0036144596322507 - Modified Fornberg Algorithm
     =#
-    C[:,end][div(N,2)+1] -= sum(C[:,end])
-    return convert(SVector{N, T}, C[:,end])
+    _C = C[:,end]
+    _C[div(N,2)+1] -= sum(_C)
+    return convert(SVector{N, T}, _C)
     # return C
 end
 
@@ -183,9 +184,13 @@ function convolve!{T<:Real}(x_temp::AbstractVector{T}, x::AbstractVector{T}, coe
     end
 end
 
+calc_mid(stencil_length::Int) = div(stencil_length,2)+1
+
+
 function Base.A_mul_B!{T<:Real}(x_temp::AbstractVector{T}, fdg::AbstractLinearOperator{T}, x::AbstractVector{T}, stencil_length::Int)
     coeffs = fdg.stencil_coefs
-    mid = div(stencil_length, 2) + 1
+    mid = calc_mid(stencil_length)
+    calc_mid(stencil_length)
     boundary_point_count = stencil_length - mid
     L = length(x)
     # x = convert(Array{T,1}, x)
