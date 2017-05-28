@@ -11,7 +11,7 @@ function *(A::AbstractLinearOperator,x::AbstractVector)
         to ensure numerical stability
     =#
     y = zeros(promote_type(eltype(A),eltype(x)), size(A,1))
-    Base.A_mul_B!(y, A::AbstractLinearOperator, x::AbstractVector, A.stencil_length)
+    Base.A_mul_B!(y, A::AbstractLinearOperator, x::AbstractVector)
     return y
 end
 
@@ -27,6 +27,10 @@ immutable LinearOperator{T<:Real,S<:SVector} <: AbstractLinearOperator{T}
     # low_boundary_coefs  :: Vector{Vector{T}}
     # high_boundary_coefs :: Vector{Vector{T}}
 
+    # function LinearOperator{T1<:Real}(dorder::Int, aorder::Int, dim::Int)
+    #         slen = dorder + aorder - 1
+    #         new{T1, SVector{slen,T1}}(dorder, aorder, dim)
+    # end
     function LinearOperator(derivative_order::Int, approximation_order::Int, dimension::Int)
         dimension            = dimension
         stencil_length       = derivative_order + approximation_order - 1
@@ -51,6 +55,8 @@ immutable LinearOperator{T<:Real,S<:SVector} <: AbstractLinearOperator{T}
             # high_boundary_coefs
         )
     end
+    (::Type{LinearOperator{T}}){T<:Real}(dorder::Int, aorder::Int, dim::Int) =
+    LinearOperator{T, SVector{dorder+aorder-1,T}}(dorder, aorder, dim)
 end
 
 
@@ -173,6 +179,7 @@ function calculate_weights{T<:Real}(order::Int, x0::T, x::Vector{T})
     # return C
 end
 
+
 function convolve!{T<:Real}(x_temp::AbstractVector{T}, x::AbstractVector{T}, coeffs::SVector,
                    i::Int, mid::Int, wndw_low::Int, wndw_high::Int)
     #=
@@ -184,11 +191,10 @@ function convolve!{T<:Real}(x_temp::AbstractVector{T}, x::AbstractVector{T}, coe
     end
 end
 
-calc_mid(stencil_length::Int) = div(stencil_length,2)+1
 
-
-function Base.A_mul_B!{T<:Real}(x_temp::AbstractVector{T}, fdg::AbstractLinearOperator{T}, x::AbstractVector{T}, stencil_length::Int)
+function Base.A_mul_B!{T<:Real}(x_temp::AbstractVector{T}, fdg::AbstractLinearOperator{T}, x::AbstractVector{T})
     coeffs = fdg.stencil_coefs
+    stencil_length = fdg.stencil_length
     mid = calc_mid(stencil_length)
     calc_mid(stencil_length)
     boundary_point_count = stencil_length - mid
