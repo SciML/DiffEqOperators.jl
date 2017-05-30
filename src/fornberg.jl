@@ -31,14 +31,14 @@ immutable LinearOperator{T<:Real,S<:SVector} <: AbstractLinearOperator{T}
     #         slen = dorder + aorder - 1
     #         new{T1, SVector{slen,T1}}(dorder, aorder, dim)
     # end
-    function LinearOperator(derivative_order::Int, approximation_order::Int, dimension::Int)
+    Base.@pure function LinearOperator(derivative_order::Int, approximation_order::Int, dimension::Int)
         dimension            = dimension
         stencil_length       = derivative_order + approximation_order - 1
         boundary_length      = derivative_order + approximation_order
         boundary_point_count = stencil_length - div(stencil_length,2) + 1
         grid_step            = one(T)
-        low_boundary_coefs   = Vector{T}[]
-        high_boundary_coefs  = Vector{T}[]
+        #low_boundary_coefs   = Vector{T}[]
+        #high_boundary_coefs  = Vector{T}[]
         stencil_coefs        = calculate_weights(derivative_order, zero(T),
                                grid_step .* collect(-div(stencil_length,2) : 1 : div(stencil_length,2)))
 
