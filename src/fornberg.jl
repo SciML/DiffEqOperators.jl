@@ -195,8 +195,7 @@ end
 function Base.A_mul_B!{T<:Real}(x_temp::AbstractVector{T}, fdg::AbstractLinearOperator{T}, x::AbstractVector{T})
     coeffs = fdg.stencil_coefs
     stencil_length = fdg.stencil_length
-    mid = calc_mid(stencil_length)
-    calc_mid(stencil_length)
+    mid = div(stencil_length, 2) + 1
     boundary_point_count = stencil_length - mid
     L = length(x)
     # x = convert(Array{T,1}, x)
@@ -230,7 +229,7 @@ function Base.A_mul_B!{T<:Real}(x_temp::AbstractVector{T}, fdg::AbstractLinearOp
     low(i) = mid + (i-1)*(1-mid)/boundary_point_count
     high(i) = stencil_length - (stencil_length-mid)*(i-L+boundary_point_count)/(boundary_point_count)
 
-    for i in 1 : length(x)
+    Threads.@threads for i in 1 : length(x)
         wndw_low = Int(max(1, low(i)))
         wndw_high = Int(min(stencil_length, high(i)))
         convolve!(x_temp, x, coeffs, i, mid, wndw_low, wndw_high)
