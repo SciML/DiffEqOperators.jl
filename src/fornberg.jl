@@ -186,9 +186,11 @@ function convolve!{T<:Real}(x_temp::AbstractVector{T}, x::AbstractVector{T}, coe
         Here we are taking the weighted sum of a window of the input vector to calculate the derivative
         at the middle point. This requires choosing the end points carefully which are being passed from above.
     =#
+    xtempi = x_temp[i]
     @inbounds for idx in wndw_low:wndw_high
-        x_temp[i] += coeffs[idx] * x[i - (mid-idx)]
+        xtempi += coeffs[idx] * x[i - (mid-idx)]
     end
+    x_temp[i] = xtempi
 end
 
 
@@ -198,7 +200,6 @@ function Base.A_mul_B!{T<:Real}(x_temp::AbstractVector{T}, fdg::AbstractLinearOp
     mid = div(stencil_length, 2) + 1
     boundary_point_count = stencil_length - mid
     L = length(x)
-    # x = convert(Array{T,1}, x)
 
     #=
         The high and low functions determine the starting and ending indices of the weight vector.
