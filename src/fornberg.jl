@@ -1,6 +1,7 @@
 import LinearMaps: LinearMap, AbstractLinearMap
-import Base: *
-export sparse_full
+import BandedMatrices: BandedMatrix
+import Base: *, getindex
+export sparse_full, BandedMatrix
 using StaticArrays
 
 abstract AbstractLinearOperator{T} <: AbstractLinearMap{T}
@@ -57,6 +58,66 @@ immutable LinearOperator{T<:Real,S<:SVector} <: AbstractLinearOperator{T}
     end
     (::Type{LinearOperator{T}}){T<:Real}(dorder::Int, aorder::Int, dim::Int) =
     LinearOperator{T, SVector{dorder+aorder-1,T}}(dorder, aorder, dim)
+end
+
+
+
+# ~ bound checking functions ~
+checkbounds(A::AbstractLinearOperator, k::Integer, j::Integer) =
+    (0 < k ≤ size(A, 1) && 0 < j ≤ size(A, 2) || throw(BoundsError(A, (k,j))))
+
+checkbounds(A::AbstractLinearOperator, kr::Range, j::Integer) =
+    (checkbounds(A, first(kr), j); checkbounds(A,  last(kr), j))
+
+checkbounds(A::AbstractLinearOperator, k::Integer, jr::Range) =
+    (checkbounds(A, k, first(jr)); checkbounds(A, k,  last(jr)))
+
+checkbounds(A::AbstractLinearOperator, kr::Range, jr::Range) =
+    (checkbounds(A, kr, first(jr)); checkbounds(A, kr,  last(jr)))
+
+checkbounds(A::AbstractLinearOperator, k::Colon, j::Integer) =
+    (0 < j ≤ size(A, 2) || throw(BoundsError(A, (size(A,1),j))))
+
+checkbounds(A::AbstractLinearOperator, k::Integer, j::Colon) =
+    (0 < k ≤ size(A, 1) || throw(BoundsError(A, (k,size(A,2)))))
+
+
+BandedMatrix(A::LinearOperator) = BandedMatrix(full(A, A.stencil_length), A.stencil_length, div(A.stencil_length,2), div(A.stencil_length,2))
+
+# ~~ getindex ~~
+@inline function getindex(A::LinearOperator, i::Int, j::Int)
+    @boundscheck checkbounds(A, i, j)
+    mid = div(A.stencil_length, 2) + 1
+    bpc = A.stencil_length - mid
+    l = max(1, low(j, mid, bpc))
+    h = min(A.stencil_length, high(j, mid, bpc, A.stencil_length, A.dimension))
+    slen = h - l + 1
+    if abs(i - j) > div(slen, 2)
+        return 0
+    else
+        return A.stencil_coefs[mid + j - i]
+    end
+end
+
+# scalar - colon - colon
+@inline getindex(A::LinearOperator, kr::Colon, jr::Colon) = full(A)
+
+@inline function getindex(A::LinearOperator, rc::Colon, j)
+    T = eltype(A.stencil_coefs)
+    v = zeros(T, A.dimension)
+    v[j] = one(T)
+    copy!(v, A*v)
+    return v
+end
+
+
+# symmetric right now
+@inline function getindex(A::LinearOperator, i, cc::Colon)
+    T = eltype(A.stencil_coefs)
+    v = zeros(T, A.dimension)
+    v[i] = one(T)
+    copy!(v, A*v)
+    return v
 end
 
 
@@ -194,11 +255,15 @@ function convolve!{T<:Real}(x_temp::AbstractVector{T}, x::AbstractVector{T}, coe
 end
 
 
-function Base.A_mul_B!{T<:Real}(x_temp::AbstractVector{T}, fdg::AbstractLinearOperator{T}, x::AbstractVector{T})
-    coeffs = fdg.stencil_coefs
-    stencil_length = fdg.stencil_length
+low(i::Int, mid::Int, bpc::Int) = Int(mid + (i-1)*(1-mid)/bpc)
+high(i::Int, mid::Int, bpc::Int, slen::Int, L::Int) = Int(slen - (slen-mid)*(i-L+bpc)/(bpc))
+
+
+function Base.A_mul_B!{T<:Real}(x_temp::AbstractVector{T}, A::AbstractLinearOperator{T}, x::AbstractVector{T})
+    coeffs = A.stencil_coefs
+    stencil_length = A.stencil_length
     mid = div(stencil_length, 2) + 1
-    boundary_point_count = stencil_length - mid
+    bpc = stencil_length - mid
     L = length(x)
 
     #=
@@ -227,27 +292,24 @@ function Base.A_mul_B!{T<:Real}(x_temp::AbstractVector{T}, fdg::AbstractLinearOp
         the left and right index of the stencil as a function of the index i (where we need to find the derivative).
     =#
 
-    low(i) = mid + (i-1)*(1-mid)/boundary_point_count
-    high(i) = stencil_length - (stencil_length-mid)*(i-L+boundary_point_count)/(boundary_point_count)
-
     Threads.@threads for i in 1 : length(x)
-        wndw_low = Int(max(1, low(i)))
-        wndw_high = Int(min(stencil_length, high(i)))
+        wndw_low = max(1, low(i, mid, bpc))
+        wndw_high = min(stencil_length, high(i, mid, bpc, stencil_length, L))
         convolve!(x_temp, x, coeffs, i, mid, wndw_low, wndw_high)
     end
 end
 
 
-# Base.length(fdg::LinearOperator) = fdg.stencil_length
-Base.ndims(fdg::LinearOperator) = 2
-Base.size(fdg::LinearOperator) = (fdg.dimension, fdg.dimension)
+# Base.length(A::LinearOperator) = A.stencil_length
+Base.ndims(A::LinearOperator) = 2
+Base.size(A::LinearOperator) = (A.dimension, A.dimension)
 Base.length(A::LinearOperator) = reduce(*, size(A))
 
 #=
     Currently, for the evenly spaced grid we have a symmetric matrix
 =#
-Base.transpose(fdg::LinearOperator) = fdg
-Base.ctranspose(fdg::LinearOperator) = fdg
+Base.transpose(A::LinearOperator) = A
+Base.ctranspose(A::LinearOperator) = A
 Base.issymmetric(::AbstractLinearOperator) = true
 
 function Base.full{T}(A::LinearOperator{T}, N::Int)
