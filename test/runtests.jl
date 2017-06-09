@@ -33,16 +33,14 @@ res = A*y
 # tests for full and sparse_full function
 d_order = 2
 approx_order = 2
-
+L = 10
 A = LinearOperator{Float64}(d_order,approx_order,L)
 using SpecialMatrices
-m = full(A, L)
-spm =  sparse_full(A, L)
+m = full(A)
+spm =  sparse_full(A)
 @test m == spm;
 
 @test m == -Strang(L); # Strang Matrix is defined with the center term +ve
-m = full(A, 10)
-@test m == -Strang(10); # Strang Matrix is defined with the center term +ve
 
 # testing correctness
 L = 1000
@@ -53,8 +51,8 @@ y = convert(Array{BigFloat, 1}, y)
 
 A = LinearOperator{BigFloat}(d_order,approx_order,L)
 boundary_points = A.boundary_point_count
-mat = full(A, L)
-smat = full(A, L)
+mat = full(A)
+smat = full(A)
 
 res = A*y
 @test_approx_eq_eps res[boundary_points + 1: L - boundary_points] 24.0*ones(L - 2*boundary_points) 10.0^-approx_order;

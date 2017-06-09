@@ -312,8 +312,8 @@ Base.transpose(A::LinearOperator) = A
 Base.ctranspose(A::LinearOperator) = A
 Base.issymmetric(::AbstractLinearOperator) = true
 
-function Base.full{T}(A::LinearOperator{T}, N::Int)
-    @assert N >= A.stencil_length # stencil must be able to fit in the matrix
+function Base.full{T}(A::LinearOperator{T})
+    N = A.dimension
     mat = zeros(T, (N, N))
     v = zeros(T, N)
     for i=1:N
@@ -328,17 +328,20 @@ function Base.full{T}(A::LinearOperator{T}, N::Int)
     return mat
 end
 
-function sparse_full{T}(A::LinearOperator{T}, N::Int=A.dimension)
-    @assert N >= A.stencil_length # stencil must be able to fit in the matrix
+function sparse_full{T}(A::LinearOperator{T})
+    N = A.dimension
     mat = spzeros(T, N, N)
     v = zeros(T, N)
+    row = zeros(T, N)
     for i=1:N
         v[i] = one(T)
         #=
             calculating the effect on a unit vector to get the matrix of transformation
             to get the vector in the new vector space.
         =#
-        A_mul_B!(view(mat,:,i), A, v)
+        A_mul_B!(row, A, v)
+        copy!(view(mat,:,i), row)
+        row .= 0.*row;
         v[i] = zero(T)
     end
     return mat
