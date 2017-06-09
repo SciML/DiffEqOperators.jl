@@ -120,7 +120,65 @@ end
     return v
 end
 
+# UnitRanges
+@inline function getindex(A::LinearOperator, rng::UnitRange{Int}, cc::Colon)
+    m = full(A)
+    return m[rng, cc]
+end
 
+
+@inline function getindex(A::LinearOperator, rc::Colon, rng::UnitRange{Int})
+    m = full(A)
+    return m[rnd, cc]
+end
+
+
+@inline function getindex(A::LinearOperator, r::Int, rng::UnitRange{Int})
+    m = A[r, :]
+    return m[rng]
+end
+
+
+@inline function getindex(A::LinearOperator, rng::UnitRange{Int}, c::Int)
+    m = A[:, c]
+    return m[rng]
+end
+
+
+@inline function getindex{T}(A::LinearOperator{T}, rng::UnitRange{Int}, cng::UnitRange{Int})
+    N = A.dimension
+    if (rng[end] - rng[1]) > ((cng[end] - cng[1]))
+        mat = zeros(T, (N, length(cng)))
+        v = zeros(T, N)
+        for i = cng
+            v[i] = one(T)
+            #=
+                calculating the effect on a unit vector to get the matrix of transformation
+                to get the vector in the new vector space.
+            =#
+            A_mul_B!(view(mat, :, i - cng[1] + 1), A, v)
+            v[i] = zero(T)
+        end
+        return mat[rng, :]
+
+    else
+        mat = zeros(T, (length(rng), N))
+        v = zeros(T, N)
+        for i = rng
+            v[i] = one(T)
+            #=
+                calculating the effect on a unit vector to get the matrix of transformation
+                to get the vector in the new vector space.
+            =#
+            A_mul_B!(view(mat, i - rng[1] + 1, :), A, v)
+            v[i] = zero(T)
+        end
+        return mat[:, cng]
+    end
+end
+
+#############################################################
+# Fornberg algorithm
 function derivative{T<:Real}(y::Vector{T}, fd::LinearOperator{T})
     dy = zeros(T, length(y))
     derivative!(dy, y, fd)
@@ -312,8 +370,8 @@ Base.transpose(A::LinearOperator) = A
 Base.ctranspose(A::LinearOperator) = A
 Base.issymmetric(::AbstractLinearOperator) = true
 
-function Base.full{T}(A::LinearOperator{T})
-    N = A.dimension
+function Base.full{T}(A::LinearOperator{T}, N::Int=A.dimension)
+    @assert N >= A.stencil_length # stencil must be able to fit in the matrix
     mat = zeros(T, (N, N))
     v = zeros(T, N)
     for i=1:N

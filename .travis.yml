@@ -6,7 +6,7 @@ os:
 julia:
   - release
   - 0.5
-  - nightly
+  - 0.6
 allow_failures:
     - julia: 0.6
     - julia: nightly

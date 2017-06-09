@@ -74,3 +74,15 @@ for i in 1:L
     @test A[i,i] == A.stencil_coefs[div(A.stencil_length, 2) + 1]
 end
 
+# Indexing Tests
+L = 1000
+d_order = 2
+approx_order = 2
+
+A = LinearOperator{Float64}(d_order,approx_order,L)
+M = full(A)
+
+@test A[1,1] == -2.0
+@test A[1:4,1] == M[1:4,1]
+@test A[5,2:10] == M[5,2:10]
+@test A[60:100,500:600] == M[60:100,500:600]
