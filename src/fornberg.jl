@@ -1,10 +1,3 @@
-import LinearMaps: LinearMap, AbstractLinearMap
-import Base: *
-export sparse_full
-using StaticArrays
-
-abstract AbstractLinearOperator{T} <: AbstractLinearMap{T}
-
 function *(A::AbstractLinearOperator,x::AbstractVector)
     #=
         We will output a vector which is a supertype of the types of A and x
@@ -58,6 +51,9 @@ immutable LinearOperator{T<:Real,S<:SVector} <: AbstractLinearOperator{T}
     (::Type{LinearOperator{T}}){T<:Real}(dorder::Int, aorder::Int, dim::Int) =
     LinearOperator{T, SVector{dorder+aorder-1,T}}(dorder, aorder, dim)
 end
+
+(L::LinearOperator)(t,u) = L*u
+(L::LinearOperator)(t,u,du) = A_mul_B!(du,L,u)
 
 
 function derivative{T<:Real}(y::Vector{T}, fd::LinearOperator{T})
@@ -265,7 +261,7 @@ function Base.full{T}(A::LinearOperator{T}, N::Int)
     return mat
 end
 
-function sparse_full{T}(A::LinearOperator{T}, N::Int=A.dimension)
+function Base.sparse{T}(A::LinearOperator{T}, N::Int=A.dimension)
     @assert N >= A.stencil_length # stencil must be able to fit in the matrix
     mat = spzeros(T, N, N)
     v = zeros(T, N)
