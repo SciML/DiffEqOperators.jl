@@ -24,7 +24,7 @@ immutable LinearOperator{T<:Real,S<:SVector} <: AbstractLinearOperator{T}
     #         slen = dorder + aorder - 1
     #         new{T1, SVector{slen,T1}}(dorder, aorder, dim)
     # end
-    Base.@pure function LinearOperator(derivative_order::Int, approximation_order::Int, dimension::Int)
+    Base.@pure function LinearOperator{T,S}(derivative_order::Int, approximation_order::Int, dimension::Int) where {T<:Real,S<:SVector}
         dimension            = dimension
         stencil_length       = derivative_order + approximation_order - 1
         boundary_length      = derivative_order + approximation_order
@@ -345,8 +345,8 @@ function Base.A_mul_B!{T<:Real}(x_temp::AbstractVector{T}, A::AbstractLinearOper
     =#
 
     Threads.@threads for i in 1 : length(x)
-        wndw_low = max(1, low(i, mid, bpc))
-        wndw_high = min(stencil_length, high(i, mid, bpc, stencil_length, L))
+        wndw_low = i>bpc ? 1:max(1, low(i, mid, bpc))
+        wndw_high = i>L-bpc ? min(stencil_length, high(i, mid, bpc, stencil_length, L)):stencil_length
         convolve!(x_temp, x, coeffs, i, mid, wndw_low, wndw_high)
     end
 end
