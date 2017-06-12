@@ -3,10 +3,10 @@ __precompile__()
 module PDEOperators
 
 import LinearMaps: LinearMap, AbstractLinearMap
-import Base: *
+import Base: *, getindex
 using DiffEqBase, StaticArrays
 
-abstract AbstractLinearOperator{T} <: AbstractDiffEqOperator{T}
+abstract type AbstractLinearOperator{T} <: AbstractDiffEqOperator{T} end
 
 export PDEOperator
 include("fornberg.jl")
