@@ -4,7 +4,7 @@ function *(A::AbstractLinearOperator,x::AbstractVector)
         to ensure numerical stability
     =#
     y = zeros(promote_type(eltype(A),eltype(x)), size(A,1))
-    Base.A_mul_B!(y, A::AbstractLinearOperator, x::AbstractVector)
+    Base.A_mul_B!(y, A::AbstractLinearOperator, x::AbstractVector, BC = A.boundary_condition)
     return y
 end
 
@@ -17,6 +17,7 @@ immutable LinearOperator{T<:Real,S<:SVector} <: AbstractLinearOperator{T}
     stencil_coefs       :: S
     boundary_point_count:: Int
     boundary_length     :: Int
+    boundary_condition  :: Symbol
     # low_boundary_coefs  :: Vector{Vector{T}}
     # high_boundary_coefs :: Vector{Vector{T}}
 
@@ -24,12 +25,13 @@ immutable LinearOperator{T<:Real,S<:SVector} <: AbstractLinearOperator{T}
     #         slen = dorder + aorder - 1
     #         new{T1, SVector{slen,T1}}(dorder, aorder, dim)
     # end
-    Base.@pure function LinearOperator{T,S}(derivative_order::Int, approximation_order::Int, dimension::Int) where {T<:Real,S<:SVector}
+    Base.@pure function LinearOperator{T,S}(derivative_order::Int, approximation_order::Int, dimension::Int, bdc::Symbol=:D0) where {T<:Real,S<:SVector}
         dimension            = dimension
         stencil_length       = derivative_order + approximation_order - 1
         boundary_length      = derivative_order + approximation_order
         boundary_point_count = stencil_length - div(stencil_length,2) + 1
         grid_step            = one(T)
+        boundary_condition   = bdc
         #low_boundary_coefs   = Vector{T}[]
         #high_boundary_coefs  = Vector{T}[]
         stencil_coefs        = calculate_weights(derivative_order, zero(T),
@@ -43,13 +45,14 @@ immutable LinearOperator{T<:Real,S<:SVector} <: AbstractLinearOperator{T}
         new(derivative_order, approximation_order, dimension, stencil_length,
             stencil_coefs,
             boundary_point_count,
-            boundary_length
+            boundary_length,
+            boundary_condition
             # low_boundary_coefs,
             # high_boundary_coefs
         )
     end
-    (::Type{LinearOperator{T}}){T<:Real}(dorder::Int, aorder::Int, dim::Int) =
-    LinearOperator{T, SVector{dorder+aorder-1,T}}(dorder, aorder, dim)
+    (::Type{LinearOperator{T}}){T<:Real}(dorder::Int, aorder::Int, dim::Int, bdc::Symbol=:D0) =
+    LinearOperator{T, SVector{dorder+aorder-1,T}}(dorder, aorder, dim, bdc)
 end
 
 (L::LinearOperator)(t,u) = L*u
@@ -293,61 +296,24 @@ function calculate_weights{T<:Real}(order::Int, x0::T, x::Vector{T})
 end
 
 
-function convolve!{T<:Real}(x_temp::AbstractVector{T}, x::AbstractVector{T}, coeffs::SVector,
-                   i::Int, mid::Int, wndw_low::Int, wndw_high::Int)
-    #=
-        Here we are taking the weighted sum of a window of the input vector to calculate the derivative
-        at the middle point. This requires choosing the end points carefully which are being passed from above.
-    =#
-    xtempi = x_temp[i]
-    @inbounds for idx in wndw_low:wndw_high
-        xtempi += coeffs[idx] * x[i - (mid-idx)]
+function get_convolution_operator(boundary_condition::Symbol)
+    if boundary_condition == :D0
+        return dirichlet_0!
+    elseif boundary_condition == :periodic
+        return periodic!
+    # default
+    else
+        return dirichlet_0!
     end
-    x_temp[i] = xtempi
 end
 
 
-low(i::Int, mid::Int, bpc::Int) = Int(mid + (i-1)*(1-mid)/bpc)
-high(i::Int, mid::Int, bpc::Int, slen::Int, L::Int) = Int(slen - (slen-mid)*(i-L+bpc)/(bpc))
-
-
-function Base.A_mul_B!{T<:Real}(x_temp::AbstractVector{T}, A::AbstractLinearOperator{T}, x::AbstractVector{T})
+function Base.A_mul_B!{T<:Real}(x_temp::AbstractVector{T}, A::AbstractLinearOperator{T}, x::AbstractVector{T}; BC=:D0)
     coeffs = A.stencil_coefs
-    stencil_length = A.stencil_length
-    mid = div(stencil_length, 2) + 1
-    bpc = stencil_length - mid
     L = length(x)
-
-    #=
-        The high and low functions determine the starting and ending indices of the weight vector.
-        As we move along the input vector to calculate the derivative at the point, the weights which
-        are to be considered to calculate the derivative are to be chosen carefully. eg. at the boundaries,
-        only half of the stencil is going to be used to calculate the derivative at that point.
-        So, observing that the left index grows as:-
-                  i ^
-                    |       mid = ceil(stencil_length/2)
-               mid--|       bpc = boundary_point_count
-                    |\
-                    | \
-               0  <_|__\________>
-                    |  bpc      i
-
-        And the right index grows as:-
-                  i ^       mid = ceil(stencil_length/2)
-                    |       bpc = boundary_point_count
-               mid--|_______
-                    |       \
-                    |        \
-               0  <_|_________\___>
-                    |        bpc  i
-        The high and low functions are basically equations of these graphs which are used to calculate
-        the left and right index of the stencil as a function of the index i (where we need to find the derivative).
-    =#
-
+    convolution_kernal! = get_convolution_operator(BC)
     Threads.@threads for i in 1 : length(x)
-        wndw_low = i>bpc ? 1:max(1, low(i, mid, bpc))
-        wndw_high = i>L-bpc ? min(stencil_length, high(i, mid, bpc, stencil_length, L)):stencil_length
-        convolve!(x_temp, x, coeffs, i, mid, wndw_low, wndw_high)
+        convolution_kernal!(x_temp, x, coeffs, i)
     end
 end
 

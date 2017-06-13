@@ -3,12 +3,12 @@ using Base.Test
 using FactCheck
 using SpecialMatrices
 
-context("Basic multiplication: ")do
+context("Dirichlet Boundary Conditions: ")do
     N = 100
     d_order = 2
     approx_order = 2
     x = collect(1:1.0:N).^2
-    A = LinearOperator{Float64}(2,2,N)
+    A = LinearOperator{Float64}(2,2,N,:D0)
     boundary_points = A.boundary_point_count
 
     res = A*x
@@ -19,20 +19,45 @@ context("Basic multiplication: ")do
     approx_order = 10
     y = collect(1:1.0:N).^4 - 2*collect(1:1.0:N).^3 + collect(1:1.0:N).^2;
 
-    A = LinearOperator{Float64}(d_order,approx_order,N)
+    A = LinearOperator{Float64}(d_order,approx_order,N,:D0)
     boundary_points = A.boundary_point_count
 
     res = A*y
-    @test_approx_eq_eps res[boundary_points + 1: N - boundary_points] 24.0*ones(N - 2*boundary_points) 10.0^-1; # Float64 is less stable
+    @test res[boundary_points + 1: N - boundary_points] ≈ 24.0*ones(N - 2*boundary_points) atol=10.0^-1; # Float64 is less stable
 
-    A = LinearOperator{BigFloat}(d_order,approx_order,N)
+    A = LinearOperator{BigFloat}(d_order,approx_order,N,:D0)
     y = convert(Array{BigFloat, 1}, y)
     res = A*y
-    @test_approx_eq_eps res[boundary_points + 1: N - boundary_points] 24.0*ones(N - 2*boundary_points) 10.0^-approx_order;
+    @test res[boundary_points + 1: N - boundary_points] ≈ 24.0*ones(N - 2*boundary_points) atol=10.0^-approx_order;
 end
-# y = convert(Array{Rational, 1}, y)
-# res = A*y
-# @test_approx_eq_eps res[boundary_points + 1: N - boundary_points] 24.0*ones(N - 2*boundary_points) 10.0^-approx_order;
+
+context("Periodic Boundary")do
+    N = 100
+    d_order = 2
+    approx_order = 2
+    x = collect(1:1.0:N).^2
+    A = LinearOperator{Float64}(2,2,N,:periodic)
+    boundary_points = A.boundary_point_count
+
+    res = A*x
+    @test res[boundary_points + 1: N - boundary_points] == 2.0*ones(N - 2*boundary_points);
+
+    N = 1000
+    d_order = 4
+    approx_order = 10
+    y = collect(1:1.0:N).^4 - 2*collect(1:1.0:N).^3 + collect(1:1.0:N).^2;
+
+    A = LinearOperator{Float64}(d_order,approx_order,N,:periodic)
+    boundary_points = A.boundary_point_count
+
+    res = A*y
+    @test res[boundary_points + 1: N - boundary_points] ≈ 24.0*ones(N - 2*boundary_points) atol=10.0^-1; # Float64 is less stable
+
+    A = LinearOperator{BigFloat}(d_order,approx_order,N,:periodic)
+    y = convert(Array{BigFloat, 1}, y)
+    res = A*y
+    @test res[boundary_points + 1: N - boundary_points] ≈ 24.0*ones(N - 2*boundary_points) atol=10.0^-approx_order;
+end
 
 # tests for full and sparse function
 context("Full and Sparse functions")do
@@ -41,9 +66,9 @@ context("Full and Sparse functions")do
     approx_order = 2
     x = collect(1:1.0:N).^2
 
-    A = LinearOperator{Float64}(d_order,approx_order,N)
+    A = LinearOperator{Float64}(d_order,approx_order,N,:D0)
     mat = full(A)
-    sp_mat = sparse_full(A)
+    sp_mat = sparse(A)
     @test mat == sp_mat;
     @test full(A, 10) == -Strang(10); # Strang Matrix is defined with the center term +ve
     @test full(A, N) == -Strang(N); # Strang Matrix is defined with the center term +ve
@@ -56,17 +81,17 @@ context("Full and Sparse functions")do
     y = collect(1:1.0:N).^4 - 2*collect(1:1.0:N).^3 + collect(1:1.0:N).^2;
     y = convert(Array{BigFloat, 1}, y)
 
-    A = LinearOperator{BigFloat}(d_order,approx_order,N)
+    A = LinearOperator{BigFloat}(d_order,approx_order,N,:D0)
     boundary_points = A.boundary_point_count
     mat = full(A, N)
-    sp_mat = sparse_full(A)
+    sp_mat = sparse(A)
     @test mat == sp_mat
 
     res = A*y
-    @test_approx_eq_eps res[boundary_points + 1: N - boundary_points] 24.0*ones(N - 2*boundary_points) 10.0^-approx_order;
-    @time @test_approx_eq_eps A*y mat*y 10.0^-approx_order;
-    @time @test_approx_eq_eps A*y sp_mat*y 10.0^-approx_order;
-    @time @test_approx_eq_eps sp_mat*y mat*y 10.0^-approx_order;
+    @test res[boundary_points + 1: N - boundary_points] ≈ 24.0*ones(N - 2*boundary_points) atol=10.0^-approx_order;
+    @time @test A*y ≈ mat*y atol=10.0^-approx_order;
+    @time @test A*y ≈ sp_mat*y atol=10.0^-approx_order;
+    @time @test sp_mat*y ≈ mat*y atol=10.0^-approx_order;
 end
 
 context("Indexing tests")do
@@ -74,8 +99,8 @@ context("Indexing tests")do
     d_order = 4
     approx_order = 10
 
-    A = LinearOperator{Float64}(d_order,approx_order,N)
-    @test_approx_eq_eps A[1,1] 13.717407 1e-4
+    A = LinearOperator{Float64}(d_order,approx_order,N,:D0)
+    @test A[1,1] ≈ 13.717407 atol=1e-4
     @test A[:,1] == (full(A))[:,1]
     @test A[10,20] == 0
 
@@ -88,7 +113,7 @@ context("Indexing tests")do
     d_order = 2
     approx_order = 2
 
-    A = LinearOperator{Float64}(d_order,approx_order,N)
+    A = LinearOperator{Float64}(d_order,approx_order,N,:D0)
     M = full(A)
 
     @test A[1,1] == -2.0

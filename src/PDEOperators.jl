@@ -10,6 +10,7 @@ abstract type AbstractLinearOperator{T} <: AbstractDiffEqOperator{T} end
 export PDEOperator
 
 include("fornberg.jl")
+include("boundary_operators.jl")
 
 export AbstractLinearOperator, LinearOperator
 end # module
