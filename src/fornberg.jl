@@ -8,6 +8,9 @@ function *(A::AbstractLinearOperator,x::AbstractVector)
     return y
 end
 
+function *(func::Function, op)
+    func(op)
+end
 
 immutable LinearOperator{T<:Real,S<:SVector} <: AbstractLinearOperator{T}
     derivative_order    :: Int
@@ -18,41 +21,43 @@ immutable LinearOperator{T<:Real,S<:SVector} <: AbstractLinearOperator{T}
     boundary_point_count:: Int
     boundary_length     :: Int
     boundary_condition  :: Symbol
-    # low_boundary_coefs  :: Vector{Vector{T}}
-    # high_boundary_coefs :: Vector{Vector{T}}
+    low_boundary_coefs  :: Vector{Vector{T}}
+    high_boundary_coefs :: Vector{Vector{T}}
+    boundary_fn
 
-    # function LinearOperator{T1<:Real}(dorder::Int, aorder::Int, dim::Int)
-    #         slen = dorder + aorder - 1
-    #         new{T1, SVector{slen,T1}}(dorder, aorder, dim)
-    # end
-    Base.@pure function LinearOperator{T,S}(derivative_order::Int, approximation_order::Int, dimension::Int, bdc::Symbol=:D0) where {T<:Real,S<:SVector}
+    Base.@pure function LinearOperator{T,S}(derivative_order::Int, approximation_order::Int,
+                                            dimension::Int, bndry_fn, bdc::Symbol=:D0) where {T<:Real,S<:SVector}
+        # bdc == :D0 && !isa((bndry_fn[0]), Real) && error("Dirichlet accepts only constant valued boundaries")
+
         dimension            = dimension
         stencil_length       = derivative_order + approximation_order - 1
         boundary_length      = derivative_order + approximation_order
         boundary_point_count = stencil_length - div(stencil_length,2) + 1
         grid_step            = one(T)
         boundary_condition   = bdc
-        #low_boundary_coefs   = Vector{T}[]
-        #high_boundary_coefs  = Vector{T}[]
+        low_boundary_coefs   = Vector{T}[]
+        high_boundary_coefs  = Vector{T}[]
         stencil_coefs        = calculate_weights(derivative_order, zero(T),
                                grid_step .* collect(-div(stencil_length,2) : 1 : div(stencil_length,2)))
+        boundary_fn          = bndry_fn
 
-        # for i in 1 : boundary_point_count
-        #     push!(low_boundary_coefs, calculate_weights(derivative_order, (i-1)*grid_step, collect(zero(T) : grid_step : (boundary_length-1) * grid_step)))
-        #     push!(high_boundary_coefs, reverse(low_boundary_coefs[i]))
-        #     isodd(derivative_order) ? high_boundary_coefs = -high_boundary_coefs : nothing
-        # end
+        for i in 1 : boundary_point_count
+            push!(low_boundary_coefs, calculate_weights(derivative_order, (i-1)*grid_step, collect(zero(T) : grid_step : (boundary_length-1) * grid_step)))
+            push!(high_boundary_coefs, reverse(low_boundary_coefs[i]))
+            isodd(derivative_order) ? high_boundary_coefs = -high_boundary_coefs : nothing
+        end
         new(derivative_order, approximation_order, dimension, stencil_length,
             stencil_coefs,
             boundary_point_count,
             boundary_length,
-            boundary_condition
-            # low_boundary_coefs,
-            # high_boundary_coefs
+            boundary_condition,
+            low_boundary_coefs,
+            high_boundary_coefs,
+            boundary_fn
         )
     end
-    (::Type{LinearOperator{T}}){T<:Real}(dorder::Int, aorder::Int, dim::Int, bdc::Symbol=:D0) =
-    LinearOperator{T, SVector{dorder+aorder-1,T}}(dorder, aorder, dim, bdc)
+    (::Type{LinearOperator{T}}){T<:Real}(dorder::Int, aorder::Int, dim::Int, bndry_fn, bdc::Symbol=:D0) =
+    LinearOperator{T, SVector{dorder+aorder-1,T}}(dorder, aorder, dim, bndry_fn, bdc)
 end
 
 (L::LinearOperator)(t,u) = L*u
@@ -296,7 +301,7 @@ function calculate_weights{T<:Real}(order::Int, x0::T, x::Vector{T})
 end
 
 
-function get_convolution_operator(boundary_condition::Symbol)
+function get_convolution_operator(A::AbstractLinearOperator, boundary_condition::Symbol)
     if boundary_condition == :D0
         return dirichlet_0!
     elseif boundary_condition == :periodic
@@ -311,9 +316,15 @@ end
 function Base.A_mul_B!{T<:Real}(x_temp::AbstractVector{T}, A::AbstractLinearOperator{T}, x::AbstractVector{T}; BC=:D0)
     coeffs = A.stencil_coefs
     L = length(x)
-    convolution_kernal! = get_convolution_operator(BC)
+
+    convolution_kernal! = get_convolution_operator(A, BC)
     Threads.@threads for i in 1 : length(x)
         convolution_kernal!(x_temp, x, coeffs, i)
+    end
+    # preparing the boundaries for dirichlet condition
+    if A.boundary_condition == :D1
+        x[1] += A.boundary_fn[1]
+        x[end] += A.boundary_fn[2]
     end
 end
 

@@ -1,7 +1,17 @@
 export dirichlet_0!, periodic!, low, high
 
+#= Worker functions=#
 low(i::Int, mid::Int, bpc::Int) = Int(mid + (i-1)*(1-mid)/bpc)
 high(i::Int, mid::Int, bpc::Int, slen::Int, L::Int) = Int(slen - (slen-mid)*(i-L+bpc)/(bpc))
+
+function rem1(x,y)
+    r = x%y
+    if r > 0
+        return r
+    else
+        return r+y
+    end
+end
 
 
 function dirichlet_0!{T<:Real}(x_temp::AbstractVector{T}, x::AbstractVector{T}, coeffs::SVector, i::Int)
@@ -55,20 +65,36 @@ function periodic!{T<:Real}(x_temp::AbstractVector{T}, x::AbstractVector{T}, coe
     mid = div(stencil_length, 2) + 1
     bpc = stencil_length - mid
 
-    rem1(x,y) = x%y>0 ? x%y : (x%y+y)
     wndw_low = 1
     wndw_high = length(coeffs)
     L = length(x)
     #=
         Here we are taking the weighted sum of a window of the input vector to calculate the derivative
-        at the middle point. This requires choosing the end points carefully which are being passed from above.
+        at the middle point. Instead of breaking the stencil we loop it over from the other side if it
+        doesn't fit the column of the transformation matrix to simulate the periodic boundary condition.
     =#
     xtempi = x_temp[i]
     @inbounds for idx in wndw_low:wndw_high
-        # println("coefs = $(coeffs[idx])")
-        # println("idx  = $(i - (mid-idx))")
-        # println("rem = $(rem1(i - (mid-idx), L))")
-        # println("x[rem] = $(x[rem1(i - (mid-idx), L)])")
+        xtempi += coeffs[idx] * x[rem1(i - (mid-idx), L)]
+    end
+    x_temp[i] = xtempi
+end
+
+function neumann!{T<:Real}(x_temp::AbstractVector{T}, x::AbstractVector{T}, coeffs::SVector, i::Int)
+    stencil_length = length(coeffs)
+    mid = div(stencil_length, 2) + 1
+    bpc = stencil_length - mid
+
+    wndw_low = 1
+    wndw_high = length(coeffs)
+    L = length(x)
+    #=
+        Here we are taking the weighted sum of a window of the input vector to calculate the derivative
+        at the middle point. Instead of breaking the stencil we loop it over from the other side if it
+        doesn't fit the column of the transformation matrix to simulate the periodic boundary condition.
+    =#
+    xtempi = x_temp[i]
+    @inbounds for idx in wndw_low:wndw_high
         xtempi += coeffs[idx] * x[rem1(i - (mid-idx), L)]
     end
     x_temp[i] = xtempi
