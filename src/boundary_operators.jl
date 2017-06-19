@@ -1,5 +1,3 @@
-export dirichlet_0!, periodic!, low, high
-
 #= Worker functions=#
 low(i::Int, mid::Int, bpc::Int) = Int(mid + (i-1)*(1-mid)/bpc)
 high(i::Int, mid::Int, bpc::Int, slen::Int, L::Int) = Int(slen - (slen-mid)*(i-L+bpc)/(bpc))
@@ -12,6 +10,52 @@ function rem1(x,y)
         return r+y
     end
 end
+
+
+function convolve_BC_left!{T<:Real,S<:SVector,RBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,:D0,RBC})
+    N = length(y)
+    #=
+        Derivative is calculated in 3 parts:-
+            1. For the initial boundary points
+            2. For the middle points
+            3. For the terminating boundary points
+    =#
+    @inbounds for i in 1 : A.boundary_point_count
+        bc = A.low_boundary_coefs[i]
+        tmp = zero(T)
+        for j in 1 : A.boundary_length
+            tmp += bc[j] * y[j]
+        end
+        dy[i] = tmp
+    end
+
+end
+
+function convolve_BC_left!{T<:Real,S<:SVector,RBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,:D1,RBC})
+end
+
+function convolve_BC_left!{T<:Real,S<:SVector,RBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,:Neumann0,RBC})
+end
+
+function convolve_BC_left!{T<:Real,S<:SVector,RBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,:Neumann1,RBC})
+end
+
+
+function convolve_BC_right!{T<:Real,S<:SVector,LBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,LBC, :D0})
+end
+
+function convolve_BC_right!{T<:Real,S<:SVector,LBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,LBC, :D1})
+end
+
+function convolve_BC_right!{T<:Real,S<:SVector,LBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,LBC, :Neumann0})
+end
+
+function convolve_BC_right!{T<:Real,S<:SVector,LBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,LBC, :Neumann1})
+end
+
+
+# function convolve_interior!{}()
+# end
 
 
 function dirichlet_0!{T<:Real}(x_temp::AbstractVector{T}, x::AbstractVector{T}, coeffs::SVector, i::Int)

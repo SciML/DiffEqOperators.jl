@@ -4,15 +4,21 @@ function *(A::AbstractLinearOperator,x::AbstractVector)
         to ensure numerical stability
     =#
     y = zeros(promote_type(eltype(A),eltype(x)), size(A,1))
-    Base.A_mul_B!(y, A::AbstractLinearOperator, x::AbstractVector, BC = A.boundary_condition)
+    Base.A_mul_B!(y, A::AbstractLinearOperator, x::AbstractVector)
     return y
 end
 
-function *(func::Function, op)
-    func(op)
+function negate!{T}(arr::T)
+    if size(arr,2) == 1
+        scale!(arr,-1)
+        return nothing
+    end
+    for row in arr
+        scale!(row,-1)
+    end
 end
 
-immutable LinearOperator{T<:Real,S<:SVector} <: AbstractLinearOperator{T}
+immutable LinearOperator{T<:Real,S<:SVector,LBC,RBC} <: AbstractLinearOperator{T}
     derivative_order    :: Int
     approximation_order :: Int
     dimension           :: Int
@@ -20,48 +26,58 @@ immutable LinearOperator{T<:Real,S<:SVector} <: AbstractLinearOperator{T}
     stencil_coefs       :: S
     boundary_point_count:: Int
     boundary_length     :: Int
-    boundary_condition  :: Symbol
-    low_boundary_coefs  :: Vector{Vector{T}}
-    high_boundary_coefs :: Vector{Vector{T}}
+    low_boundary_coefs
+    high_boundary_coefs
     boundary_fn
 
-    Base.@pure function LinearOperator{T,S}(derivative_order::Int, approximation_order::Int,
-                                            dimension::Int, bndry_fn, bdc::Symbol=:D0) where {T<:Real,S<:SVector}
+    Base.@pure function LinearOperator{T,S,LBC,RBC}(derivative_order::Int, approximation_order::Int,
+                                            dimension::Int, bndry_fn) where {T<:Real,S<:SVector,LBC,RBC}
         # bdc == :D0 && !isa((bndry_fn[0]), Real) && error("Dirichlet accepts only constant valued boundaries")
 
         dimension            = dimension
-        stencil_length       = derivative_order + approximation_order - 1
+        stencil_length       = derivative_order + approximation_order - 1 + (derivative_order+approximation_order)%2
         boundary_length      = derivative_order + approximation_order
         boundary_point_count = stencil_length - div(stencil_length,2) + 1
         grid_step            = one(T)
-        boundary_condition   = bdc
-        low_boundary_coefs   = Vector{T}[]
-        high_boundary_coefs  = Vector{T}[]
-        stencil_coefs        = calculate_weights(derivative_order, zero(T),
-                               grid_step .* collect(-div(stencil_length,2) : 1 : div(stencil_length,2)))
+        low_boundary_coefs   = SVector{boundary_length,T}[]
+        high_boundary_coefs  = SVector{boundary_length,T}[]
+        stencil_coefs        = convert(SVector{stencil_length, T}, calculate_weights(derivative_order, zero(T),
+                               grid_step .* collect(-div(stencil_length,2) : 1 : div(stencil_length,2))))
         boundary_fn          = bndry_fn
-
+        cnt                  = 0
+        high_temp            = zeros(T,boundary_length)
+        flag                 = derivative_order*boundary_point_count%2
         for i in 1 : boundary_point_count
-            push!(low_boundary_coefs, calculate_weights(derivative_order, (i-1)*grid_step, collect(zero(T) : grid_step : (boundary_length-1) * grid_step)))
-            push!(high_boundary_coefs, reverse(low_boundary_coefs[i]))
-            isodd(derivative_order) ? high_boundary_coefs = -high_boundary_coefs : nothing
+            if LBC == :Neumann
+                push!(low_boundary_coefs, calculate_weights(derivative_order, (i-1)*grid_step, collect(zero(T) : grid_step : (boundary_length-1) * grid_step)))
+            end
+
+            if RBC == :Neumann
+                copy!(high_temp, calculate_weights(derivative_order, (i-1)*grid_step, collect(zero(T) : grid_step : (boundary_length-1) * grid_step)))
+                reverse!(high_temp)
+                isodd(flag) ? negate!(high_temp) : nothing
+                push!(high_boundary_coefs,high_temp)
+                cnt+=1
+            end
         end
+
         new(derivative_order, approximation_order, dimension, stencil_length,
             stencil_coefs,
             boundary_point_count,
             boundary_length,
-            boundary_condition,
             low_boundary_coefs,
             high_boundary_coefs,
             boundary_fn
         )
     end
-    (::Type{LinearOperator{T}}){T<:Real}(dorder::Int, aorder::Int, dim::Int, bndry_fn, bdc::Symbol=:D0) =
-    LinearOperator{T, SVector{dorder+aorder-1,T}}(dorder, aorder, dim, bndry_fn, bdc)
+    (::Type{LinearOperator{T}}){T<:Real}(dorder::Int, aorder::Int, dim::Int, LBC::Symbol, RBC::Symbol, bndry_fn) =
+    LinearOperator{T, SVector{dorder+aorder-1+(dorder+aorder)%2,T}, LBC, RBC}(dorder, aorder, dim, bndry_fn)
 end
 
 (L::LinearOperator)(t,u) = L*u
 (L::LinearOperator)(t,u,du) = A_mul_B!(du,L,u)
+get_LBC{A,B,C,D}(::LinearOperator{A,B,C,D}) = C
+get_RBC{A,B,C,D}(::LinearOperator{A,B,C,D}) = D
 
 
 # ~ bound checking functions ~
@@ -181,14 +197,14 @@ end
 
 #############################################################
 # Fornberg algorithm
-function derivative{T<:Real}(y::Vector{T}, fd::LinearOperator{T})
+function derivative{T<:Real}(y::Vector{T}, A::LinearOperator{T})
     dy = zeros(T, length(y))
-    derivative!(dy, y, fd)
+    derivative!(dy, y, A)
     return dy
 end
 
 
-function derivative!{T<:Real}(dy::Vector{T}, y::Vector{T}, fd::LinearOperator{T})
+function derivative!{T<:Real}(dy::Vector{T}, y::Vector{T}, A::LinearOperator{T})
     N = length(y)
     #=
         Derivative is calculated in 3 parts:-
@@ -196,31 +212,31 @@ function derivative!{T<:Real}(dy::Vector{T}, y::Vector{T}, fd::LinearOperator{T}
             2. For the middle points
             3. For the terminating boundary points
     =#
-    @inbounds for i in 1 : fd.boundary_point_count
-        bc = fd.low_boundary_coefs[i]
+    @inbounds for i in 1 : A.boundary_point_count
+        bc = A.low_boundary_coefs[i]
         tmp = zero(T)
-        for j in 1 : fd.boundary_length
+        for j in 1 : A.boundary_length
             tmp += bc[j] * y[j]
         end
         dy[i] = tmp
     end
 
-    d = div(fd.stencil_length, 2)
+    d = div(A.stencil_length, 2)
 
-    @inbounds for i in fd.boundary_point_count+1 : N-fd.boundary_point_count
-        c = fd.stencil_coefs
+    @inbounds for i in A.boundary_point_count+1 : N-A.boundary_point_count
+        c = A.stencil_coefs
         tmp = zero(T)
-        for j in 1 : fd.stencil_length
+        for j in 1 : A.stencil_length
             tmp += c[j] * y[i-d+j-1]
         end
         dy[i] = tmp
     end
 
-    @inbounds for i in 1 : fd.boundary_point_count
-        bc = fd.high_boundary_coefs[i]
+    @inbounds for i in 1 : A.boundary_point_count
+        bc = A.high_boundary_coefs[i]
         tmp = zero(T)
-        for j in 1 : fd.boundary_length
-            tmp += bc[j] * y[N - fd.boundary_length + j]
+        for j in 1 : A.boundary_length
+            tmp += bc[j] * y[N - A.boundary_length + j]
         end
         dy[N - i + 1] = tmp
     end
@@ -228,21 +244,21 @@ function derivative!{T<:Real}(dy::Vector{T}, y::Vector{T}, fd::LinearOperator{T}
 end
 
 
-function construct_differentiation_matrix{T<:Real}(N::Int, fd::LinearOperator{T})
+function construct_differentiation_matrix{T<:Real}(N::Int, A::LinearOperator{T})
     #=
         This is for calculating the derivative in one go. But we are creating a function
         which can calculate the derivative by-passing the costly matrix multiplication.
     =#
     D = zeros(T, N, N)
-    for i in 1 : fd.boundary_point_count
-        D[i, 1 : fd.boundary_length] = fd.low_boundary_coefs[i]
+    for i in 1 : A.boundary_point_count
+        D[i, 1 : A.boundary_length] = A.low_boundary_coefs[i]
     end
-    d = div(fd.stencil_length, 2)
-    for i in fd.boundary_point_count + 1 : N - fd.boundary_point_count
-        D[i, i-d : i+d] = fd.stencil_coefs
+    d = div(A.stencil_length, 2)
+    for i in A.boundary_point_count + 1 : N - A.boundary_point_count
+        D[i, i-d : i+d] = A.stencil_coefs
     end
-    for i in 1 : fd.boundary_point_count
-        D[N - i + 1, N - fd.boundary_length + 1 : N] = fd.high_boundary_coefs[i]
+    for i in 1 : A.boundary_point_count
+        D[N - i + 1, N - A.boundary_length + 1 : N] = A.high_boundary_coefs[i]
     end
     return D
 end
@@ -253,7 +269,7 @@ end
 # end
 
 
-# This implements the Fornberg algorithm to obtain FD weights over arbitrary points to arbitrary order
+# This implements the Fornberg algorithm to obtain Finite Difference weights over arbitrary points to arbitrary order
 function calculate_weights{T<:Real}(order::Int, x0::T, x::Vector{T})
     N = length(x)
     @assert order < N "Not enough points for the requested order."
@@ -296,35 +312,20 @@ function calculate_weights{T<:Real}(order::Int, x0::T, x::Vector{T})
     =#
     _C = C[:,end]
     _C[div(N,2)+1] -= sum(_C)
-    return convert(SVector{N, T}, _C)
+    return _C
     # return C
 end
 
 
-function get_convolution_operator(A::AbstractLinearOperator, boundary_condition::Symbol)
-    if boundary_condition == :D0
-        return dirichlet_0!
-    elseif boundary_condition == :periodic
-        return periodic!
-    # default
-    else
-        return dirichlet_0!
-    end
-end
-
-
-function Base.A_mul_B!{T<:Real}(x_temp::AbstractVector{T}, A::AbstractLinearOperator{T}, x::AbstractVector{T}; BC=:D0)
+function Base.A_mul_B!{T<:Real}(x_temp::AbstractVector{T}, A::LinearOperator{T}, x::AbstractVector{T})
     coeffs = A.stencil_coefs
     L = length(x)
-
-    convolution_kernal! = get_convolution_operator(A, BC)
     Threads.@threads for i in 1 : length(x)
-        convolution_kernal!(x_temp, x, coeffs, i)
-    end
-    # preparing the boundaries for dirichlet condition
-    if A.boundary_condition == :D1
-        x[1] += A.boundary_fn[1]
-        x[end] += A.boundary_fn[2]
+        convolve!(x_temp, x, coeffs, i)
+
+    convolve_BC_left!()
+    convolve_BC_right!()
+    convolve_interior!()
     end
 end
 
