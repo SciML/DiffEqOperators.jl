@@ -47,6 +47,7 @@ immutable LinearOperator{T<:Real,S<:SVector,LBC,RBC} <: AbstractLinearOperator{T
         cnt                  = 0
         high_temp            = zeros(T,boundary_length)
         flag                 = derivative_order*boundary_point_count%2
+
         for i in 1 : boundary_point_count
             if LBC == :Neumann
                 push!(low_boundary_coefs, calculate_weights(derivative_order, (i-1)*grid_step, collect(zero(T) : grid_step : (boundary_length-1) * grid_step)))
@@ -100,7 +101,7 @@ checkbounds(A::AbstractLinearOperator, k::Integer, j::Colon) =
     (0 < k ≤ size(A, 1) || throw(BoundsError(A, (k,size(A,2)))))
 
 
-BandedMatrix(A::LinearOperator) = BandedMatrix(full(A, A.stencil_length), A.stencil_length, div(A.stencil_length,2), div(A.stencil_length,2))
+# BandedMatrix{A,B,C,D}(A::LinearOperator{A,B,C,D}) = BandedMatrix(full(A, A.stencil_length), A.stencil_length, div(A.stencil_length,2), div(A.stencil_length,2))
 
 # ~~ getindex ~~
 @inline function getindex(A::LinearOperator, i::Int, j::Int)
@@ -318,15 +319,9 @@ end
 
 
 function Base.A_mul_B!{T<:Real}(x_temp::AbstractVector{T}, A::LinearOperator{T}, x::AbstractVector{T})
-    coeffs = A.stencil_coefs
-    L = length(x)
-    Threads.@threads for i in 1 : length(x)
-        convolve!(x_temp, x, coeffs, i)
-
-    convolve_BC_left!()
-    convolve_BC_right!()
-    convolve_interior!()
-    end
+    convolve_BC_left!(x_temp, x, A)
+    convolve_interior!(x_temp, x, A)
+    convolve_BC_right!(x_temp, x, A)
 end
 
 

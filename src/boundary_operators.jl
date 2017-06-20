@@ -13,28 +13,26 @@ end
 
 
 function convolve_BC_left!{T<:Real,S<:SVector,RBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,:D0,RBC})
-    N = length(y)
-    #=
-        Derivative is calculated in 3 parts:-
-            1. For the initial boundary points
-            2. For the middle points
-            3. For the terminating boundary points
-    =#
-    @inbounds for i in 1 : A.boundary_point_count
-        bc = A.low_boundary_coefs[i]
-        tmp = zero(T)
-        for j in 1 : A.boundary_length
-            tmp += bc[j] * y[j]
-        end
-        dy[i] = tmp
+    Threads.@threads for i in 1 : A.boundary_point_count
+        dirichlet_0!(x_temp, x, A.stencil_coefs, i)
     end
-
 end
 
 function convolve_BC_left!{T<:Real,S<:SVector,RBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,:D1,RBC})
+    x[1] = A.boundary_fn[1]
+    Threads.@threads for i in 1 : A.boundary_point_count
+        dirichlet_0!(x_temp, x, A.stencil_coefs, i)
+    end
+end
+
+function convolve_BC_left!{T<:Real,S<:SVector,RBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,:periodic,RBC})
+    Threads.@threads for i in 1 : A.boundary_point_count
+        periodic!(x_temp, x, A.stencil_coefs, i)
+    end
 end
 
 function convolve_BC_left!{T<:Real,S<:SVector,RBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,:Neumann0,RBC})
+
 end
 
 function convolve_BC_left!{T<:Real,S<:SVector,RBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,:Neumann1,RBC})
@@ -42,9 +40,25 @@ end
 
 
 function convolve_BC_right!{T<:Real,S<:SVector,LBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,LBC, :D0})
+    N = length(x)
+    Threads.@threads for i in 1 : A.boundary_point_count
+        dirichlet_0!(x_temp, x, A.stencil_coefs, N - A.boundary_point_count + i)
+    end
 end
 
 function convolve_BC_right!{T<:Real,S<:SVector,LBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,LBC, :D1})
+    N = length(x)
+    x[end] = A.boundary_fn[2]
+    Threads.@threads for i in 1 : A.boundary_point_count + 1
+        dirichlet_0!(x_temp, x, A.stencil_coefs, N - A.boundary_point_count + i)
+    end
+end
+
+function convolve_BC_right!{T<:Real,S<:SVector,LBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,LBC,:periodic})
+    N = length(x)
+    Threads.@threads for i in 1 : A.boundary_point_count + 1
+        periodic!(x_temp, x, A.stencil_coefs, N - A.boundary_point_count + i)
+    end
 end
 
 function convolve_BC_right!{T<:Real,S<:SVector,LBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,LBC, :Neumann0})
@@ -54,8 +68,20 @@ function convolve_BC_right!{T<:Real,S<:SVector,LBC}(x_temp::AbstractVector{T}, x
 end
 
 
-# function convolve_interior!{}()
-# end
+function convolve_interior!{T<:Real,S<:SVector,LBC,RBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,LBC,RBC})
+    N = length(x)
+    coeffs = A.stencil_coefs
+    mid = div(A.stencil_length, 2) + 1
+
+    Threads.@threads for i in A.boundary_point_count+1 : N-A.boundary_point_count
+        # dirichlet_0!(x_temp,x,A.stencil_coefs, i)
+        xtempi = x_temp[i]
+        @inbounds for idx in 1:A.stencil_length
+            xtempi += coeffs[idx] * x[i - (mid-idx)]
+        end
+        x_temp[i] = xtempi
+    end
+end
 
 
 function dirichlet_0!{T<:Real}(x_temp::AbstractVector{T}, x::AbstractVector{T}, coeffs::SVector, i::Int)
@@ -88,7 +114,6 @@ function dirichlet_0!{T<:Real}(x_temp::AbstractVector{T}, x::AbstractVector{T}, 
     mid = div(stencil_length, 2) + 1
     bpc = stencil_length - mid
     L = length(x)
-
     wndw_low = i>bpc ? 1:max(1, low(i, mid, bpc))
     wndw_high = i>L-bpc ? min(stencil_length, high(i, mid, bpc, stencil_length, L)):stencil_length
 
@@ -108,7 +133,6 @@ function periodic!{T<:Real}(x_temp::AbstractVector{T}, x::AbstractVector{T}, coe
     stencil_length = length(coeffs)
     mid = div(stencil_length, 2) + 1
     bpc = stencil_length - mid
-
     wndw_low = 1
     wndw_high = length(coeffs)
     L = length(x)
@@ -123,6 +147,7 @@ function periodic!{T<:Real}(x_temp::AbstractVector{T}, x::AbstractVector{T}, coe
     end
     x_temp[i] = xtempi
 end
+
 
 function neumann!{T<:Real}(x_temp::AbstractVector{T}, x::AbstractVector{T}, coeffs::SVector, i::Int)
     stencil_length = length(coeffs)
