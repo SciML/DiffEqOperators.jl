@@ -4,6 +4,7 @@ include("dirichlet.jl")
 
 include("periodic.jl")
 
+include("neumann.jl")
 # tests for full and sparse function
 context("Full and Sparse functions")do
     N = 100
@@ -11,7 +12,7 @@ context("Full and Sparse functions")do
     approx_order = 2
     x = collect(1:1.0:N).^2
 
-    A = LinearOperator{Float64}(d_order,approx_order,N,:D0)
+    A = LinearOperator{Float64}(d_order,approx_order,N,:D0,:D0)
     mat = full(A)
     sp_mat = sparse(A)
     @test mat == sp_mat;
@@ -26,7 +27,7 @@ context("Full and Sparse functions")do
     y = collect(1:1.0:N).^4 - 2*collect(1:1.0:N).^3 + collect(1:1.0:N).^2;
     y = convert(Array{BigFloat, 1}, y)
 
-    A = LinearOperator{BigFloat}(d_order,approx_order,N,:D0)
+    A = LinearOperator{BigFloat}(d_order,approx_order,N,:D0,:D0)
     boundary_points = A.boundary_point_count
     mat = full(A, N)
     sp_mat = sparse(A)
@@ -34,9 +35,9 @@ context("Full and Sparse functions")do
 
     res = A*y
     @test res[boundary_points + 1: N - boundary_points] ≈ 24.0*ones(N - 2*boundary_points) atol=10.0^-approx_order;
-    @time @test A*y ≈ mat*y atol=10.0^-approx_order;
-    @time @test A*y ≈ sp_mat*y atol=10.0^-approx_order;
-    @time @test sp_mat*y ≈ mat*y atol=10.0^-approx_order;
+    @test A*y ≈ mat*y atol=10.0^-approx_order;
+    @test A*y ≈ sp_mat*y atol=10.0^-approx_order;
+    @test sp_mat*y ≈ mat*y atol=10.0^-approx_order;
 end
 
 context("Indexing tests")do
@@ -44,7 +45,7 @@ context("Indexing tests")do
     d_order = 4
     approx_order = 10
 
-    A = LinearOperator{Float64}(d_order,approx_order,N,:D0)
+    A = LinearOperator{Float64}(d_order,approx_order,N,:D0,:D0)
     @test A[1,1] ≈ 13.717407 atol=1e-4
     @test A[:,1] == (full(A))[:,1]
     @test A[10,20] == 0
@@ -58,7 +59,7 @@ context("Indexing tests")do
     d_order = 2
     approx_order = 2
 
-    A = LinearOperator{Float64}(d_order,approx_order,N,:D0)
+    A = LinearOperator{Float64}(d_order,approx_order,N,:D0,:D0)
     M = full(A)
 
     @test A[1,1] == -2.0
@@ -66,5 +67,3 @@ context("Indexing tests")do
     @test A[5,2:10] == M[5,2:10]
     @test A[60:100,500:600] == M[60:100,500:600]
 end
-
-println("ALL TESTS PASSED!")

@@ -28,7 +28,7 @@ immutable LinearOperator{T<:Real,S<:SVector,LBC,RBC} <: AbstractLinearOperator{T
     boundary_length     :: Int
     low_boundary_coefs
     high_boundary_coefs
-    boundary_fn
+    boundary_fn         :: Tuple{T,T}
 
     Base.@pure function LinearOperator{T,S,LBC,RBC}(derivative_order::Int, approximation_order::Int,
                                             dimension::Int, bndry_fn) where {T<:Real,S<:SVector,LBC,RBC}
@@ -71,7 +71,7 @@ immutable LinearOperator{T<:Real,S<:SVector,LBC,RBC} <: AbstractLinearOperator{T
             boundary_fn
         )
     end
-    (::Type{LinearOperator{T}}){T<:Real}(dorder::Int, aorder::Int, dim::Int, LBC::Symbol, RBC::Symbol, bndry_fn) =
+    (::Type{LinearOperator{T}}){T<:Real}(dorder::Int, aorder::Int, dim::Int, LBC::Symbol, RBC::Symbol; bndry_fn=(0.0,0.0)) =
     LinearOperator{T, SVector{dorder+aorder-1+(dorder+aorder)%2,T}, LBC, RBC}(dorder, aorder, dim, bndry_fn)
 end
 

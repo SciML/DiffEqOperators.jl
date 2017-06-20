@@ -2,16 +2,25 @@
 low(i::Int, mid::Int, bpc::Int) = Int(mid + (i-1)*(1-mid)/bpc)
 high(i::Int, mid::Int, bpc::Int, slen::Int, L::Int) = Int(slen - (slen-mid)*(i-L+bpc)/(bpc))
 
-function rem1(x,y)
-    r = x%y
-    if r > 0
-        return r
+function reflect(idx, L)
+    abs1 = abs(L-idx)
+    if L - abs1 > 0
+        return L-abs1
     else
-        return r+y
+        return abs(L-abs1)+2
     end
 end
 
+function rem1(idx,L)
+    r = idx%L
+    if r > 0
+        return r
+    else
+        return r+L
+    end
+end
 
+#= LEFT BOUNDARY CONDITIONS =#
 function convolve_BC_left!{T<:Real,S<:SVector,RBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,:D0,RBC})
     Threads.@threads for i in 1 : A.boundary_point_count
         dirichlet_0!(x_temp, x, A.stencil_coefs, i)
@@ -32,13 +41,15 @@ function convolve_BC_left!{T<:Real,S<:SVector,RBC}(x_temp::AbstractVector{T}, x:
 end
 
 function convolve_BC_left!{T<:Real,S<:SVector,RBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,:Neumann0,RBC})
-
+    Threads.@threads for i in 1 : A.boundary_point_count
+        neumann0!(x_temp, x, A.stencil_coefs, i)
+    end
 end
 
 function convolve_BC_left!{T<:Real,S<:SVector,RBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,:Neumann1,RBC})
 end
 
-
+#= RIGHT BOUNDARY CONDITIONS =#
 function convolve_BC_right!{T<:Real,S<:SVector,LBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,LBC, :D0})
     N = length(x)
     Threads.@threads for i in 1 : A.boundary_point_count
@@ -62,12 +73,16 @@ function convolve_BC_right!{T<:Real,S<:SVector,LBC}(x_temp::AbstractVector{T}, x
 end
 
 function convolve_BC_right!{T<:Real,S<:SVector,LBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,LBC, :Neumann0})
+    N = length(x)
+    Threads.@threads for i in 1 : A.boundary_point_count
+        neumann0!(x_temp, x, A.stencil_coefs, N - A.boundary_point_count + i)
+    end
 end
 
 function convolve_BC_right!{T<:Real,S<:SVector,LBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,LBC, :Neumann1})
 end
 
-
+#= INTERIOR CONVOLUTION =#
 function convolve_interior!{T<:Real,S<:SVector,LBC,RBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,LBC,RBC})
     N = length(x)
     coeffs = A.stencil_coefs
@@ -83,7 +98,7 @@ function convolve_interior!{T<:Real,S<:SVector,LBC,RBC}(x_temp::AbstractVector{T
     end
 end
 
-
+#= DIFFERENT BOUNDARIES =#
 function dirichlet_0!{T<:Real}(x_temp::AbstractVector{T}, x::AbstractVector{T}, coeffs::SVector, i::Int)
     #=
         The high and low functions determine the starting and ending indices of the weight vector.
@@ -149,11 +164,10 @@ function periodic!{T<:Real}(x_temp::AbstractVector{T}, x::AbstractVector{T}, coe
 end
 
 
-function neumann!{T<:Real}(x_temp::AbstractVector{T}, x::AbstractVector{T}, coeffs::SVector, i::Int)
+function neumann0!{T<:Real}(x_temp::AbstractVector{T}, x::AbstractVector{T}, coeffs::SVector, i::Int)
     stencil_length = length(coeffs)
     mid = div(stencil_length, 2) + 1
     bpc = stencil_length - mid
-
     wndw_low = 1
     wndw_high = length(coeffs)
     L = length(x)
@@ -164,7 +178,7 @@ function neumann!{T<:Real}(x_temp::AbstractVector{T}, x::AbstractVector{T}, coef
     =#
     xtempi = x_temp[i]
     @inbounds for idx in wndw_low:wndw_high
-        xtempi += coeffs[idx] * x[rem1(i - (mid-idx), L)]
+        xtempi += coeffs[idx] * x[reflect(i - (mid-idx), L)]
     end
     x_temp[i] = xtempi
 end
