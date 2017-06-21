@@ -8,3 +8,5 @@
 
 ## Julia Library to solve PDEs using Finite Difference Method
 This library is going to be a part of DiffEq.jl to become the PDE solver alongside Fenics.jl.
+
+Blog posts related to the development of PDEOperators.jl can he found [here](https://shivin9.github.io/blog/blogposts/)

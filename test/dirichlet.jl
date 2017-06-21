@@ -2,7 +2,6 @@ using Base.Test
 using FactCheck
 using SpecialMatrices
 
-facts("Dirichlet BC")do
 context("Dirichlet Boundary Conditions: ")do
     N = 100
     d_order = 2
@@ -26,5 +25,4 @@ context("Dirichlet Boundary Conditions: ")do
     y = convert(Array{BigFloat, 1}, y)
     res = A*y
     @test res[boundary_points + 1: N - boundary_points] ≈ 24.0*ones(N - 2*boundary_points) atol=10.0^-approx_order;
-end
 end
