@@ -46,7 +46,16 @@ function convolve_BC_left!{T<:Real,S<:SVector,RBC}(x_temp::AbstractVector{T}, x:
     end
 end
 
-function convolve_BC_left!{T<:Real,S<:SVector,RBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,:Neumann1,RBC})
+function convolve_BC_left!{T<:Real,S<:SVector,RBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,:Neumann,RBC})
+    @inbounds for i in 1 : A.boundary_point_count
+        bc = A.low_boundary_coefs[i]
+        tmp = zero(T)
+        @inbounds for j in 1 : length(bc)
+            tmp += bc[j] * x[j]
+        end
+        x_temp[i] = tmp
+    end
+    x_temp[1] += A.boundary_fn[1]
 end
 
 #= RIGHT BOUNDARY CONDITIONS =#
@@ -60,14 +69,14 @@ end
 function convolve_BC_right!{T<:Real,S<:SVector,LBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,LBC, :D1})
     N = length(x)
     x[end] = A.boundary_fn[2]
-    Threads.@threads for i in 1 : A.boundary_point_count + 1
+    Threads.@threads for i in 1 : A.boundary_point_count
         dirichlet_0!(x_temp, x, A.stencil_coefs, N - A.boundary_point_count + i)
     end
 end
 
 function convolve_BC_right!{T<:Real,S<:SVector,LBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,LBC,:periodic})
     N = length(x)
-    Threads.@threads for i in 1 : A.boundary_point_count + 1
+    Threads.@threads for i in 1 : A.boundary_point_count
         periodic!(x_temp, x, A.stencil_coefs, N - A.boundary_point_count + i)
     end
 end
@@ -79,7 +88,17 @@ function convolve_BC_right!{T<:Real,S<:SVector,LBC}(x_temp::AbstractVector{T}, x
     end
 end
 
-function convolve_BC_right!{T<:Real,S<:SVector,LBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,LBC, :Neumann1})
+function convolve_BC_right!{T<:Real,S<:SVector,LBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,LBC, :Neumann})
+    N = length(x)
+    @inbounds for i in 1 : A.boundary_point_count
+        bc = A.high_boundary_coefs[i]
+        tmp = zero(T)
+        @inbounds for j in 1 : length(bc)
+            tmp += bc[j] * x[N - A.boundary_length + j]
+        end
+        x_temp[N - i + 1] = tmp
+    end
+    x_temp[end] += A.boundary_fn[2]
 end
 
 #= INTERIOR CONVOLUTION =#
