@@ -25,6 +25,7 @@ function convolve_BC_left!{T<:Real,S<:SVector,RBC}(x_temp::AbstractVector{T}, x:
     Threads.@threads for i in 1 : A.boundary_point_count
         dirichlet_0!(x_temp, x, A.stencil_coefs, i)
     end
+    @. x_temp[1:A.boundary_point_count] /= (A.dx^A.derivative_order)
 end
 
 function convolve_BC_left!{T<:Real,S<:SVector,RBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,:D1,RBC})
@@ -32,18 +33,21 @@ function convolve_BC_left!{T<:Real,S<:SVector,RBC}(x_temp::AbstractVector{T}, x:
     Threads.@threads for i in 1 : A.boundary_point_count
         dirichlet_0!(x_temp, x, A.stencil_coefs, i)
     end
+    @. x_temp[1:A.boundary_point_count] /= (A.dx^A.derivative_order)
 end
 
 function convolve_BC_left!{T<:Real,S<:SVector,RBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,:periodic,RBC})
     Threads.@threads for i in 1 : A.boundary_point_count
         periodic!(x_temp, x, A.stencil_coefs, i)
     end
+    @. x_temp[1:A.boundary_point_count] /= (A.dx^A.derivative_order)
 end
 
 function convolve_BC_left!{T<:Real,S<:SVector,RBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,:Neumann0,RBC})
     Threads.@threads for i in 1 : A.boundary_point_count
         neumann0!(x_temp, x, A.stencil_coefs, i)
     end
+    @. x_temp[1:A.boundary_point_count] /= (A.dx^A.derivative_order)
 end
 
 function convolve_BC_left!{T<:Real,S<:SVector,RBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,:Neumann,RBC})
@@ -53,53 +57,12 @@ function convolve_BC_left!{T<:Real,S<:SVector,RBC}(x_temp::AbstractVector{T}, x:
         @inbounds for j in 1 : length(bc)
             tmp += bc[j] * x[j]
         end
-        x_temp[i] = tmp
+        x_temp[i] = tmp/(A.dx^A.derivative_order)
     end
+    x_temp[1] *= (A.dx^(A.derivative_order-1))
     x_temp[1] += A.boundary_fn[1]
 end
 
-#= RIGHT BOUNDARY CONDITIONS =#
-function convolve_BC_right!{T<:Real,S<:SVector,LBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,LBC, :D0})
-    N = length(x)
-    Threads.@threads for i in 1 : A.boundary_point_count
-        dirichlet_0!(x_temp, x, A.stencil_coefs, N - A.boundary_point_count + i)
-    end
-end
-
-function convolve_BC_right!{T<:Real,S<:SVector,LBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,LBC, :D1})
-    N = length(x)
-    x[end] = A.boundary_fn[2]
-    Threads.@threads for i in 1 : A.boundary_point_count
-        dirichlet_0!(x_temp, x, A.stencil_coefs, N - A.boundary_point_count + i)
-    end
-end
-
-function convolve_BC_right!{T<:Real,S<:SVector,LBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,LBC,:periodic})
-    N = length(x)
-    Threads.@threads for i in 1 : A.boundary_point_count
-        periodic!(x_temp, x, A.stencil_coefs, N - A.boundary_point_count + i)
-    end
-end
-
-function convolve_BC_right!{T<:Real,S<:SVector,LBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,LBC, :Neumann0})
-    N = length(x)
-    Threads.@threads for i in 1 : A.boundary_point_count
-        neumann0!(x_temp, x, A.stencil_coefs, N - A.boundary_point_count + i)
-    end
-end
-
-function convolve_BC_right!{T<:Real,S<:SVector,LBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,LBC, :Neumann})
-    N = length(x)
-    @inbounds for i in 1 : A.boundary_point_count
-        bc = A.high_boundary_coefs[i]
-        tmp = zero(T)
-        @inbounds for j in 1 : length(bc)
-            tmp += bc[j] * x[N - A.boundary_length + j]
-        end
-        x_temp[N - i + 1] = tmp
-    end
-    x_temp[end] += A.boundary_fn[2]
-end
 
 #= INTERIOR CONVOLUTION =#
 function convolve_interior!{T<:Real,S<:SVector,LBC,RBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,LBC,RBC})
@@ -113,9 +76,59 @@ function convolve_interior!{T<:Real,S<:SVector,LBC,RBC}(x_temp::AbstractVector{T
         @inbounds for idx in 1:A.stencil_length
             xtempi += coeffs[idx] * x[i - (mid-idx)]
         end
-        x_temp[i] = xtempi
+        x_temp[i] = xtempi/(A.dx^A.derivative_order)
     end
 end
+
+
+#= RIGHT BOUNDARY CONDITIONS =#
+function convolve_BC_right!{T<:Real,S<:SVector,LBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,LBC, :D0})
+    N = length(x)
+    Threads.@threads for i in 1 : A.boundary_point_count
+        dirichlet_0!(x_temp, x, A.stencil_coefs, N - A.boundary_point_count + i)
+    end
+    @. x_temp[N - A.boundary_point_count + 1 : N] /= (A.dx^A.derivative_order)
+end
+
+function convolve_BC_right!{T<:Real,S<:SVector,LBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,LBC, :D1})
+    N = length(x)
+    x[end] = A.boundary_fn[2]
+    Threads.@threads for i in 1 : A.boundary_point_count
+        dirichlet_0!(x_temp, x, A.stencil_coefs, N - A.boundary_point_count + i)
+    end
+    @. x_temp[N - A.boundary_point_count + 1 : N] /= (A.dx^A.derivative_order)
+end
+
+function convolve_BC_right!{T<:Real,S<:SVector,LBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,LBC,:periodic})
+    N = length(x)
+    Threads.@threads for i in 1 : A.boundary_point_count
+        periodic!(x_temp, x, A.stencil_coefs, N - A.boundary_point_count + i)
+    end
+    @. x_temp[N - A.boundary_point_count + 1 : N] /= (A.dx^A.derivative_order)
+end
+
+function convolve_BC_right!{T<:Real,S<:SVector,LBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,LBC, :Neumann0})
+    N = length(x)
+    Threads.@threads for i in 1 : A.boundary_point_count
+        neumann0!(x_temp, x, A.stencil_coefs, N - A.boundary_point_count + i)
+    end
+    @. x_temp[N - A.boundary_point_count + 1 : N] /= (A.dx^A.derivative_order)
+end
+
+function convolve_BC_right!{T<:Real,S<:SVector,LBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,LBC, :Neumann})
+    N = length(x)
+    @inbounds for i in 1 : A.boundary_point_count
+        bc = A.high_boundary_coefs[A.boundary_point_count - i + 1]
+        tmp = zero(T)
+        @inbounds for j in 1 : length(bc)
+            tmp += bc[j] * x[N - A.boundary_length + j]
+        end
+        x_temp[N - i + 1] = tmp/(A.dx^A.derivative_order)
+    end
+    x_temp[end] *= (A.dx^(A.derivative_order-1))
+    x_temp[end] += A.boundary_fn[2]
+end
+
 
 #= DIFFERENT BOUNDARIES =#
 function dirichlet_0!{T<:Real}(x_temp::AbstractVector{T}, x::AbstractVector{T}, coeffs::SVector, i::Int)

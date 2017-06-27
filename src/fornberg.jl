@@ -21,6 +21,7 @@ end
 immutable LinearOperator{T<:Real,S<:SVector,LBC,RBC} <: AbstractLinearOperator{T}
     derivative_order    :: Int
     approximation_order :: Int
+    dx                  :: T
     dimension           :: Int
     stencil_length      :: Int
     stencil_coefs       :: S
@@ -30,11 +31,10 @@ immutable LinearOperator{T<:Real,S<:SVector,LBC,RBC} <: AbstractLinearOperator{T
     high_boundary_coefs :: Vector{Vector{T}}
     boundary_fn         :: Tuple{T,T}
 
-    Base.@pure function LinearOperator{T,S,LBC,RBC}(derivative_order::Int, approximation_order::Int,
+    Base.@pure function LinearOperator{T,S,LBC,RBC}(derivative_order::Int, approximation_order::Int, dx::T,
                                             dimension::Int, bndry_fn) where {T<:Real,S<:SVector,LBC,RBC}
-        # bdc == :D0 && !isa((bndry_fn[0]), Real) && error("Dirichlet accepts only constant valued boundaries")
-
         dimension            = dimension
+        dx                   = dx
         stencil_length       = derivative_order + approximation_order - 1 + (derivative_order+approximation_order)%2
         boundary_length      = derivative_order + approximation_order
         boundary_point_count = stencil_length - div(stencil_length,2) + 1
@@ -48,7 +48,7 @@ immutable LinearOperator{T<:Real,S<:SVector,LBC,RBC} <: AbstractLinearOperator{T
 
         boundary_fn = (l_fact*bndry_fn[1], r_fact*bndry_fn[2])
 
-        new(derivative_order, approximation_order, dimension, stencil_length,
+        new(derivative_order, approximation_order, dx, dimension, stencil_length,
             stencil_coefs,
             boundary_point_count,
             boundary_length,
@@ -57,8 +57,8 @@ immutable LinearOperator{T<:Real,S<:SVector,LBC,RBC} <: AbstractLinearOperator{T
             boundary_fn
         )
     end
-    (::Type{LinearOperator{T}}){T<:Real}(dorder::Int, aorder::Int, dim::Int, LBC::Symbol, RBC::Symbol; bndry_fn=(0.0,0.0)) =
-    LinearOperator{T, SVector{dorder+aorder-1+(dorder+aorder)%2,T}, LBC, RBC}(dorder, aorder, dim, bndry_fn)
+    (::Type{LinearOperator{T}}){T<:Real}(dorder::Int, aorder::Int, dx::T, dim::Int, LBC::Symbol, RBC::Symbol; bndry_fn=(0.0,0.0)) =
+    LinearOperator{T, SVector{dorder+aorder-1+(dorder+aorder)%2,T}, LBC, RBC}(dorder, aorder, dx, dim, bndry_fn)
 end
 
 function initialize_boundaries!{T}(low_boundary_coefs, high_boundary_coefs,
