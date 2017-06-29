@@ -20,6 +20,7 @@ function rem1(idx,L)
     end
 end
 
+
 #= LEFT BOUNDARY CONDITIONS =#
 function convolve_BC_left!{T<:Real,S<:SVector,RBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,:D0,RBC})
     Threads.@threads for i in 1 : A.boundary_point_count
@@ -27,9 +28,11 @@ function convolve_BC_left!{T<:Real,S<:SVector,RBC}(x_temp::AbstractVector{T}, x:
     end
 end
 
+
 function convolve_BC_left!{T<:Real,S<:SVector,RBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,:D1,RBC})
     x[1] = A.boundary_fn[1]
-    Threads.@threads for i in 1 : A.boundary_point_count
+    x_temp[1] = 0
+    Threads.@threads for i in 2 : A.boundary_point_count
         dirichlet_0!(x_temp, x, A.stencil_coefs, i)
     end
 end
@@ -58,7 +61,7 @@ function convolve_BC_left!{T<:Real,S<:SVector,RBC}(x_temp::AbstractVector{T}, x:
         end
         x_temp[i] = tmp
     end
-    x_temp[1] += A.boundary_fn[1]
+    x_temp[1] += A.boundary_fn[1]*A.dx
 end
 
 
@@ -70,7 +73,7 @@ function convolve_interior!{T<:Real,S<:SVector,LBC,RBC}(x_temp::AbstractVector{T
 
     Threads.@threads for i in A.boundary_point_count+1 : N-A.boundary_point_count
         # dirichlet_0!(x_temp,x,A.stencil_coefs, i)
-        xtempi = x_temp[i]
+        xtempi = zero(T)
         @inbounds for idx in 1:A.stencil_length
             xtempi += coeffs[idx] * x[i - (mid-idx)]
         end
@@ -89,10 +92,11 @@ end
 
 function convolve_BC_right!{T<:Real,S<:SVector,LBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,LBC, :D1})
     N = length(x)
-    x[end] = A.boundary_fn[2]
-    Threads.@threads for i in 1 : A.boundary_point_count
+    Threads.@threads for i in 1 : A.boundary_point_count-1
         dirichlet_0!(x_temp, x, A.stencil_coefs, N - A.boundary_point_count + i)
     end
+    x[end] = A.boundary_fn[2]
+    x_temp[end] = 0
 end
 
 function convolve_BC_right!{T<:Real,S<:SVector,LBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,LBC,:periodic})
@@ -115,11 +119,11 @@ function convolve_BC_right!{T<:Real,S<:SVector,LBC}(x_temp::AbstractVector{T}, x
         bc = A.high_boundary_coefs[A.boundary_point_count - i + 1]
         tmp = zero(T)
         @inbounds for j in 1 : length(bc)
-            tmp += bc[length(bc)-j+1] * x[N-j+1]
+            tmp += bc[j] * x[N-j+1]
         end
         x_temp[N - i + 1] = tmp
     end
-    x_temp[end] += A.boundary_fn[2]
+    x_temp[end] += A.boundary_fn[2]*A.dx
 end
 
 
@@ -161,7 +165,7 @@ function dirichlet_0!{T<:Real}(x_temp::AbstractVector{T}, x::AbstractVector{T}, 
         Here we are taking the weighted sum of a window of the input vector to calculate the derivative
         at the middle point. This requires choosing the end points carefully which are being passed from above.
     =#
-    xtempi = x_temp[i]
+    xtempi = zero(T)
     @inbounds for idx in wndw_low:wndw_high
         xtempi += coeffs[idx] * x[i - (mid-idx)]
     end
@@ -181,7 +185,7 @@ function periodic!{T<:Real}(x_temp::AbstractVector{T}, x::AbstractVector{T}, coe
         at the middle point. Instead of breaking the stencil we loop it over from the other side if it
         doesn't fit the column of the transformation matrix to simulate the periodic boundary condition.
     =#
-    xtempi = x_temp[i]
+    xtempi = zero(T)
     @inbounds for idx in wndw_low:wndw_high
         xtempi += coeffs[idx] * x[rem1(i - (mid-idx), L)]
     end
@@ -201,7 +205,7 @@ function neumann0!{T<:Real}(x_temp::AbstractVector{T}, x::AbstractVector{T}, coe
         at the middle point. Instead of breaking the stencil we loop it over from the other side if it
         doesn't fit the column of the transformation matrix to simulate the periodic boundary condition.
     =#
-    xtempi = x_temp[i]
+    xtempi = zero(T)
     @inbounds for idx in wndw_low:wndw_high
         xtempi += coeffs[idx] * x[reflect(i - (mid-idx), L)]
     end
