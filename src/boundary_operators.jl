@@ -20,6 +20,7 @@ function rem1(idx,L)
     end
 end
 
+limit(i, N) = N>=i>=1 ? i : (i<1 ? 1 : N)
 
 #= LEFT BOUNDARY CONDITIONS =#
 function convolve_BC_left!{T<:Real,S<:SVector,RBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,:D0,RBC})
@@ -31,9 +32,8 @@ end
 
 function convolve_BC_left!{T<:Real,S<:SVector,RBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,:D1,RBC})
     x[1] = A.boundary_fn[1]
-    x_temp[1] = 0
-    Threads.@threads for i in 2 : A.boundary_point_count
-        dirichlet_0!(x_temp, x, A.stencil_coefs, i)
+    Threads.@threads for i in 1 : A.boundary_point_count
+        dirichlet_1!(x_temp, x, A.stencil_coefs, i)
     end
 end
 
@@ -84,20 +84,22 @@ end
 
 #= RIGHT BOUNDARY CONDITIONS =#
 function convolve_BC_right!{T<:Real,S<:SVector,LBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,LBC, :D0})
+    # Dirichlet 0 means that the value at the boundary is 0
     N = length(x)
     Threads.@threads for i in 1 : A.boundary_point_count
         dirichlet_0!(x_temp, x, A.stencil_coefs, N - A.boundary_point_count + i)
     end
 end
 
+
 function convolve_BC_right!{T<:Real,S<:SVector,LBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,LBC, :D1})
     N = length(x)
-    Threads.@threads for i in 1 : A.boundary_point_count-1
-        dirichlet_0!(x_temp, x, A.stencil_coefs, N - A.boundary_point_count + i)
+    Threads.@threads for i in 1 : A.boundary_point_count
+        dirichlet_1!(x_temp, x, A.stencil_coefs, N - A.boundary_point_count + i)
     end
     x[end] = A.boundary_fn[2]
-    x_temp[end] = 0
 end
+
 
 function convolve_BC_right!{T<:Real,S<:SVector,LBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,LBC,:periodic})
     N = length(x)
@@ -106,12 +108,14 @@ function convolve_BC_right!{T<:Real,S<:SVector,LBC}(x_temp::AbstractVector{T}, x
     end
 end
 
+
 function convolve_BC_right!{T<:Real,S<:SVector,LBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,LBC, :Neumann0})
     N = length(x)
     Threads.@threads for i in 1 : A.boundary_point_count
         neumann0!(x_temp, x, A.stencil_coefs, N - A.boundary_point_count + i)
     end
 end
+
 
 function convolve_BC_right!{T<:Real,S<:SVector,LBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,LBC, :Neumann})
     N = length(x)
@@ -121,7 +125,7 @@ function convolve_BC_right!{T<:Real,S<:SVector,LBC}(x_temp::AbstractVector{T}, x
         @inbounds for j in 1 : length(bc)
             tmp += bc[j] * x[N-j+1]
         end
-        x_temp[N - i + 1] = tmp
+        x_temp[N-i+1] = tmp
     end
     x_temp[end] += A.boundary_fn[2]*A.dx
 end
@@ -157,7 +161,7 @@ function dirichlet_0!{T<:Real}(x_temp::AbstractVector{T}, x::AbstractVector{T}, 
     stencil_length = length(coeffs)
     mid = div(stencil_length, 2) + 1
     bpc = stencil_length - mid
-    L = length(x)
+    N = length(x)
     wndw_low = i>bpc ? 1:max(1, low(i, mid, bpc))
     wndw_high = i>L-bpc ? min(stencil_length, high(i, mid, bpc, stencil_length, L)):stencil_length
 
@@ -166,8 +170,25 @@ function dirichlet_0!{T<:Real}(x_temp::AbstractVector{T}, x::AbstractVector{T}, 
         at the middle point. This requires choosing the end points carefully which are being passed from above.
     =#
     xtempi = zero(T)
-    @inbounds for idx in wndw_low:wndw_high
-        xtempi += coeffs[idx] * x[i - (mid-idx)]
+    @inbounds for idx in 1:stencil_length
+        xtempi += coeffs[idx] * x[limit(i - (mid-idx), N)]
+    end
+    x_temp[i] = xtempi
+end
+
+
+function dirichlet_1!{T<:Real}(x_temp::AbstractVector{T}, x::AbstractVector{T}, coeffs::SVector, i::Int)
+    stencil_length = length(coeffs)
+    mid = div(stencil_length, 2) + 1
+    N = length(x)
+    #=
+        Here we are taking the weighted sum of a window of the input vector to calculate the derivative
+        at the middle point. Once the stencil goes out of the edge, we assume that it's has a constant
+        value outside for all points.
+    =#
+    xtempi = zero(T)
+    @inbounds for idx in 1:stencil_length
+        xtempi += coeffs[idx] * x[limit(i - (mid-idx), N)]
     end
     x_temp[i] = xtempi
 end

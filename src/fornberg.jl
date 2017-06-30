@@ -61,6 +61,7 @@ immutable LinearOperator{T<:Real,S<:SVector,LBC,RBC} <: AbstractLinearOperator{T
     LinearOperator{T, SVector{dorder+aorder-1+(dorder+aorder)%2,T}, LBC, RBC}(dorder, aorder, dx, dim, bndry_fn)
 end
 
+
 function initialize_boundaries!{T}(low_boundary_coefs,high_boundary_coefs,
                                    derivative_order,grid_step::T,boundary_length,
                                    boundary_point_count,LBC,RBC)
