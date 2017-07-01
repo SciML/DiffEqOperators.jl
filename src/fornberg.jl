@@ -44,7 +44,7 @@ immutable LinearOperator{T<:Real,S<:SVector,LBC,RBC} <: AbstractLinearOperator{T
         stencil_coefs        = convert(SVector{stencil_length, T}, calculate_weights(derivative_order, zero(T),
                                grid_step .* collect(-div(stencil_length,2) : 1 : div(stencil_length,2))))
 
-        l_fact, r_fact = initialize_boundaries!(low_boundary_coefs,high_boundary_coefs,derivative_order,grid_step,boundary_length,boundary_point_count,LBC,RBC)
+        l_fact, r_fact = initialize_boundaries!(low_boundary_coefs,high_boundary_coefs,derivative_order,grid_step,boundary_length,boundary_point_count,LBC,RBC, stencil_coefs)
 
         boundary_fn = (l_fact*bndry_fn[1], r_fact*bndry_fn[2])
 
@@ -55,16 +55,16 @@ immutable LinearOperator{T<:Real,S<:SVector,LBC,RBC} <: AbstractLinearOperator{T
             low_boundary_coefs,
             high_boundary_coefs,
             boundary_fn
-        )
+            )
     end
     (::Type{LinearOperator{T}}){T<:Real}(dorder::Int, aorder::Int, dx::T, dim::Int, LBC::Symbol, RBC::Symbol; bndry_fn=(0.0,0.0)) =
-    LinearOperator{T, SVector{dorder+aorder-1+(dorder+aorder)%2,T}, LBC, RBC}(dorder, aorder, dx, dim, bndry_fn)
+        LinearOperator{T, SVector{dorder+aorder-1+(dorder+aorder)%2,T}, LBC, RBC}(dorder, aorder, dx, dim, bndry_fn)
 end
 
 
 function initialize_boundaries!{T}(low_boundary_coefs,high_boundary_coefs,
                                    derivative_order,grid_step::T,boundary_length,
-                                   boundary_point_count,LBC,RBC)
+                                   boundary_point_count,LBC,RBC, stencil_coefs)
     high_temp            = zeros(T,boundary_length)
     flag                 = derivative_order*boundary_point_count%2
     aorder               = boundary_length - 1
@@ -72,6 +72,7 @@ function initialize_boundaries!{T}(low_boundary_coefs,high_boundary_coefs,
     original_coeffs      = zeros(T,boundary_length)
     l_diff = one(T)
     r_diff = one(T)
+    stencil_length       = length(stencil_coefs)
 
     if LBC == :Neumann
         first_order_coeffs = calculate_weights(1, (0)*grid_step, collect(zero(T) : grid_step : aorder* grid_step))
@@ -102,6 +103,24 @@ function initialize_boundaries!{T}(low_boundary_coefs,high_boundary_coefs,
     end
 
     for i in 1 : boundary_point_count
+        if LBC == :Leaky
+            if i < 1 + div(stencil_length,2)
+                push!(low_boundary_coefs, calculate_weights(derivative_order, (i-1)*grid_step, collect(zero(T) : grid_step : (stencil_length-1)*grid_step)))
+            else
+                # FIXME: This boundary point should just be considered interior points for leaky LBC
+                push!(low_boundary_coefs, stencil_coefs)
+            end
+        end
+
+        if RBC == :Leaky
+            if i < 1 + div(stencil_length,2)
+                push!(high_boundary_coefs, calculate_weights(derivative_order, -(i-1)*grid_step, reverse(collect(zero(T) : -grid_step : -(stencil_length-1)*grid_step))))
+            else
+                # FIXME: This boundary point should just be considered interior points for leaky LBC
+                push!(high_boundary_coefs, stencil_coefs)
+            end
+        end
+
         if LBC == :Neumann && i > 1
             push!(low_boundary_coefs, calculate_weights(derivative_order, (i-1)*grid_step, collect(zero(T) : grid_step : (boundary_length-1) * grid_step)))
         end
