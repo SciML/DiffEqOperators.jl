@@ -67,15 +67,13 @@ end
 
 function convolve_BC_left!{T<:Real,S<:SVector,RBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,:None,RBC})
     Threads.@threads for i in 1 : A.boundary_point_count
-        @inbounds for i in 1 : A.boundary_point_count
-            bc = A.low_boundary_coefs[i]
-            tmp = zero(T)
-            startid = max(0,i-1-div(A.stencil_length, 2))
-            @inbounds for j in 1 : length(bc)
-                tmp += bc[j] * x[startid+j]
-            end
-            x_temp[i] = tmp
+        @inbounds bc = A.low_boundary_coefs[i]
+        tmp = zero(T)
+        startid = max(0,i-1-div(A.stencil_length, 2))
+        @inbounds for j in 1 : length(bc)
+            tmp += bc[j] * x[startid+j]
         end
+        @inbounds x_temp[i] = tmp
     end
 end
 
@@ -147,16 +145,14 @@ end
 
 
 function convolve_BC_right!{T<:Real,S<:SVector,LBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,LBC,:None})
-    Threads.@threads for i in 1 : A.bouorndary_point_count
-        @inbounds for i in 1 : A.boundary_point_count
-            bc = A.high_boundary_coefs[i]
-            tmp = zero(T)
-            startid = max(0,i-1-div(A.stencil_length, 2))
-            @inbounds for j in 1 : length(bc)
-                tmp += bc[j] * x[end-length(bc)-startid+j]
-            end
-            x_temp[end-i+1] = tmp
+    Threads.@threads for i in 1 : A.boundary_point_count
+        @inbounds bc = A.high_boundary_coefs[i]
+        tmp = zero(T)
+        startid = max(0,i-1-div(A.stencil_length, 2))
+        @inbounds for j in 1 : length(bc)
+            tmp += bc[j] * x[end-length(bc)-startid+j]
         end
+        @inbounds x_temp[end-i+1] = tmp
     end
 end
 
