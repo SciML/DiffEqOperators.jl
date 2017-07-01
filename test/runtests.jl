@@ -5,6 +5,9 @@ include("dirichlet.jl")
 include("periodic.jl")
 
 include("neumann.jl")
+
+include("none.jl")
+
 # tests for full and sparse function
 context("Full and Sparse functions")do
     N = 100
