@@ -65,7 +65,7 @@ function convolve_BC_left!{T<:Real,S<:SVector,RBC}(x_temp::AbstractVector{T}, x:
 end
 
 
-function convolve_BC_left!{T<:Real,S<:SVector,RBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,:Leaky,RBC})
+function convolve_BC_left!{T<:Real,S<:SVector,RBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,:None,RBC})
     Threads.@threads for i in 1 : A.boundary_point_count
         @inbounds for i in 1 : A.boundary_point_count
             bc = A.low_boundary_coefs[i]
@@ -146,8 +146,8 @@ function convolve_BC_right!{T<:Real,S<:SVector,LBC}(x_temp::AbstractVector{T}, x
 end
 
 
-function convolve_BC_right!{T<:Real,S<:SVector,LBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,LBC,:Leaky})
-    Threads.@threads for i in 1 : A.boundary_point_count
+function convolve_BC_right!{T<:Real,S<:SVector,LBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,LBC,:None})
+    Threads.@threads for i in 1 : A.bouorndary_point_count
         @inbounds for i in 1 : A.boundary_point_count
             bc = A.high_boundary_coefs[i]
             tmp = zero(T)

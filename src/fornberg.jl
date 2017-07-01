@@ -103,7 +103,7 @@ function initialize_boundaries!{T}(low_boundary_coefs,high_boundary_coefs,
     end
 
     for i in 1 : boundary_point_count
-        if LBC == :Leaky
+        if LBC == :None
             if i < 1 + div(stencil_length,2)
                 push!(low_boundary_coefs, calculate_weights(derivative_order, (i-1)*grid_step, collect(zero(T) : grid_step : (stencil_length-1)*grid_step)))
             else
@@ -112,7 +112,7 @@ function initialize_boundaries!{T}(low_boundary_coefs,high_boundary_coefs,
             end
         end
 
-        if RBC == :Leaky
+        if RBC == :None
             if i < 1 + div(stencil_length,2)
                 push!(high_boundary_coefs, calculate_weights(derivative_order, -(i-1)*grid_step, reverse(collect(zero(T) : -grid_step : -(stencil_length-1)*grid_step))))
             else
