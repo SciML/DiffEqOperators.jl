@@ -111,7 +111,7 @@ function initialize_boundaries!{T}(low_boundary_coefs,high_boundary_coefs,
             if i < 1 + div(stencil_length,2)
                 push!(low_boundary_coefs, calculate_weights(derivative_order, (i-1)*grid_step, collect(zero(T) : grid_step : (boundary_stencil_length-1)*grid_step)))
             else
-                # FIXME: This boundary point should just be considered interior points for leaky LBC
+                # FIXME: This "boundary point" should just be considered interior points for LBC = :None
                 push!(low_boundary_coefs, stencil_coefs)
             end
         end
@@ -122,7 +122,7 @@ function initialize_boundaries!{T}(low_boundary_coefs,high_boundary_coefs,
             if i < 1 + div(stencil_length,2)
                 push!(high_boundary_coefs, calculate_weights(derivative_order, -(i-1)*grid_step, reverse(collect(zero(T) : -grid_step : -(boundary_stencil_length-1)*grid_step))))
             else
-                # FIXME: This boundary point should just be considered interior points for leaky LBC
+                # FIXME: This "boundary point" should just be considered interior points for RBC = :None
                 push!(high_boundary_coefs, stencil_coefs)
             end
         end
