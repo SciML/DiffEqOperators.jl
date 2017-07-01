@@ -1,6 +1,7 @@
 #= Worker functions=#
 low(i::Int, mid::Int, bpc::Int) = Int(mid + (i-1)*(1-mid)/bpc)
 high(i::Int, mid::Int, bpc::Int, slen::Int, L::Int) = Int(slen - (slen-mid)*(i-L+bpc)/(bpc))
+limit(i, N) = N>=i>=1 ? i : (i<1 ? 1 : N)
 
 function reflect(idx, L)
     abs1 = abs(L-idx)
@@ -20,7 +21,6 @@ function rem1(idx,L)
     end
 end
 
-limit(i, N) = N>=i>=1 ? i : (i<1 ? 1 : N)
 
 #= LEFT BOUNDARY CONDITIONS =#
 function convolve_BC_left!{T<:Real,S<:SVector,RBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,:D0,RBC})
@@ -163,15 +163,15 @@ function dirichlet_0!{T<:Real}(x_temp::AbstractVector{T}, x::AbstractVector{T}, 
     bpc = stencil_length - mid
     N = length(x)
     wndw_low = i>bpc ? 1:max(1, low(i, mid, bpc))
-    wndw_high = i>L-bpc ? min(stencil_length, high(i, mid, bpc, stencil_length, L)):stencil_length
+    wndw_high = i>N-bpc ? min(stencil_length, high(i, mid, bpc, stencil_length, N)):stencil_length
 
     #=
         Here we are taking the weighted sum of a window of the input vector to calculate the derivative
         at the middle point. This requires choosing the end points carefully which are being passed from above.
     =#
     xtempi = zero(T)
-    @inbounds for idx in 1:stencil_length
-        xtempi += coeffs[idx] * x[limit(i - (mid-idx), N)]
+    @inbounds for idx in wndw_low:wndw_high
+        xtempi += coeffs[idx] * x[(i - (mid-idx))]
     end
     x_temp[i] = xtempi
 end

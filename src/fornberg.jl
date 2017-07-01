@@ -3,7 +3,7 @@ function *(A::AbstractLinearOperator,x::AbstractVector)
         We will output a vector which is a supertype of the types of A and x
         to ensure numerical stability
     =#
-    y = zeros(promote_type(eltype(A),eltype(x)), size(A,1))
+    y = zeros(promote_type(eltype(A),eltype(x)), length(x))
     Base.A_mul_B!(y, A::AbstractLinearOperator, x::AbstractVector)
     return y
 end
