@@ -44,8 +44,8 @@ immutable LinearOperator{T<:Real,S<:SVector,LBC,RBC} <: AbstractLinearOperator{T
         stencil_coefs        = convert(SVector{stencil_length, T}, calculate_weights(derivative_order, zero(T),
                                grid_step .* collect(-div(stencil_length,2) : 1 : div(stencil_length,2))))
 
-        l_fact = initialize_left_boundary!(low_boundary_coefs,high_boundary_coefs,stencil_length,derivative_order,grid_step,boundary_length,boundary_point_count,LBC,stencil_coefs)
-        r_fact = initialize_right_boundary!(low_boundary_coefs,high_boundary_coefs,stencil_length,derivative_order,grid_step,boundary_length,boundary_point_count,RBC,stencil_coefs)
+        l_fact = initialize_left_boundary!(low_boundary_coefs,high_boundary_coefs,stencil_length,derivative_order,grid_step,boundary_length,boundary_point_count,stencil_coefs,LBC)
+        r_fact = initialize_right_boundary!(low_boundary_coefs,high_boundary_coefs,stencil_length,derivative_order,grid_step,boundary_length,boundary_point_count,stencil_coefs,RBC)
 
         boundary_fn = (l_fact*bndry_fn[1], r_fact*bndry_fn[2])
 
@@ -65,7 +65,7 @@ end
 
 function initialize_left_boundary!{T}(low_boundary_coefs,high_boundary_coefs,stencil_length,
                                    derivative_order,grid_step::T,boundary_length,
-                                   boundary_point_count,LBC=:Neumann,stencil_coefs)
+                                   boundary_point_count,stencil_coefs,LBC=:Neumann)
     high_temp            = zeros(T,boundary_length)
     flag                 = derivative_order*boundary_point_count%2
     aorder               = boundary_length - 1
@@ -82,7 +82,6 @@ function initialize_left_boundary!{T}(low_boundary_coefs,high_boundary_coefs,ste
     # scale!(original_coeffs, first_order_coeffs[end]/original_coeffs[end])
     @. original_coeffs = original_coeffs - first_order_coeffs
     # copy!(first_order_coeffs, first_order_coeffs[1:end-1])
-    push!(low_boundary_coefs, original_coeffs[1:end-1])
 
     if LBC == :None
         for i in 1 : boundary_point_count
@@ -97,6 +96,7 @@ function initialize_left_boundary!{T}(low_boundary_coefs,high_boundary_coefs,ste
             end
         end
     else
+        push!(low_boundary_coefs, original_coeffs[1:end-1])
         for i in 2 : boundary_point_count
             #=  this means that a stencil will suffice ie. we dont't need to worry about the boundary point
             being considered in the low_boundary_coefs
@@ -108,7 +108,7 @@ function initialize_left_boundary!{T}(low_boundary_coefs,high_boundary_coefs,ste
                 pos=i-2
                 push!(low_boundary_coefs, append!([0],calculate_weights(derivative_order, pos*grid_step, collect(zero(T) : grid_step : (boundary_length-1) * grid_step))))
             end
-        end    
+        end
     end
 
     return l_diff
@@ -117,7 +117,7 @@ end
 
 function initialize_right_boundary!{T}(low_boundary_coefs,high_boundary_coefs,stencil_length,
                                    derivative_order,grid_step::T,boundary_length,
-                                   boundary_point_count,RBC=:Neumann)
+                                   boundary_point_count,stencil_coefs,RBC=:Neumann)
     # high_temp            = zeros(T,boundary_length)
     flag                 = derivative_order*boundary_point_count%2
     aorder               = boundary_length - 1
