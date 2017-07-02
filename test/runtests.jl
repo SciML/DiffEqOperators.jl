@@ -15,7 +15,7 @@ context("Full and Sparse functions")do
     approx_order = 2
     x = collect(1:1.0:N).^2
 
-    A = LinearOperator{Float64}(d_order,approx_order,N,:D0,:D0)
+    A = LinearOperator{Float64}(d_order,approx_order,1.0,N,:D0,:D0)
     mat = full(A)
     sp_mat = sparse(A)
     @test mat == sp_mat;
@@ -30,7 +30,7 @@ context("Full and Sparse functions")do
     y = collect(1:1.0:N).^4 - 2*collect(1:1.0:N).^3 + collect(1:1.0:N).^2;
     y = convert(Array{BigFloat, 1}, y)
 
-    A = LinearOperator{BigFloat}(d_order,approx_order,N,:D0,:D0)
+    A = LinearOperator{BigFloat}(d_order,approx_order,1.0,N,:D0,:D0)
     boundary_points = A.boundary_point_count
     mat = full(A, N)
     sp_mat = sparse(A)
@@ -48,7 +48,7 @@ context("Indexing tests")do
     d_order = 4
     approx_order = 10
 
-    A = LinearOperator{Float64}(d_order,approx_order,N,:D0,:D0)
+    A = LinearOperator{Float64}(d_order,approx_order,1.0,N,:D0,:D0)
     @test A[1,1] ≈ 13.717407 atol=1e-4
     @test A[:,1] == (full(A))[:,1]
     @test A[10,20] == 0
@@ -62,7 +62,7 @@ context("Indexing tests")do
     d_order = 2
     approx_order = 2
 
-    A = LinearOperator{Float64}(d_order,approx_order,N,:D0,:D0)
+    A = LinearOperator{Float64}(d_order,approx_order,1.0,N,:D0,:D0)
     M = full(A)
 
     @test A[1,1] == -2.0

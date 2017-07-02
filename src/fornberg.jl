@@ -44,7 +44,8 @@ immutable LinearOperator{T<:Real,S<:SVector,LBC,RBC} <: AbstractLinearOperator{T
         stencil_coefs        = convert(SVector{stencil_length, T}, calculate_weights(derivative_order, zero(T),
                                grid_step .* collect(-div(stencil_length,2) : 1 : div(stencil_length,2))))
 
-        l_fact, r_fact = initialize_boundaries!(low_boundary_coefs,high_boundary_coefs,derivative_order,grid_step,boundary_length,boundary_point_count,LBC,RBC,stencil_coefs)
+        l_fact = initialize_left_boundary!(low_boundary_coefs,high_boundary_coefs,stencil_length,derivative_order,grid_step,boundary_length,boundary_point_count,LBC,stencil_coefs)
+        r_fact = initialize_right_boundary!(low_boundary_coefs,high_boundary_coefs,stencil_length,derivative_order,grid_step,boundary_length,boundary_point_count,RBC,stencil_coefs)
 
         boundary_fn = (l_fact*bndry_fn[1], r_fact*bndry_fn[2])
 
@@ -62,48 +63,29 @@ immutable LinearOperator{T<:Real,S<:SVector,LBC,RBC} <: AbstractLinearOperator{T
 end
 
 
-function initialize_boundaries!{T}(low_boundary_coefs,high_boundary_coefs,
-                                   derivative_order, grid_step::T,boundary_length,
-                                   boundary_point_count,LBC,RBC, stencil_coefs)
+function initialize_left_boundary!{T}(low_boundary_coefs,high_boundary_coefs,stencil_length,
+                                   derivative_order,grid_step::T,boundary_length,
+                                   boundary_point_count,LBC=:Neumann,stencil_coefs)
     high_temp            = zeros(T,boundary_length)
     flag                 = derivative_order*boundary_point_count%2
     aorder               = boundary_length - 1
     first_order_coeffs   = zeros(T,boundary_length)
     original_coeffs      = zeros(T,boundary_length)
-    l_diff = one(T)
-    r_diff = one(T)
-    stencil_length       = length(stencil_coefs)
+    l_diff               = one(T)
+    mid                  = div(stencil_length,2)+1
 
-    if LBC == :Neumann
-        first_order_coeffs = calculate_weights(1, (0)*grid_step, collect(zero(T) : grid_step : aorder* grid_step))
-        original_coeffs =  calculate_weights(derivative_order, (0)*grid_step, collect(zero(T) : grid_step : (boundary_length-1) * grid_step))
+    first_order_coeffs = calculate_weights(1, (0)*grid_step, collect(zero(T) : grid_step : aorder* grid_step))
+    original_coeffs =  calculate_weights(derivative_order, (0)*grid_step, collect(zero(T) : grid_step : (boundary_length-1) * grid_step))
 
-        l_diff = original_coeffs[end]/first_order_coeffs[end]
-        scale!(first_order_coeffs, original_coeffs[end]/first_order_coeffs[end])
-        # scale!(original_coeffs, first_order_coeffs[end]/original_coeffs[end])
-        @. original_coeffs = original_coeffs - first_order_coeffs
-        # copy!(first_order_coeffs, first_order_coeffs[1:end-1])
-        push!(low_boundary_coefs, original_coeffs[1:end-1])
-    end
+    l_diff = original_coeffs[end]/first_order_coeffs[end]
+    scale!(first_order_coeffs, original_coeffs[end]/first_order_coeffs[end])
+    # scale!(original_coeffs, first_order_coeffs[end]/original_coeffs[end])
+    @. original_coeffs = original_coeffs - first_order_coeffs
+    # copy!(first_order_coeffs, first_order_coeffs[1:end-1])
+    push!(low_boundary_coefs, original_coeffs[1:end-1])
 
-    if RBC == :Neumann
-        copy!(first_order_coeffs, calculate_weights(1, (boundary_point_count-1)*grid_step, collect(zero(T) : grid_step : aorder * grid_step)))
-        reverse!(first_order_coeffs)
-        isodd(flag) ? negate!(first_order_coeffs) : nothing
-
-        copy!(original_coeffs, calculate_weights(derivative_order, (boundary_point_count-1)*grid_step, collect(zero(T) : grid_step : (boundary_length-1) * grid_step)))
-        reverse!(original_coeffs)
-        isodd(flag) ? negate!(original_coeffs) : nothing
-
-        r_diff = original_coeffs[1]/first_order_coeffs[1]
-        scale!(first_order_coeffs, original_coeffs[1]/first_order_coeffs[1])
-        # scale!(original_coeffs, first_order_coeffs[1]/original_coeffs[1])
-        @. original_coeffs = original_coeffs - first_order_coeffs
-        # copy!(first_order_coeffs, first_order_coeffs[1:end-1])
-    end
-
-    for i in 1 : boundary_point_count
-        if LBC == :None
+    if LBC == :None
+        for i in 1 : boundary_point_count
             # One-sided stencils require more points for same approximation order
             # TODO: I don't know if this is the correct stencil length for i > 1?
 
@@ -114,8 +96,53 @@ function initialize_boundaries!{T}(low_boundary_coefs,high_boundary_coefs,
                 push!(low_boundary_coefs, stencil_coefs)
             end
         end
+    else
+        for i in 2 : boundary_point_count
+            #=  this means that a stencil will suffice ie. we dont't need to worry about the boundary point
+            being considered in the low_boundary_coefs
+            =#
+            if i > mid
+                pos=i-1
+                push!(low_boundary_coefs, calculate_weights(derivative_order, pos*grid_step, collect(zero(T) : grid_step : (boundary_length-1) * grid_step)))
+            else
+                pos=i-2
+                push!(low_boundary_coefs, append!([0],calculate_weights(derivative_order, pos*grid_step, collect(zero(T) : grid_step : (boundary_length-1) * grid_step))))
+            end
+        end    
+    end
 
-        if RBC == :None
+    return l_diff
+end
+
+
+function initialize_right_boundary!{T}(low_boundary_coefs,high_boundary_coefs,stencil_length,
+                                   derivative_order,grid_step::T,boundary_length,
+                                   boundary_point_count,RBC=:Neumann)
+    # high_temp            = zeros(T,boundary_length)
+    flag                 = derivative_order*boundary_point_count%2
+    aorder               = boundary_length - 1
+    first_order_coeffs   = zeros(T,boundary_length)
+    original_coeffs      = zeros(T,boundary_length)
+    r_diff               = one(T)
+    mid                  = div(stencil_length,2)+1
+
+    # this part is to incorporate the value of first derivative at the right boundary
+    copy!(first_order_coeffs, calculate_weights(1, (boundary_point_count-1)*grid_step, collect(zero(T) : grid_step : aorder * grid_step)))
+    reverse!(first_order_coeffs)
+    isodd(flag) ? negate!(first_order_coeffs) : nothing
+
+    copy!(original_coeffs, calculate_weights(derivative_order, (boundary_point_count-1)*grid_step, collect(zero(T) : grid_step : (boundary_length-1) * grid_step)))
+    reverse!(original_coeffs)
+    isodd(flag) ? negate!(original_coeffs) : nothing
+
+    r_diff = original_coeffs[1]/first_order_coeffs[1]
+    scale!(first_order_coeffs, original_coeffs[1]/first_order_coeffs[1])
+    # scale!(original_coeffs, first_order_coeffs[1]/original_coeffs[1])
+    @. original_coeffs = original_coeffs - first_order_coeffs
+    # copy!(first_order_coeffs, first_order_coeffs[1:end-1])
+
+    if RBC == :None
+        for i in 1 : boundary_point_count
             # One-sided stencils require more points for same approximation order
             if i < 1 + div(stencil_length,2)
                 push!(high_boundary_coefs, calculate_weights(derivative_order, -(i-1)*grid_step, reverse(collect(zero(T) : -grid_step : -(boundary_length-1)*grid_step))))
@@ -124,23 +151,27 @@ function initialize_boundaries!{T}(low_boundary_coefs,high_boundary_coefs,
                 push!(high_boundary_coefs, stencil_coefs)
             end
         end
-
-        if LBC == :Neumann && i > 1
-            push!(low_boundary_coefs, calculate_weights(derivative_order, (i-1)*grid_step, collect(zero(T) : grid_step : (boundary_length-1) * grid_step)))
-        end
-
-        if RBC == :Neumann && i < boundary_point_count
-            copy!(high_temp, calculate_weights(derivative_order, (i-1)*grid_step, collect(zero(T) : grid_step : (boundary_length-1) * grid_step)))
+    else
+        for i in 1 : boundary_point_count-1
+            if boundary_point_count-i+1 -mid > 0
+                pos=boundary_point_count- i-1
+                high_temp = calculate_weights(derivative_order, pos*grid_step, collect(zero(T) : grid_step : (boundary_length-1) * grid_step))
+                println(high_temp)
+                println(pos)
+                println(collect(zero(T) : grid_step : (boundary_length-1) * grid_step))
+            else
+                pos=i-2
+                high_temp = append!([0],calculate_weights(derivative_order, pos*grid_step, collect(zero(T) : grid_step : (boundary_length-1) * grid_step)))
+            end
             reverse!(high_temp)
             isodd(flag) ? negate!(high_temp) : nothing
             push!(high_boundary_coefs,high_temp)
         end
     end
-
     if RBC == :Neumann
         push!(high_boundary_coefs, original_coeffs[2:end])
     end
-    return l_diff, r_diff
+    return r_diff
 end
 
 
@@ -208,6 +239,7 @@ end
     return v
 end
 
+
 # UnitRanges
 @inline function getindex(A::LinearOperator, rng::UnitRange{Int}, cc::Colon)
     m = full(A)
@@ -264,6 +296,7 @@ end
         return mat[:, cng]
     end
 end
+
 
 #############################################################
 # Fornberg algorithm
@@ -407,6 +440,7 @@ Base.transpose(A::LinearOperator) = A
 Base.ctranspose(A::LinearOperator) = A
 Base.issymmetric(::AbstractLinearOperator) = true
 
+
 function Base.full{T}(A::LinearOperator{T}, N::Int=A.dimension)
     @assert N >= A.stencil_length # stencil must be able to fit in the matrix
     mat = zeros(T, (N, N))
@@ -422,6 +456,7 @@ function Base.full{T}(A::LinearOperator{T}, N::Int=A.dimension)
     end
     return mat
 end
+
 
 function Base.sparse{T}(A::LinearOperator{T})
     N = A.dimension
