@@ -67,11 +67,11 @@ function initialize_left_boundary!{T}(low_boundary_coefs,stencil_coefs,stencil_l
                                    derivative_order,grid_step::T,boundary_length,
                                    boundary_point_count,LBC)
     if LBC == :None
-        return left_None!(low_boundary_coefs,stencil_coefs,stencil_length,
+        return left_None_BC!(low_boundary_coefs,stencil_coefs,stencil_length,
                           derivative_order,grid_step,boundary_length,
                           boundary_point_count)
     elseif LBC == :Neumann
-        return left_Neumann!(low_boundary_coefs,stencil_length,
+        return left_Neumann_BC!(low_boundary_coefs,stencil_length,
                              derivative_order,grid_step,boundary_length,
                              boundary_point_count)
     else
@@ -84,11 +84,11 @@ function initialize_right_boundary!{T}(high_boundary_coefs,stencil_coefs,stencil
                                    derivative_order,grid_step::T,boundary_length,
                                    boundary_point_count,RBC)
     if RBC == :None
-        return right_None!(high_boundary_coefs,stencil_coefs,stencil_length,
+        return right_None_BC!(high_boundary_coefs,stencil_coefs,stencil_length,
                           derivative_order,grid_step,boundary_length,
                           boundary_point_count)
     elseif RBC == :Neumann
-        return right_Neumann!(high_boundary_coefs,stencil_length,
+        return right_Neumann_BC!(high_boundary_coefs,stencil_length,
                              derivative_order,grid_step,boundary_length,
                              boundary_point_count)
     else
@@ -97,7 +97,7 @@ function initialize_right_boundary!{T}(high_boundary_coefs,stencil_coefs,stencil
 end
 
 
-function left_None!{T}(low_boundary_coefs,stencil_coefs,stencil_length,
+function left_None_BC!{T}(low_boundary_coefs,stencil_coefs,stencil_length,
                        derivative_order,grid_step::T,boundary_length,
                        boundary_point_count)
     aorder               = boundary_length - 1
@@ -119,7 +119,7 @@ function left_None!{T}(low_boundary_coefs,stencil_coefs,stencil_length,
 end
 
 
-function right_None!{T}(high_boundary_coefs,stencil_coefs,stencil_length,
+function right_None_BC!{T}(high_boundary_coefs,stencil_coefs,stencil_length,
                         derivative_order,grid_step::T,boundary_length,
                         boundary_point_count)
     high_temp            = zeros(T,boundary_length)
@@ -139,7 +139,7 @@ function right_None!{T}(high_boundary_coefs,stencil_coefs,stencil_length,
 end
 
 
-function left_Neumann!{T}(low_boundary_coefs,stencil_length,
+function left_Neumann_BC!{T}(low_boundary_coefs,stencil_length,
                           derivative_order,grid_step::T,boundary_length,
                           boundary_point_count)
     high_temp            = zeros(T,boundary_length)
@@ -177,7 +177,7 @@ function left_Neumann!{T}(low_boundary_coefs,stencil_length,
 end
 
 
-function right_Neumann!{T}(high_boundary_coefs,stencil_length,
+function right_Neumann_BC!{T}(high_boundary_coefs,stencil_length,
                            derivative_order,grid_step::T,boundary_length,
                            boundary_point_count)
     # high_temp            = zeros(T,boundary_length)
