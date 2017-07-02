@@ -2,9 +2,9 @@ using PDEOperators
 
 include("dirichlet.jl")
 
-include("periodic.jl")
+# include("periodic.jl")
 
-include("neumann.jl")
+# include("neumann.jl")
 
 include("none.jl")
 
