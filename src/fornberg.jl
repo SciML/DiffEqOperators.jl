@@ -44,7 +44,7 @@ immutable LinearOperator{T<:Real,S<:SVector,LBC,RBC} <: AbstractLinearOperator{T
         stencil_coefs        = convert(SVector{stencil_length, T}, calculate_weights(derivative_order, zero(T),
                                grid_step .* collect(-div(stencil_length,2) : 1 : div(stencil_length,2))))
 
-        l_fact, r_fact = initialize_boundaries!(low_boundary_coefs,high_boundary_coefs,derivative_order,approximation_order,grid_step,boundary_length,boundary_point_count,LBC,RBC,stencil_coefs)
+        l_fact, r_fact = initialize_boundaries!(low_boundary_coefs,high_boundary_coefs,derivative_order,grid_step,boundary_length,boundary_point_count,LBC,RBC,stencil_coefs)
 
         boundary_fn = (l_fact*bndry_fn[1], r_fact*bndry_fn[2])
 
@@ -63,7 +63,7 @@ end
 
 
 function initialize_boundaries!{T}(low_boundary_coefs,high_boundary_coefs,
-                                   derivative_order, approximation_order, grid_step::T,boundary_length,
+                                   derivative_order, grid_step::T,boundary_length,
                                    boundary_point_count,LBC,RBC, stencil_coefs)
     high_temp            = zeros(T,boundary_length)
     flag                 = derivative_order*boundary_point_count%2
@@ -106,10 +106,9 @@ function initialize_boundaries!{T}(low_boundary_coefs,high_boundary_coefs,
         if LBC == :None
             # One-sided stencils require more points for same approximation order
             # TODO: I don't know if this is the correct stencil length for i > 1?
-            boundary_stencil_length = derivative_order+approximation_order
 
             if i < 1 + div(stencil_length,2)
-                push!(low_boundary_coefs, calculate_weights(derivative_order, (i-1)*grid_step, collect(zero(T) : grid_step : (boundary_stencil_length-1)*grid_step)))
+                push!(low_boundary_coefs, calculate_weights(derivative_order, (i-1)*grid_step, collect(zero(T) : grid_step : (boundary_length-1)*grid_step)))
             else
                 # FIXME: This "boundary point" should just be considered interior points for LBC = :None
                 push!(low_boundary_coefs, stencil_coefs)
@@ -118,9 +117,8 @@ function initialize_boundaries!{T}(low_boundary_coefs,high_boundary_coefs,
 
         if RBC == :None
             # One-sided stencils require more points for same approximation order
-            boundary_stencil_length = derivative_order+approximation_order
             if i < 1 + div(stencil_length,2)
-                push!(high_boundary_coefs, calculate_weights(derivative_order, -(i-1)*grid_step, reverse(collect(zero(T) : -grid_step : -(boundary_stencil_length-1)*grid_step))))
+                push!(high_boundary_coefs, calculate_weights(derivative_order, -(i-1)*grid_step, reverse(collect(zero(T) : -grid_step : -(boundary_length-1)*grid_step))))
             else
                 # FIXME: This "boundary point" should just be considered interior points for RBC = :None
                 push!(high_boundary_coefs, stencil_coefs)
