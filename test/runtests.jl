@@ -70,3 +70,28 @@ context("Indexing tests")do
     @test A[5,2:10] == M[5,2:10]
     @test A[60:100,500:600] == M[60:100,500:600]
 end
+
+context("Operations on matrices")do
+    N = 51
+    M = 101
+    d_order = 2
+    approx_order = 2
+
+    xarr = linspace(0,1,N)
+    yarr = linspace(0,1,M)
+    dy = yarr[2]-yarr[1]
+    F = [x^2+y for x = xarr, y = yarr]
+
+    A = LinearOperator{Float64}(d_order,approx_order,dx,length(xarr),:None,:None)
+    B = LinearOperator{Float64}(d_order,approx_order,dy,length(yarr),:None,:None)
+
+    @test A*F ≈ 2*ones(N,M) atol=1e-2
+    @test F*B ≈ zeros(M,N) atol=1e-2
+    @test A*F*B ≈ zeros(M,N) atol=1e-2
+
+    G = [x^2+y^2 for x = xarr, y = yarr]
+
+    @test A*G ≈ 2*ones(N,M) atol=1e-2
+    @test G*B ≈ 2*ones(M,N) atol=1e-2
+    @test A*G*B ≈ zeros(M,N) atol=1e-2
+end

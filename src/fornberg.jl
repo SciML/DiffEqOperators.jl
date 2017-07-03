@@ -8,6 +8,29 @@ function *(A::AbstractLinearOperator,x::AbstractVector)
     return y
 end
 
+
+function *(A::AbstractLinearOperator,M::AbstractMatrix)
+    #=
+        We will output a vector which is a supertype of the types of A and x
+        to ensure numerical stability
+    =#
+    y = zeros(promote_type(eltype(A),eltype(M)), size(M))
+    Base.A_mul_B!(y, A::AbstractLinearOperator, M::AbstractMatrix)
+    return y
+end
+
+
+function *(M::AbstractMatrix,A::AbstractLinearOperator)
+    #=
+        We will output a vector which is a supertype of the types of A and x
+        to ensure numerical stability
+    =#
+    y = zeros(promote_type(eltype(A),eltype(M)), reverse(size(M)))
+    Base.A_mul_B!(y, A::AbstractLinearOperator, M::AbstractMatrix)
+    return y
+end
+
+
 function negate!{T}(arr::T)
     if size(arr,2) == 1
         scale!(arr,-1)
@@ -472,10 +495,24 @@ function Base.A_mul_B!{T<:Real}(x_temp::AbstractVector{T}, A::LinearOperator{T},
 end
 
 
+function Base.A_mul_B!{T<:Real}(x_temp::AbstractArray{T,2}, A::LinearOperator{T}, M::AbstractMatrix{T})
+    if size(x_temp) == reverse(size(M))
+        for i = 1:size(M,1)
+            A_mul_B!(view(x_temp,:,i), A, M[i,:])
+        end
+    else
+        for i = 1:size(M,2)
+            A_mul_B!(view(x_temp,:,i), A, M[:,i])
+        end
+    end
+end
+
+
 # Base.length(A::LinearOperator) = A.stencil_length
 Base.ndims(A::LinearOperator) = 2
 Base.size(A::LinearOperator) = (A.dimension, A.dimension)
 Base.length(A::LinearOperator) = reduce(*, size(A))
+
 
 #=
     Currently, for the evenly spaced grid we have a symmetric matrix

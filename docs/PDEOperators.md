@@ -67,6 +67,64 @@ Now coming to the main functionality of PDEOperators ie. taking finite differenc
 
 The derivative values at the boundaries are in accordance with the `Dirichlet` boundary condition.
 
+You can also take derivatives of matrices using `A*M` or `M*A` where the order of multiplication decides the axis along which we want to take derivatives.
+
+    julia> xarr = linspace(0,1,51)
+    julia> yarr = linspace(0,1,101)
+    julia> dx = xarr[2]-xarr[1]
+    julia> dy = yarr[2]-yarr[1]
+    julia> F = [x^2+y for x = xarr, y = yarr]
+    julia> A = LinearOperator{Float64}(2,2,dx,length(yarr),:None,:None)
+    julia> B = LinearOperator{Float64}(2,2,dy,length(yarr),:None,:None)
+
+    julia> # A*F calculates derivatives along the x axis ie. keeping y constant
+    julia> A*F
+    51×101 Array{Float64,2}:
+     2.0  2.0  2.0  2.0  2.0  2.0  2.0  …  2.0  2.0  2.0  2.0  2.0  2.0  2.0
+     2.0  2.0  2.0  2.0  2.0  2.0  2.0     2.0  2.0  2.0  2.0  2.0  2.0  2.0
+     2.0  2.0  2.0  2.0  2.0  2.0  2.0     2.0  2.0  2.0  2.0  2.0  2.0  2.0
+     2.0  2.0  2.0  2.0  2.0  2.0  2.0     2.0  2.0  2.0  2.0  2.0  2.0  2.0
+     2.0  2.0  2.0  2.0  2.0  2.0  2.0     2.0  2.0  2.0  2.0  2.0  2.0  2.0
+     2.0  2.0  2.0  2.0  2.0  2.0  2.0  …  2.0  2.0  2.0  2.0  2.0  2.0  2.0
+     2.0  2.0  2.0  2.0  2.0  2.0  2.0     2.0  2.0  2.0  2.0  2.0  2.0  2.0
+     2.0  2.0  2.0  2.0  2.0  2.0  2.0     2.0  2.0  2.0  2.0  2.0  2.0  2.0
+     2.0  2.0  2.0  2.0  2.0  2.0  2.0     2.0  2.0  2.0  2.0  2.0  2.0  2.0
+     ⋮                        ⋮         ⋱       ⋮                        ⋮  
+     2.0  2.0  2.0  2.0  2.0  2.0  2.0     2.0  2.0  2.0  2.0  2.0  2.0  2.0
+     2.0  2.0  2.0  2.0  2.0  2.0  2.0     2.0  2.0  2.0  2.0  2.0  2.0  2.0
+     2.0  2.0  2.0  2.0  2.0  2.0  2.0     2.0  2.0  2.0  2.0  2.0  2.0  2.0
+     2.0  2.0  2.0  2.0  2.0  2.0  2.0  …  2.0  2.0  2.0  2.0  2.0  2.0  2.0
+     2.0  2.0  2.0  2.0  2.0  2.0  2.0     2.0  2.0  2.0  2.0  2.0  2.0  2.0
+     2.0  2.0  2.0  2.0  2.0  2.0  2.0     2.0  2.0  2.0  2.0  2.0  2.0  2.0
+     2.0  2.0  2.0  2.0  2.0  2.0  2.0     2.0  2.0  2.0  2.0  2.0  2.0  2.0
+     2.0  2.0  2.0  2.0  2.0  2.0  2.0     2.0  2.0  2.0  2.0  2.0  2.0  2.0
+     2.0  2.0  2.0  2.0  2.0  2.0  2.0  …  2.0  2.0  2.0  2.0  2.0  2.0  2.0
+
+    julia> # F*B calculates derivatives along the y axis ie. keeping x constant
+    julia> F*B
+    101×51 Array{Float64,2}:
+      0.0           1.04083e-13   6.93889e-14  …   2.22045e-12   2.22045e-12
+      0.0           3.46945e-14   0.0              0.0           0.0        
+      0.0          -3.46945e-14  -6.93889e-14      0.0           0.0        
+      6.93889e-14   0.0           6.93889e-14      0.0           0.0        
+      0.0           0.0           0.0              0.0           0.0        
+     -6.93889e-14  -6.93889e-14  -6.93889e-14  …   0.0           0.0        
+      1.38778e-13   1.38778e-13   1.38778e-13      0.0           0.0        
+     -1.38778e-13  -1.38778e-13  -2.77556e-13      0.0           0.0        
+      0.0           0.0           0.0              0.0           0.0        
+      ⋮                                        ⋱                 ⋮          
+      0.0           0.0           0.0              4.44089e-12   4.44089e-12
+     -1.11022e-12  -1.11022e-12  -1.11022e-12     -4.44089e-12  -4.44089e-12
+      1.11022e-12   1.11022e-12   1.11022e-12      2.22045e-12   2.22045e-12
+      0.0           0.0           0.0          …   0.0           0.0        
+      0.0           0.0           0.0              0.0           0.0        
+      0.0           0.0           0.0              0.0           0.0        
+      0.0           0.0           0.0              0.0           0.0        
+      0.0           0.0           0.0              0.0           0.0        
+      0.0           0.0           0.0          …   8.88178e-12   8.88178e-12
+
+
+
 **Note:** Please take care that the boundary values passed to the operator match the initial boundary conditions. The operator with the boundary condition is meant to enforce the boundary condition rather bring the boundaries to that state. Right now we support only **constant** boundaries conditions, time dependent conditions will supported in later versions.
 
 **Note:** If you want to parallelize the operation of PDEOperator, please start Julia by specifying the number of threads using `export JULIA_NUM_THREADS=<desired number of threads>`
