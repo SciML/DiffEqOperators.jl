@@ -25,7 +25,7 @@ function *(M::AbstractMatrix,A::AbstractLinearOperator)
         We will output a vector which is a supertype of the types of A and x
         to ensure numerical stability
     =#
-    y = zeros(promote_type(eltype(A),eltype(M)), reverse(size(M)))
+    y = zeros(promote_type(eltype(A),eltype(M)), size(M))
     Base.A_mul_B!(y, A::AbstractLinearOperator, M::AbstractMatrix)
     return y
 end
@@ -498,7 +498,7 @@ end
 function Base.A_mul_B!{T<:Real}(x_temp::AbstractArray{T,2}, A::LinearOperator{T}, M::AbstractMatrix{T})
     if size(x_temp) == reverse(size(M))
         for i = 1:size(M,1)
-            A_mul_B!(view(x_temp,:,i), A, M[i,:])
+            A_mul_B!(view(x_temp,i,:), A, M[i,:])
         end
     else
         for i = 1:size(M,2)

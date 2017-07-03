@@ -79,6 +79,7 @@ context("Operations on matrices")do
 
     xarr = linspace(0,1,N)
     yarr = linspace(0,1,M)
+    dx = xarr[2]-xarr[1]
     dy = yarr[2]-yarr[1]
     F = [x^2+y for x = xarr, y = yarr]
 
@@ -86,12 +87,12 @@ context("Operations on matrices")do
     B = LinearOperator{Float64}(d_order,approx_order,dy,length(yarr),:None,:None)
 
     @test A*F ≈ 2*ones(N,M) atol=1e-2
-    @test F*B ≈ zeros(M,N) atol=1e-2
-    @test A*F*B ≈ zeros(M,N) atol=1e-2
+    @test F*B ≈ zeros(N,M) atol=1e-2
+    @test A*F*B ≈ zeros(N,M) atol=1e-2
 
     G = [x^2+y^2 for x = xarr, y = yarr]
 
     @test A*G ≈ 2*ones(N,M) atol=1e-2
-    @test G*B ≈ 2*ones(M,N) atol=1e-2
-    @test A*G*B ≈ zeros(M,N) atol=1e-2
+    @test G*B ≈ 8*ones(N,M) atol=1e-2
+    @test A*G*B ≈ zeros(N,M) atol=1e-2
 end
