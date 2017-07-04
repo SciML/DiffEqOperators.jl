@@ -31,7 +31,7 @@ end
 
 
 function convolve_BC_left!{T<:Real,S<:SVector,RBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,:D1,RBC})
-    x[1] = A.boundary_fn[1]
+    x[1] = A.boundary_fn[1][3]
     Threads.@threads for i in 1 : A.boundary_point_count
         dirichlet_1!(x_temp, x, A.stencil_coefs, i)
     end
@@ -61,7 +61,20 @@ function convolve_BC_left!{T<:Real,S<:SVector,RBC}(x_temp::AbstractVector{T}, x:
         end
         x_temp[i] = tmp
     end
-    x_temp[1] += A.boundary_fn[1]*A.dx
+    x_temp[1] += A.boundary_fn[1][3]
+end
+
+
+function convolve_BC_left!{T<:Real,S<:SVector,RBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,:Robin,RBC})
+    @inbounds for i in 1 : A.boundary_point_count
+        bc = A.low_boundary_coefs[i]
+        tmp = zero(T)
+        @inbounds for j in 1 : length(bc)
+            tmp += bc[j] * x[j]
+        end
+        x_temp[i] = tmp
+    end
+    x_temp[1] += A.boundary_fn[1][3]
 end
 
 
@@ -97,7 +110,7 @@ end
 
 
 #= RIGHT BOUNDARY CONDITIONS =#
-function convolve_BC_right!{T<:Real,S<:SVector,LBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,LBC, :D0})
+function convolve_BC_right!{T<:Real,S<:SVector,LBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,LBC,:D0})
     # Dirichlet 0 means that the value at the boundary is 0
     N = length(x)
     Threads.@threads for i in 1 : A.boundary_point_count
@@ -106,12 +119,12 @@ function convolve_BC_right!{T<:Real,S<:SVector,LBC}(x_temp::AbstractVector{T}, x
 end
 
 
-function convolve_BC_right!{T<:Real,S<:SVector,LBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,LBC, :D1})
+function convolve_BC_right!{T<:Real,S<:SVector,LBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,LBC,:D1})
     N = length(x)
     Threads.@threads for i in 1 : A.boundary_point_count
         dirichlet_1!(x_temp, x, A.stencil_coefs, N - A.boundary_point_count + i)
     end
-    x[end] = A.boundary_fn[2]
+    x[end] = A.boundary_fn[2][3]
 end
 
 
@@ -123,7 +136,7 @@ function convolve_BC_right!{T<:Real,S<:SVector,LBC}(x_temp::AbstractVector{T}, x
 end
 
 
-function convolve_BC_right!{T<:Real,S<:SVector,LBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,LBC, :Neumann0})
+function convolve_BC_right!{T<:Real,S<:SVector,LBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,LBC,:Neumann0})
     N = length(x)
     Threads.@threads for i in 1 : A.boundary_point_count
         neumann0!(x_temp, x, A.stencil_coefs, N - A.boundary_point_count + i)
@@ -131,7 +144,7 @@ function convolve_BC_right!{T<:Real,S<:SVector,LBC}(x_temp::AbstractVector{T}, x
 end
 
 
-function convolve_BC_right!{T<:Real,S<:SVector,LBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,LBC, :Neumann})
+function convolve_BC_right!{T<:Real,S<:SVector,LBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,LBC,:Neumann})
     N = length(x)
     @inbounds for i in 1 : A.boundary_point_count
         bc = A.high_boundary_coefs[A.boundary_point_count - i + 1]
@@ -141,7 +154,21 @@ function convolve_BC_right!{T<:Real,S<:SVector,LBC}(x_temp::AbstractVector{T}, x
         end
         x_temp[N-i+1] = tmp
     end
-    x_temp[end] += A.boundary_fn[2]*A.dx
+    x_temp[end] += A.boundary_fn[2][3]
+end
+
+
+function convolve_BC_right!{T<:Real,S<:SVector,LBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,LBC,:Robin})
+    N = length(x)
+    @inbounds for i in 1 : A.boundary_point_count
+        bc = A.high_boundary_coefs[A.boundary_point_count - i + 1]
+        tmp = zero(T)
+        @inbounds for j in 1 : length(bc)
+            tmp += bc[j] * x[N-j+1]
+        end
+        x_temp[N-i+1] = tmp
+    end
+    x_temp[end] += A.boundary_fn[2][3]
 end
 
 
