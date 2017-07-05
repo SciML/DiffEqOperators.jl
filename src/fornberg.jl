@@ -31,6 +31,13 @@ function *(M::AbstractMatrix,A::AbstractLinearOperator)
 end
 
 
+function *(A::AbstractLinearOperator,B::AbstractLinearOperator)
+    # TODO: it will result in an operator which calculates
+    #       the derivative of order A.dorder + B.dorder of
+    #       approximation_order = min(approx_A, approx_B)
+end
+
+
 function negate!{T}(arr::T)
     if size(arr,2) == 1
         scale!(arr,-1)
@@ -101,14 +108,18 @@ function initialize_left_boundary!{T}(low_boundary_coefs,stencil_coefs,bndry_fn,
         return (bndry_fn[1][1],bndry_fn[1][2],left_Robin_BC!(low_boundary_coefs,stencil_length,
                                                    bndry_fn[1],derivative_order,grid_step,
                                                    boundary_length,dx)*bndry_fn[1][3]*dx)
-    elseif LBC == :D0
+    elseif LBC == :Dirichlet0
         return (one(T),zero(T),bndry_fn[1])
 
-    elseif LBC == :D1
+    elseif LBC == :Dirichlet
         return (one(T),zero(T),bndry_fn[1])
+
+    elseif LBC == :Neumann0
+        return (zero(T),one(T),zero(T))
 
     else
-        return (zero(T),zero(T),zero(T))
+        error("Unrecognized Boundary Type!")
+        # return (zero(T),zero(T),zero(T))
     end
 end
 
@@ -128,15 +139,18 @@ function initialize_right_boundary!{T}(high_boundary_coefs,stencil_coefs,bndry_f
         return (bndry_fn[2][1],bndry_fn[2][2],right_Robin_BC!(right_boundary_coefs,stencil_length,
                                                     bndry_fn[2],derivative_order,grid_step,
                                                     boundary_length,dx)*bndry_fn[2][3]*dx)
-    elseif RBC == :D0
+    elseif RBC == :Dirichlet0
         return (one(T),zero(T),bndry_fn[2])
 
-    elseif RBC == :D1
+    elseif RBC == :Dirichlet
         return (one(T),zero(T),bndry_fn[2])
+
+    elseif RBC == :Neumann0
+        return (zero(T),one(T),zero(T))
 
     else
-        return (zero(T),zero(T),zero(T))
-
+        error("Unrecognized Boundary Type!")
+        # return (zero(T),zero(T),zero(T))
     end
 end
 
@@ -246,12 +260,12 @@ function right_Neumann_BC!{T}(high_boundary_coefs,stencil_length,
 
     for i in 1 : boundary_point_count-1
         if boundary_point_count-i+1 -mid > 0
-            pos=boundary_point_count- i-1
+            pos=i-1
             high_temp = calculate_weights(derivative_order, pos*grid_step, collect(zero(T) : grid_step : (boundary_length-1) * grid_step))
 
         else
             pos=i-2
-            high_temp = append!([zero(T)],calculate_weights(derivative_order, pos*grid_step, collect(zero(T) : grid_step : (boundary_length-1) * grid_step)))
+            high_temp = append!([zero(T)],calculate_weights(derivative_order, pos*grid_step, collect(zero(T) : grid_step : (boundary_length-1)) * grid_step))
         end
         push!(high_boundary_coefs, high_temp)
     end
@@ -327,7 +341,7 @@ function right_Robin_BC!{T}(high_boundary_coefs,stencil_length,params,
 
         else
             pos=i-2
-            high_temp = append!([zero(T)],calculate_weights(derivative_order, pos*grid_step, collect(zero(T) : grid_step : (boundary_length-1) * grid_step)))
+            high_temp = append!([zero(T)],calculate_weights(derivative_order, pos*grid_step, collect(zero(T) : grid_step : (boundary_length-1)) * grid_step))
         end
         push!(high_boundary_coefs, high_temp)
     end
@@ -459,6 +473,78 @@ end
 end
 
 
+function Base.A_mul_B!{T<:Real}(x_temp::AbstractVector{T}, A::LinearOperator{T}, x::AbstractVector{T})
+    convolve_BC_left!(x_temp, x, A)
+    convolve_interior!(x_temp, x, A)
+    convolve_BC_right!(x_temp, x, A)
+    scale!(x_temp, 1/(A.dx^A.derivative_order))
+end
+
+
+function Base.A_mul_B!{T<:Real}(x_temp::AbstractArray{T,2}, A::LinearOperator{T}, M::AbstractMatrix{T})
+    if size(x_temp) == reverse(size(M))
+        for i = 1:size(M,1)
+            A_mul_B!(view(x_temp,i,:), A, M[i,:])
+        end
+    else
+        for i = 1:size(M,2)
+            A_mul_B!(view(x_temp,:,i), A, M[:,i])
+        end
+    end
+end
+
+
+# Base.length(A::LinearOperator) = A.stencil_length
+Base.ndims(A::LinearOperator) = 2
+Base.size(A::LinearOperator) = (A.dimension, A.dimension)
+Base.length(A::LinearOperator) = reduce(*, size(A))
+
+
+#=
+    Currently, for the evenly spaced grid we have a symmetric matrix
+=#
+Base.transpose(A::LinearOperator) = A
+Base.ctranspose(A::LinearOperator) = A
+Base.issymmetric(::AbstractLinearOperator) = true
+
+
+function Base.full{T}(A::LinearOperator{T}, N::Int=A.dimension)
+    @assert N >= A.stencil_length # stencil must be able to fit in the matrix
+    mat = zeros(T, (N, N))
+    v = zeros(T, N)
+    for i=1:N
+        v[i] = one(T)
+        #=
+            calculating the effect on a unit vector to get the matrix of transformation
+            to get the vector in the new vector space.
+        =#
+        A_mul_B!(view(mat,:,i), A, v)
+        v[i] = zero(T)
+    end
+    return mat
+end
+
+
+function Base.sparse{T}(A::LinearOperator{T})
+    N = A.dimension
+    mat = spzeros(T, N, N)
+    v = zeros(T, N)
+    row = zeros(T, N)
+    for i=1:N
+        v[i] = one(T)
+        #=
+            calculating the effect on a unit vector to get the matrix of transformation
+            to get the vector in the new vector space.
+        =#
+        A_mul_B!(row, A, v)
+        copy!(view(mat,:,i), row)
+        row .= 0.*row;
+        v[i] = zero(T)
+    end
+    return mat
+end
+
+
 #############################################################
 # Fornberg algorithm
 function derivative{T<:Real}(y::Vector{T}, A::LinearOperator{T})
@@ -578,76 +664,4 @@ function calculate_weights{T<:Real}(order::Int, x0::T, x::Vector{T})
     _C[div(N,2)+1] -= sum(_C)
     return _C
     # return C
-end
-
-
-function Base.A_mul_B!{T<:Real}(x_temp::AbstractVector{T}, A::LinearOperator{T}, x::AbstractVector{T})
-    convolve_BC_left!(x_temp, x, A)
-    convolve_interior!(x_temp, x, A)
-    convolve_BC_right!(x_temp, x, A)
-    scale!(x_temp, 1/(A.dx^A.derivative_order))
-end
-
-
-function Base.A_mul_B!{T<:Real}(x_temp::AbstractArray{T,2}, A::LinearOperator{T}, M::AbstractMatrix{T})
-    if size(x_temp) == reverse(size(M))
-        for i = 1:size(M,1)
-            A_mul_B!(view(x_temp,i,:), A, M[i,:])
-        end
-    else
-        for i = 1:size(M,2)
-            A_mul_B!(view(x_temp,:,i), A, M[:,i])
-        end
-    end
-end
-
-
-# Base.length(A::LinearOperator) = A.stencil_length
-Base.ndims(A::LinearOperator) = 2
-Base.size(A::LinearOperator) = (A.dimension, A.dimension)
-Base.length(A::LinearOperator) = reduce(*, size(A))
-
-
-#=
-    Currently, for the evenly spaced grid we have a symmetric matrix
-=#
-Base.transpose(A::LinearOperator) = A
-Base.ctranspose(A::LinearOperator) = A
-Base.issymmetric(::AbstractLinearOperator) = true
-
-
-function Base.full{T}(A::LinearOperator{T}, N::Int=A.dimension)
-    @assert N >= A.stencil_length # stencil must be able to fit in the matrix
-    mat = zeros(T, (N, N))
-    v = zeros(T, N)
-    for i=1:N
-        v[i] = one(T)
-        #=
-            calculating the effect on a unit vector to get the matrix of transformation
-            to get the vector in the new vector space.
-        =#
-        A_mul_B!(view(mat,:,i), A, v)
-        v[i] = zero(T)
-    end
-    return mat
-end
-
-
-function Base.sparse{T}(A::LinearOperator{T})
-    N = A.dimension
-    mat = spzeros(T, N, N)
-    v = zeros(T, N)
-    row = zeros(T, N)
-    for i=1:N
-        v[i] = one(T)
-        #=
-            calculating the effect on a unit vector to get the matrix of transformation
-            to get the vector in the new vector space.
-        =#
-        A_mul_B!(row, A, v)
-        copy!(view(mat,:,i), row)
-        row .= 0.*row;
-        v[i] = zero(T)
-    end
-    return mat
 end

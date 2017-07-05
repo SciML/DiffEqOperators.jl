@@ -23,14 +23,14 @@ end
 
 
 #= LEFT BOUNDARY CONDITIONS =#
-function convolve_BC_left!{T<:Real,S<:SVector,RBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,:D0,RBC})
+function convolve_BC_left!{T<:Real,S<:SVector,RBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,:Dirichlet0,RBC})
     Threads.@threads for i in 1 : A.boundary_point_count
         dirichlet_0!(x_temp, x, A.stencil_coefs, i)
     end
 end
 
 
-function convolve_BC_left!{T<:Real,S<:SVector,RBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,:D1,RBC})
+function convolve_BC_left!{T<:Real,S<:SVector,RBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,:Dirichlet,RBC})
     x[1] = A.boundary_fn[1][3]
     Threads.@threads for i in 1 : A.boundary_point_count
         dirichlet_1!(x_temp, x, A.stencil_coefs, i)
@@ -110,7 +110,7 @@ end
 
 
 #= RIGHT BOUNDARY CONDITIONS =#
-function convolve_BC_right!{T<:Real,S<:SVector,LBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,LBC,:D0})
+function convolve_BC_right!{T<:Real,S<:SVector,LBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,LBC,:Dirichlet0})
     # Dirichlet 0 means that the value at the boundary is 0
     N = length(x)
     Threads.@threads for i in 1 : A.boundary_point_count
@@ -119,7 +119,7 @@ function convolve_BC_right!{T<:Real,S<:SVector,LBC}(x_temp::AbstractVector{T}, x
 end
 
 
-function convolve_BC_right!{T<:Real,S<:SVector,LBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,LBC,:D1})
+function convolve_BC_right!{T<:Real,S<:SVector,LBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,LBC,:Dirichlet})
     N = length(x)
     Threads.@threads for i in 1 : A.boundary_point_count
         dirichlet_1!(x_temp, x, A.stencil_coefs, N - A.boundary_point_count + i)
