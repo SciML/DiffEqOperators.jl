@@ -150,6 +150,7 @@ function convolve_BC_right!{T<:Real,S<:SVector,LBC}(x_temp::AbstractVector{T}, x
         bc = A.high_boundary_coefs[A.boundary_point_count - i + 1]
         tmp = zero(T)
         @inbounds for j in 1 : length(bc)
+            # our coefficients and points are aligned so as we have not reversed anything in the stencil
             tmp += bc[j] * x[N-j+1]
         end
         x_temp[N-i+1] = tmp
