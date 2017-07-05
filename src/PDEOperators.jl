@@ -9,6 +9,7 @@ using DiffEqBase, StaticArrays
 abstract type AbstractLinearOperator{T} <: AbstractDiffEqOperator{T} end
 export PDEOperator
 
+include("operator_basics.jl")
 include("fornberg.jl")
 include("boundary_operators.jl")
 

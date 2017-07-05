@@ -24,7 +24,7 @@ end
 
 #= LEFT BOUNDARY CONDITIONS =#
 function convolve_BC_left!{T<:Real,S<:SVector,RBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,:Dirichlet0,RBC})
-    Threads.@threads for i in 1 : A.boundary_point_count
+    for i in 1 : A.boundary_point_count
         dirichlet_0!(x_temp, x, A.stencil_coefs, i)
     end
 end
@@ -32,21 +32,21 @@ end
 
 function convolve_BC_left!{T<:Real,S<:SVector,RBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,:Dirichlet,RBC})
     x[1] = A.boundary_fn[1][3]
-    Threads.@threads for i in 1 : A.boundary_point_count
+    for i in 1 : A.boundary_point_count
         dirichlet_1!(x_temp, x, A.stencil_coefs, i)
     end
 end
 
 
 function convolve_BC_left!{T<:Real,S<:SVector,RBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,:periodic,RBC})
-    Threads.@threads for i in 1 : A.boundary_point_count
+    for i in 1 : A.boundary_point_count
         periodic!(x_temp, x, A.stencil_coefs, i)
     end
 end
 
 
 function convolve_BC_left!{T<:Real,S<:SVector,RBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,:Neumann0,RBC})
-    Threads.@threads for i in 1 : A.boundary_point_count
+    for i in 1 : A.boundary_point_count
         neumann0!(x_temp, x, A.stencil_coefs, i)
     end
 end
@@ -80,7 +80,7 @@ end
 
 function convolve_BC_left!{T<:Real,S<:SVector,RBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,:None,RBC})
     halfstencil = div(A.stencil_length, 2)
-    Threads.@threads for i in 1 : A.boundary_point_count
+    for i in 1 : A.boundary_point_count
         @inbounds bc = A.low_boundary_coefs[i]
         tmp = zero(T)
         startid = max(0,i-1-halfstencil)
@@ -113,7 +113,7 @@ end
 function convolve_BC_right!{T<:Real,S<:SVector,LBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,LBC,:Dirichlet0})
     # Dirichlet 0 means that the value at the boundary is 0
     N = length(x)
-    Threads.@threads for i in 1 : A.boundary_point_count
+    for i in 1 : A.boundary_point_count
         dirichlet_0!(x_temp, x, A.stencil_coefs, N - A.boundary_point_count + i)
     end
 end
@@ -121,7 +121,7 @@ end
 
 function convolve_BC_right!{T<:Real,S<:SVector,LBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,LBC,:Dirichlet})
     N = length(x)
-    Threads.@threads for i in 1 : A.boundary_point_count
+    for i in 1 : A.boundary_point_count
         dirichlet_1!(x_temp, x, A.stencil_coefs, N - A.boundary_point_count + i)
     end
     x[end] = A.boundary_fn[2][3]
@@ -130,7 +130,7 @@ end
 
 function convolve_BC_right!{T<:Real,S<:SVector,LBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,LBC,:periodic})
     N = length(x)
-    Threads.@threads for i in 1 : A.boundary_point_count
+    for i in 1 : A.boundary_point_count
         periodic!(x_temp, x, A.stencil_coefs, N - A.boundary_point_count + i)
     end
 end
@@ -138,7 +138,7 @@ end
 
 function convolve_BC_right!{T<:Real,S<:SVector,LBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,LBC,:Neumann0})
     N = length(x)
-    Threads.@threads for i in 1 : A.boundary_point_count
+    for i in 1 : A.boundary_point_count
         neumann0!(x_temp, x, A.stencil_coefs, N - A.boundary_point_count + i)
     end
 end
@@ -175,7 +175,7 @@ end
 
 function convolve_BC_right!{T<:Real,S<:SVector,LBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,LBC,:None})
     halfstencil = div(A.stencil_length, 2)
-    Threads.@threads for i in 1 : A.boundary_point_count
+    for i in 1 : A.boundary_point_count
         @inbounds bc = A.high_boundary_coefs[i]
         tmp = zero(T)
         startid = max(0,i-1-halfstencil)
