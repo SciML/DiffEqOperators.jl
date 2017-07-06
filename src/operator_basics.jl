@@ -117,6 +117,9 @@ function initialize_left_boundary!{T}(low_boundary_coefs,stencil_coefs,bndry_fn,
     elseif LBC == :Neumann0
         return (zero(T),one(T),zero(T))
 
+    elseif LBC == :periodic
+        return (zero(T),zero(T),zero(T))
+
     else
         error("Unrecognized Boundary Type!")
     end
@@ -146,6 +149,9 @@ function initialize_right_boundary!{T}(high_boundary_coefs,stencil_coefs,bndry_f
 
     elseif RBC == :Neumann0
         return (zero(T),one(T),zero(T))
+
+    elseif RBC == :periodic
+        return (zero(T),zero(T),zero(T))
 
     else
         error("Unrecognized Boundary Type!")
