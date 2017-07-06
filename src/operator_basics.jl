@@ -497,11 +497,11 @@ end
 function Base.A_mul_B!{T<:Real}(x_temp::AbstractArray{T,2}, A::LinearOperator{T}, M::AbstractMatrix{T})
     if size(x_temp) == reverse(size(M))
         for i = 1:size(M,1)
-            A_mul_B!(view(x_temp,i,:), A, M[i,:])
+            A_mul_B!(view(x_temp,i,:), A, view(M,i,:))
         end
     else
         for i = 1:size(M,2)
-            A_mul_B!(view(x_temp,:,i), A, M[:,i])
+            A_mul_B!(view(x_temp,:,i), A, view(M,:,i))
         end
     end
 end
