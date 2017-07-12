@@ -10,15 +10,15 @@ Lets consider the cosine wave as the initial waveform and evolve it using the eq
     u0 = cos.(π*x);
     du3 = zeros(u0); # a container array
     function KdV(t, u, du)
-               C(t,u,du3)
-               A(t, u, du)
-               copy!(du, -u.*du .- 0.022^2.*du3)
-           end
+        C(t,u,du3)
+        A(t, u, du)
+        copy!(du, -u.*du .- 0.022^2.*du3)
+    end
 
 Now defining our PDEOperators
 ```
-    A = LinearOperator{Float64}(1,2,1/99,199,:periodic,:periodic;bndry_fn=(u0[1],u0[end]));
-    C = LinearOperator{Float64}(3,2,1/99,199,:periodic,:periodic;bndry_fn=(u0[1],u0[end]));
+    A = LinearOperator{Float64}(1,2,1/99,199,:periodic,:periodic);
+    C = LinearOperator{Float64}(3,2,1/99,199,:periodic,:periodic);
 ```
 
 Now call the ODE solver as follows:-

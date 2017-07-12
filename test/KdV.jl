@@ -26,7 +26,7 @@ context("KdV equation (Single Solition)")do
     end
 
     single_solition = ODEProblem(KdV, u0, (0.,5.));
-    soln = solve(single_solition, dense=false, tstops=0:Δt:5);
+    soln = solve(single_solition, solver=Rosenbrock23(),dense=false,saveat=0.03,maxiters=10000);
 
     for t in 0:0.5:5
         @test soln(t) ≈ ϕ(x,t) atol = 0.01;
@@ -37,6 +37,7 @@ end
 context("KdV equation (Double Solition)")do
     x = collect(-50 : 1/99 : 50);
     c1,c2 = 20,10
+
     # ϕ1(x,t) = 3*p1^2*sech(.5*(p1*(x+2+t))).^2+3*p2^2*sech(.5*(p2*(x+1+t))).^2;
 
     function ϕ(x,t)
