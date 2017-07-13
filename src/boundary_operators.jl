@@ -12,6 +12,7 @@ function reflect(idx, L)
     end
 end
 
+# gives the index for periodic BC
 function rem1(idx,L)
     r = idx%L
     if r > 0

@@ -1,12 +1,15 @@
 using PDEOperators
+using Base.Test
+using FactCheck
+using SpecialMatrices
 
 include("dirichlet.jl")
-
 include("periodic.jl")
-
 include("neumann.jl")
-
 include("none.jl")
+include("KdV.jl")
+include("heat_eqn.jl")
+
 
 # tests for full and sparse function
 context("Full and Sparse functions")do

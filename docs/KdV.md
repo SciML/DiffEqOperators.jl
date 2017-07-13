@@ -26,4 +26,5 @@ Now call the ODE solver as follows:-
     prob1 = ODEProblem(KdV, u0, (0.,5.));
     sol1 = solve(prob1, dense=false, tstops=0:0.01:10);
 
-and plot the solutions to see the waveform evolve with time. 
+and plot the solutions to see the waveform evolve with time.
+**Note:** The waveform being solved for here is non-directional unlike the many waves you might see like traveling solitons. In that case you might need to use the Upwind operators.
