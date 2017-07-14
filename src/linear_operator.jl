@@ -105,7 +105,7 @@ function initialize_left_boundary!{T}(low_boundary_coefs,stencil_coefs,bndry_fn,
         return (zero(T),one(T),left_Neumann_BC!(low_boundary_coefs,stencil_length,derivative_order,
                                  grid_step,boundary_length)*bndry_fn[1]*dx)
     elseif LBC == :Robin
-        return (bndry_fn[1][1],bndry_fn[1][2],left_Robin_BC!(low_boundary_coefs,stencil_length,
+        return (bndry_fn[1][1],-bndry_fn[1][2],left_Robin_BC!(low_boundary_coefs,stencil_length,
                                                    bndry_fn[1],derivative_order,grid_step,
                                                    boundary_length,dx)*bndry_fn[1][3]*dx)
     elseif LBC == :Dirichlet0
@@ -294,7 +294,8 @@ function left_Robin_BC!{T}(low_boundary_coefs,stencil_length,params,
     l_diff               = one(T)
     mid                  = div(stencil_length,2)+1
 
-    first_order_coeffs = params[2]*calculate_weights(1, (0)*grid_step, collect(zero(T) : grid_step : aorder* grid_step))
+    # in Robin BC the left boundary has opposite sign by convention
+    first_order_coeffs = -params[2]*calculate_weights(1, (0)*grid_step, collect(zero(T) : grid_step : aorder* grid_step))
     first_order_coeffs[1] += dx*params[1]
     original_coeffs =  calculate_weights(derivative_order, (0)*grid_step, collect(zero(T) : grid_step : (boundary_length-1) * grid_step))
 
@@ -306,7 +307,8 @@ function left_Robin_BC!{T}(low_boundary_coefs,stencil_length,params,
     push!(low_boundary_coefs, original_coeffs[1:end-1])
 
     for i in 2 : boundary_point_count
-        #=  this means that a stencil will suffice ie. we dont't need to worry about the boundary point
+        #=
+            this means that a stencil will suffice ie. we dont't need to worry about the boundary point
             being considered in the low_boundary_coefs
         =#
         if i > mid
