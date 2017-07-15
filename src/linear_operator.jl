@@ -397,10 +397,10 @@ checkbounds(A::AbstractLinearOperator, k::Integer, j::Colon) =
     (0 < k ≤ size(A, 1) || throw(BoundsError(A, (k,size(A,2)))))
 
 
-# BandedMatrix{A,B,C,D}(A::LinearOperator{A,B,C,D}) = BandedMatrix(full(A, A.stencil_length), A.stencil_length, div(A.stencil_length,2), div(A.stencil_length,2))
+# BandedMatrix{A,B,C,D}(A::AbstractLinearOperator{A,B,C,D}) = BandedMatrix(full(A, A.stencil_length), A.stencil_length, div(A.stencil_length,2), div(A.stencil_length,2))
 
 # ~~ getindex ~~
-@inline function getindex(A::LinearOperator, i::Int, j::Int)
+@inline function getindex(A::AbstractLinearOperator, i::Int, j::Int)
     @boundscheck checkbounds(A, i, j)
     mid = div(A.stencil_length, 2) + 1
     bpc = A.stencil_length - mid
@@ -415,9 +415,9 @@ checkbounds(A::AbstractLinearOperator, k::Integer, j::Colon) =
 end
 
 # scalar - colon - colon
-@inline getindex(A::LinearOperator, kr::Colon, jr::Colon) = full(A)
+@inline getindex(A::AbstractLinearOperator, kr::Colon, jr::Colon) = full(A)
 
-@inline function getindex(A::LinearOperator, rc::Colon, j)
+@inline function getindex(A::AbstractLinearOperator, rc::Colon, j)
     T = eltype(A.stencil_coefs)
     v = zeros(T, A.dimension)
     v[j] = one(T)
@@ -427,7 +427,7 @@ end
 
 
 # symmetric right now
-@inline function getindex(A::LinearOperator, i, cc::Colon)
+@inline function getindex(A::AbstractLinearOperator, i, cc::Colon)
     T = eltype(A.stencil_coefs)
     v = zeros(T, A.dimension)
     v[i] = one(T)
@@ -437,31 +437,31 @@ end
 
 
 # UnitRanges
-@inline function getindex(A::LinearOperator, rng::UnitRange{Int}, cc::Colon)
+@inline function getindex(A::AbstractLinearOperator, rng::UnitRange{Int}, cc::Colon)
     m = full(A)
     return m[rng, cc]
 end
 
 
-@inline function getindex(A::LinearOperator, rc::Colon, rng::UnitRange{Int})
+@inline function getindex(A::AbstractLinearOperator, rc::Colon, rng::UnitRange{Int})
     m = full(A)
     return m[rnd, cc]
 end
 
 
-@inline function getindex(A::LinearOperator, r::Int, rng::UnitRange{Int})
+@inline function getindex(A::AbstractLinearOperator, r::Int, rng::UnitRange{Int})
     m = A[r, :]
     return m[rng]
 end
 
 
-@inline function getindex(A::LinearOperator, rng::UnitRange{Int}, c::Int)
+@inline function getindex(A::AbstractLinearOperator, rng::UnitRange{Int}, c::Int)
     m = A[:, c]
     return m[rng]
 end
 
 
-@inline function getindex{T}(A::LinearOperator{T}, rng::UnitRange{Int}, cng::UnitRange{Int})
+@inline function getindex{T}(A::AbstractLinearOperator{T}, rng::UnitRange{Int}, cng::UnitRange{Int})
     N = A.dimension
     if (rng[end] - rng[1]) > ((cng[end] - cng[1]))
         mat = zeros(T, (N, length(cng)))
@@ -516,16 +516,16 @@ end
 
 
 # Base.length(A::LinearOperator) = A.stencil_length
-Base.ndims(A::LinearOperator) = 2
-Base.size(A::LinearOperator) = (A.dimension, A.dimension)
-Base.length(A::LinearOperator) = reduce(*, size(A))
+Base.ndims(A::AbstractLinearOperator) = 2
+Base.size(A::AbstractLinearOperator) = (A.dimension, A.dimension)
+Base.length(A::AbstractLinearOperator) = reduce(*, size(A))
 
 
 #=
     Currently, for the evenly spaced grid we have a symmetric matrix
 =#
-Base.transpose(A::LinearOperator) = A
-Base.ctranspose(A::LinearOperator) = A
+Base.transpose(A::AbstractLinearOperator) = A
+Base.ctranspose(A::AbstractLinearOperator) = A
 Base.issymmetric(::AbstractLinearOperator) = true
 
 

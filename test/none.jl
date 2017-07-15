@@ -1,7 +1,7 @@
 using FactCheck
 using Base.Test
 
-context("One-sided derivatives at boundaries: ") do
+context("One-sided derivatives at boundaries:") do
     N = 10
     d_order = 1
     approx_order = 2

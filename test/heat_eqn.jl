@@ -1,12 +1,13 @@
 using Base.Test
 using FactCheck
+using DifferentialEquations
 
 context("Parabolic Heat Equation with Dirichlet BCs:")do
     x = collect(-pi : 2pi/511 : pi);
     u0 = -(x - 0.5).^2 + 1/12;
     A = LinearOperator{Float64}(2,2,2π/511,512,:Dirichlet,:Dirichlet;bndry_fn=(u0[1],u0[end]));
     heat_eqn = ODEProblem(A, u0, (0.,10.));
-    soln = solve(heat_eqn,Rosenbrock23(),dense=false,tstops=0:0.01:10);
+    soln = solve(heat_eqn,dense=false,tstops=0:0.01:10);
 
     for t in 0:0.1:10
         @test soln(t)[1] ≈ u0[1]
