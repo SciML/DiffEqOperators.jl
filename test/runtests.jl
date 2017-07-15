@@ -7,12 +7,13 @@ include("dirichlet.jl")
 include("periodic.jl")
 include("neumann.jl")
 include("none.jl")
-include("KdV.jl")
+println("skipping KdV tests for now")
+# include("KdV.jl")
 include("heat_eqn.jl")
 
 
 # tests for full and sparse function
-context("Full and Sparse functions")do
+context("Full and Sparse functions:")do
     N = 100
     d_order = 2
     approx_order = 2
@@ -46,7 +47,7 @@ context("Full and Sparse functions")do
     @test sp_mat*y ≈ mat*y atol=10.0^-approx_order;
 end
 
-context("Indexing tests")do
+context("Indexing tests:")do
     N = 1000
     d_order = 4
     approx_order = 10
@@ -74,7 +75,7 @@ context("Indexing tests")do
     @test A[60:100,500:600] == M[60:100,500:600]
 end
 
-context("Operations on matrices")do
+context("Operations on matrices:")do
     N = 51
     M = 101
     d_order = 2

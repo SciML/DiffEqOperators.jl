@@ -1,7 +1,7 @@
 using Base.Test
 using FactCheck
 
-context("Neumann 0 Boundary")do
+context("Neumann0 Boundary:")do
     N = 100
     d_order = 2
     approx_order = 2
@@ -38,7 +38,7 @@ context("Neumann 0 Boundary")do
     @test first_deriv[end] ≈ 0.0 atol=10.0^-1 ## Derivative at edges in Neumann 0 is 0
 end
 
-context("General Neumann Boundary Condition")do
+context("General Neumann Boundary Condition:")do
     N = 100
     h_inv = 1/(N-1)
     d_order = 2
@@ -63,10 +63,6 @@ context("General Neumann Boundary Condition")do
     boundary_points = A.boundary_point_count
     res = A*(x.*(1-x))
     @test res ≈ -2*ones(x) atol=10.0^-approx_order
-    FD = LinearOperator{Float64}(1,2,h_inv,N,:None,:None)
-    first_deriv_res = FD*res
-    @test first_deriv_res[1] ≈ -2.0 atol=10.0^-1 ## Derivative at edges in Neumann 0 is 0
-    @test first_deriv_res[end] ≈ -2.0 atol=10.0^-1 ## Derivative at edges in Neumann 0 is 0
 
     # A = LinearOperator{BigFloat}(d_order,approx_order,N,:Neumann0,:Neumann0)
     # y = convert(Array{BigFloat, 1}, y)

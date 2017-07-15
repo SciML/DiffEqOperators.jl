@@ -1,8 +1,6 @@
 using Base.Test
 using FactCheck
-using SpecialMatrices
 using DifferentialEquations
-using PDEOperator
 
 context("KdV equation (Single Solition)")do
     N,M = 1000,10
@@ -26,7 +24,7 @@ context("KdV equation (Single Solition)")do
     end
 
     single_solition = ODEProblem(KdV, u0, (0.,5.));
-    soln = solve(single_solition,Rosenbrock23(),dense=false,saveat=0.03,maxiters=10000);
+    soln = solve(single_solition,CVODE_BDF(),dense=false,saveat=0.03,maxiters=10000);
 
     for t in 0:0.5:5
         @test soln(t) ≈ ϕ(x,t) atol = 0.01;
@@ -63,7 +61,7 @@ context("KdV equation (Double Solition)")do
 
     u0 = ϕ(x,-5);
     double_solition = ODEProblem(KdV, u0, (-5.,5.));
-    soln = solve(double_solition, Rosenbrock23(),dense=false, tstops=-5:0.1:5);
+    soln = solve(double_solition,CVODE_BDF(),dense=false,tstops=-5:0.1:5);
 
     # The solution is a forward moving soliton wave with speed = 1
     for t in 0:0.1:9

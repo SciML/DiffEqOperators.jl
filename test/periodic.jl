@@ -2,7 +2,7 @@ using Base.Test
 using FactCheck
 using SpecialMatrices
 
-context("Periodic Boundary")do
+context("Periodic Boundary:")do
     N = 100
     d_order = 2
     approx_order = 2

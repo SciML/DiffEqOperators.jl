@@ -10,7 +10,6 @@ abstract type AbstractLinearOperator{T} <: AbstractDiffEqOperator{T} end
 export PDEOperator
 
 include("linear_operator.jl")
-include("upwind_operator.jl")
 include("fornberg.jl")
 include("boundary_operators.jl")
 
