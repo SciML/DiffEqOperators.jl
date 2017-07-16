@@ -1,3 +1,5 @@
+# Solving the Heat Equation using PDEOperators
+
 In this tutorial we will solve the famous heat equation using the explicit discretization on a 2D `space x time` grid. The heat equation is:-
         
 $$\frac{\partial u}{\partial t} - \frac{{\partial}^2 u}{\partial x^2} = 0$$

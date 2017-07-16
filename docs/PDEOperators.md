@@ -1,3 +1,5 @@
+# Basics of PDEOperators
+
 In this tutorial we will explore the basic functionalities of PDEOperator which is used to obtain the discretizations of PDEs of appropriate derivative and approximation order.
 
 So an operator API is as follows:-
@@ -12,7 +14,7 @@ So an operator API is as follows:-
             :RBC;
             bndry_fn=(LBV, RBV)
         );
-Currently we support the `Dirichlet 0/1`, `Neumann`, `periodic` and `Robin` boundary conditions.
+Currently we support the `Dirichlet 0/1`, `Neumann 0/1`, `periodic` and `Robin` boundary conditions.
 
 Taking a specific example
     
@@ -40,7 +42,7 @@ We can get the linear operator as a matrix as follows:-
       0.0   0.0   0.0   0.0   0.0   0.0   0.0   1.0  -2.0   1.0
       0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0   1.0  -2.0
 
-Note that we don't need to define the `bndry_fn` only for `:D0` and `:periodic` boundary conditions.
+Note that we **don't** need to define the `bndry_fn` only for `:D0` and `:periodic` boundary conditions so you can ignore it.
 
 
 Now coming to the main functionality of PDEOperators ie. taking finite difference discretizations of functions.
