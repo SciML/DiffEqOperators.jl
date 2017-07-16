@@ -60,7 +60,7 @@ immutable LinearOperator{T<:Real,S<:SVector,LBC,RBC} <: AbstractLinearOperator{T
     boundary_length     :: Int
     low_boundary_coefs  :: Vector{Vector{T}}
     high_boundary_coefs :: Vector{Vector{T}}
-    boundary_fn         :: Tuple{Tuple{T,T,T},Tuple{T,T,T}}
+    boundary_fn         :: Tuple{Tuple{T,T,Any},Tuple{T,T,Any}}
 
     Base.@pure function LinearOperator{T,S,LBC,RBC}(derivative_order::Int, approximation_order::Int, dx::T,
                                             dimension::Int, bndry_fn) where {T<:Real,S<:SVector,LBC,RBC}
@@ -112,7 +112,8 @@ function initialize_left_boundary!{T}(low_boundary_coefs,stencil_coefs,bndry_fn,
         return (one(T),zero(T),bndry_fn[1])
 
     elseif LBC == :Dirichlet
-        return (one(T),zero(T),bndry_fn[1])
+        typeof(bndry_fn[1]) <: Real ? ret = t->bndry_fn[1] : ret = bndry_fn[1]
+        return (one(T),zero(T),ret)
 
     elseif LBC == :Neumann0
         return (zero(T),one(T),zero(T))
@@ -145,7 +146,8 @@ function initialize_right_boundary!{T}(high_boundary_coefs,stencil_coefs,bndry_f
         return (one(T),zero(T),bndry_fn[2])
 
     elseif RBC == :Dirichlet
-        return (one(T),zero(T),bndry_fn[2])
+        typeof(bndry_fn[2]) <: Real ? ret = t->bndry_fn[2] : ret = bndry_fn[2]
+        return (one(T),zero(T),ret)
 
     elseif RBC == :Neumann0
         return (zero(T),one(T),zero(T))
@@ -371,8 +373,8 @@ function right_Robin_BC!{T}(high_boundary_coefs,stencil_length,params,
 end
 
 
-(L::LinearOperator)(t,u) = L*u
-(L::LinearOperator)(t,u,du) = A_mul_B!(du,L,u)
+(L::LinearOperator)(t,u) = L(t,u,zeros(u))
+(L::LinearOperator)(t,u,du) = A_mul_B!(du,L,u,t=t)
 get_LBC{A,B,C,D}(::LinearOperator{A,B,C,D}) = C
 get_RBC{A,B,C,D}(::LinearOperator{A,B,C,D}) = D
 
@@ -494,22 +496,22 @@ end
 end
 
 
-function Base.A_mul_B!{T<:Real}(x_temp::AbstractVector{T}, A::LinearOperator{T}, x::AbstractVector{T})
-    convolve_BC_left!(x_temp, x, A)
-    convolve_interior!(x_temp, x, A)
-    convolve_BC_right!(x_temp, x, A)
+function Base.A_mul_B!{T<:Real}(x_temp::AbstractVector{T}, A::LinearOperator{T}, x::AbstractVector{T}; t::T=zero(T))
+    convolve_BC_left!(x_temp, x, A, t)
+    convolve_interior!(x_temp, x, A, t)
+    convolve_BC_right!(x_temp, x, A, t)
     scale!(x_temp, 1/(A.dx^A.derivative_order))
 end
 
 
-function Base.A_mul_B!{T<:Real}(x_temp::AbstractArray{T,2}, A::LinearOperator{T}, M::AbstractMatrix{T})
+function Base.A_mul_B!{T<:Real}(x_temp::AbstractArray{T,2}, A::LinearOperator{T}, M::AbstractMatrix{T}; t::T=zero(T))
     if size(x_temp) == reverse(size(M))
         for i = 1:size(M,1)
-            A_mul_B!(view(x_temp,i,:), A, view(M,i,:))
+            A_mul_B!(view(x_temp,i,:), A, view(M,i,:), t=t)
         end
     else
         for i = 1:size(M,2)
-            A_mul_B!(view(x_temp,:,i), A, view(M,:,i))
+            A_mul_B!(view(x_temp,:,i), A, view(M,:,i), t=t)
         end
     end
 end

@@ -18,8 +18,13 @@ Currently we support the `Dirichlet 0/1`, `Neumann 0/1`, `periodic` and `Robin` 
 
 Taking a specific example
     
-    A = LinearOperator{Float64}(2,2,1/99,10,:D1,:D1; bndry_fn=(u[1],u[end]))
-generates an operator which produces the 2nd order approximation of the Laplacian. We can checkout the stencil as follows:-
+    A = LinearOperator{Float64}(2,2,1/99,10,:Dirichlet,:Dirichlet; bndry_fn=(u[1],u[end]))
+
+this is the time dependent Dirichlet BC. You can also specify a time independent Dirichlet BC as follows:-
+
+    A = LinearOperator{Float64}(2,2,1/99,10,:Dirichlet,:Dirichlet; bndry_fn=(t->(u[1]*cos(t)),u[end]))
+
+We have generated an operator which produces the 2nd order approximation of the Laplacian. We can checkout the stencil as follows:-
 
     julia> A.stencil_coefs
     3-element SVector{3,Float64}:
@@ -127,6 +132,7 @@ You can also take derivatives of matrices using `A*M` or `M*A` where the order o
 
 
 
-**Note:** Please take care that the boundary values passed to the operator match the initial boundary conditions. The operator with the boundary condition is meant to enforce the boundary condition rather bring the boundaries to that state. Right now we support only **constant** boundaries conditions, time dependent conditions will supported in later versions.
+**Note:** Please take care that the boundary values passed to the operator match the initial boundary conditions. The operator with the boundary condition is meant to enforce the boundary condition rather bring the boundaries to that state. ~~Right now we support only **constant** boundaries conditions, time dependent conditions will supported in later versions.~~
+Support for time dependent Dirichlet BC has been added. 
 
 **Note:** If you want to parallelize the operation of PDEOperator, please start Julia by specifying the number of threads using `export JULIA_NUM_THREADS=<desired number of threads>`
