@@ -3,6 +3,7 @@ immutable UpwindOperator{T<:Real,S<:SVector,LBC,RBC} <: AbstractLinearOperator{T
     approximation_order :: Int
     dx                  :: T
     dimension           :: Int
+    directions          :: BitArray{1}
     stencil_length      :: Int
     up_stencil_coefs    :: S
     down_stencil_coefs  :: S
@@ -13,9 +14,10 @@ immutable UpwindOperator{T<:Real,S<:SVector,LBC,RBC} <: AbstractLinearOperator{T
     boundary_fn         :: Tuple{Tuple{T,T,T},Tuple{T,T,T}}
 
     Base.@pure function UpwindOperator{T,S,LBC,RBC}(derivative_order::Int, approximation_order::Int, dx::T,
-                                            dimension::Int, bndry_fn) where {T<:Real,S<:SVector,LBC,RBC}
+                                            dimension::Int, directions::BitArray{1}, bndry_fn) where {T<:Real,S<:SVector,LBC,RBC}
         dimension            = dimension
         dx                   = dx
+        directions           = directions
         stencil_length       = derivative_order + approximation_order
         boundary_length      = derivative_order + approximation_order
         boundary_point_count = stencil_length - div(stencil_length,2) + 1
@@ -33,7 +35,8 @@ immutable UpwindOperator{T<:Real,S<:SVector,LBC,RBC} <: AbstractLinearOperator{T
         right_bndry = initialize_right_boundary!(high_boundary_coefs,down_stencil_coefs,bndry_fn,derivative_order,grid_step,boundary_length,dx,RBC)
         boundary_fn = (left_bndry, right_bndry)
 
-        new(derivative_order, approximation_order, dx, dimension, stencil_length,
+        new(derivative_order, approximation_order, dx, dimension, directions,
+            stencil_length,
             up_stencil_coefs,
             down_stencil_coefs,
             boundary_point_count,
@@ -43,6 +46,10 @@ immutable UpwindOperator{T<:Real,S<:SVector,LBC,RBC} <: AbstractLinearOperator{T
             boundary_fn
             )
     end
-    (::Type{UpwindOperator{T}}){T<:Real}(dorder::Int,aorder::Int,dx::T,dim::Int,LBC::Symbol,RBC::Symbol;bndry_fn=(zero(T),zero(T),zero(T))) =
-        UpwindOperator{T, SVector{dorder+aorder,T}, LBC, RBC}(dorder, aorder, dx, dim, bndry_fn)
+    (::Type{UpwindOperator{T}}){T<:Real}(dorder::Int,aorder::Int,dx::T,dim::Int,direction::BitArray{1},LBC::Symbol,RBC::Symbol;bndry_fn=(zero(T),zero(T),zero(T))) =
+        UpwindOperator{T, SVector{dorder+aorder,T}, LBC, RBC}(dorder, aorder, dx, dim, direction, bndry_fn)
 end
+
+
+(L::UpwindOperator)(t,u) = L*u
+(L::UpwindOperator)(t,u,du) = A_mul_B!(du,L,u)

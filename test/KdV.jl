@@ -3,7 +3,7 @@ using FactCheck
 using DifferentialEquations
 
 context("KdV equation (Single Solition)")do
-    N,M = 1000,10
+    N,M = 100,100
     Δx = 1/(N-1)
     Δt = 1/(M-1)
 
@@ -14,7 +14,9 @@ context("KdV equation (Single Solition)")do
     du3 = zeros(x);
     temp = zeros(x);
     A = LinearOperator{Float64}(1,4,Δx,length(x),:periodic,:periodic);
+    # A = UpwindOperator{Float64}(1,4,Δx,length(x),.~BitVector(length(x)),:None,:None);
     C = LinearOperator{Float64}(3,4,Δx,length(x),:periodic,:periodic);
+    # C = UpwindOperator{Float64}(3,4,Δx,length(x),.~BitVector(length(x)),:None,:None);
 
     function KdV(t, u, du)
        C(t,u,du3)

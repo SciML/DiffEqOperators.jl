@@ -3,6 +3,7 @@ function *(A::AbstractLinearOperator,x::AbstractVector)
         We will output a vector which is a supertype of the types of A and x
         to ensure numerical stability
     =#
+    get_type(A) != eltype(x) ? error("PDEOperator and array are not of same type!") : nothing
     y = zeros(promote_type(eltype(A),eltype(x)), length(x))
     Base.A_mul_B!(y, A::AbstractLinearOperator, x::AbstractVector)
     return y
@@ -14,6 +15,7 @@ function *(A::AbstractLinearOperator,M::AbstractMatrix)
         We will output a vector which is a supertype of the types of A and x
         to ensure numerical stability
     =#
+    get_type(A) != eltype(M) ? error("PDEOperator and array are not of same type!") : nothing
     y = zeros(promote_type(eltype(A),eltype(M)), size(M))
     Base.A_mul_B!(y, A::AbstractLinearOperator, M::AbstractMatrix)
     return y
@@ -25,6 +27,7 @@ function *(M::AbstractMatrix,A::AbstractLinearOperator)
         We will output a vector which is a supertype of the types of A and x
         to ensure numerical stability
     =#
+    get_type(A) != eltype(M) ? error("PDEOperator and array are not of same type!") : nothing
     y = zeros(promote_type(eltype(A),eltype(M)), size(M))
     Base.A_mul_B!(y, A::AbstractLinearOperator, M::AbstractMatrix)
     return y
@@ -375,6 +378,7 @@ end
 (L::LinearOperator)(t,u,du) = A_mul_B!(du,L,u)
 get_LBC{A,B,C,D}(::LinearOperator{A,B,C,D}) = C
 get_RBC{A,B,C,D}(::LinearOperator{A,B,C,D}) = D
+get_type{T}(::AbstractLinearOperator{T}) = T
 
 
 # ~ bound checking functions ~
@@ -494,7 +498,7 @@ end
 end
 
 
-function Base.A_mul_B!{T<:Real}(x_temp::AbstractVector{T}, A::LinearOperator{T}, x::AbstractVector{T})
+function Base.A_mul_B!{T<:Real}(x_temp::AbstractVector{T}, A::AbstractLinearOperator{T}, x::AbstractVector{T})
     convolve_BC_left!(x_temp, x, A)
     convolve_interior!(x_temp, x, A)
     convolve_BC_right!(x_temp, x, A)
@@ -502,7 +506,7 @@ function Base.A_mul_B!{T<:Real}(x_temp::AbstractVector{T}, A::LinearOperator{T},
 end
 
 
-function Base.A_mul_B!{T<:Real}(x_temp::AbstractArray{T,2}, A::LinearOperator{T}, M::AbstractMatrix{T})
+function Base.A_mul_B!{T<:Real}(x_temp::AbstractArray{T,2}, A::AbstractLinearOperator{T}, M::AbstractMatrix{T})
     if size(x_temp) == reverse(size(M))
         for i = 1:size(M,1)
             A_mul_B!(view(x_temp,i,:), A, view(M,i,:))
@@ -529,7 +533,7 @@ Base.ctranspose(A::AbstractLinearOperator) = A
 Base.issymmetric(::AbstractLinearOperator) = true
 
 
-function Base.full{T}(A::LinearOperator{T}, N::Int=A.dimension)
+function Base.full{T}(A::AbstractLinearOperator{T}, N::Int=A.dimension)
     @assert N >= A.stencil_length # stencil must be able to fit in the matrix
     mat = zeros(T, (N, N))
     v = zeros(T, N)
@@ -546,7 +550,7 @@ function Base.full{T}(A::LinearOperator{T}, N::Int=A.dimension)
 end
 
 
-function Base.sparse{T}(A::LinearOperator{T})
+function Base.sparse{T}(A::AbstractLinearOperator{T})
     N = A.dimension
     mat = spzeros(T, N, N)
     v = zeros(T, N)
