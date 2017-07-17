@@ -58,9 +58,9 @@ immutable LinearOperator{T<:Real,S<:SVector,LBC,RBC} <: AbstractLinearOperator{T
     stencil_coefs       :: S
     boundary_point_count:: Int
     boundary_length     :: Int
-    low_boundary_coefs  :: Vector{Vector{T}}
-    high_boundary_coefs :: Vector{Vector{T}}
-    boundary_fn         :: Tuple{Tuple{T,T,Any},Tuple{T,T,Any}}
+    low_boundary_coefs  :: Ref{Vector{Vector{T}}}
+    high_boundary_coefs :: Ref{Vector{Vector{T}}}
+    boundary_fn         :: Ref{Tuple{Tuple{T,T,Any},Tuple{T,T,Any}}}
 
     Base.@pure function LinearOperator{T,S,LBC,RBC}(derivative_order::Int, approximation_order::Int, dx::T,
                                             dimension::Int, bndry_fn) where {T<:Real,S<:SVector,LBC,RBC}
@@ -92,6 +92,10 @@ immutable LinearOperator{T<:Real,S<:SVector,LBC,RBC} <: AbstractLinearOperator{T
         LinearOperator{T, SVector{dorder+aorder-1+(dorder+aorder)%2,T}, LBC, RBC}(dorder, aorder, dx, dim, bndry_fn)
 end
 
+function update_coefficients!(A,coeffs)
+end
+
+#################################################################################################
 
 function initialize_left_boundary!{T}(low_boundary_coefs,stencil_coefs,bndry_fn,
                                    derivative_order,grid_step::T,boundary_length,dx,LBC)
@@ -371,6 +375,8 @@ function right_Robin_BC!{T}(high_boundary_coefs,stencil_length,params,
     push!(high_boundary_coefs, original_coeffs[2:end])
     return r_diff
 end
+
+#################################################################################################
 
 
 (L::LinearOperator)(t,u) = L(t,u,zeros(u))
