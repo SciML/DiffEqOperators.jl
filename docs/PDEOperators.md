@@ -12,17 +12,19 @@ So an operator API is as follows:-
             grid_size,
             :LBC,
             :RBC;
-            bndry_fn=(LBV, RBV)
+            BC=(LBV, RBV)
         );
 Currently we support the `Dirichlet 0/1`, `Neumann 0/1`, `periodic` and `Robin` boundary conditions.
 
 Taking a specific example
     
-    A = LinearOperator{Float64}(2,2,1/99,10,:Dirichlet,:Dirichlet; bndry_fn=(u[1],u[end]))
+    A = LinearOperator{Float64}(2,2,1/99,10,:Dirichlet,:Dirichlet; BC=(u[1],u[end]))
 
 this is the time dependent Dirichlet BC. You can also specify a time independent Dirichlet BC as follows:-
+    
+    update_coefficients!(A,(<new_BC>))
 
-    A = LinearOperator{Float64}(2,2,1/99,10,:Dirichlet,:Dirichlet; bndry_fn=(t->(u[1]*cos(t)),u[end]))
+(This works with all boundary conditions eg. a Robin condition is updated like this, `update_coefficients(A, ((a,b,new_c), (<other boundary_condition>))`)
 
 We have generated an operator which produces the 2nd order approximation of the Laplacian. We can checkout the stencil as follows:-
 
@@ -47,7 +49,7 @@ We can get the linear operator as a matrix as follows:-
       0.0   0.0   0.0   0.0   0.0   0.0   0.0   1.0  -2.0   1.0
       0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0   1.0  -2.0
 
-Note that we **don't** need to define the `bndry_fn` only for `:D0` and `:periodic` boundary conditions so you can ignore it.
+Note that we **don't** need to define the `BC` only for `:D0` and `:periodic` boundary conditions so you can ignore it.
 
 
 Now coming to the main functionality of PDEOperators ie. taking finite difference discretizations of functions.

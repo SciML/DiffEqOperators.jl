@@ -24,36 +24,36 @@ end
 
 
 #= LEFT BOUNDARY CONDITIONS =#
-function convolve_BC_left!{T<:Real,S<:SVector,RBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,:Dirichlet0,RBC}, t)
+function convolve_BC_left!{T<:Real,S<:SVector,RBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,:Dirichlet0,RBC})
     for i in 1 : A.boundary_point_count
         dirichlet_0!(x_temp, x, A.stencil_coefs, i)
     end
 end
 
 
-function convolve_BC_left!{T<:Real,S<:SVector,RBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,:Dirichlet,RBC}, t)
-    x[1] = A.boundary_fn[][1][3](t)
+function convolve_BC_left!{T<:Real,S<:SVector,RBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,:Dirichlet,RBC})
+    x[1] = A.boundary_condition[][1][3]
     for i in 1 : A.boundary_point_count
         dirichlet_1!(x_temp, x, A.stencil_coefs, i)
     end
 end
 
 
-function convolve_BC_left!{T<:Real,S<:SVector,RBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,:periodic,RBC}, t)
+function convolve_BC_left!{T<:Real,S<:SVector,RBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,:periodic,RBC})
     for i in 1 : A.boundary_point_count
         periodic!(x_temp, x, A.stencil_coefs, i)
     end
 end
 
 
-function convolve_BC_left!{T<:Real,S<:SVector,RBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,:Neumann0,RBC}, t)
+function convolve_BC_left!{T<:Real,S<:SVector,RBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,:Neumann0,RBC})
     for i in 1 : A.boundary_point_count
         neumann0!(x_temp, x, A.stencil_coefs, i)
     end
 end
 
 
-function convolve_BC_left!{T<:Real,S<:SVector,RBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,:Neumann,RBC}, t)
+function convolve_BC_left!{T<:Real,S<:SVector,RBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,:Neumann,RBC})
     @inbounds for i in 1 : A.boundary_point_count
         bc = A.low_boundary_coefs[][i]
         tmp = zero(T)
@@ -62,11 +62,11 @@ function convolve_BC_left!{T<:Real,S<:SVector,RBC}(x_temp::AbstractVector{T}, x:
         end
         x_temp[i] = tmp
     end
-    x_temp[1] += A.boundary_fn[][1][3]
+    x_temp[1] += A.boundary_condition[][1][3]
 end
 
 
-function convolve_BC_left!{T<:Real,S<:SVector,RBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,:Robin,RBC}, t)
+function convolve_BC_left!{T<:Real,S<:SVector,RBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,:Robin,RBC})
     @inbounds for i in 1 : A.boundary_point_count
         bc = A.low_boundary_coefs[][i]
         tmp = zero(T)
@@ -75,11 +75,11 @@ function convolve_BC_left!{T<:Real,S<:SVector,RBC}(x_temp::AbstractVector{T}, x:
         end
         x_temp[i] = tmp
     end
-    x_temp[1] += A.boundary_fn[][1][3]
+    x_temp[1] += A.boundary_condition[][1][3]
 end
 
 
-function convolve_BC_left!{T<:Real,S<:SVector,RBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,:None,RBC}, t)
+function convolve_BC_left!{T<:Real,S<:SVector,RBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,:None,RBC})
     halfstencil = div(A.stencil_length, 2)
     for i in 1 : A.boundary_point_count
         @inbounds bc = A.low_boundary_coefs[][i]
@@ -94,7 +94,7 @@ end
 
 
 #= INTERIOR CONVOLUTION =#
-function convolve_interior!{T<:Real,S<:SVector,LBC,RBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,LBC,RBC}, t)
+function convolve_interior!{T<:Real,S<:SVector,LBC,RBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,LBC,RBC})
     N = length(x)
     coeffs = A.stencil_coefs
     mid = div(A.stencil_length, 2) + 1
@@ -111,7 +111,7 @@ end
 
 
 #= RIGHT BOUNDARY CONDITIONS =#
-function convolve_BC_right!{T<:Real,S<:SVector,LBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,LBC,:Dirichlet0}, t)
+function convolve_BC_right!{T<:Real,S<:SVector,LBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,LBC,:Dirichlet0})
     # Dirichlet 0 means that the value at the boundary is 0
     N = length(x)
     for i in 1 : A.boundary_point_count
@@ -120,16 +120,16 @@ function convolve_BC_right!{T<:Real,S<:SVector,LBC}(x_temp::AbstractVector{T}, x
 end
 
 
-function convolve_BC_right!{T<:Real,S<:SVector,LBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,LBC,:Dirichlet}, t)
+function convolve_BC_right!{T<:Real,S<:SVector,LBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,LBC,:Dirichlet})
     N = length(x)
     for i in 1 : A.boundary_point_count
         dirichlet_1!(x_temp, x, A.stencil_coefs, N - A.boundary_point_count + i)
     end
-    x[end] = A.boundary_fn[][2][3](t)
+    x[end] = A.boundary_condition[][2][3]
 end
 
 
-function convolve_BC_right!{T<:Real,S<:SVector,LBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,LBC,:periodic}, t)
+function convolve_BC_right!{T<:Real,S<:SVector,LBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,LBC,:periodic})
     N = length(x)
     for i in 1 : A.boundary_point_count
         periodic!(x_temp, x, A.stencil_coefs, N - A.boundary_point_count + i)
@@ -137,7 +137,7 @@ function convolve_BC_right!{T<:Real,S<:SVector,LBC}(x_temp::AbstractVector{T}, x
 end
 
 
-function convolve_BC_right!{T<:Real,S<:SVector,LBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,LBC,:Neumann0}, t)
+function convolve_BC_right!{T<:Real,S<:SVector,LBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,LBC,:Neumann0})
     N = length(x)
     for i in 1 : A.boundary_point_count
         neumann0!(x_temp, x, A.stencil_coefs, N - A.boundary_point_count + i)
@@ -145,7 +145,7 @@ function convolve_BC_right!{T<:Real,S<:SVector,LBC}(x_temp::AbstractVector{T}, x
 end
 
 
-function convolve_BC_right!{T<:Real,S<:SVector,LBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,LBC,:Neumann}, t)
+function convolve_BC_right!{T<:Real,S<:SVector,LBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,LBC,:Neumann})
     N = length(x)
     @inbounds for i in 1 : A.boundary_point_count
         bc = A.high_boundary_coefs[][A.boundary_point_count - i + 1]
@@ -156,11 +156,11 @@ function convolve_BC_right!{T<:Real,S<:SVector,LBC}(x_temp::AbstractVector{T}, x
         end
         x_temp[N-i+1] = tmp
     end
-    x_temp[end] += A.boundary_fn[][2][3]
+    x_temp[end] += A.boundary_condition[][2][3]
 end
 
 
-function convolve_BC_right!{T<:Real,S<:SVector,LBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,LBC,:Robin}, t)
+function convolve_BC_right!{T<:Real,S<:SVector,LBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,LBC,:Robin})
     N = length(x)
     @inbounds for i in 1 : A.boundary_point_count
         bc = A.high_boundary_coefs[][A.boundary_point_count - i + 1]
@@ -170,11 +170,11 @@ function convolve_BC_right!{T<:Real,S<:SVector,LBC}(x_temp::AbstractVector{T}, x
         end
         x_temp[N-i+1] = tmp
     end
-    x_temp[end] += A.boundary_fn[][2][3]
+    x_temp[end] += A.boundary_condition[][2][3]
 end
 
 
-function convolve_BC_right!{T<:Real,S<:SVector,LBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,LBC,:None}, t)
+function convolve_BC_right!{T<:Real,S<:SVector,LBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,LBC,:None})
     halfstencil = div(A.stencil_length, 2)
     for i in 1 : A.boundary_point_count
         @inbounds bc = A.high_boundary_coefs[][i]
@@ -192,7 +192,7 @@ end
 function dirichlet_0!{T<:Real}(x_temp::AbstractVector{T}, x::AbstractVector{T}, coeffs::SVector, i::Int)
     #=
         The high and low functions determine the starting and ending indices of the weight vector.
-        As we move along the input vector to calculate the derivative at the point, the weights which
+        As we move along the input vector to calculate the derivative at the pointhe weights which
         are to be considered to calculate the derivative are to be chosen carefully. eg. at the boundaries,
         only half of the stencil is going to be used to calculate the derivative at that point.
         So, observing that the left index grows as:-

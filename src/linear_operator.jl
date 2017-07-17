@@ -1,3 +1,5 @@
+export update_coefficients!
+
 function *(A::AbstractLinearOperator,x::AbstractVector)
     #=
         We will output a vector which is a supertype of the types of A and x
@@ -60,10 +62,10 @@ immutable LinearOperator{T<:Real,S<:SVector,LBC,RBC} <: AbstractLinearOperator{T
     boundary_length     :: Int
     low_boundary_coefs  :: Ref{Vector{Vector{T}}}
     high_boundary_coefs :: Ref{Vector{Vector{T}}}
-    boundary_fn         :: Ref{Tuple{Tuple{T,T,Any},Tuple{T,T,Any}}}
+    boundary_condition  :: Ref{Tuple{Tuple{T,T,Any},Tuple{T,T,Any}}}
 
     Base.@pure function LinearOperator{T,S,LBC,RBC}(derivative_order::Int, approximation_order::Int, dx::T,
-                                            dimension::Int, bndry_fn) where {T<:Real,S<:SVector,LBC,RBC}
+                                            dimension::Int, BC) where {T<:Real,S<:SVector,LBC,RBC}
         dimension            = dimension
         dx                   = dx
         stencil_length       = derivative_order + approximation_order - 1 + (derivative_order+approximation_order)%2
@@ -75,9 +77,9 @@ immutable LinearOperator{T<:Real,S<:SVector,LBC,RBC} <: AbstractLinearOperator{T
         stencil_coefs        = convert(SVector{stencil_length, T}, calculate_weights(derivative_order, zero(T),
                                grid_step .* collect(-div(stencil_length,2) : 1 : div(stencil_length,2))))
 
-        left_bndry = initialize_left_boundary!(low_boundary_coefs,stencil_coefs,bndry_fn,derivative_order,grid_step,boundary_length,dx,LBC)
-        right_bndry = initialize_right_boundary!(high_boundary_coefs,stencil_coefs,bndry_fn,derivative_order,grid_step,boundary_length,dx,RBC)
-        boundary_fn = (left_bndry, right_bndry)
+        left_bndry = initialize_left_boundary!(low_boundary_coefs,stencil_coefs,BC,derivative_order,grid_step,boundary_length,dx,LBC)
+        right_bndry = initialize_right_boundary!(high_boundary_coefs,stencil_coefs,BC,derivative_order,grid_step,boundary_length,dx,RBC)
+        boundary_condition = (left_bndry, right_bndry)
 
         new(derivative_order, approximation_order, dx, dimension, stencil_length,
             stencil_coefs,
@@ -85,39 +87,51 @@ immutable LinearOperator{T<:Real,S<:SVector,LBC,RBC} <: AbstractLinearOperator{T
             boundary_length,
             low_boundary_coefs,
             high_boundary_coefs,
-            boundary_fn
+            boundary_condition
             )
     end
-    (::Type{LinearOperator{T}}){T<:Real}(dorder::Int,aorder::Int,dx::T,dim::Int,LBC::Symbol,RBC::Symbol;bndry_fn=(zero(T),zero(T),zero(T))) =
-        LinearOperator{T, SVector{dorder+aorder-1+(dorder+aorder)%2,T}, LBC, RBC}(dorder, aorder, dx, dim, bndry_fn)
+    (::Type{LinearOperator{T}}){T<:Real}(dorder::Int,aorder::Int,dx::T,dim::Int,LBC::Symbol,RBC::Symbol;BC=(zero(T),zero(T),zero(T))) =
+        LinearOperator{T, SVector{dorder+aorder-1+(dorder+aorder)%2,T}, LBC, RBC}(dorder, aorder, dx, dim, BC)
 end
 
-function update_coefficients!(A,coeffs)
+
+function update_coefficients!{T<:Real,S<:SVector,RBC,LBC}(A::LinearOperator{T,S,LBC,RBC};BC=nothing)
+    if BC != nothing
+        LBC == :Robin ? (length(BC[1])==3 || error("Enter the new left boundary condition as a 1-tuple")) :
+                        (length(BC[1])==1 || error("Robin BC needs a 3-tuple for left boundary condition"))
+
+        RBC == :Robin ? length(BC[2])==3 || error("Enter the new right boundary condition as a 1-tuple") :
+                        length(BC[2])==1 || error("Robin BC needs a 3-tuple for right boundary condition")
+
+        left_bndry = initialize_left_boundary!(A.low_boundary_coefs[],A.stencil_coefs,BC,A.derivative_order,one(T),A.boundary_length,A.dx,LBC)
+        right_bndry = initialize_right_boundary!(A.high_boundary_coefs[],A.stencil_coefs,BC,A.derivative_order,one(T),A.boundary_length,A.dx,RBC)
+        boundary_condition = (left_bndry, right_bndry)
+        A.boundary_condition[] = boundary_condition
+    end
 end
 
 #################################################################################################
 
-function initialize_left_boundary!{T}(low_boundary_coefs,stencil_coefs,bndry_fn,
+function initialize_left_boundary!{T}(low_boundary_coefs,stencil_coefs,BC,
                                    derivative_order,grid_step::T,boundary_length,dx,LBC)
     stencil_length = length(stencil_coefs)
     boundary_point_count = stencil_length - div(stencil_length,2) + 1
 
     if LBC == :None
         return (zero(T),zero(T),left_None_BC!(low_boundary_coefs,stencil_coefs,derivative_order,
-                              grid_step,boundary_length)*bndry_fn[1]*dx)
+                              grid_step,boundary_length)*BC[1]*dx)
     elseif LBC == :Neumann
         return (zero(T),one(T),left_Neumann_BC!(low_boundary_coefs,stencil_length,derivative_order,
-                                 grid_step,boundary_length)*bndry_fn[1]*dx)
+                                 grid_step,boundary_length)*BC[1]*dx)
     elseif LBC == :Robin
-        return (bndry_fn[1][1],-bndry_fn[1][2],left_Robin_BC!(low_boundary_coefs,stencil_length,
-                                                   bndry_fn[1],derivative_order,grid_step,
-                                                   boundary_length,dx)*bndry_fn[1][3]*dx)
+        return (BC[1][1],-BC[1][2],left_Robin_BC!(low_boundary_coefs,stencil_length,
+                                                   BC[1],derivative_order,grid_step,
+                                                   boundary_length,dx)*BC[1][3]*dx)
     elseif LBC == :Dirichlet0
-        return (one(T),zero(T),bndry_fn[1])
+        return (one(T),zero(T),BC[1])
 
     elseif LBC == :Dirichlet
-        typeof(bndry_fn[1]) <: Real ? ret = t->bndry_fn[1] : ret = bndry_fn[1]
-        return (one(T),zero(T),ret)
+        return (one(T),zero(T),BC[1])
 
     elseif LBC == :Neumann0
         return (zero(T),one(T),zero(T))
@@ -131,27 +145,26 @@ function initialize_left_boundary!{T}(low_boundary_coefs,stencil_coefs,bndry_fn,
 end
 
 
-function initialize_right_boundary!{T}(high_boundary_coefs,stencil_coefs,bndry_fn,
+function initialize_right_boundary!{T}(high_boundary_coefs,stencil_coefs,BC,
                                    derivative_order,grid_step::T,boundary_length,dx,RBC)
     stencil_length = length(stencil_coefs)
     boundary_point_count = stencil_length - div(stencil_length,2) + 1
 
     if RBC == :None
         return (zero(T),zero(T),right_None_BC!(high_boundary_coefs,stencil_coefs,derivative_order,
-                               grid_step,boundary_length)*bndry_fn[2]*dx)
+                               grid_step,boundary_length)*BC[2]*dx)
     elseif RBC == :Neumann
         return (zero(T),one(T),right_Neumann_BC!(high_boundary_coefs,stencil_length,derivative_order,
-                                  grid_step,boundary_length)*bndry_fn[2]*dx)
+                                  grid_step,boundary_length)*BC[2]*dx)
     elseif RBC == :Robin
-        return (bndry_fn[2][1],bndry_fn[2][2],right_Robin_BC!(high_boundary_coefs,stencil_length,
-                                                    bndry_fn[2],derivative_order,grid_step,
-                                                    boundary_length,dx)*bndry_fn[2][3]*dx)
+        return (BC[2][1],BC[2][2],right_Robin_BC!(high_boundary_coefs,stencil_length,
+                                                    BC[2],derivative_order,grid_step,
+                                                    boundary_length,dx)*BC[2][3]*dx)
     elseif RBC == :Dirichlet0
-        return (one(T),zero(T),bndry_fn[2])
+        return (one(T),zero(T),BC[2])
 
     elseif RBC == :Dirichlet
-        typeof(bndry_fn[2]) <: Real ? ret = t->bndry_fn[2] : ret = bndry_fn[2]
-        return (one(T),zero(T),ret)
+        return (one(T),zero(T),BC[2])
 
     elseif RBC == :Neumann0
         return (zero(T),one(T),zero(T))
@@ -379,8 +392,8 @@ end
 #################################################################################################
 
 
-(L::LinearOperator)(t,u) = L(t,u,zeros(u))
-(L::LinearOperator)(t,u,du) = A_mul_B!(du,L,u,t=t)
+(L::LinearOperator)(t,u) = L*u
+(L::LinearOperator)(t,u,du) = A_mul_B!(du,L,u)
 get_LBC{A,B,C,D}(::LinearOperator{A,B,C,D}) = C
 get_RBC{A,B,C,D}(::LinearOperator{A,B,C,D}) = D
 
@@ -502,22 +515,22 @@ end
 end
 
 
-function Base.A_mul_B!{T<:Real}(x_temp::AbstractVector{T}, A::LinearOperator{T}, x::AbstractVector{T}; t::T=zero(T))
-    convolve_BC_left!(x_temp, x, A, t)
-    convolve_interior!(x_temp, x, A, t)
-    convolve_BC_right!(x_temp, x, A, t)
+function Base.A_mul_B!{T<:Real}(x_temp::AbstractVector{T}, A::LinearOperator{T}, x::AbstractVector{T})
+    convolve_BC_left!(x_temp, x, A)
+    convolve_interior!(x_temp, x, A)
+    convolve_BC_right!(x_temp, x, A)
     scale!(x_temp, 1/(A.dx^A.derivative_order))
 end
 
 
-function Base.A_mul_B!{T<:Real}(x_temp::AbstractArray{T,2}, A::LinearOperator{T}, M::AbstractMatrix{T}; t::T=zero(T))
+function Base.A_mul_B!{T<:Real}(x_temp::AbstractArray{T,2}, A::LinearOperator{T}, M::AbstractMatrix{T})
     if size(x_temp) == reverse(size(M))
         for i = 1:size(M,1)
-            A_mul_B!(view(x_temp,i,:), A, view(M,i,:), t=t)
+            A_mul_B!(view(x_temp,i,:), A, view(M,i,:))
         end
     else
         for i = 1:size(M,2)
-            A_mul_B!(view(x_temp,:,i), A, view(M,:,i), t=t)
+            A_mul_B!(view(x_temp,:,i), A, view(M,:,i))
         end
     end
 end

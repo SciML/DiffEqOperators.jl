@@ -44,7 +44,7 @@ context("General Neumann Boundary Condition:")do
     d_order = 2
     approx_order = 2
     x = 0:h_inv:π
-    A = LinearOperator{Float64}(2,2,h_inv,N,:Neumann,:Neumann;bndry_fn=(1,-1))
+    A = LinearOperator{Float64}(2,2,h_inv,N,:Neumann,:Neumann;BC=(1,-1))
     boundary_points = A.boundary_point_count
     res = A*sin.(x)
     @test res ≈ cos.(x) atol=10.0^approx_order
@@ -59,7 +59,7 @@ context("General Neumann Boundary Condition:")do
     d_order = 2
     approx_order = 2
     x = 0:h_inv:1
-    A = LinearOperator{Float64}(d_order,approx_order,h_inv,N,:Neumann,:Neumann;bndry_fn=(1,-1))
+    A = LinearOperator{Float64}(d_order,approx_order,h_inv,N,:Neumann,:Neumann;BC=(1,-1))
     boundary_points = A.boundary_point_count
     res = A*(x.*(1-x))
     @test res ≈ -2*ones(x) atol=10.0^-approx_order
