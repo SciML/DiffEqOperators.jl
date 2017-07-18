@@ -90,7 +90,7 @@ immutable LinearOperator{T<:Real,S<:SVector,LBC,RBC} <: AbstractLinearOperator{T
             boundary_condition
             )
     end
-    (::Type{LinearOperator{T}}){T<:Real}(dorder::Int,aorder::Int,dx::T,dim::Int,LBC::Symbol,RBC::Symbol;BC=(zero(T),zero(T),zero(T))) =
+    (::Type{LinearOperator{T}}){T<:Real}(dorder::Int,aorder::Int,dx::T,dim::Int,LBC::Symbol,RBC::Symbol;BC=((zero(T),zero(T),zero(T)),(zero(T),zero(T),zero(T)))) =
         LinearOperator{T, SVector{dorder+aorder-1+(dorder+aorder)%2,T}, LBC, RBC}(dorder, aorder, dx, dim, BC)
 end
 
@@ -103,8 +103,12 @@ function update_coefficients!{T<:Real,S<:SVector,RBC,LBC}(A::LinearOperator{T,S,
         RBC == :Robin ? length(BC[2])==3 || error("Enter the new right boundary condition as a 1-tuple") :
                         length(BC[2])==1 || error("Robin BC needs a 3-tuple for right boundary condition")
 
-        left_bndry = initialize_left_boundary!(A.low_boundary_coefs[],A.stencil_coefs,BC,A.derivative_order,one(T),A.boundary_length,A.dx,LBC)
-        right_bndry = initialize_right_boundary!(A.high_boundary_coefs[],A.stencil_coefs,BC,A.derivative_order,one(T),A.boundary_length,A.dx,RBC)
+        left_bndry = initialize_left_boundary!(A.low_boundary_coefs[],A.stencil_coefs,BC,
+                                               A.derivative_order,one(T),A.boundary_length,A.dx,LBC)
+
+        right_bndry = initialize_right_boundary!(A.high_boundary_coefs[],A.stencil_coefs,BC,
+                                                 A.derivative_order,one(T),A.boundary_length,A.dx,RBC)
+
         boundary_condition = (left_bndry, right_bndry)
         A.boundary_condition[] = boundary_condition
     end
@@ -128,10 +132,10 @@ function initialize_left_boundary!{T}(low_boundary_coefs,stencil_coefs,BC,
                                                    BC[1],derivative_order,grid_step,
                                                    boundary_length,dx)*BC[1][3]*dx)
     elseif LBC == :Dirichlet0
-        return (one(T),zero(T),BC[1])
+        return (one(T),zero(T),one(T)*BC[1])
 
     elseif LBC == :Dirichlet
-        return (one(T),zero(T),BC[1])
+        return (one(T),zero(T),one(T)*BC[1])
 
     elseif LBC == :Neumann0
         return (zero(T),one(T),zero(T))
@@ -161,10 +165,10 @@ function initialize_right_boundary!{T}(high_boundary_coefs,stencil_coefs,BC,
                                                     BC[2],derivative_order,grid_step,
                                                     boundary_length,dx)*BC[2][3]*dx)
     elseif RBC == :Dirichlet0
-        return (one(T),zero(T),BC[2])
+        return (one(T),zero(T),one(T)*BC[2])
 
     elseif RBC == :Dirichlet
-        return (one(T),zero(T),BC[2])
+        return (one(T),zero(T),one(T)*BC[2])
 
     elseif RBC == :Neumann0
         return (zero(T),one(T),zero(T))

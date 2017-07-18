@@ -122,10 +122,10 @@ end
 
 function convolve_BC_right!{T<:Real,S<:SVector,LBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,LBC,:Dirichlet})
     N = length(x)
+    x[end] = A.boundary_condition[][2][3]
     for i in 1 : A.boundary_point_count
         dirichlet_1!(x_temp, x, A.stencil_coefs, N - A.boundary_point_count + i)
     end
-    x[end] = A.boundary_condition[][2][3]
 end
 
 
