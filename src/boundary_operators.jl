@@ -32,7 +32,7 @@ end
 
 
 function convolve_BC_left!{T<:Real,S<:SVector,RBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,:Dirichlet,RBC})
-    x[1] = A.boundary_fn[1][3]
+    x[1] = A.boundary_condition[][1][3]
     for i in 1 : A.boundary_point_count
         dirichlet_1!(x_temp, x, A.stencil_coefs, i)
     end
@@ -55,34 +55,34 @@ end
 
 function convolve_BC_left!{T<:Real,S<:SVector,RBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,:Neumann,RBC})
     @inbounds for i in 1 : A.boundary_point_count
-        bc = A.low_boundary_coefs[i]
+        bc = A.low_boundary_coefs[][i]
         tmp = zero(T)
         @inbounds for j in 1 : length(bc)
             tmp += bc[j] * x[j]
         end
         x_temp[i] = tmp
     end
-    x_temp[1] += A.boundary_fn[1][3]
+    x_temp[1] += A.boundary_condition[][1][3]
 end
 
 
 function convolve_BC_left!{T<:Real,S<:SVector,RBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,:Robin,RBC})
     @inbounds for i in 1 : A.boundary_point_count
-        bc = A.low_boundary_coefs[i]
+        bc = A.low_boundary_coefs[][i]
         tmp = zero(T)
         @inbounds for j in 1 : length(bc)
             tmp += bc[j] * x[j]
         end
         x_temp[i] = tmp
     end
-    x_temp[1] += A.boundary_fn[1][3]
+    x_temp[1] += A.boundary_condition[][1][3]
 end
 
 
 function convolve_BC_left!{T<:Real,S<:SVector,RBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::Union{LinearOperator{T,S,:None,RBC},UpwindOperator{T,S,:None,RBC}})
     halfstencil = div(A.stencil_length, 2)
     for i in 1 : A.boundary_point_count
-        @inbounds bc = A.low_boundary_coefs[i]
+        @inbounds bc = A.low_boundary_coefs[][i]
         tmp = zero(T)
         startid = max(0,i-1-halfstencil)
         @inbounds for j in 1 : length(bc)
@@ -145,10 +145,10 @@ end
 
 function convolve_BC_right!{T<:Real,S<:SVector,LBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,LBC,:Dirichlet})
     N = length(x)
+    x[end] = A.boundary_condition[][2][3]
     for i in 1 : A.boundary_point_count
         dirichlet_1!(x_temp, x, A.stencil_coefs, N - A.boundary_point_count + i)
     end
-    x[end] = A.boundary_fn[2][3]
 end
 
 
@@ -171,7 +171,7 @@ end
 function convolve_BC_right!{T<:Real,S<:SVector,LBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,LBC,:Neumann})
     N = length(x)
     @inbounds for i in 1 : A.boundary_point_count
-        bc = A.high_boundary_coefs[A.boundary_point_count - i + 1]
+        bc = A.high_boundary_coefs[][A.boundary_point_count - i + 1]
         tmp = zero(T)
         @inbounds for j in 1 : length(bc)
             # our coefficients and points are aligned so as we have not reversed anything in the stencil
@@ -179,28 +179,28 @@ function convolve_BC_right!{T<:Real,S<:SVector,LBC}(x_temp::AbstractVector{T}, x
         end
         x_temp[N-i+1] = tmp
     end
-    x_temp[end] += A.boundary_fn[2][3]
+    x_temp[end] += A.boundary_condition[][2][3]
 end
 
 
 function convolve_BC_right!{T<:Real,S<:SVector,LBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::LinearOperator{T,S,LBC,:Robin})
     N = length(x)
     @inbounds for i in 1 : A.boundary_point_count
-        bc = A.high_boundary_coefs[A.boundary_point_count - i + 1]
+        bc = A.high_boundary_coefs[][A.boundary_point_count - i + 1]
         tmp = zero(T)
         @inbounds for j in 1 : length(bc)
             tmp += bc[j] * x[N-j+1]
         end
         x_temp[N-i+1] = tmp
     end
-    x_temp[end] += A.boundary_fn[2][3]
+    x_temp[end] += A.boundary_condition[][2][3]
 end
 
 
 function convolve_BC_right!{T<:Real,S<:SVector,LBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::Union{LinearOperator{T,S,LBC,:None},UpwindOperator{T,S,LBC,:None}})
     halfstencil = div(A.stencil_length, 2)
     for i in 1 : A.boundary_point_count
-        @inbounds bc = A.high_boundary_coefs[i]
+        @inbounds bc = A.high_boundary_coefs[][i]
         tmp = zero(T)
         startid = max(0,i-1-halfstencil)
         @inbounds for j in 1 : length(bc)

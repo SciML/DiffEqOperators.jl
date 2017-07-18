@@ -9,9 +9,9 @@ immutable UpwindOperator{T<:Real,S<:SVector,LBC,RBC} <: AbstractLinearOperator{T
     down_stencil_coefs  :: S
     boundary_point_count:: Int
     boundary_length     :: Int
-    low_boundary_coefs  :: Vector{Vector{T}}
-    high_boundary_coefs :: Vector{Vector{T}}
-    boundary_fn         :: Tuple{Tuple{T,T,T},Tuple{T,T,T}}
+    low_boundary_coefs  :: Ref{Vector{Vector{T}}}
+    high_boundary_coefs :: Ref{Vector{Vector{T}}}
+    boundary_condition  :: Ref{Tuple{Tuple{T,T,Any},Tuple{T,T,Any}}}
 
     Base.@pure function UpwindOperator{T,S,LBC,RBC}(derivative_order::Int, approximation_order::Int, dx::T,
                                             dimension::Int, directions::BitArray{1}, bndry_fn) where {T<:Real,S<:SVector,LBC,RBC}

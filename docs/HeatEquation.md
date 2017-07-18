@@ -1,3 +1,5 @@
+# Solving the Heat Equation using PDEOperators
+
 In this tutorial we will solve the famous heat equation using the explicit discretization on a 2D `space x time` grid. The heat equation is:-
         
 $$\frac{\partial u}{\partial t} - \frac{{\partial}^2 u}{\partial x^2} = 0$$
@@ -7,7 +9,7 @@ For this example we consider a Dirichlet boundary condition with the initial dis
         julia> using PDEOperator, DifferentialEquations, Plots
         julia> x = collect(-pi : 2pi/511 : pi);
         julia> u0 = -(x - 0.5).^2 + 1/12;
-        julia> A = LinearOperator{Float64}(2,2,2pi/511,512,:Dirichlet,:Dirichlet;bndry_fn=(u0[1],u0[end]));
+        julia> A = LinearOperator{Float64}(2,2,2pi/511,512,:Dirichlet,:Dirichlet;BC=(u0[1],u0[end]));
 
 Now solving equation as an ODE we have:-
     

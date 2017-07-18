@@ -5,7 +5,7 @@ using DifferentialEquations
 context("Parabolic Heat Equation with Dirichlet BCs:")do
     x = collect(-pi : 2pi/511 : pi);
     u0 = -(x - 0.5).^2 + 1/12;
-    A = LinearOperator{Float64}(2,2,2π/511,512,:Dirichlet,:Dirichlet;bndry_fn=(u0[1],u0[end]));
+    A = LinearOperator{Float64}(2,2,2π/511,512,:Dirichlet,:Dirichlet;BC=(u0[1],u0[end]));
     heat_eqn = ODEProblem(A, u0, (0.,10.));
     soln = solve(heat_eqn,dense=false,tstops=0:0.01:10);
 
@@ -23,7 +23,7 @@ context("Parabolic Heat Equation with Neumann BCs:")do
     B = LinearOperator{Float64}(1,2,dx,N,:None,:None);
     deriv_start, deriv_end = (B*u0)[1], (B*u0)[end]
 
-    A = LinearOperator{Float64}(2,2,dx,N,:Neumann,:Neumann;bndry_fn=(deriv_start,deriv_end));
+    A = LinearOperator{Float64}(2,2,dx,N,:Neumann,:Neumann;BC=(deriv_start,deriv_end));
 
     heat_eqn = ODEProblem(A, u0, (0.,10.));
     soln = solve(heat_eqn,dense=false,tstops=0:0.01:10);
@@ -49,7 +49,7 @@ context("Parabolic Heat Equation with Robin BCs:")do
     left_RBC = params[1]*u0[1] - params[2]*deriv_start
     right_RBC = params[1]*u0[end] + params[2]*deriv_end
 
-    A = LinearOperator{Float64}(2,2,dx,N,:Robin,:Dirichlet;bndry_fn=((params[1],params[2],left_RBC),u0[end]));
+    A = LinearOperator{Float64}(2,2,dx,N,:Robin,:Dirichlet;BC=((params[1],params[2],left_RBC),u0[end]));
 
     heat_eqn = ODEProblem(A, u0, (0.,10.));
     soln = solve(heat_eqn,dense=false,tstops=0:0.01:10);
