@@ -2,7 +2,7 @@ __precompile__()
 
 module PDEOperators
 
-import LinearMaps: LinearMap, AbstractLinearMap
+import LinearMaps: LinearMap
 import Base: *, getindex
 using DiffEqBase, StaticArrays
 
