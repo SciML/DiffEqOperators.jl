@@ -5,7 +5,7 @@ function *(A::AbstractLinearOperator,x::AbstractVector)
         We will output a vector which is a supertype of the types of A and x
         to ensure numerical stability
     =#
-    get_type(A) != eltype(x) ? error("PDEOperator and array are not of same type!") : nothing
+    get_type(A) != eltype(x) ? error("DiffEqOperator and array are not of same type!") : nothing
     y = zeros(promote_type(eltype(A),eltype(x)), length(x))
     Base.A_mul_B!(y, A::AbstractLinearOperator, x::AbstractVector)
     return y
@@ -17,7 +17,7 @@ function *(A::AbstractLinearOperator,M::AbstractMatrix)
         We will output a vector which is a supertype of the types of A and x
         to ensure numerical stability
     =#
-    get_type(A) != eltype(M) ? error("PDEOperator and array are not of same type!") : nothing
+    get_type(A) != eltype(M) ? error("DiffEqOperator and array are not of same type!") : nothing
     y = zeros(promote_type(eltype(A),eltype(M)), size(M))
     Base.A_mul_B!(y, A::AbstractLinearOperator, M::AbstractMatrix)
     return y
@@ -29,7 +29,7 @@ function *(M::AbstractMatrix,A::AbstractLinearOperator)
         We will output a vector which is a supertype of the types of A and x
         to ensure numerical stability
     =#
-    get_type(A) != eltype(M) ? error("PDEOperator and array are not of same type!") : nothing
+    get_type(A) != eltype(M) ? error("DiffEqOperator and array are not of same type!") : nothing
     y = zeros(promote_type(eltype(A),eltype(M)), size(M))
     Base.A_mul_B!(y, A::AbstractLinearOperator, M::AbstractMatrix)
     return y
@@ -54,7 +54,7 @@ function negate!{T}(arr::T)
 end
 
 
-immutable LinearOperator{T<:Real,S<:SVector,LBC,RBC} <: AbstractLinearOperator{T}
+immutable DiffEqLinearOperator{T<:Real,S<:SVector,LBC,RBC} <: AbstractDiffEqDerivativeOperator{T}
     derivative_order    :: Int
     approximation_order :: Int
     dx                  :: T
@@ -67,7 +67,7 @@ immutable LinearOperator{T<:Real,S<:SVector,LBC,RBC} <: AbstractLinearOperator{T
     high_boundary_coefs :: Ref{Vector{Vector{T}}}
     boundary_condition  :: Ref{Tuple{Tuple{T,T,Any},Tuple{T,T,Any}}}
 
-    Base.@pure function LinearOperator{T,S,LBC,RBC}(derivative_order::Int, approximation_order::Int, dx::T,
+    Base.@pure function DiffEqLinearOperator{T,S,LBC,RBC}(derivative_order::Int, approximation_order::Int, dx::T,
                                             dimension::Int, BC) where {T<:Real,S<:SVector,LBC,RBC}
         dimension            = dimension
         dx                   = dx
@@ -99,12 +99,12 @@ immutable LinearOperator{T<:Real,S<:SVector,LBC,RBC} <: AbstractLinearOperator{T
             boundary_condition
             )
     end
-    (::Type{LinearOperator{T}}){T<:Real}(dorder::Int,aorder::Int,dx::T,dim::Int,LBC::Symbol,RBC::Symbol;BC=(zero(T),zero(T))) =
-        LinearOperator{T, SVector{dorder+aorder-1+(dorder+aorder)%2,T}, LBC, RBC}(dorder, aorder, dx, dim, BC)
+    (::Type{DiffEqLinearOperator{T}}){T<:Real}(dorder::Int,aorder::Int,dx::T,dim::Int,LBC::Symbol,RBC::Symbol;BC=(zero(T),zero(T))) =
+        DiffEqLinearOperator{T, SVector{dorder+aorder-1+(dorder+aorder)%2,T}, LBC, RBC}(dorder, aorder, dx, dim, BC)
 end
 
 
-function update_coefficients!{T<:Real,S<:SVector,RBC,LBC}(A::LinearOperator{T,S,LBC,RBC};BC=nothing)
+function update_coefficients!{T<:Real,S<:SVector,RBC,LBC}(A::DiffEqLinearOperator{T,S,LBC,RBC};BC=nothing)
     if BC != nothing
         LBC == :Robin ? (length(BC[1])==3 || error("Enter the new left boundary condition as a 1-tuple")) :
                         (length(BC[1])==1 || error("Robin BC needs a 3-tuple for left boundary condition"))
@@ -400,11 +400,11 @@ end
 #################################################################################################
 
 
-(L::LinearOperator)(t,u) = L*u
-(L::LinearOperator)(t,u,du) = A_mul_B!(du,L,u)
+(L::DiffEqLinearOperator)(t,u) = L*u
+(L::DiffEqLinearOperator)(t,u,du) = A_mul_B!(du,L,u)
 
-get_LBC{A,B,C,D}(::LinearOperator{A,B,C,D}) = C
-get_RBC{A,B,C,D}(::LinearOperator{A,B,C,D}) = D
+get_LBC{A,B,C,D}(::DiffEqLinearOperator{A,B,C,D}) = C
+get_RBC{A,B,C,D}(::DiffEqLinearOperator{A,B,C,D}) = D
 get_type{T}(::AbstractLinearOperator{T}) = T
 
 
@@ -546,7 +546,7 @@ function Base.A_mul_B!{T<:Real}(x_temp::AbstractArray{T,2}, A::AbstractLinearOpe
 end
 
 
-# Base.length(A::LinearOperator) = A.stencil_length
+# Base.length(A::DiffEqLinearOperator) = A.stencil_length
 Base.ndims(A::AbstractLinearOperator) = 2
 Base.size(A::AbstractLinearOperator) = (A.dimension, A.dimension)
 Base.length(A::AbstractLinearOperator) = reduce(*, size(A))

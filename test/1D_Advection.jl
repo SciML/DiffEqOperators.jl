@@ -13,7 +13,7 @@ context("KdV equation (Single Solition)")do
     u0 = ϕ(x,0,a);
     oriu = zeros(x);
 
-    A = UpwindOperator{Float64}(1,2,Δx,length(x),.~BitVector(length(x)),:Dirichlet0,:nothing);
+    A = DiffEqUpwindOperator{Float64}(1,2,Δx,length(x),.~BitVector(length(x)),:Dirichlet0,:nothing);
 
     function advection(t, u, du)
        A(t,u,du)

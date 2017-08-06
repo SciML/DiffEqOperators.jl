@@ -14,9 +14,9 @@ context("KdV equation (Single Solition)")do
     du3 = zeros(x);
     temp = zeros(x);
     # A = LinearOperator{Float64}(1,4,Δx,length(x),:periodic,:periodic);
-    A = UpwindOperator{Float64}(1,1,Δx,length(x),BitVector(length(x)),:None,:None);
+    A = DiffEqUpwindOperator{Float64}(1,1,Δx,length(x),BitVector(length(x)),:None,:None);
     # C = LinearOperator{Float64}(3,4,Δx,length(x),:periodic,:periodic);
-    C = UpwindOperator{Float64}(3,1,Δx,length(x),BitVector(length(x)),:None,:None);
+    C = DiffEqUpwindOperator{Float64}(3,1,Δx,length(x),BitVector(length(x)),:None,:None);
 
     function KdV(t, u, du)
        C(t,u,du3)
