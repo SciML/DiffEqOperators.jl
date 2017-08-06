@@ -7,7 +7,6 @@ import Base: *, getindex
 using DiffEqBase, StaticArrays
 
 abstract type AbstractDiffEqDerivativeOperator{T} <: AbstractDiffEqLinearOperator{T} end
-export PDEOperator
 
 ### Basic Operators
 include("diffeqscalar.jl")
