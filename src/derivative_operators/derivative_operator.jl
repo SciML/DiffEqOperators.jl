@@ -1,5 +1,3 @@
-export update_coefficients!
-
 function *(A::AbstractDerivativeOperator,x::AbstractVector)
     #=
         We will output a vector which is a supertype of the types of A and x
@@ -95,7 +93,7 @@ immutable DerivativeOperator{T<:Real,S<:SVector,LBC,RBC} <: AbstractDerivativeOp
 end
 
 
-function update_coefficients!{T<:Real,S<:SVector,RBC,LBC}(A::DerivativeOperator{T,S,LBC,RBC};BC=nothing)
+function DiffEqBase.update_coefficients!{T<:Real,S<:SVector,RBC,LBC}(A::DerivativeOperator{T,S,LBC,RBC};BC=nothing)
     if BC != nothing
         LBC == :Robin ? (length(BC[1])==3 || error("Enter the new left boundary condition as a 1-tuple")) :
                         (length(BC[1])==1 || error("Robin BC needs a 3-tuple for left boundary condition"))
