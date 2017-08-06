@@ -1,4 +1,4 @@
-using PDEOperators
+using DiffEqOperators
 using Base.Test
 using FactCheck
 using SpecialMatrices

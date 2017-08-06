@@ -1,4 +1,4 @@
-# Basics of PDEOperators
+# Basics of DiffEqOperators
 
 In this tutorial we will explore the basic functionalities of PDEOperator which is used to obtain the discretizations of PDEs of appropriate derivative and approximation order.
 
@@ -52,7 +52,7 @@ We can get the linear operator as a matrix as follows:-
 Note that we **don't** need to define the `BC` only for `:D0` and `:periodic` boundary conditions so you can ignore it.
 
 
-Now coming to the main functionality of PDEOperators ie. taking finite difference discretizations of functions.
+Now coming to the main functionality of DiffEqOperators ie. taking finite difference discretizations of functions.
 
     julia> x = collect(0 : 1/99 : 1);
     julia> u0 = x.^2 -x;

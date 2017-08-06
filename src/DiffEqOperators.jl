@@ -1,6 +1,6 @@
 __precompile__()
 
-module PDEOperators
+module DiffEqOperators
 
 import LinearMaps: LinearMap, AbstractLinearMap
 import Base: *, getindex
