@@ -1,4 +1,4 @@
-The PDEOperators.jl package is licensed under the MIT "Expat" License:
+The DiffEqOperators.jl package is licensed under the MIT "Expat" License:
 
 > Copyright (c) 2017: shivin9.
 > 

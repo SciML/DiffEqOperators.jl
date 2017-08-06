@@ -13,8 +13,8 @@ context("KdV equation (Single Solition)")do
     oriu = zeros(x);
     du3 = zeros(x);
     temp = zeros(x);
-    A = LinearOperator{Float64}(1,4,Δx,length(x),:periodic,:periodic);
-    C = LinearOperator{Float64}(3,4,Δx,length(x),:periodic,:periodic);
+    A = DerivativeOperator{Float64}(1,4,Δx,length(x),:periodic,:periodic);
+    C = DerivativeOperator{Float64}(3,4,Δx,length(x),:periodic,:periodic);
 
     function KdV(t, u, du)
        C(t,u,du3)
@@ -49,8 +49,8 @@ context("KdV equation (Double Solition)")do
 
     du3 = zeros(x);
     temp = zeros(x);
-    A = LinearOperator{Float64}(1,2,1/99,length(x),:None,:None);
-    C = LinearOperator{Float64}(3,2,1/99,length(x),:None,:None);
+    A = DerivativeOperator{Float64}(1,2,1/99,length(x),:None,:None);
+    C = DerivativeOperator{Float64}(3,2,1/99,length(x),:None,:None);
 
     function KdV(t, u, du)
        C(t,u,du3)
