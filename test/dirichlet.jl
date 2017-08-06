@@ -1,7 +1,6 @@
 using Base.Test
-using FactCheck
 
-context("Dirichlet0 Boundary Conditions:")do
+@testset "Dirichlet0 Boundary Conditions" begin
     N = 100
     h_inv = 1/(N-1)
     d_order = 2

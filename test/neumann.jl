@@ -1,7 +1,6 @@
 using Base.Test
-using FactCheck
 
-context("Neumann0 Boundary:")do
+@testset "Neumann0 Boundary" begin
     N = 100
     d_order = 2
     approx_order = 2
@@ -38,7 +37,7 @@ context("Neumann0 Boundary:")do
     @test first_deriv[end] ≈ 0.0 atol=10.0^-1 ## Derivative at edges in Neumann 0 is 0
 end
 
-context("General Neumann Boundary Condition:")do
+@testset "General Neumann Boundary Condition" begin
     N = 100
     h_inv = 1/(N-1)
     d_order = 2
