@@ -1,8 +1,7 @@
 using Base.Test
-using FactCheck
 using DifferentialEquations
 
-context("KdV equation (Single Solition)")do
+@testset "KdV equation (Single Solition)" begin
     N,M = 1000,10
     Δx = 1/(N-1)
     Δt = 1/(M-1)
@@ -32,7 +31,7 @@ context("KdV equation (Single Solition)")do
 end
 
 # Conduct interesting experiments by referring to http://lie.math.brocku.ca/~sanco/solitons/kdv_solitons.php
-context("KdV equation (Double Solition)")do
+@testset "KdV equation (Double Solition)" begin
     x = collect(-50 : 1/99 : 50);
     c1,c2 = 20,10
 

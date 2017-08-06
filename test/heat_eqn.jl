@@ -1,8 +1,7 @@
 using Base.Test
-using FactCheck
 using DifferentialEquations
 
-context("Parabolic Heat Equation with Dirichlet BCs:")do
+@testset "Parabolic Heat Equation with Dirichlet BCs" begin
     x = collect(-pi : 2pi/511 : pi);
     u0 = -(x - 0.5).^2 + 1/12;
     A = DerivativeOperator{Float64}(2,2,2π/511,512,:Dirichlet,:Dirichlet;BC=(u0[1],u0[end]));
@@ -15,7 +14,7 @@ context("Parabolic Heat Equation with Dirichlet BCs:")do
     end
 end
 
-context("Parabolic Heat Equation with Neumann BCs:")do
+@testset "Parabolic Heat Equation with Neumann BCs" begin
     N = 512
     dx = 2π/(N-1)
     x = collect(-pi : dx : pi);
@@ -37,7 +36,7 @@ context("Parabolic Heat Equation with Neumann BCs:")do
     end
 end
 
-context("Parabolic Heat Equation with Robin BCs:")do
+@testset "Parabolic Heat Equation with Robin BCs" begin
     N = 512
     dx = 2π/(N-1)
     x = collect(-pi : dx : pi);
