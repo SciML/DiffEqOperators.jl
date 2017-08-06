@@ -6,12 +6,18 @@ import LinearMaps: LinearMap, AbstractLinearMap
 import Base: *, getindex
 using DiffEqBase, StaticArrays
 
-abstract type AbstractLinearOperator{T} <: AbstractDiffEqOperator{T} end
+abstract type AbstractDiffEqDerivativeOperator{T} <: AbstractDiffEqLinearOperator{T} end
 export PDEOperator
 
-include("linear_operator.jl")
-include("fornberg.jl")
-include("boundary_operators.jl")
+### Basic Operators
+include("diffeqscalar.jl")
+include("array_operator.jl")
 
-export AbstractLinearOperator, LinearOperator
+### Derivative Operators
+include("derivative_operators/derivative_operator.jl")
+include("derivative_operators/fornberg.jl")
+include("derivative_operators/boundary_operators.jl")
+
+export DiffEqScalar, DiffEqArrayOperator
+export AbstractDiffEqDerivativeOperator, DerivativeOperator
 end # module
