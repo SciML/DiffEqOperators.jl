@@ -29,7 +29,7 @@ Base.issymmetric(L::DiffEqArrayOperator) = L._issymmetric
 Base.ishermitian(L::DiffEqArrayOperator) = L._ishermitian
 Base.isposdef(L::DiffEqArrayOperator) = L._isposdef
 DiffEqBase.is_constant(L::DiffEqArrayOperator) = L.update_func == DEFAULT_UPDATE_FUNC
-
+Base.expm(L::DiffEqArrayOperator) = expm(L.α.coeff*L.A)
 DiffEqBase.update_coefficients!(L::DiffEqArrayOperator,t,u) = (L.update_func(L.A,t,u); L.α = L.α(t); nothing)
 DiffEqBase.update_coefficients(L::DiffEqArrayOperator,t,u)  = (L.update_func(L.A,t,u); L.α = L.α(t); L)
 
@@ -44,7 +44,7 @@ end
 
 ### Forward some extra operations
 function Base.:*(α::Number,L::DiffEqArrayOperator)
-    DiffEqArrayOperator(L.A,DiffEqScalar(L.func,L.coeff*α),L.update_func)
+    DiffEqArrayOperator(L.A,DiffEqScalar(L.α.func,L.α.coeff*α),L.update_func)
 end
 Base.:*(L::DiffEqArrayOperator,α::Number) = α*L
 Base.:*(L::DiffEqArrayOperator,b::AbstractVector) = L.α.coeff*L.A*b
