@@ -88,7 +88,7 @@ immutable DerivativeOperator{T<:Real,S<:SVector,LBC,RBC} <: AbstractDerivativeOp
             boundary_condition
             )
     end
-    (::Type{DerivativeOperator{T}}){T<:Real}(dorder::Int,aorder::Int,dx::T,dim::Int,LBC::Symbol,RBC::Symbol;BC=((zero(T),zero(T),zero(T)),(zero(T),zero(T),zero(T)))) =
+    (::Type{DerivativeOperator{T}}){T<:Real}(dorder::Int,aorder::Int,dx::T,dim::Int,LBC::Symbol,RBC::Symbol;BC=(zero(T),zero(T))) =
         DerivativeOperator{T, SVector{dorder+aorder-1+(dorder+aorder)%2,T}, LBC, RBC}(dorder, aorder, dx, dim, BC)
 end
 

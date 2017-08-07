@@ -8,7 +8,9 @@ mutable struct DiffEqArrayOperator{T,Arr<:AbstractMatrix{T},Sca,F} <: AbstractDi
     _isposdef::Bool
     update_func::F
 end
+
 DEFAULT_UPDATE_FUNC = (L,t,u)->nothing
+
 function DiffEqArrayOperator(A::AbstractMatrix{T},α=1.0,
                              update_func = DEFAULT_UPDATE_FUNC) where T
     if (typeof(α) <: Number)
@@ -37,6 +39,7 @@ function (L::DiffEqArrayOperator)(t,u)
   update_coefficients!(L,t,u)
   L*u
 end
+
 function (L::DiffEqArrayOperator)(t,u,du)
   update_coefficients!(L,t,u)
   A_mul_B!(du,L,u)
@@ -46,17 +49,21 @@ end
 function Base.:*(α::Number,L::DiffEqArrayOperator)
     DiffEqArrayOperator(L.A,DiffEqScalar(L.α.func,L.α.coeff*α),L.update_func)
 end
+
 Base.:*(L::DiffEqArrayOperator,α::Number) = α*L
 Base.:*(L::DiffEqArrayOperator,b::AbstractVector) = L.α.coeff*L.A*b
 Base.:*(L::DiffEqArrayOperator,b::AbstractArray) = L.α.coeff*L.A*b
+
 function Base.A_mul_B!(v::AbstractVector,L::DiffEqArrayOperator,b::AbstractVector)
     A_mul_B!(v,L.A,b)
     scale!(b,L.α.coeff)
 end
+
 function Base.A_mul_B!(v::AbstractArray,L::DiffEqArrayOperator,b::AbstractArray)
     A_mul_B!(v,L.A,b)
     scale!(b,L.α.coeff)
 end
+
 Base.expm(L::DiffEqArrayOperator) = expm(L.α.coeff*L.A)
 Base.size(L::DiffEqArrayOperator) = size(L.A)
 
@@ -95,6 +102,7 @@ function Base.A_ldiv_B!(x,L::FactorizedDiffEqArrayOperator, b::AbstractArray)
     A_ldiv_B!(x,L.A,b)
     scale!(x,inv(L.inv_coeff))
 end
+
 function Base.:\(L::FactorizedDiffEqArrayOperator, b::AbstractArray)
     (L.A \ b) * L.inv_coeff
 end
