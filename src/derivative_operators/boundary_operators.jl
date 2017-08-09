@@ -51,7 +51,7 @@ end
 
 
 function convolve_BC_left!{T<:Real,S<:SVector,RBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::DerivativeOperator{T,S,:Dirichlet,RBC})
-    x[1] = A.boundary_condition[][1][3]
+    x[1] = A.boundary_condition[][1][3](A.t)
     mid = div(A.stencil_length,2)+1
     for i in 1 : A.boundary_point_count[1]
         dirichlet_1!(x_temp, x, A.stencil_coefs, mid, i)
@@ -82,7 +82,7 @@ function convolve_BC_left!{T<:Real,S<:SVector,RBC}(x_temp::AbstractVector{T}, x:
         end
         x_temp[i] = tmp
     end
-    x_temp[1] += A.boundary_condition[][1][3]
+    x_temp[1] += A.boundary_condition[][1][3](A.t)
 end
 
 
@@ -95,7 +95,7 @@ function convolve_BC_left!{T<:Real,S<:SVector,RBC}(x_temp::AbstractVector{T}, x:
         end
         x_temp[i] = tmp
     end
-    x_temp[1] += A.boundary_condition[][1][3]
+    x_temp[1] += A.boundary_condition[][1][3](A.t)
 end
 
 
@@ -113,7 +113,7 @@ function convolve_BC_left!{T<:Real,S<:SVector,RBC}(x_temp::AbstractVector{T}, x:
 end
 
 
-function convolve_BC_left!{T<:Real,S<:SVector,RBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::DiffEqUpwindOperator{T,S,:nothing,RBC})
+function convolve_BC_left!{T<:Real,S<:SVector,RBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::UpwindOperator{T,S,:nothing,RBC})
     stencil_length = length(A.down_stencil_coefs)
     stencil_rem = 1 - stencil_length%2
     start_idx = 1
@@ -208,7 +208,7 @@ end
 function convolve_BC_right!{T<:Real,S<:SVector,LBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::DerivativeOperator{T,S,LBC,:Dirichlet})
     N = length(x)
     mid = div(A.stencil_length,2) + 1
-    x[end] = A.boundary_condition[][2][3]
+    x[end] = A.boundary_condition[][2][3](A.t)
 
     for i in 1 : A.boundary_point_count[2]
         dirichlet_1!(x_temp, x, A.stencil_coefs, mid, N - A.boundary_point_count[2] + i)
@@ -243,7 +243,7 @@ function convolve_BC_right!{T<:Real,S<:SVector,LBC}(x_temp::AbstractVector{T}, x
         end
         x_temp[N-i+1] = tmp
     end
-    x_temp[end] += A.boundary_condition[][2][3]
+    x_temp[end] += A.boundary_condition[][2][3](A.t)
 end
 
 
@@ -257,7 +257,7 @@ function convolve_BC_right!{T<:Real,S<:SVector,LBC}(x_temp::AbstractVector{T}, x
         end
         x_temp[N-i+1] = tmp
     end
-    x_temp[end] += A.boundary_condition[][2][3]
+    x_temp[end] += A.boundary_condition[][2][3](A.t)
 end
 
 
@@ -275,14 +275,13 @@ function convolve_BC_right!{T<:Real,S<:SVector,LBC}(x_temp::AbstractVector{T}, x
 end
 
 
-function convolve_BC_right!{T<:Real,S<:SVector,LBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::DiffEqUpwindOperator{T,S,LBC,:nothing})
+function convolve_BC_right!{T<:Real,S<:SVector,LBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::UpwindOperator{T,S,LBC,:nothing})
     stencil_length = length(A.down_stencil_coefs)
     stencil_rem = 1 - stencil_length%2
     start_idx = 1
 
     # this case when our stencil uses 1 point at the right, so we cant use the downwind stencil
     # as it will spill over. So we use a special boundary stencil.
-
     if stencil_rem == 1
         x_temp[end] = sum(A.high_boundary_coefs[][1].*x[end-length(A.high_boundary_coefs[][1])+1:end])
         start_idx = 2

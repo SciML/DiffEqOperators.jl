@@ -1,4 +1,4 @@
-immutable DiffEqUpwindOperator{T<:Real,S<:SVector,LBC,RBC} <: AbstractDiffEqDerivativeOperator{T}
+immutable UpwindOperator{T<:Real,S<:SVector,LBC,RBC} <: AbstractDerivativeOperator{T}
     derivative_order    :: Int
     approximation_order :: Int
     dx                  :: T
@@ -13,7 +13,7 @@ immutable DiffEqUpwindOperator{T<:Real,S<:SVector,LBC,RBC} <: AbstractDiffEqDeri
     high_boundary_coefs :: Ref{Vector{Vector{T}}}
     boundary_condition  :: Ref{Tuple{Tuple{T,T,Any},Tuple{T,T,Any}}}
 
-    Base.@pure function DiffEqUpwindOperator{T,S,LBC,RBC}(derivative_order::Int, approximation_order::Int, dx::T,
+    Base.@pure function UpwindOperator{T,S,LBC,RBC}(derivative_order::Int, approximation_order::Int, dx::T,
                                             dimension::Int, directions::BitArray{1}, bndry_fn) where {T<:Real,S<:SVector,LBC,RBC}
         dimension            = dimension
         dx                   = dx
@@ -53,14 +53,14 @@ immutable DiffEqUpwindOperator{T<:Real,S<:SVector,LBC,RBC} <: AbstractDiffEqDeri
             boundary_condition
             )
     end
-    (::Type{DiffEqUpwindOperator{T}}){T<:Real}(dorder::Int,aorder::Int,dx::T,dim::Int,direction::BitArray{1},LBC::Symbol,RBC::Symbol;BC=(zero(T),zero(T))) = DiffEqUpwindOperator{T, SVector{dorder+aorder,T}, LBC, RBC}(dorder, aorder, dx, dim, direction, BC)
+    (::Type{UpwindOperator{T}}){T<:Real}(dorder::Int,aorder::Int,dx::T,dim::Int,direction::BitArray{1},LBC::Symbol,RBC::Symbol;BC=(zero(T),zero(T))) = UpwindOperator{T, SVector{dorder+aorder,T}, LBC, RBC}(dorder, aorder, dx, dim, direction, BC)
 end
 
 
-(L::DiffEqUpwindOperator)(t,u) = L*u
-(L::DiffEqUpwindOperator)(t,u,du) = A_mul_B!(du,L,u)
+(L::UpwindOperator)(t,u) = L*u
+(L::UpwindOperator)(t,u,du) = A_mul_B!(du,L,u)
 
-function update_coefficients!{T<:Real,S<:SVector,RBC,LBC}(A::DiffEqUpwindOperator{T,S,LBC,RBC};BC=nothing, directions=nothing)
+function update_coefficients!{T<:Real,S<:SVector,RBC,LBC}(A::UpwindOperator{T,S,LBC,RBC};BC=nothing, directions=nothing)
     if BC != nothing
         LBC == :Robin ? (length(BC[1])==3 || error("Enter the new left boundary condition as a 1-tuple")) :
                         (length(BC[1])==1 || error("Robin BC needs a 3-tuple for left boundary condition"))

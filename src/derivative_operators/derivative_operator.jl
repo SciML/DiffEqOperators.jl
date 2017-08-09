@@ -1,3 +1,5 @@
+get_type{T}(::AbstractDerivativeOperator{T}) = T
+
 function *(A::AbstractDerivativeOperator,x::AbstractVector)
     #=
         We will output a vector which is a supertype of the types of A and x
@@ -64,6 +66,7 @@ immutable DerivativeOperator{T<:Real,S<:SVector,LBC,RBC} <: AbstractDerivativeOp
     low_boundary_coefs  :: Ref{Vector{Vector{T}}}
     high_boundary_coefs :: Ref{Vector{Vector{T}}}
     boundary_condition  :: Ref{Tuple{Tuple{T,T,Any},Tuple{T,T,Any}}}
+    t                   :: Ref{Int}
 
     Base.@pure function DerivativeOperator{T,S,LBC,RBC}(derivative_order::Int, approximation_order::Int, dx::T,
                                             dimension::Int, BC) where {T<:Real,S<:SVector,LBC,RBC}
@@ -88,13 +91,16 @@ immutable DerivativeOperator{T<:Real,S<:SVector,LBC,RBC} <: AbstractDerivativeOp
         boundary_condition = (left_bndry, right_bndry)
         boundary_point_count = (bpc_array[1],bpc_array[2])
 
+        t = 0
+
         new(derivative_order, approximation_order, dx, dimension, stencil_length,
             stencil_coefs,
             boundary_point_count,
             boundary_length,
             low_boundary_coefs,
             high_boundary_coefs,
-            boundary_condition
+            boundary_condition,
+            t
             )
     end
     (::Type{DerivativeOperator{T}}){T<:Real}(dorder::Int,aorder::Int,dx::T,dim::Int,LBC::Symbol,RBC::Symbol;BC=(zero(T),zero(T))) =
@@ -142,7 +148,8 @@ function initialize_left_boundary!{T}(::Type{Val{:LO}},low_boundary_coefs,stenci
         return (one(T),zero(T),zero(T)*BC[1])
 
     elseif LBC == :Dirichlet
-        return (one(T),zero(T),one(T)*BC[1])
+        typeof(BC[1]) <: Real ? ret = t->BC[1] : ret = BC[1]
+        return (one(T),zero(T),ret)
 
     elseif LBC == :Neumann0
         return (zero(T),one(T),zero(T))
@@ -175,7 +182,8 @@ function initialize_right_boundary!{T}(::Type{Val{:LO}},high_boundary_coefs,sten
         return (one(T),zero(T),zero(T)*BC[2])
 
     elseif RBC == :Dirichlet
-        return (one(T),zero(T),one(T)*BC[2])
+        typeof(BC[2]) <: Real ? ret = t->BC[2] : ret = BC[2]
+        return (one(T),zero(T),ret)
 
     elseif RBC == :Neumann0
         return (zero(T),one(T),zero(T))
@@ -525,6 +533,7 @@ function Base.A_mul_B!{T<:Real}(x_temp::AbstractVector{T}, A::DerivativeOperator
     convolve_interior!(x_temp, x, A)
     convolve_BC_right!(x_temp, x, A)
     scale!(x_temp, 1/(A.dx^A.derivative_order))
+    A.t[] += 1 # incrementing the internal time stamp
 end
 
 

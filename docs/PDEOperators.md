@@ -22,9 +22,7 @@ Taking a specific example
 
 this is the time dependent Dirichlet BC. You can also specify a time independent Dirichlet BC as follows:-
     
-    update_coefficients!(A,(<new_BC>))
-
-(This works with all boundary conditions eg. a Robin condition is updated like this, `update_coefficients(A, ((a,b,new_c), (<other boundary_condition>))`)
+    A = LinearOperator{Float64}(2,2,1/99,10,:Dirichlet,:Dirichlet; bndry_fn=(t->(u[1]*cos(t)),u[end]))
 
 We have generated an operator which produces the 2nd order approximation of the Laplacian. We can checkout the stencil as follows:-
 
