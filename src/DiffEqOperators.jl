@@ -2,20 +2,22 @@ __precompile__()
 
 module DiffEqOperators
 
-import LinearMaps: LinearMap
+import LinearMaps: LinearMap, AbstractLinearMap
 import Base: *, getindex
-import DiffEqBase: AbstractDiffEqOperator, AbstractDiffEqLinearOperator, AbstractDiffEqDerivativeOperator
-using StaticArrays
+using DiffEqBase, StaticArrays
 
-# abstract type AbstractDiffEqLinearOperator{T} <: AbstractDiffEqOperator{T} end
-# abstract type AbstractDiffEqDerivativeOperator{T} <: AbstractDiffEqLinearOperator{T} end
+abstract type AbstractDerivativeOperator{T} <: AbstractDiffEqLinearOperator{T} end
 
-export DiffEqOperator
+### Basic Operators
+include("diffeqscalar.jl")
+include("array_operator.jl")
 
-include("linear_operator.jl")
-include("fornberg.jl")
-include("upwind_operator.jl")
-include("boundary_operators.jl")
+### Derivative Operators
+include("derivative_operators/derivative_operator.jl")
+include("derivative_operators/upwind_operator.jl")
+include("derivative_operators/fornberg.jl")
+include("derivative_operators/boundary_operators.jl")
 
-export DiffEqLinearOperator, DiffEqUpwindOperator
+export DiffEqScalar, DiffEqArrayOperator
+export AbstractDerivativeOperator, DerivativeOperator
 end # module

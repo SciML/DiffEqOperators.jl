@@ -1,9 +1,8 @@
 using Base.Test
-using FactCheck
 using DifferentialEquations
 
-context("KdV equation (Single Solition)")do
-    N,M = 100,100
+@testset "KdV equation (Single Solition)" begin
+    N,M = 1000,10
     Δx = 1/(N-1)
     Δt = 1/(M-1)
 
@@ -13,10 +12,11 @@ context("KdV equation (Single Solition)")do
     oriu = zeros(x);
     du3 = zeros(x);
     temp = zeros(x);
-    # A = LinearOperator{Float64}(1,4,Δx,length(x),:periodic,:periodic);
-    A = DiffEqUpwindOperator{Float64}(1,1,Δx,length(x),BitVector(length(x)),:None,:None);
-    # C = LinearOperator{Float64}(3,4,Δx,length(x),:periodic,:periodic);
-    C = DiffEqUpwindOperator{Float64}(3,1,Δx,length(x),BitVector(length(x)),:None,:None);
+
+    # A = DerivativeOperator{Float64}(1,4,Δx,length(x),:periodic,:periodic);
+    A = UpwindOperator{Float64}(1,1,Δx,length(x),BitVector(length(x)),:None,:None);
+    # C = DerivativeOperator{Float64}(3,4,Δx,length(x),:periodic,:periodic);
+    C = UpwindOperator{Float64}(3,1,Δx,length(x),BitVector(length(x)),:None,:None);
 
     function KdV(t, u, du)
        C(t,u,du3)
@@ -34,7 +34,7 @@ context("KdV equation (Single Solition)")do
 end
 
 # Conduct interesting experiments by referring to http://lie.math.brocku.ca/~sanco/solitons/kdv_solitons.php
-context("KdV equation (Double Solition)")do
+@testset "KdV equation (Double Solition)" begin
     x = collect(-50 : 1/99 : 50);
     c1,c2 = 20,10
 
@@ -51,8 +51,8 @@ context("KdV equation (Double Solition)")do
 
     du3 = zeros(x);
     temp = zeros(x);
-    A = LinearOperator{Float64}(1,2,1/99,length(x),:None,:None);
-    C = LinearOperator{Float64}(3,2,1/99,length(x),:None,:None);
+    A = DerivativeOperator{Float64}(1,2,1/99,length(x),:None,:None);
+    C = DerivativeOperator{Float64}(3,2,1/99,length(x),:None,:None);
 
     function KdV(t, u, du)
        C(t,u,du3)

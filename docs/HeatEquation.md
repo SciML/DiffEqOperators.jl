@@ -1,4 +1,4 @@
-# Solving the Heat Equation using PDEOperators
+# Solving the Heat Equation using DiffEqOperators
 
 In this tutorial we will solve the famous heat equation using the explicit discretization on a 2D `space x time` grid. The heat equation is:-
         

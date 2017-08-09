@@ -1,13 +1,13 @@
 #############################################################
 # Fornberg algorithm
-function derivative{T<:Real}(y::Vector{T}, A::LinearOperator{T})
+function derivative{T<:Real}(y::Vector{T}, A::DerivativeOperator{T})
     dy = zeros(T, length(y))
     derivative!(dy, y, A)
     return dy
 end
 
 
-function derivative!{T<:Real}(dy::Vector{T}, y::Vector{T}, A::LinearOperator{T})
+function derivative!{T<:Real}(dy::Vector{T}, y::Vector{T}, A::DerivativeOperator{T})
     N = length(y)
     #=
         Derivative is calculated in 3 parts:-
@@ -47,7 +47,7 @@ function derivative!{T<:Real}(dy::Vector{T}, y::Vector{T}, A::LinearOperator{T})
 end
 
 
-function construct_differentiation_matrix{T<:Real}(N::Int, A::LinearOperator{T})
+function construct_differentiation_matrix{T<:Real}(N::Int, A::DerivativeOperator{T})
     #=
         This is for calculating the derivative in one go. But we are creating a function
         which can calculate the derivative by-passing the costly matrix multiplication.
@@ -67,7 +67,7 @@ function construct_differentiation_matrix{T<:Real}(N::Int, A::LinearOperator{T})
 end
 
 
-# immutable FiniteDifference <: AbstractLinearOperator
+# immutable FiniteDifference <: AbstractDerivativeOperator
 #     # TODO: the general case ie. with an uneven grid
 # end
 
