@@ -5,6 +5,7 @@ module DiffEqOperators
 import LinearMaps: LinearMap, AbstractLinearMap
 import Base: *, getindex
 using DiffEqBase, StaticArrays
+import DiffEqBase: update_coefficients, update_coefficients!
 
 abstract type AbstractDerivativeOperator{T} <: AbstractDiffEqLinearOperator{T} end
 
