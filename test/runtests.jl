@@ -6,7 +6,7 @@ using SpecialMatrices
 @testset "Periodic BCs" begin include("periodic.jl") end
 @testset "Neumann BCs" begin include("neumann.jl") end
 @testset "None BCs" begin include("none.jl") end
-println("skipping KdV tests for now")
+# println("skipping KdV tests for now")
 include("KdV.jl")
 include("heat_eqn.jl")
 

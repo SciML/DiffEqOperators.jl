@@ -12,6 +12,7 @@ immutable UpwindOperator{T<:Real,S<:SVector,LBC,RBC} <: AbstractDerivativeOperat
     low_boundary_coefs  :: Ref{Vector{Vector{T}}}
     high_boundary_coefs :: Ref{Vector{Vector{T}}}
     boundary_condition  :: Ref{Tuple{Tuple{T,T,Any},Tuple{T,T,Any}}}
+    t                   :: Ref{Int}
 
     Base.@pure function UpwindOperator{T,S,LBC,RBC}(derivative_order::Int, approximation_order::Int, dx::T,
                                             dimension::Int, directions::BitArray{1}, bndry_fn) where {T<:Real,S<:SVector,LBC,RBC}
@@ -41,6 +42,7 @@ immutable UpwindOperator{T<:Real,S<:SVector,LBC,RBC} <: AbstractDerivativeOperat
 
         boundary_condition = (left_bndry, right_bndry)
         boundary_point_count = (bpc_array[1],bpc_array[2])
+        t = 0
 
         new(derivative_order, approximation_order, dx, dimension, directions,
             stencil_length,
@@ -50,7 +52,8 @@ immutable UpwindOperator{T<:Real,S<:SVector,LBC,RBC} <: AbstractDerivativeOperat
             boundary_length,
             low_boundary_coefs,
             high_boundary_coefs,
-            boundary_condition
+            boundary_condition,
+            t
             )
     end
     (::Type{UpwindOperator{T}}){T<:Real}(dorder::Int,aorder::Int,dx::T,dim::Int,direction::BitArray{1},LBC::Symbol,RBC::Symbol;BC=(zero(T),zero(T))) = UpwindOperator{T, SVector{dorder+aorder,T}, LBC, RBC}(dorder, aorder, dx, dim, direction, BC)

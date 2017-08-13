@@ -23,5 +23,5 @@ using Base.Test
     A = DerivativeOperator{BigFloat}(d_order,approx_order,one(BigFloat),N,:Dirichlet0,:Dirichlet0,BC=(0.0,0.0))
     y = convert(Array{BigFloat, 1}, y)
     res = A*y
-    @test res[boundary_points + 1: N - boundary_points] ≈ 24.0*ones(N - 2*boundary_points) atol=10.0^-approx_order;
+    @test res[boundary_points[1] + 1: N - boundary_points[2]] ≈ 24.0*ones(N - sum(boundary_points)) atol=10.0^-approx_order;
 end

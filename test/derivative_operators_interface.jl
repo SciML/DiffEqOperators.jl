@@ -27,7 +27,7 @@
     @test mat == sp_mat;
 
     res = A*y
-    @test res[boundary_points + 1: N - boundary_points] ≈ 24.0*ones(N - 2*boundary_points) atol=10.0^-approx_order;
+    @test res[boundary_points[1] + 1: N - boundary_points[2]] ≈ 24.0*ones(N - sum(boundary_points)) atol=10.0^-approx_order;
     @test A*y ≈ mat*y atol=10.0^-approx_order;
     @test A*y ≈ sp_mat*y atol=10.0^-approx_order;
     @test sp_mat*y ≈ mat*y atol=10.0^-approx_order;

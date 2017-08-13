@@ -435,7 +435,7 @@ checkbounds(A::AbstractDerivativeOperator, k::Integer, j::Colon) =
 # BandedMatrix{A,B,C,D}(A::DerivativeOperator{A,B,C,D}) = BandedMatrix(full(A, A.stencil_length), A.stencil_length, div(A.stencil_length,2), div(A.stencil_length,2))
 
 # ~~ getindex ~~
-@inline function getindex(A::DerivativeOperator, i::Int, j::Int)
+@inline function getindex(A::AbstractDerivativeOperator, i::Int, j::Int)
     @boundscheck checkbounds(A, i, j)
     mid = div(A.stencil_length, 2) + 1
     bpc = A.stencil_length - mid
@@ -450,9 +450,9 @@ checkbounds(A::AbstractDerivativeOperator, k::Integer, j::Colon) =
 end
 
 # scalar - colon - colon
-@inline getindex(A::DerivativeOperator, kr::Colon, jr::Colon) = full(A)
+@inline getindex(A::AbstractDerivativeOperator, kr::Colon, jr::Colon) = full(A)
 
-@inline function getindex(A::DerivativeOperator, rc::Colon, j)
+@inline function getindex(A::AbstractDerivativeOperator, rc::Colon, j)
     T = eltype(A.stencil_coefs)
     v = zeros(T, A.dimension)
     v[j] = one(T)
@@ -462,7 +462,7 @@ end
 
 
 # symmetric right now
-@inline function getindex(A::DerivativeOperator, i, cc::Colon)
+@inline function getindex(A::AbstractDerivativeOperator, i, cc::Colon)
     T = eltype(A.stencil_coefs)
     v = zeros(T, A.dimension)
     v[i] = one(T)
@@ -472,30 +472,30 @@ end
 
 
 # UnitRanges
-@inline function getindex(A::DerivativeOperator, rng::UnitRange{Int}, cc::Colon)
+@inline function getindex(A::AbstractDerivativeOperator, rng::UnitRange{Int}, cc::Colon)
     m = full(A)
     return m[rng, cc]
 end
 
 
-@inline function getindex(A::DerivativeOperator, rc::Colon, rng::UnitRange{Int})
+@inline function getindex(A::AbstractDerivativeOperator, rc::Colon, rng::UnitRange{Int})
     m = full(A)
     return m[rnd, cc]
 end
 
-@inline function getindex(A::DerivativeOperator, r::Int, rng::UnitRange{Int})
+@inline function getindex(A::AbstractDerivativeOperator, r::Int, rng::UnitRange{Int})
     m = A[r, :]
     return m[rng]
 end
 
 
-@inline function getindex(A::DerivativeOperator, rng::UnitRange{Int}, c::Int)
+@inline function getindex(A::AbstractDerivativeOperator, rng::UnitRange{Int}, c::Int)
     m = A[:, c]
     return m[rng]
 end
 
 
-@inline function getindex{T}(A::DerivativeOperator{T}, rng::UnitRange{Int}, cng::UnitRange{Int})
+@inline function getindex{T}(A::AbstractDerivativeOperator{T}, rng::UnitRange{Int}, cng::UnitRange{Int})
     N = A.dimension
     if (rng[end] - rng[1]) > ((cng[end] - cng[1]))
         mat = zeros(T, (N, length(cng)))
@@ -528,7 +528,7 @@ end
 end
 
 
-function Base.A_mul_B!{T<:Real}(x_temp::AbstractVector{T}, A::DerivativeOperator{T}, x::AbstractVector{T})
+function Base.A_mul_B!{T<:Real}(x_temp::AbstractVector{T}, A::AbstractDerivativeOperator{T}, x::AbstractVector{T})
     convolve_BC_left!(x_temp, x, A)
     convolve_interior!(x_temp, x, A)
     convolve_BC_right!(x_temp, x, A)
@@ -537,7 +537,7 @@ function Base.A_mul_B!{T<:Real}(x_temp::AbstractVector{T}, A::DerivativeOperator
 end
 
 
-function Base.A_mul_B!{T<:Real}(x_temp::AbstractArray{T,2}, A::DerivativeOperator{T}, M::AbstractMatrix{T})
+function Base.A_mul_B!{T<:Real}(x_temp::AbstractArray{T,2}, A::AbstractDerivativeOperator{T}, M::AbstractMatrix{T})
     if size(x_temp) == reverse(size(M))
         for i = 1:size(M,1)
             A_mul_B!(view(x_temp,i,:), A, view(M,i,:))
@@ -550,21 +550,21 @@ function Base.A_mul_B!{T<:Real}(x_temp::AbstractArray{T,2}, A::DerivativeOperato
 end
 
 
-# Base.length(A::DerivativeOperator) = A.stencil_length
-Base.ndims(A::DerivativeOperator) = 2
-Base.size(A::DerivativeOperator) = (A.dimension, A.dimension)
-Base.length(A::DerivativeOperator) = reduce(*, size(A))
+# Base.length(A::AbstractDerivativeOperator) = A.stencil_length
+Base.ndims(A::AbstractDerivativeOperator) = 2
+Base.size(A::AbstractDerivativeOperator) = (A.dimension, A.dimension)
+Base.length(A::AbstractDerivativeOperator) = reduce(*, size(A))
 
 
 #=
     Currently, for the evenly spaced grid we have a symmetric matrix
 =#
-Base.transpose(A::DerivativeOperator) = A
-Base.ctranspose(A::DerivativeOperator) = A
+Base.transpose(A::AbstractDerivativeOperator) = A
+Base.ctranspose(A::AbstractDerivativeOperator) = A
 Base.issymmetric(::AbstractDerivativeOperator) = true
 
 
-function Base.full{T}(A::DerivativeOperator{T}, N::Int=A.dimension)
+function Base.full{T}(A::AbstractDerivativeOperator{T}, N::Int=A.dimension)
     @assert N >= A.stencil_length # stencil must be able to fit in the matrix
     mat = zeros(T, (N, N))
     v = zeros(T, N)
@@ -581,7 +581,7 @@ function Base.full{T}(A::DerivativeOperator{T}, N::Int=A.dimension)
 end
 
 
-function Base.sparse{T}(A::DerivativeOperator{T})
+function Base.sparse{T}(A::AbstractDerivativeOperator{T})
     N = A.dimension
     mat = spzeros(T, N, N)
     v = zeros(T, N)

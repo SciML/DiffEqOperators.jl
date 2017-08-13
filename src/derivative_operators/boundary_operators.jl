@@ -82,7 +82,7 @@ function convolve_BC_left!{T<:Real,S<:SVector,RBC}(x_temp::AbstractVector{T}, x:
         end
         x_temp[i] = tmp
     end
-    x_temp[1] += A.boundary_condition[][1][3](A.t)
+    x_temp[1] += A.boundary_condition[][1][3]
 end
 
 
@@ -95,7 +95,7 @@ function convolve_BC_left!{T<:Real,S<:SVector,RBC}(x_temp::AbstractVector{T}, x:
         end
         x_temp[i] = tmp
     end
-    x_temp[1] += A.boundary_condition[][1][3](A.t)
+    x_temp[1] += A.boundary_condition[][1][3]
 end
 
 
@@ -243,7 +243,7 @@ function convolve_BC_right!{T<:Real,S<:SVector,LBC}(x_temp::AbstractVector{T}, x
         end
         x_temp[N-i+1] = tmp
     end
-    x_temp[end] += A.boundary_condition[][2][3](A.t)
+    x_temp[end] += A.boundary_condition[][2][3]
 end
 
 
@@ -257,7 +257,7 @@ function convolve_BC_right!{T<:Real,S<:SVector,LBC}(x_temp::AbstractVector{T}, x
         end
         x_temp[N-i+1] = tmp
     end
-    x_temp[end] += A.boundary_condition[][2][3](A.t)
+    x_temp[end] += A.boundary_condition[][2][3]
 end
 
 
@@ -345,7 +345,7 @@ function dirichlet_0!{T<:Real}(x_temp::AbstractVector{T}, x::AbstractVector{T}, 
     xtempi = zero(T)
     @inbounds for idx in wndw_low:wndw_high
         xtempi += coeffs[idx] * x[(i - (mid-idx))]
-        println("i = $i, idx = $((i - (mid-idx))), $(coeffs[idx]) * $(x[(i - (mid-idx))]), xtempi = $xtempi")
+        # println("i = $i, idx = $((i - (mid-idx))), $(coeffs[idx]) * $(x[(i - (mid-idx))]), xtempi = $xtempi")
     end
     x_temp[i] = xtempi
 end

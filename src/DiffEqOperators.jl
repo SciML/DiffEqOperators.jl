@@ -19,5 +19,5 @@ include("derivative_operators/fornberg.jl")
 include("derivative_operators/boundary_operators.jl")
 
 export DiffEqScalar, DiffEqArrayOperator
-export AbstractDerivativeOperator, DerivativeOperator
+export AbstractDerivativeOperator, DerivativeOperator, UpwindOperator
 end # module
