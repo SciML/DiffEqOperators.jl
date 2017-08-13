@@ -20,7 +20,7 @@ Taking a specific example
     
     A = LinearOperator{Float64}(2,2,1/99,10,:Dirichlet,:Dirichlet; BC=(u[1],u[end]))
 
-this is the time dependent Dirichlet BC. You can also specify a time independent Dirichlet BC as follows:-
+this is the time independent Dirichlet BC. You can also specify a time dependent Dirichlet BC as follows:-
     
     A = LinearOperator{Float64}(2,2,1/99,10,:Dirichlet,:Dirichlet; bndry_fn=(t->(u[1]*cos(t)),u[end]))
 
