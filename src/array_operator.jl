@@ -15,10 +15,10 @@ function DiffEqArrayOperator(A::AbstractMatrix{T},α=1.0,
                              update_func = DEFAULT_UPDATE_FUNC) where T
     if (typeof(α) <: Number)
         _α = DiffEqScalar(nothing,α)
-    elseif (typeof(α) <: DiffEqScalar) # Assume it's some kind of function
-        _α = DiffEqScalar(α,1.0)
-    else # Must be a DiffEqScalar already
+    elseif (typeof(α) <: DiffEqScalar) # Must be a DiffEqScalar already
         _α = α
+    else # Assume it's some kind of function
+        _α = DiffEqScalar(α,1.0)
     end
     DiffEqArrayOperator{T,typeof(A),typeof(_α),
     typeof(update_func)}(
