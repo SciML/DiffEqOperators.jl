@@ -1,5 +1,5 @@
 using Base.Test
-using DifferentialEquations
+using OrdinaryDiffEq, Sundials
 
 @testset "KdV equation (Single Solition)" begin
     N,M = 1000,10
