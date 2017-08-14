@@ -1,8 +1,7 @@
 using Base.Test
-using FactCheck
-using DifferentialEquations
+using OrdinaryDiffEq
 
-context("KdV equation (Single Solition)")do
+@tetset "KdV equation (Single Solition)" begin
     N,M = 100,5000
     Δx = 1/(N-1)
     Δt = 1/(M-1)

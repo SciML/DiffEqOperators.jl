@@ -1,5 +1,5 @@
 using Base.Test
-using DifferentialEquations
+using OrdinaryDiffEq
 
 @testset "Parabolic Heat Equation with Dirichlet BCs" begin
     x = collect(-pi : 2pi/511 : pi);
