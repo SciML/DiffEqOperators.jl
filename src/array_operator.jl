@@ -18,7 +18,10 @@ function DiffEqArrayOperator(A::AbstractMatrix{T},α=1.0,
     elseif (typeof(α) <: DiffEqScalar) # Must be a DiffEqScalar already
         _α = α
     else # Assume it's some kind of function
-        _α = DiffEqScalar(α,1.0)
+        # Wrapping the function call in one() should solve any cases
+        # where the function is not well-behaved at 0.0, as long as
+        # the return type is correct.
+        _α = DiffEqScalar(α,one(α(0.0)))
     end
     DiffEqArrayOperator{T,typeof(A),typeof(_α),
     typeof(update_func)}(
@@ -56,12 +59,12 @@ Base.:*(L::DiffEqArrayOperator,b::AbstractArray) = L.α.coeff*L.A*b
 
 function Base.A_mul_B!(v::AbstractVector,L::DiffEqArrayOperator,b::AbstractVector)
     A_mul_B!(v,L.A,b)
-    scale!(b,L.α.coeff)
+    scale!(v,L.α.coeff)
 end
 
 function Base.A_mul_B!(v::AbstractArray,L::DiffEqArrayOperator,b::AbstractArray)
     A_mul_B!(v,L.A,b)
-    scale!(b,L.α.coeff)
+    scale!(v,L.α.coeff)
 end
 
 Base.expm(L::DiffEqArrayOperator) = expm(L.α.coeff*L.A)
