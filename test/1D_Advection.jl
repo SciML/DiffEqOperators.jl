@@ -1,7 +1,7 @@
 using Base.Test
 using OrdinaryDiffEq
 
-@tetset "KdV equation (Single Solition)" begin
+@testset "KdV equation (Single Solition)" begin
     N,M = 100,5000
     Δx = 1/(N-1)
     Δt = 1/(M-1)
