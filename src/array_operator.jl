@@ -59,12 +59,12 @@ Base.:*(L::DiffEqArrayOperator,b::AbstractArray) = L.α.coeff*L.A*b
 
 function Base.A_mul_B!(v::AbstractVector,L::DiffEqArrayOperator,b::AbstractVector)
     A_mul_B!(v,L.A,b)
-    scale!(b,L.α.coeff)
+    scale!(v,L.α.coeff)
 end
 
 function Base.A_mul_B!(v::AbstractArray,L::DiffEqArrayOperator,b::AbstractArray)
     A_mul_B!(v,L.A,b)
-    scale!(b,L.α.coeff)
+    scale!(v,L.α.coeff)
 end
 
 Base.expm(L::DiffEqArrayOperator) = expm(L.α.coeff*L.A)
