@@ -1,5 +1,5 @@
 ### AbstractDiffEqLinearOperator defined by an array and update functions
-mutable struct DiffEqArrayOperator{T,Arr<:AbstractMatrix{T},Sca,F} <: AbstractDiffEqLinearOperator{T}
+mutable struct DiffEqArrayOperator{T,Arr<:Union{T,AbstractMatrix{T}},Sca,F} <: AbstractDiffEqLinearOperator{T}
     A::Arr
     α::Sca
     _isreal::Bool
@@ -10,6 +10,24 @@ mutable struct DiffEqArrayOperator{T,Arr<:AbstractMatrix{T},Sca,F} <: AbstractDi
 end
 
 DEFAULT_UPDATE_FUNC = (L,t,u)->nothing
+
+function DiffEqArrayOperator(A::Number,α=1.0,
+                             update_func = DEFAULT_UPDATE_FUNC)
+    if (typeof(α) <: Number)
+        _α = DiffEqScalar(nothing,α)
+    elseif (typeof(α) <: DiffEqScalar) # Must be a DiffEqScalar already
+        _α = α
+    else # Assume it's some kind of function
+        # Wrapping the function call in one() should solve any cases
+        # where the function is not well-behaved at 0.0, as long as
+        # the return type is correct.
+        _α = DiffEqScalar(α,one(α(0.0)))
+    end
+    DiffEqArrayOperator{typeof(A),typeof(A),typeof(_α),
+    typeof(update_func)}(
+    A,_α,isreal(A),issymmetric(A),ishermitian(A),
+    isposdef(A),update_func)
+end
 
 function DiffEqArrayOperator(A::AbstractMatrix{T},α=1.0,
                              update_func = DEFAULT_UPDATE_FUNC) where T
@@ -54,6 +72,10 @@ function Base.:*(α::Number,L::DiffEqArrayOperator)
     DiffEqArrayOperator(L.A,DiffEqScalar(L.α.func,L.α.coeff*α),L.update_func)
 end
 
+function Base.:*(α::Number,L::DiffEqArrayOperator{T,Arr,Sca,F}) where {T,Arr<:Number,Sca,F}
+    L.α.coeff*α*L.A
+end
+
 Base.:*(L::DiffEqArrayOperator,α::Number) = α*L
 Base.:*(L::DiffEqArrayOperator,b::AbstractVector) = L.α.coeff*L.A*b
 Base.:*(L::DiffEqArrayOperator,b::AbstractArray) = L.α.coeff*L.A*b
@@ -71,6 +93,14 @@ end
 function Base.A_ldiv_B!(x,L::DiffEqArrayOperator, b::AbstractArray)
     A_ldiv_B!(x,L.A,b)
     scale!(x,inv(L.α.coeff))
+end
+
+function Base.:/(x,L::DiffEqArrayOperator)
+    x/(L.α.coeff*L.A)
+end
+
+function Base.:/(L::DiffEqArrayOperator,x)
+    L.α.coeff*L.A/x
 end
 
 """
