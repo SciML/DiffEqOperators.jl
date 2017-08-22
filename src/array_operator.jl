@@ -53,6 +53,7 @@ Base.ishermitian(L::DiffEqArrayOperator) = L._ishermitian
 Base.isposdef(L::DiffEqArrayOperator) = L._isposdef
 DiffEqBase.is_constant(L::DiffEqArrayOperator) = L.update_func == DEFAULT_UPDATE_FUNC
 Base.expm(L::DiffEqArrayOperator) = expm(L.α.coeff*L.A)
+DiffEqBase.has_expm(L::DiffEqArrayOperator) = true
 Base.size(L::DiffEqArrayOperator) = size(L.A)
 DiffEqBase.update_coefficients!(L::DiffEqArrayOperator,t,u) = (L.update_func(L.A,t,u); L.α = L.α(t); nothing)
 DiffEqBase.update_coefficients(L::DiffEqArrayOperator,t,u)  = (L.update_func(L.A,t,u); L.α = L.α(t); L)
