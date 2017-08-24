@@ -44,7 +44,7 @@ function convolve_BC_left!{T<:Real,S<:SVector,RBC}(x_temp::AbstractVector{T}, x:
         # we have to modify the number of boundary points to be considered as with upwind operators
         # the number of bpc is only 0 or 1 depending on the order
         A.directions[][i] ? bpc = A.boundary_point_count[1] : bpc = stencil_rem
-        # println("*** i = $i, start_idx/mid = $start_idx, bpc = $bpc, stencil_length = $stencil_length ***")
+        # println("***D0 i = $i, start_idx/mid = $start_idx, bpc = $bpc, stencil_length = $stencil_length ***")
         dirichlet_0!(x_temp, x, A.directions[][i] ? A.down_stencil_coefs : A.up_stencil_coefs, start_idx, bpc, i)
     end
 end
@@ -132,7 +132,7 @@ function convolve_BC_left!{T<:Real,S<:SVector,RBC}(x_temp::AbstractVector{T}, x:
         @inbounds for j in 1:length(A.up_stencil_coefs)
             xtempi += A.up_stencil_coefs[j] * x[i+j-1-stencil_rem]
         end
-        @inbounds x_temp[end-i+1] = xtempi
+        @inbounds x_temp[i] = xtempi
     end
 end
 

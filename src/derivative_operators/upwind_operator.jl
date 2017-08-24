@@ -27,11 +27,13 @@ immutable UpwindOperator{T<:Real,S<:SVector,LBC,RBC} <: AbstractDerivativeOperat
         low_boundary_coefs   = Vector{T}[]
         high_boundary_coefs  = Vector{T}[]
 
-        up_stencil_coefs        = convert(SVector{stencil_length, T}, negate!(calculate_weights(derivative_order,convert(T,(stencil_length+1)%2),
-                                          grid_step .* collect(zero(T) : grid_step : stencil_length-1))))
+        up_stencil_coefs        = convert(SVector{stencil_length, T}, calculate_weights(derivative_order,convert(T,(stencil_length+1)%2),
+                                          grid_step .* collect(zero(T) : grid_step : stencil_length-1)))
 
         down_stencil_coefs      = reverse(up_stencil_coefs)
-        derivative_order%2 == 1 ? negate!(down_stencil_coefs) : nothing
+
+        # no need to flip the sign of downwind operator, doesn't converge that way
+        # derivative_order%2 == 1 ? negate!(down_stencil_coefs) : nothing
 
         bpc_array            = [length(up_stencil_coefs)-1,length(down_stencil_coefs)-1]
 
