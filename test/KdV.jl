@@ -14,9 +14,9 @@ using OrdinaryDiffEq, Sundials
     temp = zeros(x);
 
     # A = DerivativeOperator{Float64}(1,4,Δx,length(x),:periodic,:periodic);
-    A = UpwindOperator{Float64}(1,1,Δx,length(x),BitVector(length(x)),:None,:None);
+    A = UpwindOperator{Float64}(1,1,Δx,length(x),true.|BitVector(length(x)),:nothing,:nothing);
     # C = DerivativeOperator{Float64}(3,4,Δx,length(x),:periodic,:periodic);
-    C = UpwindOperator{Float64}(3,1,Δx,length(x),BitVector(length(x)),:None,:None);
+    C = UpwindOperator{Float64}(3,1,Δx,length(x),true.|BitVector(length(x)),:nothing,:nothing);
 
     function KdV(t, u, du)
        C(t,u,du3)
@@ -26,7 +26,7 @@ using OrdinaryDiffEq, Sundials
     end
 
     single_solition = ODEProblem(KdV, u0, (0.,5.));
-    soln = solve(single_solition,CVODE_BDF(),dense=false,saveat=0.03,maxiters=10000);
+    soln = solve(single_solition,SSPRK22(),dense=false,saveat=0.03,dt=Δt,maxiters=10000);
 
     for t in 0:0.5:5
         @test_skip soln(t) ≈ ϕ(x,t) atol = 0.01;
