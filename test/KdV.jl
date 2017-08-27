@@ -21,12 +21,12 @@ using OrdinaryDiffEq, Sundials
     function KdV(t, u, du)
        C(t,u,du3)
        A(t,u,du)
-       @. temp = -6*u*du - du3
+       @. temp = -0.5*u*du - 0.25*du3
        copy!(du,temp)
     end
 
     single_solition = ODEProblem(KdV, u0, (0.,5.));
-    soln = solve(single_solition,SSPRK22(),dense=false,saveat=0.03,dt=Δt,maxiters=10000);
+    soln = solve(single_solition,CVODE_BDF(),dense=false,saveat=0.1,maxiters=10000);
 
     for t in 0:0.5:5
         @test_skip soln(t) ≈ ϕ(x,t) atol = 0.01;
@@ -35,7 +35,11 @@ end
 
 # Conduct interesting experiments by referring to http://lie.math.brocku.ca/~sanco/solitons/kdv_solitons.php
 @testset "KdV equation (Double Solition)" begin
-    x = collect(-50 : 1/99 : 50);
+    N,M = 100,0.1
+    Δx = 1/(N-1)
+    Δt = 1/(M-1)
+
+    x = -50:Δx:50;
     c1,c2 = 20,10
 
     # ϕ1(x,t) = 3*p1^2*sech(.5*(p1*(x+2+t))).^2+3*p2^2*sech(.5*(p2*(x+1+t))).^2;
@@ -51,8 +55,8 @@ end
 
     du3 = zeros(x);
     temp = zeros(x);
-    A = DerivativeOperator{Float64}(1,2,1/99,length(x),:None,:None);
-    C = DerivativeOperator{Float64}(3,2,1/99,length(x),:None,:None);
+    A = UpwindOperator{Float64}(1,2,Δx,length(x),true.|BitVector(length(x)),:nothing,:nothing);
+    C = UpwindOperator{Float64}(3,2,Δx,length(x),true.|BitVector(length(x)),:nothing,:nothing);
 
     function KdV(t, u, du)
        C(t,u,du3)
