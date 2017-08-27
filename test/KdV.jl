@@ -2,7 +2,7 @@ using Base.Test
 using OrdinaryDiffEq, Sundials
 
 @testset "KdV equation (Single Solition)" begin
-    N,M = 1000,10
+    N,M = 5,0.01
     Δx = 1/(N-1)
     Δt = 1/(M-1)
 
@@ -14,9 +14,9 @@ using OrdinaryDiffEq, Sundials
     temp = zeros(x);
 
     # A = DerivativeOperator{Float64}(1,4,Δx,length(x),:periodic,:periodic);
-    A = UpwindOperator{Float64}(1,1,Δx,length(x),true.|BitVector(length(x)),:nothing,:nothing);
+    A = UpwindOperator{Float64}(1,1,Δx,length(x),true.|BitVector(length(x)),:Dirichlet0,:nothing);
     # C = DerivativeOperator{Float64}(3,4,Δx,length(x),:periodic,:periodic);
-    C = UpwindOperator{Float64}(3,1,Δx,length(x),true.|BitVector(length(x)),:nothing,:nothing);
+    C = UpwindOperator{Float64}(3,1,Δx,length(x),true.|BitVector(length(x)),:Dirichlet0,:nothing);
 
     function KdV(t, u, du)
        C(t,u,du3)
@@ -26,7 +26,7 @@ using OrdinaryDiffEq, Sundials
     end
 
     single_solition = ODEProblem(KdV, u0, (0.,5.));
-    soln = solve(single_solition,CVODE_BDF(),dense=false,saveat=0.1,maxiters=10000);
+    soln = solve(single_solition,SSPRK22(),dense=false,dt=Δt,saveat=0.1,maxiters=10000);
 
     for t in 0:0.5:5
         @test_skip soln(t) ≈ ϕ(x,t) atol = 0.01;

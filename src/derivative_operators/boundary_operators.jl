@@ -1,8 +1,11 @@
 #= Worker functions=#
 low(i::Int, mid::Int, bpc::Int) = Int(mid + (i-1)*(1-mid)/bpc)
 high(i::Int, mid::Int, bpc::Int, slen::Int, L::Int) = Int(slen - (slen-mid)*(i-L+bpc)/(bpc))
+
+# used in general dirichlet BC. To simulate a constant value beyond the boundary
 limit(i, N) = N>=i>=1 ? i : (i<1 ? 1 : N)
 
+# used in Neumann 0 BC
 function reflect(idx, L)
     abs1 = abs(L-idx)
     if L - abs1 > 0
@@ -335,8 +338,8 @@ function dirichlet_0!{T<:Real}(x_temp::AbstractVector{T}, x::AbstractVector{T}, 
     wndw_low = i>bpc ? 1:max(1, low(i, mid, bpc))
     wndw_high = i>N-bpc ? min(stencil_length, high(i, mid, bpc, stencil_length, N)):stencil_length
 
-    println(wndw_low," ",wndw_high, " mid = ", mid)
-    println("#####")
+    # println(wndw_low," ",wndw_high, " mid = ", mid)
+    # println("#####")
 
     #=
         Here we are taking the weighted sum of a window of the input vector to calculate the derivative
@@ -345,7 +348,7 @@ function dirichlet_0!{T<:Real}(x_temp::AbstractVector{T}, x::AbstractVector{T}, 
     xtempi = zero(T)
     @inbounds for idx in wndw_low:wndw_high
         xtempi += coeffs[idx] * x[(i - (mid-idx))]
-        println("i = $i, idx = $((i - (mid-idx))), $(coeffs[idx]) * $(x[(i - (mid-idx))]), xtempi = $xtempi")
+        # println("i = $i, idx = $((i - (mid-idx))), $(coeffs[idx]) * $(x[(i - (mid-idx))]), xtempi = $xtempi")
     end
     x_temp[i] = xtempi
 end
