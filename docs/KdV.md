@@ -19,8 +19,8 @@ Lets consider the cosine wave as the initial waveform and evolve it using the eq
 
 Now defining our DiffEqOperators
 ```
-    A = LinearOperator{Float64}(1,2,1/99,199,:periodic,:periodic);
-    C = LinearOperator{Float64}(3,2,1/99,199,:periodic,:periodic);
+    A = DerivativeOperator{Float64}(1,2,1/99,199,:periodic,:periodic);
+    C = DerivativeOperator{Float64}(3,2,1/99,199,:periodic,:periodic);
 ```
 
 Now call the ODE solver as follows:-

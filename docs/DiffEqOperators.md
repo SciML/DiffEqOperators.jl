@@ -4,7 +4,7 @@ In this tutorial we will explore the basic functionalities of PDEOperator which 
 
 So an operator API is as follows:-
 
-    A = LinearOperator{T}
+    A = DerivativeOperator{T}
         (
             derivative_order,
             approximation_order,
@@ -18,11 +18,11 @@ Currently we support the `Dirichlet 0/1`, `Neumann 0/1`, `periodic` and `Robin` 
 
 Taking a specific example
     
-    A = LinearOperator{Float64}(2,2,1/99,10,:Dirichlet,:Dirichlet; BC=(u[1],u[end]))
+    A = DerivativeOperator{Float64}(2,2,1/99,10,:Dirichlet,:Dirichlet; BC=(u[1],u[end]))
 
 this is the time independent Dirichlet BC. You can also specify a time dependent Dirichlet BC as follows:-
     
-    A = LinearOperator{Float64}(2,2,1/99,10,:Dirichlet,:Dirichlet; bndry_fn=(t->(u[1]*cos(t)),u[end]))
+    A = DerivativeOperator{Float64}(2,2,1/99,10,:Dirichlet,:Dirichlet; bndry_fn=(t->(u[1]*cos(t)),u[end]))
 
 We have generated an operator which produces the 2nd order approximation of the Laplacian. We can checkout the stencil as follows:-
 
@@ -81,8 +81,8 @@ You can also take derivatives of matrices using `A*M` or `M*A` where the order o
     julia> dx = xarr[2]-xarr[1]
     julia> dy = yarr[2]-yarr[1]
     julia> F = [x^2+y for x = xarr, y = yarr]
-    julia> A = LinearOperator{Float64}(2,2,dx,length(yarr),:None,:None)
-    julia> B = LinearOperator{Float64}(2,2,dy,length(yarr),:None,:None)
+    julia> A = DerivativeOperator{Float64}(2,2,dx,length(yarr),:None,:None)
+    julia> B = DerivativeOperator{Float64}(2,2,dy,length(yarr),:None,:None)
 
     julia> # A*F calculates derivatives along the x axis ie. keeping y constant
     julia> A*F
