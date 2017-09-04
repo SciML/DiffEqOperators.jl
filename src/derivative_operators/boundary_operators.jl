@@ -30,8 +30,6 @@ end
 function convolve_BC_left!{T<:Real,S<:SVector,RBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::DerivativeOperator{T,S,:Dirichlet0,RBC})
     mid = div(A.stencil_length,2) + 1
     bpc = A.stencil_length - mid
-    x[1] = zero(T)
-
     for i in 1 : A.boundary_point_count[1]
         dirichlet_0!(x_temp, x, A.stencil_coefs, mid, bpc, i)
     end
@@ -40,7 +38,6 @@ end
 
 function convolve_BC_left!{T<:Real,S<:SVector,RBC}(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::UpwindOperator{T,S,:Dirichlet0,RBC})
     stencil_length = A.stencil_length
-    x[1] = zero(T)
     stencil_rem = 1-stencil_length%2
     for i in 1 : A.boundary_point_count[1]
         A.directions[][i] ? start_idx = stencil_length - stencil_rem : start_idx = 1 + stencil_rem
@@ -186,7 +183,6 @@ function convolve_BC_right!{T<:Real,S<:SVector,LBC}(x_temp::AbstractVector{T}, x
     N = length(x)
     mid = div(A.stencil_length,2) + 1
     bpc = A.stencil_length - mid
-    x[end] = zero(T)
     for i in 1 : A.boundary_point_count[2]
         dirichlet_0!(x_temp, x, A.stencil_coefs, mid, bpc, N - A.boundary_point_count[2] + i)
     end
@@ -198,7 +194,6 @@ function convolve_BC_right!{T<:Real,S<:SVector,LBC}(x_temp::AbstractVector{T}, x
     N = length(x)
     bpc = A.boundary_point_count[2]
     stencil_length = A.stencil_length
-    x[end] = zero(T)
     stencil_rem = 1 - stencil_length%2
 
     for i in 1 : A.boundary_point_count[2]
@@ -339,8 +334,8 @@ function dirichlet_0!{T<:Real}(x_temp::AbstractVector{T}, x::AbstractVector{T}, 
     wndw_low = i>bpc ? 1:max(1, low(i, mid, bpc))
     wndw_high = i>N-bpc ? min(stencil_length, high(i, mid, bpc, stencil_length, N)):stencil_length
 
-    println(wndw_low," ",wndw_high, " mid = ", mid)
-    println("#####")
+    # println(wndw_low," ",wndw_high, " mid = ", mid)
+    # println("#####")
 
     #=
         Here we are taking the weighted sum of a window of the input vector to calculate the derivative
@@ -349,7 +344,7 @@ function dirichlet_0!{T<:Real}(x_temp::AbstractVector{T}, x::AbstractVector{T}, 
     xtempi = zero(T)
     @inbounds for idx in wndw_low:wndw_high
         xtempi += coeffs[idx] * x[(i - (mid-idx))]
-        println("i = $i, idx = $((i - (mid-idx))), $(coeffs[idx]) * $(x[(i - (mid-idx))]), xtempi = $xtempi")
+        # println("i = $i, idx = $((i - (mid-idx))), $(coeffs[idx]) * $(x[(i - (mid-idx))]), xtempi = $xtempi")
     end
     x_temp[i] = xtempi
 end
