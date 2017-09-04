@@ -6,10 +6,10 @@ $$\frac{\partial u}{\partial t} - \frac{{\partial}^2 u}{\partial x^2} = 0$$
 
 For this example we consider a Dirichlet boundary condition with the initial distribution being parabolic. Since we have fixed the value at boundaries (in this case equal), after a long time we expect the 1D rod to be heated in a linear manner.
 
-        julia> using PDEOperator, DifferentialEquations, Plots
+        julia> using DiffEqOperators, DifferentialEquations, Plots
         julia> x = collect(-pi : 2pi/511 : pi);
         julia> u0 = -(x - 0.5).^2 + 1/12;
-        julia> A = LinearOperator{Float64}(2,2,2pi/511,512,:Dirichlet,:Dirichlet;BC=(u0[1],u0[end]));
+        julia> A = DerivativeOperator{Float64}(2,2,2pi/511,512,:Dirichlet,:Dirichlet;BC=(u0[1],u0[end]));
 
 Now solving equation as an ODE we have:-
     

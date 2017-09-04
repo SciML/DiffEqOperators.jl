@@ -85,6 +85,7 @@ immutable DerivativeOperator{T<:Real,S<:SVector,LBC,RBC} <: AbstractDerivativeOp
 
         left_bndry = initialize_left_boundary!(Val{:LO},low_boundary_coefs,stencil_coefs,BC,derivative_order,
                                                grid_step,bl,bpc_array,dx,LBC)
+
         right_bndry = initialize_right_boundary!(Val{:LO},high_boundary_coefs,stencil_coefs,BC,derivative_order,
                                                  grid_step,bl,bpc_array,dx,RBC)
 
@@ -107,7 +108,10 @@ immutable DerivativeOperator{T<:Real,S<:SVector,LBC,RBC} <: AbstractDerivativeOp
         DerivativeOperator{T, SVector{dorder+aorder-1+(dorder+aorder)%2,T}, LBC, RBC}(dorder, aorder, dx, dim, BC)
 end
 
-
+#=
+    This function is used to update the boundary conditions especially if they evolve with
+    time.
+=#
 function DiffEqBase.update_coefficients!{T<:Real,S<:SVector,RBC,LBC}(A::DerivativeOperator{T,S,LBC,RBC};BC=nothing)
     if BC != nothing
         LBC == :Robin ? (length(BC[1])==3 || error("Enter the new left boundary condition as a 1-tuple")) :
@@ -129,11 +133,23 @@ end
 
 #################################################################################################
 
+#=
+    This function sets us up to apply the boundary condition correctly. It returns a
+    3-tuple which is basically the coefficients in the equation
+                            a*u + b*du/dt = c(t)
+    The RHS ie. 'c' can be a function of time as well and therefore it is implemented
+    as an anonymous function.
+=#
 function initialize_left_boundary!{T}(::Type{Val{:LO}},low_boundary_coefs,stencil_coefs,BC,derivative_order,grid_step::T,
                                       boundary_length,boundary_point_count,dx,LBC)
     stencil_length = length(stencil_coefs)
 
     if LBC == :None
+        #=
+            Val{:LO} is type parametrization on symbols. There are two different right_None_BC!
+            functions, one for LinearOperator and one for UpwindOperator. So to select the correct
+            function without changing the name, this trick has been applied.
+        =#
         boundary_point_count[1] = div(stencil_length,2)
         return (zero(T),zero(T),left_None_BC!(Val{:LO},low_boundary_coefs,stencil_length,derivative_order,
                                               grid_step,boundary_length)*BC[1]*dx)
@@ -163,12 +179,24 @@ function initialize_left_boundary!{T}(::Type{Val{:LO}},low_boundary_coefs,stenci
 end
 
 
+#=
+    This function sets us up to apply the boundary condition correctly. It returns a
+    3-tuple which is basically the coefficients in the equation
+                            a*u + b*du/dt = c(t)
+    The RHS ie. 'c' can be a function of time as well and therefore it is implemented
+    as an anonymous function.
+=#
 function initialize_right_boundary!{T}(::Type{Val{:LO}},high_boundary_coefs,stencil_coefs,BC,derivative_order,grid_step::T,
                                        boundary_length,boundary_point_count,dx,RBC)
     stencil_length = length(stencil_coefs)
 
     if RBC == :None
         boundary_point_count[2] = div(stencil_length,2)
+        #=
+            Val{:LO} is type parametrization on symbols. There are two different right_None_BC!
+            functions, one for LinearOperator and one for UpwindOperator. So to select the correct
+            function without changing the name, this trick has been applied.
+        =#
         return (zero(T),zero(T),right_None_BC!(Val{:LO},high_boundary_coefs,stencil_length,derivative_order,
                                grid_step,boundary_length)*BC[2]*dx)
     elseif RBC == :Neumann
@@ -527,7 +555,13 @@ end
     end
 end
 
-
+#=
+    This the basic A_Mul_B! function which is broken up into 3 parts ie. handling the left
+    boundary, handling the interior and handling the right boundary. Finally the vector is
+    scaled appropriately according to the derivative order and the degree of discretizaiton.
+    We also update the time stamp of the DerivativeOperator inside to manage time dependent
+    boundary conditions.
+=#
 function Base.A_mul_B!{T<:Real}(x_temp::AbstractVector{T}, A::AbstractDerivativeOperator{T}, x::AbstractVector{T})
     convolve_BC_left!(x_temp, x, A)
     convolve_interior!(x_temp, x, A)
@@ -536,7 +570,10 @@ function Base.A_mul_B!{T<:Real}(x_temp::AbstractVector{T}, A::AbstractDerivative
     A.t[] += 1 # incrementing the internal time stamp
 end
 
-
+#=
+    This definition of the A_mul_B! function makes it possible to apply the LinearOperator on
+    a matrix and not just a vector. It basically transforms the rows one at a time.
+=#
 function Base.A_mul_B!{T<:Real}(x_temp::AbstractArray{T,2}, A::AbstractDerivativeOperator{T}, M::AbstractMatrix{T})
     if size(x_temp) == reverse(size(M))
         for i = 1:size(M,1)
@@ -563,7 +600,14 @@ Base.transpose(A::AbstractDerivativeOperator) = A
 Base.ctranspose(A::AbstractDerivativeOperator) = A
 Base.issymmetric(::AbstractDerivativeOperator) = true
 
-
+#=
+    This function ideally should give us a matrix which when multiplied with the input vector
+    returns the derivative. But the presence of different boundary conditons complicates the
+    situation. It is not possible to incorporate the full information of the boundary conditions
+    in the matrix as they are additive in nature. So in this implementation we will just
+    return the inner stencil of the matrix transformation. The user will have to manually
+    incorporate the BCs at the ends.
+=#
 function Base.full{T}(A::AbstractDerivativeOperator{T}, N::Int=A.dimension)
     @assert N >= A.stencil_length # stencil must be able to fit in the matrix
     mat = zeros(T, (N, N))
@@ -581,6 +625,14 @@ function Base.full{T}(A::AbstractDerivativeOperator{T}, N::Int=A.dimension)
 end
 
 
+#=
+    This function ideally should give us a matrix which when multiplied with the input vector
+    returns the derivative. But the presence of different boundary conditons complicates the
+    situation. It is not possible to incorporate the full information of the boundary conditions
+    in the matrix as they are additive in nature. So in this implementation we will just
+    return the inner stencil of the matrix transformation. The user will have to manually
+    incorporate the BCs at the ends.
+=#
 function Base.sparse{T}(A::AbstractDerivativeOperator{T})
     N = A.dimension
     mat = spzeros(T, N, N)

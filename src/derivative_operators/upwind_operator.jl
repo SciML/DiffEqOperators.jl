@@ -27,6 +27,11 @@ immutable UpwindOperator{T<:Real,S<:SVector,LBC,RBC} <: AbstractDerivativeOperat
         low_boundary_coefs   = Vector{T}[]
         high_boundary_coefs  = Vector{T}[]
 
+        #=
+            We are implementing biased Upwind Operators which use a point from the other direction
+            also to ensure a more stable solution.
+            http://ac.els-cdn.com/S0378475401002889/1-s2.0-S0378475401002889-main.pdf?_tid=534e0818-8b0b-11e7-8b12-00000aab0f01&acdnat=1503826821_3bf9422abe7aa2d3613c5b644b6e258f - page 11
+        =#
         up_stencil_coefs        = convert(SVector{stencil_length, T}, calculate_weights(derivative_order,convert(T,(stencil_length+1)%2),
                                           grid_step .* collect(zero(T) : grid_step : stencil_length-1)))
 
