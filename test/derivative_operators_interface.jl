@@ -9,8 +9,8 @@
     mat = full(A)
     sp_mat = sparse(A)
     @test mat == sp_mat;
-    @test_broken full(A, 10) == Strang(10); # Strang Matrix is defined with the center term +ve
-    @test_broken full(A, N) == Strang(N); # Strang Matrix is defined with the center term +ve
+    @test full(A, 10) == -Strang(10); # Strang Matrix is defined with the center term +ve
+    @test full(A, N) == -Strang(N); # Strang Matrix is defined with the center term +ve
     @test full(A) == sp_mat
 
     # testing correctness
