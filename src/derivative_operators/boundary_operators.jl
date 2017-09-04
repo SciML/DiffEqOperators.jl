@@ -339,8 +339,8 @@ function dirichlet_0!{T<:Real}(x_temp::AbstractVector{T}, x::AbstractVector{T}, 
     wndw_low = i>bpc ? 1:max(1, low(i, mid, bpc))
     wndw_high = i>N-bpc ? min(stencil_length, high(i, mid, bpc, stencil_length, N)):stencil_length
 
-    println(wndw_low," ",wndw_high, " mid = ", mid)
-    println("#####")
+    #println(wndw_low," ",wndw_high, " mid = ", mid)
+    #println("#####")
 
     #=
         Here we are taking the weighted sum of a window of the input vector to calculate the derivative
@@ -349,7 +349,7 @@ function dirichlet_0!{T<:Real}(x_temp::AbstractVector{T}, x::AbstractVector{T}, 
     xtempi = zero(T)
     @inbounds for idx in wndw_low:wndw_high
         xtempi += coeffs[idx] * x[(i - (mid-idx))]
-        println("i = $i, idx = $((i - (mid-idx))), $(coeffs[idx]) * $(x[(i - (mid-idx))]), xtempi = $xtempi")
+        #println("i = $i, idx = $((i - (mid-idx))), $(coeffs[idx]) * $(x[(i - (mid-idx))]), xtempi = $xtempi")
     end
     x_temp[i] = xtempi
 end
