@@ -43,7 +43,7 @@ end
     u0 = -(x - 0.5).^2 + 1/12;
     B = DerivativeOperator{Float64}(1,2,dx,N,:None,:None);
     deriv_start, deriv_end = (B*u0)[1], (B*u0)[end]
-    params = 2*rand(2)-1
+    params = [1.0,0.5]
 
     left_RBC = params[1]*u0[1] - params[2]*deriv_start
     right_RBC = params[1]*u0[end] + params[2]*deriv_end
