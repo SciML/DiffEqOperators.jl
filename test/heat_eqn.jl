@@ -57,11 +57,9 @@ end
     first_order_coeffs_end = -reverse([-11/6, 3.0, -3/2, 1/3] * (1/dx))
     val = []
     # Broken in different amounts on each CI computer
-    #=
     for t in 0.2:0.1:9.8
-        @test_broken params[1]*soln(t)[1] + -params[2]*sum(first_order_coeffs_start .* soln(t)[1:4]) ≈ left_RBC atol=1e-1
+        @test_skip params[1]*soln(t)[1] + -params[2]*sum(first_order_coeffs_start .* soln(t)[1:4]) ≈ left_RBC atol=1e-1
         # append!(val,params[1]*soln(t)[1] + -params[2]*sum(first_order_coeffs_start .* soln(t)[1:4]) - left_RBC)
-        @test_broken params[1]*soln(t)[end] + params[2]*sum(first_order_coeffs_end .* soln(t)[end-3:end]) ≈ right_RBC atol=1e-1
+        @test_skip params[1]*soln(t)[end] + params[2]*sum(first_order_coeffs_end .* soln(t)[end-3:end]) ≈ right_RBC atol=1e-1
     end
-    =#
 end
