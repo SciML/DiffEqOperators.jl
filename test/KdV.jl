@@ -4,27 +4,31 @@ using DiffEqOperators, OrdinaryDiffEq
 @testset "KdV equation (Single Solition)" begin
     N = 21
     Δx = 1/(N-1)
+    r = 0.5
 
+    # x = 10:Δx:30;
     x = -10:Δx:10;
-    ϕ(x,t) = (-1/2)*sech.((x-t)/2).^2 # solution of the single forward moving wave
+    # ϕ(x,t) = (r/2)*sech.((sqrt(r)*(x-r*t)/2)-7).^2 # solution of the single forward moving wave
+    ϕ(x,t) = (1/2)*sech.((x-t)/2).^2 # solution of the single forward moving wave
+
     u0 = ϕ(x,0);
     oriu = zeros(x);
 
     const du3 = zeros(x);
     const temp = zeros(x);
 
-    # A = DerivativeOperator{Float64}(1,4,Δx,length(x),:periodic,:periodic);
-    A = UpwindOperator{Float64}(1,1,Δx,length(x),true.|BitVector(length(x)),
-                                :Dirichlet0,:nothing);
-    # C = DerivativeOperator{Float64}(3,4,Δx,length(x),:periodic,:periodic);
-    C = UpwindOperator{Float64}(3,1,Δx,length(x),true.|BitVector(length(x)),
-                                :Dirichlet0,:nothing);
+    # A = DerivativeOperator{Float64}(1,2,Δx,length(x),:Dirichlet0,:Dirichlet0);
+    A = UpwindOperator{Float64}(1,3,Δx,length(x),true.|BitVector(length(x)),
+                                :Dirichlet0,:Dirichlet0);
+    # C = DerivativeOperator{Float64}(3,2,Δx,length(x),:Dirichlet0,:Dirichlet0);
+    C = UpwindOperator{Float64}(3,3,Δx,length(x),true.|BitVector(length(x)),
+                                :Dirichlet0,:Dirichlet0);
 
     function KdV(t, u, du)
        C(t,u,du3)
        A(t,u,du)
        @. temp = -0.5*u*du - 0.25*du3
-       copy!(du,temp)
+       copy!(du,temp)                                                 
     end
 
     single_solition = ODEProblem(KdV, u0, (0.,5.));
@@ -48,8 +52,7 @@ end
     Δx = 1/(N-1)
 
     x = -50:Δx:50;
-    c1,c2 = 20,10
-
+    c1,c2 = 25,16
     # ϕ1(x,t) = 3*p1^2*sech(.5*(p1*(x+2+t))).^2+3*p2^2*sech(.5*(p2*(x+1+t))).^2;
 
     function ϕ(x,t)
@@ -64,9 +67,9 @@ end
     const du3 = zeros(x);
     const temp = zeros(x);
 
-    A = UpwindOperator{Float64}(1,2,Δx,length(x),true.|BitVector(length(x)),
+    A = UpwindOperator{Float64}(1,1,Δx,length(x),false.*BitVector(length(x)),
                                 :Dirichlet0,:nothing);
-    C = UpwindOperator{Float64}(3,2,Δx,length(x),true.|BitVector(length(x)),
+    C = UpwindOperator{Float64}(3,1,Δx,length(x),false.*BitVector(length(x)),
                                 :Dirichlet0,:nothing);
 
     function KdV(t, u, du)
@@ -76,8 +79,8 @@ end
        copy!(du,temp)
     end
 
-    u0 = ϕ(x,-5);
-    double_solition = ODEProblem(KdV, u0, (-5.,5.));
+    u0 = ϕ(x,0);
+    double_solition = ODEProblem(KdV, u0, (0.,5.));
     soln = solve(double_solition,Tsit5());
 
     # The solution is a forward moving soliton wave with speed = 1
