@@ -1,13 +1,13 @@
 #############################################################
 # Fornberg algorithm
-function derivative{T<:Real}(y::Vector{T}, A::DerivativeOperator{T})
+function derivative(y::Vector{T}, A::DerivativeOperator{T}) where T<:Real
     dy = zeros(T, length(y))
     derivative!(dy, y, A)
     return dy
 end
 
 
-function derivative!{T<:Real}(dy::Vector{T}, y::Vector{T}, A::DerivativeOperator{T})
+function derivative!(dy::Vector{T}, y::Vector{T}, A::DerivativeOperator{T}) where T<:Real
     N = length(y)
     #=
         Derivative is calculated in 3 parts:-
@@ -47,7 +47,7 @@ function derivative!{T<:Real}(dy::Vector{T}, y::Vector{T}, A::DerivativeOperator
 end
 
 
-function construct_differentiation_matrix{T<:Real}(N::Int, A::DerivativeOperator{T})
+function construct_differentiation_matrix(N::Int, A::DerivativeOperator{T}) where T<:Real
     #=
         This is for calculating the derivative in one go. But we are creating a function
         which can calculate the derivative by-passing the costly matrix multiplication.
@@ -73,7 +73,7 @@ end
 
 
 # This implements the Fornberg algorithm to obtain Finite Difference weights over arbitrary points to arbitrary order
-function calculate_weights{T<:Real}(order::Int, x0::T, x::Vector{T})
+function calculate_weights(order::Int, x0::T, x::Vector{T}) where T<:Real
     #=
         order: The derivative order for which we need the coefficients
         x0   : The point in the array 'x' for which we need the coefficients
