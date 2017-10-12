@@ -1,4 +1,4 @@
-immutable UpwindOperator{T<:Real,S<:SVector,LBC,RBC} <: AbstractDerivativeOperator{T}
+struct UpwindOperator{T<:Real,S<:SVector,LBC,RBC} <: AbstractDerivativeOperator{T}
     derivative_order    :: Int
     approximation_order :: Int
     dx                  :: T
@@ -63,14 +63,14 @@ immutable UpwindOperator{T<:Real,S<:SVector,LBC,RBC} <: AbstractDerivativeOperat
             t
             )
     end
-    (::Type{UpwindOperator{T}}){T<:Real}(dorder::Int,aorder::Int,dx::T,dim::Int,direction::BitArray{1},LBC::Symbol,RBC::Symbol;BC=(zero(T),zero(T))) = UpwindOperator{T, SVector{dorder+aorder,T}, LBC, RBC}(dorder, aorder, dx, dim, direction, BC)
+    UpwindOperator{T}(dorder::Int,aorder::Int,dx::T,dim::Int,direction::BitArray{1},LBC::Symbol,RBC::Symbol;BC=(zero(T),zero(T))) where {T<:Real} = UpwindOperator{T, SVector{dorder+aorder,T}, LBC, RBC}(dorder, aorder, dx, dim, direction, BC)
 end
 
 
 (L::UpwindOperator)(t,u) = L*u
 (L::UpwindOperator)(t,u,du) = A_mul_B!(du,L,u)
 
-function update_coefficients!{T<:Real,S<:SVector,RBC,LBC}(A::UpwindOperator{T,S,LBC,RBC};BC=nothing, directions=nothing)
+function update_coefficients!(A::UpwindOperator{T,S,LBC,RBC};BC=nothing, directions=nothing) where {T<:Real,S<:SVector,RBC,LBC}
     if BC != nothing
         LBC == :Robin ? (length(BC[1])==3 || error("Enter the new left boundary condition as a 1-tuple")) :
                         (length(BC[1])==1 || error("Robin BC needs a 3-tuple for left boundary condition"))
@@ -93,8 +93,8 @@ function update_coefficients!{T<:Real,S<:SVector,RBC,LBC}(A::UpwindOperator{T,S,
 end
 
 
-function initialize_left_boundary!{T}(::Type{Val{:UO}},low_boundary_coefs,BC,derivative_order,grid_step::T,
-                                      boundary_length,boundary_point_count,directions,dx,LBC)
+function initialize_left_boundary!(::Type{Val{:UO}},low_boundary_coefs,BC,derivative_order,grid_step::T,
+                                   boundary_length,boundary_point_count,directions,dx,LBC) where T
     approximation_order = boundary_length - derivative_order
     up_stencil_length = boundary_length
 
@@ -134,8 +134,8 @@ function initialize_left_boundary!{T}(::Type{Val{:UO}},low_boundary_coefs,BC,der
 end
 
 # well it says that we have to use somewhere inside the function definition
-function initialize_right_boundary!{T}(::Type{Val{:UO}},high_boundary_coefs,BC,derivative_order,grid_step::T,
-                                       boundary_length,boundary_point_count,directions,dx,RBC)
+function initialize_right_boundary!(::Type{Val{:UO}},high_boundary_coefs,BC,derivative_order,grid_step::T,
+                                    boundary_length,boundary_point_count,directions,dx,RBC) where T
     approximation_order = boundary_length - derivative_order
     down_stencil_length = boundary_length
 
@@ -175,8 +175,8 @@ function initialize_right_boundary!{T}(::Type{Val{:UO}},high_boundary_coefs,BC,d
 end
 
 
-function left_None_BC!{T}(::Type{Val{:UO}},low_boundary_coefs,up_stencil_length,derivative_order,
-                          grid_step::T,boundary_length)
+function left_None_BC!(::Type{Val{:UO}},low_boundary_coefs,up_stencil_length,derivative_order,
+                       grid_step::T,boundary_length) where T
     # Fixes the problem excessive boundary points
     boundary_point_count = up_stencil_length
     l_diff               = zero(T)
@@ -190,8 +190,8 @@ function left_None_BC!{T}(::Type{Val{:UO}},low_boundary_coefs,up_stencil_length,
 end
 
 
-function right_None_BC!{T}(::Type{Val{:UO}},high_boundary_coefs,down_stencil_length,derivative_order,
-                           grid_step::T,boundary_length)
+function right_None_BC!(::Type{Val{:UO}},high_boundary_coefs,down_stencil_length,derivative_order,
+                        grid_step::T,boundary_length) where T
     boundary_point_count = down_stencil_length
     high_temp            = zeros(T,boundary_length)
     aorder               = boundary_length - 1
@@ -204,8 +204,8 @@ function right_None_BC!{T}(::Type{Val{:UO}},high_boundary_coefs,down_stencil_len
 end
 
 
-function left_nothing_BC!{T}(::Type{Val{:UO}},low_boundary_coefs,up_stencil_length,derivative_order,
-                          grid_step::T,boundary_length)
+function left_nothing_BC!(::Type{Val{:UO}},low_boundary_coefs,up_stencil_length,derivative_order,
+                       grid_step::T,boundary_length) where T
     # Fixes the problem excessive boundary points
     boundary_point_count = up_stencil_length
     l_diff               = zero(T)
@@ -215,8 +215,8 @@ function left_nothing_BC!{T}(::Type{Val{:UO}},low_boundary_coefs,up_stencil_leng
 end
 
 
-function right_nothing_BC!{T}(::Type{Val{:UO}},high_boundary_coefs,down_stencil_length,derivative_order,
-                           grid_step::T,boundary_length)
+function right_nothing_BC!(::Type{Val{:UO}},high_boundary_coefs,down_stencil_length,derivative_order,
+                        grid_step::T,boundary_length) where T
     boundary_point_count = down_stencil_length
     r_diff               = zero(T)
 

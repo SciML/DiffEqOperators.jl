@@ -1,4 +1,4 @@
-get_type{T}(::AbstractDerivativeOperator{T}) = T
+get_type(::AbstractDerivativeOperator{T}) where {T} = T
 
 function *(A::AbstractDerivativeOperator,x::AbstractVector)
     #=
@@ -43,7 +43,7 @@ function *(A::AbstractDerivativeOperator,B::AbstractDerivativeOperator)
 end
 
 
-function negate!{T}(arr::T)
+function negate!(arr::T) where T
     if size(arr,2) == 1
         scale!(arr,-one(eltype(arr)))
     else
@@ -54,7 +54,7 @@ function negate!{T}(arr::T)
 end
 
 
-immutable DerivativeOperator{T<:Real,S<:SVector,LBC,RBC} <: AbstractDerivativeOperator{T}
+struct DerivativeOperator{T<:Real,S<:SVector,LBC,RBC} <: AbstractDerivativeOperator{T}
     derivative_order    :: Int
     approximation_order :: Int
     dx                  :: T
@@ -104,7 +104,7 @@ immutable DerivativeOperator{T<:Real,S<:SVector,LBC,RBC} <: AbstractDerivativeOp
             t
             )
     end
-    (::Type{DerivativeOperator{T}}){T<:Real}(dorder::Int,aorder::Int,dx::T,dim::Int,LBC::Symbol,RBC::Symbol;BC=(zero(T),zero(T))) =
+    DerivativeOperator{T}(dorder::Int,aorder::Int,dx::T,dim::Int,LBC::Symbol,RBC::Symbol;BC=(zero(T),zero(T))) where {T<:Real} =
         DerivativeOperator{T, SVector{dorder+aorder-1+(dorder+aorder)%2,T}, LBC, RBC}(dorder, aorder, dx, dim, BC)
 end
 
@@ -112,7 +112,7 @@ end
     This function is used to update the boundary conditions especially if they evolve with
     time.
 =#
-function DiffEqBase.update_coefficients!{T<:Real,S<:SVector,RBC,LBC}(A::DerivativeOperator{T,S,LBC,RBC};BC=nothing)
+function DiffEqBase.update_coefficients!(A::DerivativeOperator{T,S,LBC,RBC};BC=nothing) where {T<:Real,S<:SVector,RBC,LBC}
     if BC != nothing
         LBC == :Robin ? (length(BC[1])==3 || error("Enter the new left boundary condition as a 1-tuple")) :
                         (length(BC[1])==1 || error("Robin BC needs a 3-tuple for left boundary condition"))
@@ -140,8 +140,8 @@ end
     The RHS ie. 'c' can be a function of time as well and therefore it is implemented
     as an anonymous function.
 =#
-function initialize_left_boundary!{T}(::Type{Val{:LO}},low_boundary_coefs,stencil_coefs,BC,derivative_order,grid_step::T,
-                                      boundary_length,boundary_point_count,dx,LBC)
+function initialize_left_boundary!(::Type{Val{:LO}},low_boundary_coefs,stencil_coefs,BC,derivative_order,grid_step::T,
+                                   boundary_length,boundary_point_count,dx,LBC) where T
     stencil_length = length(stencil_coefs)
 
     if LBC == :None
@@ -186,8 +186,8 @@ end
     The RHS ie. 'c' can be a function of time as well and therefore it is implemented
     as an anonymous function.
 =#
-function initialize_right_boundary!{T}(::Type{Val{:LO}},high_boundary_coefs,stencil_coefs,BC,derivative_order,grid_step::T,
-                                       boundary_length,boundary_point_count,dx,RBC)
+function initialize_right_boundary!(::Type{Val{:LO}},high_boundary_coefs,stencil_coefs,BC,derivative_order,grid_step::T,
+                                    boundary_length,boundary_point_count,dx,RBC) where T
     stencil_length = length(stencil_coefs)
 
     if RBC == :None
@@ -225,8 +225,8 @@ function initialize_right_boundary!{T}(::Type{Val{:LO}},high_boundary_coefs,sten
 end
 
 
-function left_None_BC!{T}(::Type{Val{:LO}},low_boundary_coefs,stencil_length,derivative_order,
-                          grid_step::T,boundary_length)
+function left_None_BC!(::Type{Val{:LO}},low_boundary_coefs,stencil_length,derivative_order,
+                       grid_step::T,boundary_length) where T
     # Fixes the problem excessive boundary points
     boundary_point_count = div(stencil_length,2)
     l_diff               = zero(T)
@@ -241,8 +241,8 @@ function left_None_BC!{T}(::Type{Val{:LO}},low_boundary_coefs,stencil_length,der
 end
 
 
-function right_None_BC!{T}(::Type{Val{:LO}},high_boundary_coefs,stencil_length,derivative_order,
-                           grid_step::T,boundary_length)
+function right_None_BC!(::Type{Val{:LO}},high_boundary_coefs,stencil_length,derivative_order,
+                        grid_step::T,boundary_length) where T
     boundary_point_count = div(stencil_length,2)
     high_temp            = zeros(T,boundary_length)
     flag                 = derivative_order*boundary_point_count%2
@@ -257,8 +257,8 @@ function right_None_BC!{T}(::Type{Val{:LO}},high_boundary_coefs,stencil_length,d
 end
 
 
-function left_Neumann_BC!{T}(::Type{Val{:LO}},low_boundary_coefs,stencil_length,derivative_order,
-                             grid_step::T,boundary_length)
+function left_Neumann_BC!(::Type{Val{:LO}},low_boundary_coefs,stencil_length,derivative_order,
+                          grid_step::T,boundary_length) where T
     boundary_point_count = stencil_length - div(stencil_length,2) + 1
     first_order_coeffs   = zeros(T,boundary_length)
     original_coeffs      = zeros(T,boundary_length)
@@ -291,8 +291,8 @@ function left_Neumann_BC!{T}(::Type{Val{:LO}},low_boundary_coefs,stencil_length,
 end
 
 
-function right_Neumann_BC!{T}(::Type{Val{:LO}},high_boundary_coefs,stencil_length,derivative_order,
-                              grid_step::T,boundary_length)
+function right_Neumann_BC!(::Type{Val{:LO}},high_boundary_coefs,stencil_length,derivative_order,
+                           grid_step::T,boundary_length) where T
     boundary_point_count = stencil_length - div(stencil_length,2) + 1
     flag                 = derivative_order*boundary_point_count%2
     original_coeffs      = zeros(T,boundary_length)
@@ -343,8 +343,8 @@ function right_Neumann_BC!{T}(::Type{Val{:LO}},high_boundary_coefs,stencil_lengt
 end
 
 
-function left_Robin_BC!{T}(::Type{Val{:LO}},low_boundary_coefs,stencil_length,params,
-                           derivative_order,grid_step::T,boundary_length,dx)
+function left_Robin_BC!(::Type{Val{:LO}},low_boundary_coefs,stencil_length,params,
+                        derivative_order,grid_step::T,boundary_length,dx) where T
     boundary_point_count = stencil_length - div(stencil_length,2) + 1
     first_order_coeffs   = zeros(T,boundary_length)
     original_coeffs      = zeros(T,boundary_length)
@@ -381,8 +381,8 @@ function left_Robin_BC!{T}(::Type{Val{:LO}},low_boundary_coefs,stencil_length,pa
 end
 
 
-function right_Robin_BC!{T}(::Type{Val{:LO}},high_boundary_coefs,stencil_length,params,
-                           derivative_order,grid_step::T,boundary_length,dx)
+function right_Robin_BC!(::Type{Val{:LO}},high_boundary_coefs,stencil_length,params,
+                        derivative_order,grid_step::T,boundary_length,dx) where T
     boundary_point_count = stencil_length - div(stencil_length,2) + 1
     flag                 = derivative_order*boundary_point_count%2
     original_coeffs      = zeros(T,boundary_length)
@@ -436,8 +436,8 @@ end
 
 (L::DerivativeOperator)(t,u) = L*u
 (L::DerivativeOperator)(t,u,du) = A_mul_B!(du,L,u)
-get_LBC{A,B,C,D}(::DerivativeOperator{A,B,C,D}) = C
-get_RBC{A,B,C,D}(::DerivativeOperator{A,B,C,D}) = D
+get_LBC(::DerivativeOperator{A,B,C,D}) where {A,B,C,D} = C
+get_RBC(::DerivativeOperator{A,B,C,D}) where {A,B,C,D} = D
 
 
 # ~ bound checking functions ~
@@ -523,7 +523,7 @@ end
 end
 
 
-@inline function getindex{T}(A::AbstractDerivativeOperator{T}, rng::UnitRange{Int}, cng::UnitRange{Int})
+@inline function getindex(A::AbstractDerivativeOperator{T}, rng::UnitRange{Int}, cng::UnitRange{Int}) where T
     N = A.dimension
     if (rng[end] - rng[1]) > ((cng[end] - cng[1]))
         mat = zeros(T, (N, length(cng)))
@@ -562,7 +562,7 @@ end
     We also update the time stamp of the DerivativeOperator inside to manage time dependent
     boundary conditions.
 =#
-function Base.A_mul_B!{T<:Real}(x_temp::AbstractVector{T}, A::AbstractDerivativeOperator{T}, x::AbstractVector{T})
+function Base.A_mul_B!(x_temp::AbstractVector{T}, A::AbstractDerivativeOperator{T}, x::AbstractVector{T}) where T<:Real
     convolve_BC_left!(x_temp, x, A)
     convolve_interior!(x_temp, x, A)
     convolve_BC_right!(x_temp, x, A)
@@ -574,7 +574,7 @@ end
     This definition of the A_mul_B! function makes it possible to apply the LinearOperator on
     a matrix and not just a vector. It basically transforms the rows one at a time.
 =#
-function Base.A_mul_B!{T<:Real}(x_temp::AbstractArray{T,2}, A::AbstractDerivativeOperator{T}, M::AbstractMatrix{T})
+function Base.A_mul_B!(x_temp::AbstractArray{T,2}, A::AbstractDerivativeOperator{T}, M::AbstractMatrix{T}) where T<:Real
     if size(x_temp) == reverse(size(M))
         for i = 1:size(M,1)
             A_mul_B!(view(x_temp,i,:), A, view(M,i,:))
@@ -608,7 +608,7 @@ Base.issymmetric(::AbstractDerivativeOperator) = true
     return the inner stencil of the matrix transformation. The user will have to manually
     incorporate the BCs at the ends.
 =#
-function Base.full{T}(A::AbstractDerivativeOperator{T}, N::Int=A.dimension)
+function Base.full(A::AbstractDerivativeOperator{T}, N::Int=A.dimension) where T
     @assert N >= A.stencil_length # stencil must be able to fit in the matrix
     mat = zeros(T, (N, N))
     v = zeros(T, N)
@@ -633,7 +633,7 @@ end
     return the inner stencil of the matrix transformation. The user will have to manually
     incorporate the BCs at the ends.
 =#
-function Base.sparse{T}(A::AbstractDerivativeOperator{T})
+function Base.sparse(A::AbstractDerivativeOperator{T}) where T
     N = A.dimension
     mat = spzeros(T, N, N)
     v = zeros(T, N)

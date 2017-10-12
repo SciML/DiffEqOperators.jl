@@ -140,6 +140,6 @@ function Base.:\(L::FactorizedDiffEqArrayOperator, b::AbstractArray)
 end
 
 @inline Base.getindex(L::DiffEqArrayOperator,i::Int) = L.A[i]
-@inline Base.getindex{N}(L::DiffEqArrayOperator,I::Vararg{Int, N}) = L.A[I...]
+@inline Base.getindex(L::DiffEqArrayOperator,I::Vararg{Int, N}) where {N} = L.A[I...]
 @inline Base.setindex!(L::DiffEqArrayOperator, v, i::Int) = (L.A[i]=v)
-@inline Base.setindex!{N}(L::DiffEqArrayOperator, v, I::Vararg{Int, N}) = (L.A[I...]=v)
+@inline Base.setindex!(L::DiffEqArrayOperator, v, I::Vararg{Int, N}) where {N} = (L.A[I...]=v)
