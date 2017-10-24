@@ -48,11 +48,12 @@ end
 
 
 function convolve_BC_left!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::DerivativeOperator{T,S,:Dirichlet,RBC}) where {T<:Real,S<:SVector,RBC}
-    x[1] = A.boundary_condition[][1][3](A.t)
+    bcl,bcr = A.boundary_condition[][1][3](A.t),A.boundary_condition[][2][3](A.t)
     mid = div(A.stencil_length,2)+1
-    for i in 1 : A.boundary_point_count[1]
-        dirichlet_1!(x_temp, x, A.stencil_coefs, mid, i, A.boundary_condition[1])
+    for i in 2 : A.boundary_point_count[1]
+        dirichlet_1!(x_temp, x, A.stencil_coefs, mid, i, bcl,bcr)
     end
+    x_temp[1] = bcl
 end
 
 
@@ -204,11 +205,12 @@ end
 function convolve_BC_right!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::DerivativeOperator{T,S,LBC,:Dirichlet}) where {T<:Real,S<:SVector,LBC}
     N = length(x)
     mid = div(A.stencil_length,2) + 1
-    x[end] = A.boundary_condition[][2][3](A.t)
+    bcl,bcr = A.boundary_condition[][1][3](A.t),A.boundary_condition[][2][3](A.t)
 
     for i in 1 : A.boundary_point_count[2]
-        dirichlet_1!(x_temp, x, A.stencil_coefs, mid, N - A.boundary_point_count[2] + i, A.boundary_condition[2])
+        dirichlet_1!(x_temp, x, A.stencil_coefs, mid, N - A.boundary_point_count[2] + i, bcl,bcr)
     end
+    x_temp[end] = bcr
 end
 
 
@@ -347,7 +349,7 @@ function dirichlet_0!(x_temp::AbstractVector{T}, x::AbstractVector{T}, coeffs::S
 end
 
 
-function dirichlet_1!(x_temp::AbstractVector{T}, x::AbstractVector{T}, coeffs::SVector, mid::Int, i::Int,bc) where T<:Real
+function dirichlet_1!(x_temp::AbstractVector{T}, x::AbstractVector{T}, coeffs::SVector, mid::Int, i::Int,bcl,bcr) where T<:Real
     stencil_length = length(coeffs)
     N = length(x)
     #=
@@ -358,9 +360,11 @@ function dirichlet_1!(x_temp::AbstractVector{T}, x::AbstractVector{T}, coeffs::S
     xtempi = zero(T)
     @inbounds for idx in 1:stencil_length
         loc = i - (mid-idx)
-        if loc <= 0 || loc >= N
-           xtempi += coeffs[idx]*bc
-        else
+        if loc <= 1 || loc >= N
+           xtempi += coeffs[idx]*bcl
+       elseif loc >= N
+           xtempi += coeffs[idx]*bcr
+       else
            xtempi += coeffs[idx] * x[loc]
         end
     end
