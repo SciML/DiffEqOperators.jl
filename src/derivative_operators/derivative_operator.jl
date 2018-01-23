@@ -434,8 +434,8 @@ end
 #################################################################################################
 
 
-(L::DerivativeOperator)(t,u) = L*u
-(L::DerivativeOperator)(t,u,du) = A_mul_B!(du,L,u)
+(L::DerivativeOperator)(u,p,t) = L*u
+(L::DerivativeOperator)(du,u,p,t) = A_mul_B!(du,L,u)
 get_LBC(::DerivativeOperator{A,B,C,D}) where {A,B,C,D} = C
 get_RBC(::DerivativeOperator{A,B,C,D}) where {A,B,C,D} = D
 

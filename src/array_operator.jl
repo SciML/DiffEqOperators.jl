@@ -66,12 +66,12 @@ Base.size(L::DiffEqArrayOperator) = size(L.A)
 DiffEqBase.update_coefficients!(L::DiffEqArrayOperator,t,u) = (L.update_func(L.A,t,u); L.α = L.α(t); nothing)
 DiffEqBase.update_coefficients(L::DiffEqArrayOperator,t,u)  = (L.update_func(L.A,t,u); L.α = L.α(t); L)
 
-function (L::DiffEqArrayOperator)(t,u)
+function (L::DiffEqArrayOperator)(u,p,t)
   update_coefficients!(L,t,u)
   L*u
 end
 
-function (L::DiffEqArrayOperator)(t,u,du)
+function (L::DiffEqArrayOperator)(du,u,p,t)
   update_coefficients!(L,t,u)
   A_mul_B!(du,L,u)
 end
