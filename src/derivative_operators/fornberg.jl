@@ -1,76 +1,64 @@
 #############################################################
 # Fornberg algorithm
-function derivative(y::Vector{T}, A::DerivativeOperator{T}) where T<:Real
-    dy = zeros(T, length(y))
-    derivative!(dy, y, A)
-    return dy
+
+
+
+immutable FiniteDifference{T<:Real,S<:SVector,LBC,RBC} <: AbstractDerivativeOperator{T}
+    derivative_order    :: Int
+    approximation_order :: Int
+    dx                  :: Vector{T}
+    dimension           :: Int
+    stencil_length      :: Int
+    stencil_coefs       :: Vector{S}
+    boundary_point_count:: Tuple{Int,Int}
+    boundary_length     :: Tuple{Int,Int}
+    low_boundary_coefs  :: Ref{Vector{Vector{T}}}
+    high_boundary_coefs :: Ref{Vector{Vector{T}}}
+    boundary_condition  :: Ref{Tuple{Tuple{T,T,Any},Tuple{T,T,Any}}}
+    t                   :: Ref{Int}
+
+    Base.@pure function FiniteDifference{T,S,LBC,RBC}(derivative_order::Int, approximation_order::Int, dx::Vector{T},
+                                            dimension::Int, BC) where {T<:Real,S<:SVector,LBC,RBC}
+        dimension            = dimension
+        dx                   = dx
+        stencil_length       = derivative_order + approximation_order - 1 + (derivative_order+approximation_order)%2
+        bl                   = derivative_order + approximation_order
+        boundary_length      = (bl,bl)
+        bpc                  = stencil_length - div(stencil_length,2) + 1
+        bpc_array            = [bpc,bpc]
+        grid_step            = dx
+        x                    = [zero(T); cumsum(dx)]
+        low_boundary_coefs   = Vector{T}[]
+        high_boundary_coefs  = Vector{T}[]
+
+        stl_2 = div(stencil_length,2)
+        stencil_coefs        = [convert(SVector{stencil_length, T}, calculate_weights(derivative_order, x[idx],
+                               x[idx-stl_2 : 1 : idx+stl_2])) for idx in stl_2+1:dimension-stl_2]
+
+        left_bndry = initialize_left_boundary!(Val{:LO},low_boundary_coefs,stencil_coefs[1:stl_2],BC,derivative_order,
+                                               grid_step[1:stl_2],bl,bpc_array,dx,LBC)
+
+        right_bndry = initialize_right_boundary!(Val{:LO},high_boundary_coefs,stencil_coefs[end-stl_2+1:end],BC,derivative_order,
+                                                 grid_step[end-stl_2+1:end],bl,bpc_array,dx,RBC)
+
+        boundary_condition = (left_bndry, right_bndry)
+        boundary_point_count = (bpc_array[1],bpc_array[2])
+
+        t = 0
+
+        new(derivative_order, approximation_order, dx, dimension, stencil_length,
+            stencil_coefs,
+            boundary_point_count,
+            boundary_length,
+            low_boundary_coefs,
+            high_boundary_coefs,
+            boundary_condition,
+            t
+            )
+    end
+    FiniteDifference{T}(dorder::Int,aorder::Int,dx::Vector{T},dim::Int,LBC::Symbol,RBC::Symbol;BC=(zero(T),zero(T))) where {T<:Real} =
+        FiniteDifference{T, SVector{dorder+aorder-1+(dorder+aorder)%2,T}, LBC, RBC}(dorder, aorder, dx, dim, BC)
 end
-
-
-function derivative!(dy::Vector{T}, y::Vector{T}, A::DerivativeOperator{T}) where T<:Real
-    N = length(y)
-    #=
-        Derivative is calculated in 3 parts:-
-            1. For the initial boundary points
-            2. For the middle points
-            3. For the terminating boundary points
-    =#
-    @inbounds for i in 1 : A.boundary_point_count
-        bc = A.low_boundary_coefs[i]
-        tmp = zero(T)
-        for j in 1 : A.boundary_length
-            tmp += bc[j] * y[j]
-        end
-        dy[i] = tmp
-    end
-
-    d = div(A.stencil_length, 2)
-
-    @inbounds for i in A.boundary_point_count+1 : N-A.boundary_point_count
-        c = A.stencil_coefs
-        tmp = zero(T)
-        for j in 1 : A.stencil_length
-            tmp += c[j] * y[i-d+j-1]
-        end
-        dy[i] = tmp
-    end
-
-    @inbounds for i in 1 : A.boundary_point_count
-        bc = A.high_boundary_coefs[i]
-        tmp = zero(T)
-        for j in 1 : A.boundary_length
-            tmp += bc[j] * y[N - A.boundary_length + j]
-        end
-        dy[N - i + 1] = tmp
-    end
-    return dy
-end
-
-
-function construct_differentiation_matrix(N::Int, A::DerivativeOperator{T}) where T<:Real
-    #=
-        This is for calculating the derivative in one go. But we are creating a function
-        which can calculate the derivative by-passing the costly matrix multiplication.
-    =#
-    D = zeros(T, N, N)
-    for i in 1 : A.boundary_point_count
-        D[i, 1 : A.boundary_length] = A.low_boundary_coefs[i]
-    end
-    d = div(A.stencil_length, 2)
-    for i in A.boundary_point_count + 1 : N - A.boundary_point_count
-        D[i, i-d : i+d] = A.stencil_coefs
-    end
-    for i in 1 : A.boundary_point_count
-        D[N - i + 1, N - A.boundary_length + 1 : N] = A.high_boundary_coefs[i]
-    end
-    return D
-end
-
-
-# immutable FiniteDifference <: AbstractDerivativeOperator
-#     # TODO: the general case ie. with an uneven grid
-# end
-
 
 # This implements the Fornberg algorithm to obtain Finite Difference weights over arbitrary points to arbitrary order
 function calculate_weights(order::Int, x0::T, x::Vector{T}) where T<:Real

@@ -7,8 +7,8 @@ x = -π:Δx:π-Δx
 D1  = DerivativeOperator{Float64}(1,ord,Δx,N,:periodic,:periodic);    # 1nd Derivative
 D2  = DerivativeOperator{Float64}(2,ord,Δx,N,:periodic,:periodic);    # 2nd Derivative
 
-u0 = cos(x)
-du_true = -cos(x)
+u0 = cos.(x)
+du_true = -cos.(x)
 
 M = full(Tridiagonal([1.0 for i in 1:N+1],[-2.0 for i in 1:N+2],[1.0 for i in 1:N+1]))
 # Do the reflections, different for x and y operators

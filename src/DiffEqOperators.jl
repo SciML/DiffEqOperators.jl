@@ -14,11 +14,11 @@ include("diffeqscalar.jl")
 include("array_operator.jl")
 
 ### Derivative Operators
-include("derivative_operators/derivative_operator.jl")
 include("derivative_operators/upwind_operator.jl")
 include("derivative_operators/fornberg.jl")
+include("derivative_operators/derivative_operator.jl")
 include("derivative_operators/boundary_operators.jl")
 
 export DiffEqScalar, DiffEqArrayOperator
-export AbstractDerivativeOperator, DerivativeOperator, UpwindOperator
+export AbstractDerivativeOperator, DerivativeOperator, UpwindOperator, FiniteDifference
 end # module

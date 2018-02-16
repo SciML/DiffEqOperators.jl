@@ -36,6 +36,15 @@ function convolve_BC_left!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::D
 end
 
 
+function convolve_BC_left!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::FiniteDifference{T,S,:Dirichlet0,RBC}) where {T<:Real,S<:SVector,RBC}
+    mid = div(A.stencil_length,2) + 1
+    bpc = A.stencil_length - mid
+    for i in 1 : A.boundary_point_count[1]
+        dirichlet_0!(x_temp, x, A.stencil_coefs[1], mid, bpc, i)
+    end
+end
+
+
 function convolve_BC_left!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::UpwindOperator{T,S,:Dirichlet0,RBC}) where {T<:Real,S<:SVector,RBC}
     stencil_length = A.stencil_length
     stencil_rem = 1-stencil_length%2
@@ -50,11 +59,21 @@ function convolve_BC_left!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::U
 end
 
 
+
+
 function convolve_BC_left!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::DerivativeOperator{T,S,:Dirichlet,RBC}) where {T<:Real,S<:SVector,RBC}
     x[1] = A.boundary_condition[][1][3](A.t)
     mid = div(A.stencil_length,2)+1
     for i in 1 : A.boundary_point_count[1]
         dirichlet_1!(x_temp, x, A.stencil_coefs, mid, i)
+    end
+end
+
+function convolve_BC_left!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::FiniteDifference{T,S,:Dirichlet,RBC}) where {T<:Real,S<:SVector,RBC}
+    x[1] = A.boundary_condition[][1][3](A.t)
+    mid = div(A.stencil_length,2)+1
+    for i in 1 : A.boundary_point_count[1]
+        dirichlet_1!(x_temp, x, A.stencil_coefs[1], mid, i)
     end
 end
 
@@ -65,6 +84,12 @@ function convolve_BC_left!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::D
     end
 end
 
+function convolve_BC_left!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::FiniteDifference{T,S,:periodic,RBC}) where {T<:Real,S<:SVector,RBC}
+    for i in 1 : A.boundary_point_count[1]
+        periodic!(x_temp, x, A.stencil_coefs[1], i)
+    end
+end
+
 
 function convolve_BC_left!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::DerivativeOperator{T,S,:Neumann0,RBC}) where {T<:Real,S<:SVector,RBC}
     for i in 1 : A.boundary_point_count[1]
@@ -72,8 +97,14 @@ function convolve_BC_left!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::D
     end
 end
 
+function convolve_BC_left!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::FiniteDifference{T,S,:Neumann0,RBC}) where {T<:Real,S<:SVector,RBC}
+    for i in 1 : A.boundary_point_count[1]
+        neumann0!(x_temp, x, A.stencil_coefs[1], i)
+    end
+end
 
-function convolve_BC_left!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::DerivativeOperator{T,S,:Neumann,RBC}) where {T<:Real,S<:SVector,RBC}
+
+function convolve_BC_left!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::Union{DerivativeOperator{T,S,:Neumann,RBC},FiniteDifference{T,S,:Neumann,RBC}}) where {T<:Real,S<:SVector,RBC}
     @inbounds for i in 1 : A.boundary_point_count[1]
         bc = A.low_boundary_coefs[][i]
         tmp = zero(T)
@@ -86,7 +117,7 @@ function convolve_BC_left!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::D
 end
 
 
-function convolve_BC_left!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::DerivativeOperator{T,S,:Robin,RBC}) where {T<:Real,S<:SVector,RBC}
+function convolve_BC_left!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::Union{DerivativeOperator{T,S,:Robin,RBC},FiniteDifference{T,S,:Robin,RBC}}) where {T<:Real,S<:SVector,RBC}
     @inbounds for i in 1 : A.boundary_point_count[1]
         bc = A.low_boundary_coefs[][i]
         tmp = zero(T)
@@ -99,7 +130,7 @@ function convolve_BC_left!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::D
 end
 
 
-function convolve_BC_left!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::Union{DerivativeOperator{T,S,:None,RBC},UpwindOperator{T,S,:None,RBC}}) where {T<:Real,S<:SVector,RBC}
+function convolve_BC_left!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::Union{DerivativeOperator{T,S,:None,RBC},UpwindOperator{T,S,:None,RBC},FiniteDifference{T,S,:None,RBC}}) where {T<:Real,S<:SVector,RBC}
     halfstencil = div(A.stencil_length, 2)
     for i in 1 : A.boundary_point_count[1]
         @inbounds bc = A.low_boundary_coefs[][i]
@@ -153,6 +184,22 @@ function convolve_interior!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::
     end
 end
 
+function convolve_interior!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::FiniteDifference{T,S,LBC,RBC}) where {T<:Real,S<:SVector,LBC,RBC}
+    N = length(x)
+    coeffs = A.stencil_coefs
+    mid = div(A.stencil_length, 2) + 1
+
+    Threads.@threads for i in A.boundary_point_count[1]+1 : N-A.boundary_point_count[2]
+        # dirichlet_0!(x_temp,x,A.stencil_coefs, i)
+        xtempi = zero(T)
+        @inbounds for idx in 1:A.stencil_length
+            xtempi += coeffs[i][idx] * x[i - (mid-idx)]
+        end
+        x_temp[i] = xtempi
+    end
+end
+
+
 
 #= INTERIOR CONVOLUTION =#
 function convolve_interior!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::UpwindOperator{T,S,LBC,RBC}) where {T<:Real,S<:SVector,LBC,RBC}
@@ -188,6 +235,15 @@ function convolve_BC_right!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::
     end
 end
 
+function convolve_BC_right!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::FiniteDifference{T,S,LBC,:Dirichlet0}) where {T<:Real,S<:SVector,LBC}
+    # Dirichlet 0 means that the value at the boundary is 0
+    N = length(x)
+    mid = div(A.stencil_length,2) + 1
+    bpc = A.stencil_length - mid
+    for i in 1 : A.boundary_point_count[2]
+        dirichlet_0!(x_temp, x, A.stencil_coefs[end], mid, bpc, N - A.boundary_point_count[2] + i)
+    end
+end
 
 function convolve_BC_right!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::UpwindOperator{T,S,LBC,:Dirichlet0}) where {T<:Real,S<:SVector,LBC}
     # Dirichlet 0 means that the value at the boundary is 0
@@ -214,6 +270,16 @@ function convolve_BC_right!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::
     end
 end
 
+function convolve_BC_right!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::FiniteDifference{T,S,LBC,:Dirichlet}) where {T<:Real,S<:SVector,LBC}
+    N = length(x)
+    mid = div(A.stencil_length,2) + 1
+    x[end] = A.boundary_condition[][2][3](A.t)
+
+    for i in 1 : A.boundary_point_count[2]
+        dirichlet_1!(x_temp, x, A.stencil_coefs[end], mid, N - A.boundary_point_count[2] + i)
+    end
+end
+
 
 function convolve_BC_right!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::DerivativeOperator{T,S,LBC,:periodic}) where {T<:Real,S<:SVector,LBC}
     N = length(x)
@@ -222,6 +288,12 @@ function convolve_BC_right!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::
     end
 end
 
+function convolve_BC_right!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::FiniteDifference{T,S,LBC,:periodic}) where {T<:Real,S<:SVector,LBC}
+    N = length(x)
+    for i in 1 : A.boundary_point_count[2]
+        periodic!(x_temp, x, A.stencil_coefs[end], N - A.boundary_point_count[2] + i)
+    end
+end
 
 function convolve_BC_right!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::DerivativeOperator{T,S,LBC,:Neumann0}) where {T<:Real,S<:SVector,LBC}
     N = length(x)
@@ -230,8 +302,14 @@ function convolve_BC_right!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::
     end
 end
 
+function convolve_BC_right!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::FiniteDifference{T,S,LBC,:Neumann0}) where {T<:Real,S<:SVector,LBC}
+    N = length(x)
+    for i in 1 : A.boundary_point_count[2]
+        neumann0!(x_temp, x, A.stencil_coefs[end], N - A.boundary_point_count[2] + i)
+    end
+end
 
-function convolve_BC_right!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::DerivativeOperator{T,S,LBC,:Neumann}) where {T<:Real,S<:SVector,LBC}
+function convolve_BC_right!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::Union{DerivativeOperator{T,S,LBC,:Neumann}, FiniteDifference{T,S,LBC,:Neumann}}) where {T<:Real,S<:SVector,LBC}
     N = length(x)
     @inbounds for i in 1 : A.boundary_point_count[2]
         bc = A.high_boundary_coefs[][A.boundary_point_count[2] - i + 1]
@@ -246,7 +324,7 @@ function convolve_BC_right!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::
 end
 
 
-function convolve_BC_right!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::DerivativeOperator{T,S,LBC,:Robin}) where {T<:Real,S<:SVector,LBC}
+function convolve_BC_right!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::Union{DerivativeOperator{T,S,LBC,:Robin}, FiniteDifference{T,S,LBC,:Robin}}) where {T<:Real,S<:SVector,LBC}
     N = length(x)
     @inbounds for i in 1 : A.boundary_point_count[2]
         bc = A.high_boundary_coefs[][A.boundary_point_count[2] - i + 1]
@@ -260,7 +338,7 @@ function convolve_BC_right!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::
 end
 
 
-function convolve_BC_right!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::Union{DerivativeOperator{T,S,LBC,:None},UpwindOperator{T,S,LBC,:None}}) where {T<:Real,S<:SVector,LBC}
+function convolve_BC_right!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::Union{DerivativeOperator{T,S,LBC,:None},UpwindOperator{T,S,LBC,:None}, FiniteDifference{T,S,LBC,:None}}) where {T<:Real,S<:SVector,LBC}
     # halfstencil = div(A.stencil_length, 2)
     for i in 1 : A.boundary_point_count[2] # the first stencil is for the last point ie. in reverse order
         @inbounds bc = A.high_boundary_coefs[][i]
