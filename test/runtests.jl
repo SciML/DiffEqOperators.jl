@@ -1,6 +1,6 @@
 using DiffEqOperators
 using Base.Test
-using SpecialMatrices
+using SpecialMatrices, SpecialFunctions
 
 tic()
 @time @testset "Derivative Operators Interface" begin include("derivative_operators_interface.jl") end

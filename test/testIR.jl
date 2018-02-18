@@ -1,22 +1,37 @@
-using DiffEqOperators, Plots, SpecialFunctions
-n = 350
-dx = rand(n)/20;
+using DiffEqOperators #, Plots, SpecialFunctions
+n = 100
+# dx = rand(n)/100;
 # x = erf.(linspace(-2,2,n))*2π;
 # x +=abs(x[1]);
 # dx = diff(x)
-# dx = ones(n)*0.04;
-x = [0.0;cumsum(dx)]
+# # dx = ones(n)*0.04;
+# x = [0.0;cumsum(dx)]
+x=0.0:0.01:2π
+dx=diff(x)
 
-# D1 = DerivativeOperator{Float64}(4,6,dx[1],length(x),:None,:None)
-# C1 = full(D1)
-D2 = DiffEqOperators.FiniteDifference{Float64}(4,6,dx,length(x),:None,:None)
+
+
+
+
+
+D1 = DerivativeOperator{Float64}(1,2,dx[1],length(x),:None,:None)
+C1 = full(D1)
+D2 = DiffEqOperators.FiniteDifference{Float64}(1,2,dx,length(x),:None,:None)
+
+
 C2 = full(D2)
+
 # spy(C2)
-y = cos.(x);
+y = sin.(x);
+y[10:end-9] ≈ (C2*y)[10:end-9]
+
+plot(x,y)
+plot!(x,C2*y)
+plot(x[end-10:end],(y - C2*y)[end-10:end])
 # C*y
-plot(x,y, m=3,label="y")
-# plot!(x,C1*y,m=3,label="dy/dx do",ylim=(-1,1))
-plot!(x,C2*y,m=3,label="dy/dx fd",ylim=(-1,1),legend=:top)
+plot(x,y,label="y")
+plot!(x,C1*y,label="dy/dx do")
+plot!(x,C2*y,label="dy/dx fd",legend=:top)
 # plot!(x[2:end-2],C2[1:end-3,1:end-3]*y[2:end-2],m=2,ylim=(-1,1))
 
 D2

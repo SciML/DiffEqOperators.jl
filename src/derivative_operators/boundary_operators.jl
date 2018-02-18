@@ -40,7 +40,7 @@ function convolve_BC_left!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::F
     mid = div(A.stencil_length,2) + 1
     bpc = A.stencil_length - mid
     for i in 1 : A.boundary_point_count[1]
-        dirichlet_0!(x_temp, x, A.low_boundary_coefs[][i], mid, bpc, i)
+        dirichlet_0!(x_temp, x, A.stencil_coefs[1], mid, bpc, i)
     end
 end
 
@@ -73,7 +73,7 @@ function convolve_BC_left!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::F
     x[1] = A.boundary_condition[][1][3](A.t)
     mid = div(A.stencil_length,2)+1
     for i in 1 : A.boundary_point_count[1]
-        dirichlet_1!(x_temp, x, A.low_boundary_coefs[][i], mid, i)
+        dirichlet_1!(x_temp, x, A.stencil_coefs[1], mid, i)
     end
 end
 
@@ -86,7 +86,7 @@ end
 
 function convolve_BC_left!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::FiniteDifference{T,S,:periodic,RBC}) where {T<:Real,S<:SVector,RBC}
     for i in 1 : A.boundary_point_count[1]
-        periodic!(x_temp, x, A.low_boundary_coefs[][i], i)
+        periodic!(x_temp, x, A.stencil_coefs[1], i)
     end
 end
 
@@ -99,7 +99,7 @@ end
 
 function convolve_BC_left!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::FiniteDifference{T,S,:Neumann0,RBC}) where {T<:Real,S<:SVector,RBC}
     for i in 1 : A.boundary_point_count[1]
-        neumann0!(x_temp, x, A.low_boundary_coefs[][i], i)
+        neumann0!(x_temp, x, A.stencil_coefs[1], i)
     end
 end
 
@@ -193,7 +193,7 @@ function convolve_interior!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::
         # dirichlet_0!(x_temp,x,A.stencil_coefs, i)
         xtempi = zero(T)
         @inbounds for idx in 1:A.stencil_length
-            xtempi += coeffs[i-A.boundary_point_count[1]][idx] * x[i - (mid-idx)]
+            xtempi += coeffs[i-mid+1][idx] * x[i - (mid-idx)]
         end
         x_temp[i] = xtempi
     end
@@ -241,7 +241,7 @@ function convolve_BC_right!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::
     mid = div(A.stencil_length,2) + 1
     bpc = A.stencil_length - mid
     for i in 1 : A.boundary_point_count[2]
-        dirichlet_0!(x_temp, x, A.high_boundary_coefs[][i], mid, bpc, N - A.boundary_point_count[2] + i)
+        dirichlet_0!(x_temp, x, A.stencil_coefs[end], mid, bpc, N - A.boundary_point_count[2] + i)
     end
 end
 
@@ -276,7 +276,7 @@ function convolve_BC_right!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::
     x[end] = A.boundary_condition[][2][3](A.t)
 
     for i in 1 : A.boundary_point_count[2]
-        dirichlet_1!(x_temp, x, A.high_boundary_coefs[][i], mid, N - A.boundary_point_count[2] + i)
+        dirichlet_1!(x_temp, x, A.stencil_coefs[end], mid, N - A.boundary_point_count[2] + i)
     end
 end
 
@@ -291,7 +291,7 @@ end
 function convolve_BC_right!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::FiniteDifference{T,S,LBC,:periodic}) where {T<:Real,S<:SVector,LBC}
     N = length(x)
     for i in 1 : A.boundary_point_count[2]
-        periodic!(x_temp, x, A.high_boundary_coefs[][i], N - A.boundary_point_count[2] + i)
+        periodic!(x_temp, x, A.stencil_coefs[end], N - A.boundary_point_count[2] + i)
     end
 end
 
@@ -305,7 +305,7 @@ end
 function convolve_BC_right!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::FiniteDifference{T,S,LBC,:Neumann0}) where {T<:Real,S<:SVector,LBC}
     N = length(x)
     for i in 1 : A.boundary_point_count[2]
-        neumann0!(x_temp, x, A.high_boundary_coefs[][i], N - A.boundary_point_count[2] + i)
+        neumann0!(x_temp, x, A.stencil_coefs[end], N - A.boundary_point_count[2] + i)
     end
 end
 
@@ -433,7 +433,7 @@ function dirichlet_1!(x_temp::AbstractVector{T}, x::AbstractVector{T}, coeffs::S
     N = length(x)
     #=
         Here we are taking the weighted sum of a window of the input vector to calculate the derivative
-        at the middle point. Once the stencil goes out of the edge, we assume that it's has a constant
+        at the middle point. Once the stencil goes out of the edge, we assume that it has a constant
         value outside for all points.
     =#
     xtempi = zero(T)

@@ -212,7 +212,7 @@ function left_None_BC!(::Type{Val{:GO}},low_boundary_coefs,stencil_length,deriva
     for i in 1 : boundary_point_count
         # One-sided stencils require more points for same approximation order
         # TODO: I don't know if this is the correct stencil length for i > 1?
-        push!(low_boundary_coefs, calculate_weights(derivative_order, zero(T), x[1:(boundary_length-1)]-x[i]))
+        push!(low_boundary_coefs, calculate_weights(derivative_order, zero(T), x[1:boundary_length]-x[i]))
     end
     return l_diff
 end
