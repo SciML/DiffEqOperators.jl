@@ -108,73 +108,6 @@ struct DerivativeOperator{T<:Real,S<:SVector,LBC,RBC} <: AbstractDerivativeOpera
         DerivativeOperator{T, SVector{dorder+aorder-1+(dorder+aorder)%2,T}, LBC, RBC}(dorder, aorder, dx, dim, BC)
 end
 
-
-function derivative(y::Vector{T}, A::DerivativeOperator{T}) where T<:Real
-    dy = zeros(T, length(y))
-    derivative!(dy, y, A)
-    return dy
-end
-
-
-function derivative!(dy::Vector{T}, y::Vector{T}, A::DerivativeOperator{T}) where T<:Real
-    N = length(y)
-    #=
-        Derivative is calculated in 3 parts:-
-            1. For the initial boundary points
-            2. For the middle points
-            3. For the terminating boundary points
-    =#
-    @inbounds for i in 1 : A.boundary_point_count
-        bc = A.low_boundary_coefs[i]
-        tmp = zero(T)
-        for j in 1 : A.boundary_length
-            tmp += bc[j] * y[j]
-        end
-        dy[i] = tmp
-    end
-
-    d = div(A.stencil_length, 2)
-
-    @inbounds for i in A.boundary_point_count+1 : N-A.boundary_point_count
-        c = A.stencil_coefs
-        tmp = zero(T)
-        for j in 1 : A.stencil_length
-            tmp += c[j] * y[i-d+j-1]
-        end
-        dy[i] = tmp
-    end
-
-    @inbounds for i in 1 : A.boundary_point_count
-        bc = A.high_boundary_coefs[i]
-        tmp = zero(T)
-        for j in 1 : A.boundary_length
-            tmp += bc[j] * y[N - A.boundary_length + j]
-        end
-        dy[N - i + 1] = tmp
-    end
-    return dy
-end
-
-
-function construct_differentiation_matrix(N::Int, A::DerivativeOperator{T}) where T<:Real
-    #=
-        This is for calculating the derivative in one go. But we are creating a function
-        which can calculate the derivative by-passing the costly matrix multiplication.
-    =#
-    D = zeros(T, N, N)
-    for i in 1 : A.boundary_point_count
-        D[i, 1 : A.boundary_length] = A.low_boundary_coefs[i]
-    end
-    d = div(A.stencil_length, 2)
-    for i in A.boundary_point_count + 1 : N - A.boundary_point_count
-        D[i, i-d : i+d] = A.stencil_coefs
-    end
-    for i in 1 : A.boundary_point_count
-        D[N - i + 1, N - A.boundary_length + 1 : N] = A.high_boundary_coefs[i]
-    end
-    return D
-end
-
 #=
     This function is used to update the boundary conditions especially if they evolve with
     time.
@@ -636,12 +569,7 @@ function Base.A_mul_B!(x_temp::AbstractVector{T}, A::Union{DerivativeOperator{T}
     scale!(x_temp, 1./(A.dx^A.derivative_order))
     A.t[] += 1 # incrementing the internal time stamp
 end
-function Base.A_mul_B!(x_temp::AbstractVector{T}, A::FiniteDifference{T}, x::AbstractVector{T}) where T<:Real
-    convolve_BC_left!(x_temp, x, A)
-    convolve_interior!(x_temp, x, A)
-    convolve_BC_right!(x_temp, x, A)
-    A.t[] += 1 # incrementing the internal time stamp
-end
+
 #=
     This definition of the A_mul_B! function makes it possible to apply the LinearOperator on
     a matrix and not just a vector. It basically transforms the rows one at a time.

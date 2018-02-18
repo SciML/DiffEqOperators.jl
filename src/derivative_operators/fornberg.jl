@@ -1,66 +1,9 @@
 #############################################################
 # Fornberg algorithm
 
+# This implements the Fornberg (1988) algorithm (https://doi.org/10.1090/S0025-5718-1988-0935077-0)
+# to obtain Finite Difference weights over arbitrary points to arbitrary order
 
-
-immutable FiniteDifference{T<:Real,S<:SVector,LBC,RBC} <: AbstractDerivativeOperator{T}
-    derivative_order    :: Int
-    approximation_order :: Int
-    dx                  :: Vector{T}
-    dimension           :: Int
-    stencil_length      :: Int
-    stencil_coefs       :: Vector{S}
-    boundary_point_count:: Tuple{Int,Int}
-    boundary_length     :: Tuple{Int,Int}
-    low_boundary_coefs  :: Ref{Vector{Vector{T}}}
-    high_boundary_coefs :: Ref{Vector{Vector{T}}}
-    boundary_condition  :: Ref{Tuple{Tuple{T,T,Any},Tuple{T,T,Any}}}
-    t                   :: Ref{Int}
-
-    Base.@pure function FiniteDifference{T,S,LBC,RBC}(derivative_order::Int, approximation_order::Int, dx::Vector{T},
-                                            dimension::Int, BC) where {T<:Real,S<:SVector,LBC,RBC}
-        dimension            = dimension
-        dx                   = dx
-        stencil_length       = derivative_order + approximation_order - 1 + (derivative_order+approximation_order)%2
-        bl                   = derivative_order + approximation_order
-        boundary_length      = (bl,bl)
-        bpc                  = stencil_length - div(stencil_length,2) + 1
-        bpc_array            = [bpc,bpc]
-        grid_step            = dx
-        x                    = [zero(T); cumsum(dx)]
-        low_boundary_coefs   = Vector{T}[]
-        high_boundary_coefs  = Vector{T}[]
-
-        stl_2 = div(stencil_length,2)
-        stencil_coefs        = [convert(SVector{stencil_length, T}, calculate_weights(derivative_order, x[idx],
-                               x[idx-stl_2 : 1 : idx+stl_2])) for idx in stl_2+1:dimension-stl_2]
-
-        left_bndry = initialize_left_boundary!(Val{:LO},low_boundary_coefs,stencil_coefs[1:stl_2],BC,derivative_order,
-                                               grid_step[1:stl_2],bl,bpc_array,dx,LBC)
-
-        right_bndry = initialize_right_boundary!(Val{:LO},high_boundary_coefs,stencil_coefs[end-stl_2+1:end],BC,derivative_order,
-                                                 grid_step[end-stl_2+1:end],bl,bpc_array,dx,RBC)
-
-        boundary_condition = (left_bndry, right_bndry)
-        boundary_point_count = (bpc_array[1],bpc_array[2])
-
-        t = 0
-
-        new(derivative_order, approximation_order, dx, dimension, stencil_length,
-            stencil_coefs,
-            boundary_point_count,
-            boundary_length,
-            low_boundary_coefs,
-            high_boundary_coefs,
-            boundary_condition,
-            t
-            )
-    end
-    FiniteDifference{T}(dorder::Int,aorder::Int,dx::Vector{T},dim::Int,LBC::Symbol,RBC::Symbol;BC=(zero(T),zero(T))) where {T<:Real} =
-        FiniteDifference{T, SVector{dorder+aorder-1+(dorder+aorder)%2,T}, LBC, RBC}(dorder, aorder, dx, dim, BC)
-end
-
-# This implements the Fornberg algorithm to obtain Finite Difference weights over arbitrary points to arbitrary order
 function calculate_weights(order::Int, x0::T, x::Vector{T}) where T<:Real
     #=
         order: The derivative order for which we need the coefficients
