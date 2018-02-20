@@ -85,8 +85,8 @@ end
     A = DiffEqOperators.FiniteDifference{Float64}(4,4,dx,length(x),:None,:None)
     boundary_points = A.boundary_point_count
 
-    y = sin.(x)
+    y = sin.(x)+2. #avoid 0.0
     res = A*y
-    @test res[boundary_points[1] + 1: N - boundary_points[2]] ≈ y[boundary_points[1] + 1: N - boundary_points[2]] atol=10.0^-1;
+    @test res[boundary_points[1] + 1: N - boundary_points[2]]+2. ≈ y[boundary_points[1] + 1: N - boundary_points[2]] atol=10.0^-1;
 
 end
