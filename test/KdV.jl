@@ -24,11 +24,11 @@ using DiffEqOperators, OrdinaryDiffEq
     C = UpwindOperator{Float64}(3,3,Δx,length(x),true.|BitVector(length(x)),
                                 :Dirichlet0,:Dirichlet0);
 
-    function KdV(t, u, du)
+    function KdV(du, u, p, t)
        C(t,u,du3)
        A(t,u,du)
        @. temp = -0.5*u*du - 0.25*du3
-       copy!(du,temp)                                                 
+       copy!(du,temp)
     end
 
     single_solition = ODEProblem(KdV, u0, (0.,5.));
@@ -72,7 +72,7 @@ end
     C = UpwindOperator{Float64}(3,1,Δx,length(x),false.*BitVector(length(x)),
                                 :Dirichlet0,:nothing);
 
-    function KdV(t, u, du)
+    function KdV(du, u, p, t)
        C(t,u,du3)
        A(t, u, du)
        @. temp = -6*u*du - du3
