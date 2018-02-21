@@ -1,14 +1,5 @@
-workspace()
-using DiffEqOperators, DifferentialEquations, StaticArrays
-
-# Note: despite already having all notation to run as a test, at this
-# point I still prefer to # the tests, and check them one by one
-# manually. I made that choice because it's much faster to run new tests
-# This can be easily undune by removing each of the # before
-# @testset, @test and end
-
+#TODO:::::::::::::::::: MOVE THIS KIND OF STUFF TO AN ISSUE(S)
 # NEXT steps:
-
 # ISSUE1: shouldn't sigma'*A*u*sigma be NxN? result is Nx1!
 # ISSUE2: A has very high values in the boundaries (look at full(A))
 # ISSUE3: For some reason, derivative opperator function doesn't accept
@@ -46,10 +37,11 @@ using DiffEqOperators, DifferentialEquations, StaticArrays
 # from Pang and ?
 # 3.1.8 Comparing solution to discretized A:
 
-# 1)
-#@testset "Univariate Diffusion" begin
-
 # 2) set x, sigma(x), lowerBC; upperBC, u0
+
+
+using DiffEqOperators, DifferentialEquations, StaticArrays, Base.Test
+
 N = 100
 d_order = 2
 approx_order = 2
@@ -72,6 +64,8 @@ A = DerivativeOperator{Float64}(d_order,approx_order,dt,N,
 res = A*u0
 discr = sigma'*res*sigma
 
+warn("WHAT IS BEING TESTED ON THE OUTPUT HERE?")
+
 # 3) TESTS:
 # 3.1) Neumann boundaries:
 
@@ -80,12 +74,12 @@ discr = sigma'*res*sigma
 FD = DerivativeOperator{Float64}(1,approx_order,dt,N,
                         lowerBC,:Neumann0;BC=(u0[1],u0[end]))
 first_deriv = FD*res
-# @test first_deriv ≈ zeros(n,1) atol=10.0^-1
+@test_broken norm(first_deriv) < 10.0^-1
 
 # 3.1.2) Testing interior
 boundary_points = A.boundary_point_count
-# @test res[boundary_points[1] + 1: N - boundary_points[2]] ≈
-#            2.0*ones(N - sum(boundary_points)) atol=10.0^approx_order
+
+#@test res[boundary_points[1] + 1: N - boundary_points[2]] ≈ 2.0*ones(N - sum(boundary_points)) atol=10.0^approx_order
 
 # 3.1.3) Testing for full and sparce matrices
    #@test sparse(A) == full(A)
