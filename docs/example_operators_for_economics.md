@@ -43,7 +43,9 @@ Define the following:
 As we will only look at linear differential operators, we should be able to decompose them.  Denote the general process as $\mathcal{A}$ then we can define the following operators in preparation for using finite-differences
 
 - $\mathcal{A}^{UW}_{1, s}$ as the upwind first order differential operator on the $x$ space.  That is,
-$\mathcal{A}^{UW}_{1, s} \equiv \partial_x $
+	$$
+	\mathcal{A}^{UW}_{1, s} \equiv \partial_x
+	$$
 
 	- This will use upwind finite differences and a first-order scheme, such that wherever $s(t,x) < 0$ it uses forward-differences, and vice-versa
 
