@@ -1,3 +1,4 @@
+using OrdinaryDiffEq, ToeplitzMatrices, Plots
 n = 100;
 x = linspace(-1,1,n)
 Δx = step(x)
