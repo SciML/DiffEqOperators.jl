@@ -601,6 +601,18 @@ Base.ctranspose(A::AbstractDerivativeOperator) = A
 Base.issymmetric(::AbstractDerivativeOperator) = true
 
 #=
+    The Inf norm can be calculated easily using the stencil coeffiicents, while other norms 
+    default to compute from the full matrix form.
+=#
+function Base.norm(A::DerivativeOperator{T,S,LBC,RBC}, p::Real=2) where {T,S,LBC,RBC}
+    if p == Inf && LBC in [:Dirichlet0, :Neumann0, :periodic] && RBC in [:Dirichlet0, :Neumann0, :periodic]
+        sum(abs.(A.stencil_coefs)) / A.dx^A.derivative_order
+    else
+        norm(full(A), p)
+    end
+end
+
+#=
     This function ideally should give us a matrix which when multiplied with the input vector
     returns the derivative. But the presence of different boundary conditons complicates the
     situation. It is not possible to incorporate the full information of the boundary conditions

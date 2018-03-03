@@ -223,3 +223,15 @@ function right_nothing_BC!(::Type{Val{:UO}},high_boundary_coefs,down_stencil_len
     push!(high_boundary_coefs, negate!(calculate_weights(derivative_order, -(0)*grid_step, reverse(collect(zero(T) : -grid_step : -(boundary_length-1)*grid_step)))))
     return r_diff
 end
+
+#=
+    The Inf norm can be calculated easily using the stencil coeffiicents, while other norms 
+    default to compute from the full matrix form.
+=#
+function Base.norm(A::UpwindOperator{T,S,LBC,RBC}, p::Real=2) where {T,S,LBC,RBC}
+    if p == Inf && LBC in [:Dirichlet0, :Neumann0, :periodic] && RBC in [:Dirichlet0, :Neumann0, :periodic]
+        max(sum(abs.(A.up_stencil_coefs)) / A.dx^A.derivative_order, sum(abs.(A.down_stencil_coefs)) / A.dx^A.derivative_order)
+    else
+        norm(full(A), p)
+    end
+end
