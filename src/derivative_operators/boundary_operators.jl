@@ -2,9 +2,6 @@
 low(i::Int, mid::Int, bpc::Int) = Int(mid + (i-1)*(1-mid)/bpc)
 high(i::Int, mid::Int, bpc::Int, slen::Int, L::Int) = Int(slen - (slen-mid)*(i-L+bpc)/(bpc))
 
-# used in general dirichlet BC. To simulate a constant value beyond the boundary
-limit(i, N) = N>=i>=1 ? i : (i<1 ? 1 : N)
-
 # used in Neumann 0 BC
 function reflect(idx, L)
     abs1 = abs(L-idx)
@@ -48,13 +45,15 @@ end
 function convolve_BC_left!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::UpwindOperator{T,S,:Dirichlet0,RBC}) where {T<:Real,S<:SVector,RBC}
     stencil_length = A.stencil_length
     stencil_rem = 1-stencil_length%2
+    bcl,bcr = A.boundary_condition[][1][3],A.boundary_condition[][2][3]
+
     for i in 1 : A.boundary_point_count[1]
         A.directions[][i] ? start_idx = stencil_length - stencil_rem : start_idx = 1 + stencil_rem
         # we have to modify the number of boundary points to be considered as with upwind operators
         # the number of bpc is only 0 or 1 depending on the order
         A.directions[][i] ? bpc = A.boundary_point_count[1] : bpc = stencil_rem
         # println("***D0 i = $i, start_idx/mid = $start_idx, bpc = $bpc, stencil_length = $stencil_length ***")
-        dirichlet_1!(x_temp, x, A.directions[][i] ? A.down_stencil_coefs : A.up_stencil_coefs, start_idx, i)
+        dirichlet_1!(x_temp, x, A.directions[][i] ? A.down_stencil_coefs : A.up_stencil_coefs, start_idx, i, bcl, bcr)
     end
 end
 
@@ -62,11 +61,12 @@ end
 
 
 function convolve_BC_left!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::DerivativeOperator{T,S,:Dirichlet,RBC}) where {T<:Real,S<:SVector,RBC}
-    x[1] = A.boundary_condition[][1][3](A.t)
+    bcl,bcr = A.boundary_condition[][1][3](A.t),A.boundary_condition[][2][3](A.t)
     mid = div(A.stencil_length,2)+1
-    for i in 1 : A.boundary_point_count[1]
-        dirichlet_1!(x_temp, x, A.stencil_coefs, mid, i)
+    for i in 2 : A.boundary_point_count[1]
+        dirichlet_1!(x_temp, x, A.stencil_coefs, mid, i, bcl,bcr)
     end
+    x_temp[1] = bcl
 end
 
 function convolve_BC_left!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::FiniteDifference{T,S,:Dirichlet,RBC}) where {T<:Real,S<:SVector,RBC}
@@ -251,11 +251,12 @@ function convolve_BC_right!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::
     bpc = A.boundary_point_count[2]
     stencil_length = A.stencil_length
     stencil_rem = 1 - stencil_length%2
+    bcl,bcr = A.boundary_condition[][1][3],A.boundary_condition[][2][3]
 
     for i in 1 : A.boundary_point_count[2]
         pt_idx = N - A.boundary_point_count[2] + i
         A.directions[][pt_idx] ? start_idx = stencil_length - stencil_rem : start_idx = 1 + stencil_rem
-        dirichlet_1!(x_temp, x, A.directions[][pt_idx] ? A.down_stencil_coefs : A.up_stencil_coefs, start_idx, pt_idx)
+        dirichlet_1!(x_temp, x, A.directions[][pt_idx] ? A.down_stencil_coefs : A.up_stencil_coefs, start_idx, pt_idx, bcl, bcr)
     end
 end
 
@@ -263,11 +264,12 @@ end
 function convolve_BC_right!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::DerivativeOperator{T,S,LBC,:Dirichlet}) where {T<:Real,S<:SVector,LBC}
     N = length(x)
     mid = div(A.stencil_length,2) + 1
-    x[end] = A.boundary_condition[][2][3](A.t)
+    bcl,bcr = A.boundary_condition[][1][3](A.t),A.boundary_condition[][2][3](A.t)
 
     for i in 1 : A.boundary_point_count[2]
-        dirichlet_1!(x_temp, x, A.stencil_coefs, mid, N - A.boundary_point_count[2] + i)
+        dirichlet_1!(x_temp, x, A.stencil_coefs, mid, N - A.boundary_point_count[2] + i, bcl,bcr)
     end
+    x_temp[end] = bcr
 end
 
 function convolve_BC_right!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::FiniteDifference{T,S,LBC,:Dirichlet}) where {T<:Real,S<:SVector,LBC}
@@ -428,7 +430,7 @@ function dirichlet_0!(x_temp::AbstractVector{T}, x::AbstractVector{T}, coeffs::S
 end
 
 
-function dirichlet_1!(x_temp::AbstractVector{T}, x::AbstractVector{T}, coeffs::SVector, mid::Int, i::Int) where T<:Real
+function dirichlet_1!(x_temp::AbstractVector{T}, x::AbstractVector{T}, coeffs::SVector, mid::Int, i::Int, bcl, bcr) where T<:Real
     stencil_length = length(coeffs)
     N = length(x)
     #=
@@ -438,7 +440,14 @@ function dirichlet_1!(x_temp::AbstractVector{T}, x::AbstractVector{T}, coeffs::S
     =#
     xtempi = zero(T)
     @inbounds for idx in 1:stencil_length
-        xtempi += coeffs[idx] * x[limit(i - (mid-idx), N)]
+        loc = i - (mid-idx)
+        if loc <= 1 || loc >= N
+           xtempi += coeffs[idx]*bcl
+       elseif loc >= N
+           xtempi += coeffs[idx]*bcr
+       else
+           xtempi += coeffs[idx] * x[loc]
+        end
     end
     x_temp[i] = xtempi
 end

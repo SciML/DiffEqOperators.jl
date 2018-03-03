@@ -1,5 +1,5 @@
 using Base.Test
-using OrdinaryDiffEq
+using DiffEqOperators, OrdinaryDiffEq
 
 @testset "Parabolic Heat Equation with Dirichlet BCs" begin
     x = collect(-pi : 2pi/511 : pi);
@@ -49,14 +49,13 @@ end
     left_RBC = params[1]*u0[1] - params[2]*deriv_start
     right_RBC = params[1]*u0[end] + params[2]*deriv_end
 
-    A = DerivativeOperator{Float64}(2,2,dx,N,:Robin,:Dirichlet;BC=((params[1],params[2],left_RBC),u0[end]));
+    A = DerivativeOperator{Float64}(2,2,dx,N,:Robin,:Dirichlet0;BC=((params[1],params[2],left_RBC),u0[end]));
 
     heat_eqn = ODEProblem(A, u0, (0.,10.));
     soln = solve(heat_eqn,Tsit5(),dense=false,tstops=0:0.01:10);
 
     first_order_coeffs_start = [-11/6, 3.0, -3/2, 1/3] * (1/dx)
     first_order_coeffs_end = -reverse([-11/6, 3.0, -3/2, 1/3] * (1/dx))
-    val = []
     # Broken in different amounts on each CI computer
     for t in 0.2:0.1:9.8
         @test_skip params[1]*soln(t)[1] + -params[2]*sum(first_order_coeffs_start .* soln(t)[1:4]) ≈ left_RBC atol=1e-1
