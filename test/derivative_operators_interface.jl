@@ -12,6 +12,7 @@
     @test full(A, 10) == -Strang(10); # Strang Matrix is defined with the center term +ve
     @test full(A, N) == -Strang(N); # Strang Matrix is defined with the center term +ve
     @test full(A) == sp_mat
+    @test norm(A, Inf) == norm(mat, Inf)
 
     # testing correctness
     N = 1000

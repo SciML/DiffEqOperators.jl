@@ -438,3 +438,15 @@ end
 (L::DerivativeOperator)(du,u,p,t) = A_mul_B!(du,L,u)
 get_LBC(::DerivativeOperator{A,B,C,D}) where {A,B,C,D} = C
 get_RBC(::DerivativeOperator{A,B,C,D}) where {A,B,C,D} = D
+
+#=
+    The Inf norm can be calculated easily using the stencil coeffiicents, while other norms
+    default to compute from the full matrix form.
+=#
+function Base.norm(A::DerivativeOperator{T,S,LBC,RBC}, p::Real=2) where {T,S,LBC,RBC}
+    if p == Inf && LBC in [:Dirichlet0, :Neumann0, :periodic] && RBC in [:Dirichlet0, :Neumann0, :periodic]
+        sum(abs.(A.stencil_coefs)) / A.dx^A.derivative_order
+    else
+        norm(full(A), p)
+    end
+end 
