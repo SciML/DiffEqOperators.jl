@@ -43,6 +43,46 @@ The following expressions are used in the document:
 
 \section{General Overview of Discretization and Boundary Values}\label{sec:general}
 \textbf{TODO:} Explain the $R, Q, B, A$ etc. for the general notation from \url{https://github.com/JuliaDiffEq/DifferentialEquations.jl/issues/260}.  The idea here is to make sure we understand everything about the ghost nodes, boundary values, etc.
+\begin{itemize}
+\item A is defined as the discretization of the partial differential operator in use.
+\item R is the restriction operator which is defined by the domain. It removes columns which are not in the interior.\\
+Take $u \equiv \set{u(x_i)}_{i=1}^I \in \R^I$ as an example, R is a $(I-2\times I)$ matrix,
+\begin{equation}
+R = \begin{bmatrix}
+0&1&0&0&\dots &0&0\\
+0&0&1&0&\dots &0&0\\
+\vdots&\vdots&\vdots&\vdots&\vdots&\vdots&\vdots\\
+0&0&0&0&\dots&1&0
+\end{bmatrix}_{(I-2)\times I}
+\end{equation}
+s.t. 
+\begin{equation}
+R\cdot u  \equiv\set{u(x_i)}_{i=2}^{I-1} \in \R^{I-2} \label{R_operator}
+\end{equation}
+\item B is the the boundary condition operator. In one dimension, it is defined as satisfying
+\begin{equation}
+B\cdot u \equiv \begin{bmatrix}
+\text{BC 1}\\
+\text{BC 2}
+\end{bmatrix}\label{B_operator}
+\end{equation}
+for any $u$ in the space of functions that satisfy the BCs. B is not necessarily unique. The choice of B is exactly the choice of boundary value discretization. For instance, choosing to do first or second order Neumann BCs is simply the choice of the operator B. In 1D, the dimension of $B$ is $2\times I$.
+\item Q is the operator that is defined as
+\begin{equation}
+Q \cdot R\cdot u = u\label{Q_operator_1}
+\end{equation}
+for any $u$ that satisfies the BCs. (Notice that $Q = R^{-1}$ if R is square, and this is only true as maps on functions which satisfy the boundary.)\\
+It has a second relation 
+\begin{equation}
+B\cdot Q\cdot v  = \begin{bmatrix}
+\text{BC 1}\\
+v\\
+\text{BC 2}
+\end{bmatrix}\label{Q_operator_2}
+\end{equation}
+basically saying that it's a map from discretizations of functions in the interior to functions which satisfy the BCs. In order to hold on trivial $v$, we need that the interior of $Q$ is identity, so it is defined by its first and last rows.\\
+Q is actually in general affine, meaning that $Q\cdot u = Q_a\cdot u+ Q_b$. For example, the definition given of tha inner product make $Q\cdot x=b$ in an iterative solver converge to $Q_a\cdot x = b - Q_b$. From the relations, $Q_a$ is $I\times (I-2)$ and $Q_b$ is of length $I$. In order for $Q\cdot R\cdot u = u$ to hold for trivial $u$, we need that $Q_b$ is zero except the first and last rows (boundary rows) .
+\end{itemize}
 
 \section{Time-Invariant Stochastic Process Examples}
 Let $x_t$ be a stochastic process for a univariate function defined on a continuous domain $x \in (\underline{x}, \bar{x})$ where $-\infty < \underline{x} < \bar{x} < \infty$.  We will assume throughout that the domain is time-invariant.
