@@ -25,3 +25,18 @@
 # end
 
 Base.expm(A::LinearCombination) = expm(full(A))
+
+Base.norm(A::IdentityMap{T}, p::Real=2) where T = real(one(T))
+Base.norm(A::LinearCombination, p::Real=2) = norm(full(A), p)
+#=
+    The norm of A+B is difficult to calculate, but in many applications we only 
+    need an estimate of the norm (e.g. for error analysis) so it makes sense to 
+    compute the upper bound given by the triangle inequality
+
+        |A + B| <= |A| + |B|
+
+    For derivative operators A and B, their Inf norm can be calculated easily 
+    and thus so is the Inf norm bound of A + B.
+=#
+normbound(A::Union{AbstractDiffEqLinearOperator,IdentityMap}, p::Real=2) = norm(A, p)
+normbound(A::LinearCombination, p::Real=2) = sum(abs.(A.coeffs) .* normbound.(A.maps, p))

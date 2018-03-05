@@ -27,4 +27,5 @@ include("operator_combination.jl")
 
 export DiffEqScalar, DiffEqArrayOperator
 export AbstractDerivativeOperator, DerivativeOperator, UpwindOperator, FiniteDifference
+export normbound
 end # module
