@@ -52,15 +52,8 @@ Base.issymmetric(L::DiffEqArrayOperator) = L._issymmetric
 Base.ishermitian(L::DiffEqArrayOperator) = L._ishermitian
 Base.isposdef(L::DiffEqArrayOperator) = L._isposdef
 DiffEqBase.is_constant(L::DiffEqArrayOperator) = L.update_func == DEFAULT_UPDATE_FUNC
-function Base.expm(L::DiffEqArrayOperator)
-    tmp = full(L.A) # If not lazy then this is a no-op
-    tmp .*= L.α.coeff
-    out = expm(tmp)
-    if tmp === L.A
-        L.A ./= L.α.coeff # Undo change if not lazy
-    end
-    out
-end
+Base.full(L::DiffEqArrayOperator) = full(L.A) * L.α.coeff
+Base.expm(L::DiffEqArrayOperator) = expm(full(L))
 DiffEqBase.has_expm(L::DiffEqArrayOperator) = true
 Base.size(L::DiffEqArrayOperator) = size(L.A)
 Base.norm(L::DiffEqArrayOperator, p::Real=2) = norm(L.A, p) * abs(L.α.coeff)

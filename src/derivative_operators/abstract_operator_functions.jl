@@ -209,3 +209,9 @@ function Base.sparse(A::AbstractDerivativeOperator{T}) where T
     end
     return mat
 end
+
+#=
+    This is the fallback method of expm, which is used in exponential integrators 
+    with caching.
+=#
+Base.expm(A::AbstractDerivativeOperator{T}) where T = expm(full(A))
