@@ -38,5 +38,6 @@ Base.norm(A::LinearCombination, p::Real=2) = norm(full(A), p)
     For derivative operators A and B, their Inf norm can be calculated easily 
     and thus so is the Inf norm bound of A + B.
 =#
+normbound(A::AbstractArray, p::Real=2) = norm(A, p)
 normbound(A::Union{AbstractDiffEqLinearOperator,IdentityMap}, p::Real=2) = norm(A, p)
 normbound(A::LinearCombination, p::Real=2) = sum(abs.(A.coeffs) .* normbound.(A.maps, p))
