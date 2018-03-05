@@ -63,7 +63,7 @@ function Base.expm(L::DiffEqArrayOperator)
 end
 DiffEqBase.has_expm(L::DiffEqArrayOperator) = true
 Base.size(L::DiffEqArrayOperator) = size(L.A)
-Base.norm(L::DiffEqArrayOperator, p::Real=2) = norm(L.A, p)
+Base.norm(L::DiffEqArrayOperator, p::Real=2) = norm(L.A, p) * abs(L.α.coeff)
 DiffEqBase.update_coefficients!(L::DiffEqArrayOperator,t,u) = (L.update_func(L.A,t,u); L.α = L.α(t); nothing)
 DiffEqBase.update_coefficients(L::DiffEqArrayOperator,t,u)  = (L.update_func(L.A,t,u); L.α = L.α(t); L)
 

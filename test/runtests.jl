@@ -3,6 +3,7 @@ using Base.Test
 using SpecialMatrices, SpecialFunctions
 
 tic()
+@time @testset "Array Operators Interface" begin include("array_operators_interface.jl") end
 @time @testset "Derivative Operators Interface" begin include("derivative_operators_interface.jl") end
 @time @testset "Dirichlet BCs" begin include("dirichlet.jl") end
 @time @testset "Periodic BCs" begin include("periodic.jl") end
