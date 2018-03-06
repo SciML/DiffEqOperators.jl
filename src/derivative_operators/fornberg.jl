@@ -1,78 +1,9 @@
 #############################################################
 # Fornberg algorithm
-function derivative(y::Vector{T}, A::DerivativeOperator{T}) where T<:Real
-    dy = zeros(T, length(y))
-    derivative!(dy, y, A)
-    return dy
-end
 
+# This implements the Fornberg (1988) algorithm (https://doi.org/10.1090/S0025-5718-1988-0935077-0)
+# to obtain Finite Difference weights over arbitrary points to arbitrary order
 
-function derivative!(dy::Vector{T}, y::Vector{T}, A::DerivativeOperator{T}) where T<:Real
-    N = length(y)
-    #=
-        Derivative is calculated in 3 parts:-
-            1. For the initial boundary points
-            2. For the middle points
-            3. For the terminating boundary points
-    =#
-    @inbounds for i in 1 : A.boundary_point_count
-        bc = A.low_boundary_coefs[i]
-        tmp = zero(T)
-        for j in 1 : A.boundary_length
-            tmp += bc[j] * y[j]
-        end
-        dy[i] = tmp
-    end
-
-    d = div(A.stencil_length, 2)
-
-    @inbounds for i in A.boundary_point_count+1 : N-A.boundary_point_count
-        c = A.stencil_coefs
-        tmp = zero(T)
-        for j in 1 : A.stencil_length
-            tmp += c[j] * y[i-d+j-1]
-        end
-        dy[i] = tmp
-    end
-
-    @inbounds for i in 1 : A.boundary_point_count
-        bc = A.high_boundary_coefs[i]
-        tmp = zero(T)
-        for j in 1 : A.boundary_length
-            tmp += bc[j] * y[N - A.boundary_length + j]
-        end
-        dy[N - i + 1] = tmp
-    end
-    return dy
-end
-
-
-function construct_differentiation_matrix(N::Int, A::DerivativeOperator{T}) where T<:Real
-    #=
-        This is for calculating the derivative in one go. But we are creating a function
-        which can calculate the derivative by-passing the costly matrix multiplication.
-    =#
-    D = zeros(T, N, N)
-    for i in 1 : A.boundary_point_count
-        D[i, 1 : A.boundary_length] = A.low_boundary_coefs[i]
-    end
-    d = div(A.stencil_length, 2)
-    for i in A.boundary_point_count + 1 : N - A.boundary_point_count
-        D[i, i-d : i+d] = A.stencil_coefs
-    end
-    for i in 1 : A.boundary_point_count
-        D[N - i + 1, N - A.boundary_length + 1 : N] = A.high_boundary_coefs[i]
-    end
-    return D
-end
-
-
-# immutable FiniteDifference <: AbstractDerivativeOperator
-#     # TODO: the general case ie. with an uneven grid
-# end
-
-
-# This implements the Fornberg algorithm to obtain Finite Difference weights over arbitrary points to arbitrary order
 function calculate_weights(order::Int, x0::T, x::Vector{T}) where T<:Real
     #=
         order: The derivative order for which we need the coefficients

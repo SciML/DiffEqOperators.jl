@@ -1,0 +1,8 @@
+*.md.pdf
+*-cache.yaml
+*.aux
+*.fls
+*.log
+*.pdf
+*.gz
+_minted*

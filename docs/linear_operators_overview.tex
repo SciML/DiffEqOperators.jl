@@ -1,0 +1,177 @@
+%!TeX shellEscape = restricted
+%!TeX enableSynctex = true
+\documentclass[11pt]{article}
+\usepackage{url,amsmath,amsfonts}
+\usepackage[capitalise,noabbrev]{cleveref} %
+\crefname{equation}{}{} %
+%\usepackage{minted} %If require code snippets, turn back on
+\usepackage[nohead]{geometry}
+
+%Some macros
+\newcommand{\set}[1]{\ensuremath{\left\{{#1}\right\}}}
+\newcommand{\R}{\ensuremath{\mathbb{R}}}
+\newcommand{\D}[1][]{\ensuremath{\boldsymbol{\partial}_{#1}}}
+\newcommand{\W}{\ensuremath{\mathbb{W}}}
+\newcommand{\A}{\ensuremath{\mathcal{A}}}
+
+
+\geometry{left=1in,right=1in,top=0.6in,bottom=1in}
+\begin{document}
+\title{Discretizing Linear Operators Overview}
+\author{}
+\date{}
+\maketitle
+\section{Overview of Notation}
+To set some notation,
+\paragraph{General}
+
+The following expressions are used in the document:
+\begin{itemize}
+	 \item Given an operator (or infinitesimal generator) associated with a particular stochastic process, $\A$.\footnote{See \url{https://en.wikipedia.org/wiki/Infinitesimal_generator_(stochastic_processes)} for some formulas and interpretation for diffusions, and \url{https://en.wikipedia.org/wiki/Transition_rate_matrix} for the generator of continuous-time Markov chains.}  The purpose of these notes is to discretize $\A$ on this grid using finite differences
+%	 \item Where appropriate, we will define the adjoint of the operator $\A$ as $\A^*$.  This is useful when trying to solve for the evolution of distributions (rather than solving for the value functions).
+	 \item For a given variable $q$, define the notation $q^{-} \equiv \min\set{q,0}$ and $q^{+} \equiv \max\set{q,0}$, which will be useful for defining finite-differences with an upwind scheme.  This can apply to vectors as well. For example, $q_i^{-} = q_i$ if $q_i < 0$ and $0$ if $q_i > 0$, and $q_i^{-} \equiv \set{q^{-}_i}_{i=1}^{I}$.
+	 \item Let $\mathbb{W}_t$ be Brownian motion
+	 \item Finally, derivatives are denoted by the operator $\D$ and univariate derivatives such as $\D[x]u(x) \equiv u'(x)$.
+\end{itemize}
+
+\paragraph{Grids} Start with the simplification of a univariate function of $x$,
+\begin{itemize}
+	\item In the univariate case with $I$ points, $\set{x_i}_{i=1}^I$ with $x_1 = \underline{x}$ and $x_I = \bar{x}$ when $x \in [\underline{x}, \bar{x}]$.  After discretizing, we will often denote the grid with the variable name, i.e. $x \equiv \set{x_i}_{i=1}^I$
+	In the simple case of a uniform grid, $\Delta \equiv x_{i+1} - x_i$ for all $i < I$
+	\item When we discretize a function, use the function name without arguments to denote the vector.  i.e. $u(x)$ discretized on a grid $\set{x_i}_{i=1}^{I}$  is $u \equiv \set{u(x_i)}_{i=1}^I \in \R^I$
+\end{itemize}
+
+\section{General Overview of Discretization and Boundary Values}\label{sec:general}
+\textbf{TODO:} Explain the $R, Q, B, A$ etc. for the general notation from \url{https://github.com/JuliaDiffEq/DifferentialEquations.jl/issues/260}.  The idea here is to make sure we understand everything about the ghost nodes, boundary values, etc.
+\begin{itemize}
+\item A is defined as the discretization of the partial differential operator in use.
+\item R is the restriction operator which is defined by the domain. It removes columns which are not in the interior.\\
+Take $u \equiv \set{u(x_i)}_{i=1}^I \in \R^I$ as an example, R is a $(I-2\times I)$ matrix,
+\begin{equation}
+R = \begin{bmatrix}
+0&1&0&0&\dots &0&0\\
+0&0&1&0&\dots &0&0\\
+\vdots&\vdots&\vdots&\vdots&\vdots&\vdots&\vdots\\
+0&0&0&0&\dots&1&0
+\end{bmatrix}_{(I-2)\times I}
+\end{equation}
+s.t. 
+\begin{equation}
+R\cdot u  \equiv\set{u(x_i)}_{i=2}^{I-1} \in \R^{I-2} \label{R_operator}
+\end{equation}
+\item B is the the boundary condition operator. In one dimension, it is defined as satisfying
+\begin{equation}
+B\cdot u \equiv \begin{bmatrix}
+\text{BC 1}\\
+\text{BC 2}
+\end{bmatrix}\label{B_operator}
+\end{equation}
+for any $u$ in the space of functions that satisfy the BCs. B is not necessarily unique. The choice of B is exactly the choice of boundary value discretization. For instance, choosing to do first or second order Neumann BCs is simply the choice of the operator B. In 1D, the dimension of $B$ is $2\times I$.
+\item Q is the operator that is defined as
+\begin{equation}
+Q \cdot R\cdot u = u\label{Q_operator_1}
+\end{equation}
+for any $u$ that satisfies the BCs. (Notice that $Q = R^{-1}$ if R is square, and this is only true as maps on functions which satisfy the boundary.)\\
+It has a second relation 
+\begin{equation}
+B\cdot Q\cdot v  = \begin{bmatrix}
+\text{BC 1}\\
+v\\
+\text{BC 2}
+\end{bmatrix}\label{Q_operator_2}
+\end{equation}
+basically saying that it's a map from discretizations of functions in the interior to functions which satisfy the BCs. In order to hold on trivial $v$, we need that the interior of $Q$ is identity, so it is defined by its first and last rows.\\
+Q is actually in general affine, meaning that $Q\cdot u = Q_a\cdot u+ Q_b$. For example, the definition given of tha inner product make $Q\cdot x=b$ in an iterative solver converge to $Q_a\cdot x = b - Q_b$. From the relations, $Q_a$ is $I\times (I-2)$ and $Q_b$ is of length $I$. In order for $Q\cdot R\cdot u = u$ to hold for trivial $u$, we need that $Q_b$ is zero except the first and last rows (boundary rows) .
+\end{itemize}
+
+\section{Time-Invariant Stochastic Process Examples}
+Let $x_t$ be a stochastic process for a univariate function defined on a continuous domain $x \in (\underline{x}, \bar{x})$ where $-\infty < \underline{x} < \bar{x} < \infty$.  We will assume throughout that the domain is time-invariant.
+
+For a given $\A$ Then, if the payoff in state $x$ is $b(x)$, and payoffs are discounted at rate $r > 0$, then the simple HJBE for $u(x)$ is,
+\begin{align}
+r u(x) &= b(x) + \A u(x)\label{eq:general-stationary-HJBE}
+\end{align}
+subject to $\D[x]u(\underline{x}) = 0$ and $\D[x]u(\bar{x}) = 0$ for reflecting barriers.  If it is a lower absorbing barrier, then denote $\D[x]u(\underline{x}) = \underline{u}$ which may be non-zero.
+
+For a simple example of a payoff, choose $b(x) = x$.
+
+\subsection{Stationary HJBE with Reflecting Barriers}
+Take the stochastic process
+$$
+d x_t = d \W_t
+$$
+with reflecting barriers at $\underline{x}$ and $\bar{x})$.  The partial differential operator (infinitesimal generator) associated with the stochastic process is
+$$
+	\A \equiv \frac{1}{2}\D[xx]
+$$
+
+With this process,
+\begin{itemize}
+	\item How to derive all of the matrices of \cref{sec:general}
+	\item The system of equations to solve for $u(x)$ in \cref{eq:general-stationary-HJBE}
+	\item Check that the code \url{operator_examples\simple_stationary_HJBE_reflecting.jl} is correct
+\end{itemize}
+
+\subsection{Stationary HJBE with a Lower Absorbing Barrier}
+Take the stochastic process
+$$
+d x_t = d \W_t
+$$
+with an absorbing barrier at $\underline{x}$, and a reflecting barrier at $\bar{x})$.  The partial differential operator (infinitesimal generator) associated with the stochastic process is
+$$
+\A \equiv \frac{1}{2}\D[xx]
+$$
+
+For the absorbing barrier, when solving for the HJBE assume that $u(\underbar{x}) = \underbar{x}$ and $u'(\bar{x}) = 0$
+
+
+With this process,
+\begin{itemize}
+	\item How to derive all of the matrices of \cref{sec:general}
+	\item The system of equations to solve for $u(x)$ in \cref{eq:general-stationary-HJBE}
+	\item Check that the code \url{operator_examples\simple_stationary_HJBE_reflecting.jl} is correct
+\end{itemize}
+
+
+\subsection{Stationary HJBE with Reflecting Barriers and Drift}
+Now, do the same after adding in constant drift (and manually choose the correct upwind direction!)
+$$
+d x_t = \mu dt + \sigma d\W_t
+$$
+With a generator
+$$
+	\A \equiv \mu \D[x] + \frac{\sigma^2}{2}\D[xx]
+$$
+With this process,
+\begin{itemize}
+	\item How to derive all of the matrices of \cref{sec:general}.  Be careful to use the appropriate upwind direction for the first order term.
+	\item The system of equations to solve for $u(x)$ in \cref{eq:general-stationary-HJBE}
+	\item Write julia code to solve for $u(x)$ with the grid
+	\item Check these for $\mu < 0$ and $\mu > 0$.
+\end{itemize}
+
+
+
+\subsection{Stationary Bellman Equation with Reflecting Barriers State Varying Drift/Variance}
+Now, do the same after adding in constant drift (and manually choose the correct upwind direction!)
+$$
+d x_t = \mu(x_t) dt + \sigma(x_t) d\W_t
+$$
+With a generator
+$$
+\A \equiv \mu(x) \D[x] + \frac{\sigma(x)^2}{2}\D[xx]
+$$
+With this process,
+\begin{itemize}
+	\item How to derive all of the matrices of \cref{sec:general}.  Be careful to use the appropriate upwind direction for the first order term.
+	\item The system of equations to solve for $u(x)$ in \cref{eq:general-stationary-HJBE}
+	\item Write julia code to solve for $u(x)$ with the grid.
+	\begin{itemize}
+		\item Choose a $\mu(x)$ and $\sigma(x)$ functions, consider using geometric brownian motion as a test.  That is,
+		\begin{align}
+			\A &\equiv \bar{\mu} x \D[x] + \frac{\bar{\sigma}^2}{2}x^2\D[xx]
+		\end{align}
+	\end{itemize}
+\end{itemize}
+
+\end{document}
