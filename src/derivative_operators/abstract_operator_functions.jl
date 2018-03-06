@@ -212,8 +212,13 @@ end
 
 #=
     Fallback methods that use the full representation of the operator
+
+    As with the convention for regular matrices, right division is defined in 
+    terms of left division. (The result may not be correct for some BC as the 
+    transpose of a derivative operator is currently defined to be a no-op)
 =#
 Base.expm(A::AbstractDerivativeOperator{T}) where T = expm(full(A))
-Base.:/(A::AbstractVecOrMat, B::AbstractDerivativeOperator) = A / full(B)
-Base.:/(A::AbstractDerivativeOperator, B::AbstractVecOrMat) = full(A) / B
-# Base.:\ is also defined
+Base.:\(A::AbstractVecOrMat, B::AbstractDerivativeOperator) = A \ full(B)
+Base.:\(A::AbstractDerivativeOperator, B::AbstractVecOrMat) = full(A) \ B
+Base.:/(A::AbstractVecOrMat, B::AbstractDerivativeOperator) = (B' \ A')'
+Base.:/(A::AbstractDerivativeOperator, B::AbstractVecOrMat) = (B' \ A')'
