@@ -87,3 +87,25 @@ end
     @test G*B ≈ 8*ones(N,M) atol=1e-2
     @test A*G*B ≈ zeros(N,M) atol=1e-2
 end
+
+@testset "Linear combinations of operators" begin
+    # Only tests the additional functionality defined in "operator_combination.jl"
+    N = 10
+    srand(0); LA = DiffEqArrayOperator(rand(N,N))
+    LD = DerivativeOperator{Float64}(2,2,1.0,N,:Dirichlet0,:Dirichlet0)
+    L = 1.1*LA - 2.2*LD + 3.3*I
+    # Builds full(L) the brute-force way
+    fullL = zeros(N,N)
+    v = zeros(N)
+    for i = 1:N
+        v[i] = 1.0
+        fullL[:,i] = L*v
+        v[i] = 0.0
+    end
+    @test full(L) ≈ fullL
+    @test expm(L) ≈ expm(fullL)
+    for p in [1,2,Inf]
+        @test norm(L,p) ≈ norm(fullL,p)
+        @test normbound(L,p) ≈ 1.1*norm(LA,p) + 2.2*norm(LD,p) + 3.3
+    end
+end
