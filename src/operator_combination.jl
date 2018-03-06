@@ -33,8 +33,8 @@
 Base.expm(A::LinearCombination) = expm(full(A))
 Base.:\(A::AbstractVecOrMat, B::LinearCombination) = A \ full(B)
 Base.:\(A::LinearCombination, B::AbstractVecOrMat) = full(A) \ B
-Base.:/(A::AbstractVecOrMat, B::LinearCombination) = (B' \ A')'
-Base.:/(A::LinearCombination, B::AbstractVecOrMat) = (B' \ A')'
+Base.:/(A::AbstractVecOrMat, B::LinearCombination) = A / full(B)
+Base.:/(A::LinearCombination, B::AbstractVecOrMat) = full(A) / B
 
 Base.norm(A::IdentityMap{T}, p::Real=2) where T = real(one(T))
 Base.norm(A::LinearCombination, p::Real=2) = norm(full(A), p)
