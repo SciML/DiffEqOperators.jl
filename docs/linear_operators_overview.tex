@@ -82,6 +82,8 @@ v\\
 \end{equation}
 basically saying that it's a map from discretizations of functions in the interior to functions which satisfy the BCs. In order to hold on trivial $v$, we need that the interior of $Q$ is identity, so it is defined by its first and last rows.\\
 Q is actually in general affine, meaning that $Q\cdot u = Q_a\cdot u+ Q_b$. For example, the definition given of inner product make $Q\cdot x=b$ in an iterative solver converge to $Q_a\cdot x = b - Q_b$. From the relations, $Q_a$ is $I\times (I-2)$ and $Q_b$ is of length $I$. In order for $Q\cdot R\cdot u = u$ to hold for trivial $u$, we need that $Q_b$ is zero except the first and last rows (boundary rows).
+
+\iffalse
 \item Now we have two relations
 \begin{align}
 [A[:, 1] A[:, I]]\cdot\left([B[:, 1] B[:, I]]^{-1}\begin{bmatrix}
@@ -98,13 +100,69 @@ Intuition: The main idea here is using interiors to recover a relation that boun
 \end{bmatrix} $, so $\left([B[:, 1] B[:, I]]^{-1}\begin{bmatrix}
 \text{BC 1}\\
 \text{BC 2}
-\end{bmatrix}\right)$ recovers the`` independent'' part of boundary nodes. Then it is reasonable to expect that \eqref{affine_relation_1} holds.\\
+\end{bmatrix}\right)$ recovers the ``independent" part of boundary nodes. Then it is reasonable to expect that \eqref{affine_relation_1} holds.\\
 Multiply both sides of \eqref{affine_relation_2} by $u$, we can roughly rewrite the relation as
 \begin{equation}
 R(A\cdot u-A\cdot Q_b) = A\cdot Q_a\cdot u
 \end{equation}
 So $A\cdot u-A\cdot Q_b$ will be a discretized $u$ which contains the entire information of interiors and the rest part of boundary information that is not covered by $A\cdot Q_b$. \\
 However, I am not sure if $R$ should exist on the left since R by defination is a restriction operator and $R(A\cdot u-A\cdot Q_b)$ only contains information from interiors. Also the dimension of the LHS of \eqref{affine_relation_2} is $(I-2)\times I$, but the dimension of the RHS is $I\times (I-2)$.
+\fi
+
+\item Now let's focus on solving an expression like $u_t = A u$. Consider, with some abuse of notation, that such expression means both the discretized and non-discretized forms. Then we have two relations\footnote{We could not find a way to clearly show two relations above are correct, but some intuitions are provided in the text}:
+
+\begin{align}
+[A[:, 1] A[:, I]]\cdot\left([B[:, 1] B[:, I]]^{-1}\begin{bmatrix}
+\text{BC 1}\\
+\text{BC 2}
+\end{bmatrix}\right) = A\cdot Q_b\label{affine_relation_1}\\
+R(A-[A[:, 1] A[:, I]]\cdot([B[:, 1] B[:, I]]^{-1} B) = A\cdot Q_a\label{affine_relation_2}
+\end{align}
+
+Our intuition is that the main idea here is using interiors to recover a relation that boundary conditions can % cany = can or cant?
+satisfy. Since $Q_b$ is a $I\times 1$ matrix containing zeros excepts two ends, the two non-zero elements in $Q_b$ capture partial information of boundary nodes (the part that is ``independent'' of interiors).  Recall that $B\cdot u =\begin{bmatrix}
+\text{BC 1}\\
+\text{BC 2}
+\end{bmatrix} $, so $\left([B[:, 1] B[:, I]]^{-1}\begin{bmatrix}
+\text{BC 1}\\
+\text{BC 2}
+\end{bmatrix}\right)$ recovers the ``independent" part of boundary nodes. Then it is reasonable to expect that \eqref{affine_relation_1} holds.
+
+Multiply both sides of \eqref{affine_relation_2} by $u$, we can roughly rewrite the relation as
+\begin{equation}
+R(A\cdot u-A\cdot Q_b) = A\cdot Q_a\cdot u
+\end{equation}
+so $A\cdot u-A\cdot Q_b$ will be a discretized $u$ which contains the entire information of interiors and the rest part of boundary information that is not covered by $A\cdot Q_b$. 
+
+However, we are not sure if $R$ should exist on the left of \eqref{affine_relation_2} since R by definition is a restriction operator and $R(A\cdot u-A\cdot Q_b)$ only contains information from interiors. Also the dimension of the LHS of \eqref{affine_relation_2} is $(I-2)\times I$, but the dimension of the RHS is $I\times (I-2)$.
+For now, while we work on better understanding those expressions, we will take them as given.
+
+Given those relationships, in order to solve the differential equation, we now only have to solve for the interior. Otherwise, including the boundary values would imply having more points than there are degrees of freedom in the problem - thus making the numerical solution unstable. Moreover, the boundaries are given directly by the interior $u = Qv$. 
+
+Therefore, we actually want to solve $v_t = AQv$. Notice that the discretized A maps from the full domain to the interior\footnote{Notice that the PDE is only defined on the interior}. Notably, that means it's not square. Additionally, consider that, as described above, since $Q$ is in general affine, thus:
+\begin{equation}
+v_t = AQ_av + AQ_b
+\end{equation}
+
+For a steady state problem, it's the same idea. Discretize some function $f$ in the domain for $f = Au$, and you get $f = AQ_av + AQ_b$. Those are the linear equations which define the ODE or whose solution is the solution to the PDE.
+
+This shows that what's important and non-trivial is $Q$. It contains all of the information about both the boundaries and the domain from the two relations. So what is Q? Here's all of the relevant cases for finite differencing:
+\begin{enumerate}
+	\item \textbf{Dirichlet$_0$}: If you have any $v$ in the interior, its unique extension to satisfying the BCs is sticking $0$'s on the end, so $Q = [0;I;0]$ is linear, meaning $Q = Q_a$ and $Q_b=0$.
+	
+	\item \textbf{Dirichlet}: The boundary is not dependent on any points in the interior, and therefore $Q_a = [0;I;0]$, but, in order to satisfy the boundary conditions, you need $ Q_b=[\text{BC 1};0,...,0;\text{BC 2}]$.
+	
+	\item \textbf{Neumann}: You have to pick a discretization of B. 
+	This defines linear relation between the interior points and the boundary conditions. For example, the first order discretization of the boundary derivative means that 
+	\begin{equation}
+	\frac{db}{dx} = \frac{u[2] - u[1]}{dx} = \text{BC 1}
+	\end{equation}
+	
+	and, therefore, $u[1] = u[2] - dx\text{BC 1}$. You can see that this implies that $Q_b = [dx\text{BC 1};0,...,\\0;dx \text{BC 2}]$ and that $Q_a$ is the identity matrix for the interior points and $[1,0, 0,...,0]$ for the first row\footnote{So that $Q_a v = v[1] = u[2]$.} and $[0,...,0,0,1]$ for the last row.%\footnote{so that $Q_a v = v[1] = u[2]$ and $Q_a v = v[I] = u[I-1]$, respectively.}.
+	
+	%\item \texbf{Robin}: Left as an exercise for the reader. It's just the same ideas from before to write out the affine relation. It needs a choice of B just like Neumann.
+
+\end{enumerate}
 \end{itemize}
 
 \section{Time-Invariant Stochastic Process Examples}
