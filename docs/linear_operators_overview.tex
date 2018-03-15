@@ -94,7 +94,7 @@ R(A-[A[:, 1] A[:, I]]\cdot([B[:, 1] B[:, I]]^{-1} B) = A\cdot Q_a\label{affine_r
 \end{align}
 We could not find a way to clearly show two relations above are correct, but some intuitions are provided.
 
-Intuition: The main idea here is using interiors to recover a relation that boundary conditions cany satisfy. Since $Q_b$ is a $I\times 1$ matrix containing zeros excepts two ends, the two non-zero elements in $Q_b$ capture partial information (the part that is ``independent'' of interiors) of boundary nodes.  Recall that $B\cdot u =\begin{bmatrix}
+Intuition: The main idea here is using interiors to recover a relation that boundary conditions can satisfy. Since $Q_b$ is a $I\times 1$ matrix containing zeros excepts two ends, the two non-zero elements in $Q_b$ capture partial information (the part that is ``independent'' of interiors) of boundary nodes.  Recall that $B\cdot u =\begin{bmatrix}
 \text{BC 1}\\
 \text{BC 2}
 \end{bmatrix} $, so $\left([B[:, 1] B[:, I]]^{-1}\begin{bmatrix}
@@ -119,8 +119,7 @@ However, I am not sure if $R$ should exist on the left since R by defination is 
 R(A-[A[:, 1] A[:, I]]\cdot([B[:, 1] B[:, I]]^{-1} B) = A\cdot Q_a\label{affine_relation_2}
 \end{align}
 
-Our intuition is that the main idea here is using interiors to recover a relation that boundary conditions can % cany = can or cant?
-satisfy. Since $Q_b$ is a $I\times 1$ matrix containing zeros excepts two ends, the two non-zero elements in $Q_b$ capture partial information of boundary nodes (the part that is ``independent'' of interiors).  Recall that $B\cdot u =\begin{bmatrix}
+Our intuition is that the main idea here is using interiors to recover a relation that boundary conditions should satisfy. Since $Q_b$ is a $I\times 1$ matrix containing zeros excepts two ends, the two non-zero elements in $Q_b$ capture partial information of boundary nodes (the part that is ``independent'' of interiors).  Recall that $B\cdot u =\begin{bmatrix}
 \text{BC 1}\\
 \text{BC 2}
 \end{bmatrix} $, so $\left([B[:, 1] B[:, I]]^{-1}\begin{bmatrix}
