@@ -55,7 +55,7 @@ R = \begin{bmatrix}
 0&0&0&0&\dots&1&0
 \end{bmatrix}_{(I-2)\times I}
 \end{equation}
-s.t. 
+s.t.
 \begin{equation}
 R\cdot u  \equiv\set{u(x_i)}_{i=2}^{I-1} \in \R^{I-2} \label{R_operator}
 \end{equation}
@@ -72,7 +72,7 @@ for any $u$ in the space of functions that satisfy the BCs. B is not necessarily
 Q \cdot R\cdot u = u\label{Q_operator_1}
 \end{equation}
 for any $u$ that satisfies the BCs. (Notice that $Q = R^{-1}$ if R is square, and this is only true as maps on functions which satisfy the boundary.)\\
-It has a second relation 
+It has a second relation
 \begin{equation}
 B\cdot Q\cdot v  = \begin{bmatrix}
 \text{BC 1}\\
@@ -131,12 +131,12 @@ Multiply both sides of \eqref{affine_relation_2} by $u$, we can roughly rewrite 
 \begin{equation}
 R(A\cdot u-A\cdot Q_b) = A\cdot Q_a\cdot u
 \end{equation}
-so $A\cdot u-A\cdot Q_b$ will be a discretized $u$ which contains the entire information of interiors and the rest part of boundary information that is not covered by $A\cdot Q_b$. 
+so $A\cdot u-A\cdot Q_b$ will be a discretized $u$ which contains the entire information of interiors and the rest part of boundary information that is not covered by $A\cdot Q_b$.
 
 However, we are not sure if $R$ should exist on the left of \eqref{affine_relation_2} since R by definition is a restriction operator and $R(A\cdot u-A\cdot Q_b)$ only contains information from interiors. Also the dimension of the LHS of \eqref{affine_relation_2} is $(I-2)\times I$, but the dimension of the RHS is $I\times (I-2)$.
 For now, while we work on better understanding those expressions, we will take them as given.
 
-Given those relationships, in order to solve the differential equation, we now only have to solve for the interior. Otherwise, including the boundary values would imply having more points than there are degrees of freedom in the problem - thus making the numerical solution unstable. Moreover, the boundaries are given directly by the interior $u = Qv$. 
+Given those relationships, in order to solve the differential equation, we now only have to solve for the interior. Otherwise, including the boundary values would imply having more points than there are degrees of freedom in the problem - thus making the numerical solution unstable. Moreover, the boundaries are given directly by the interior $u = Qv$.
 
 Therefore, we actually want to solve $v_t = AQv$. Notice that the discretized A maps from the full domain to the interior\footnote{Notice that the PDE is only defined on the interior}. Notably, that means it's not square. Additionally, consider that, as described above, since $Q$ is in general affine, thus:
 \begin{equation}
@@ -148,17 +148,17 @@ For a steady state problem, it's the same idea. Discretize some function $f$ in 
 This shows that what's important and non-trivial is $Q$. It contains all of the information about both the boundaries and the domain from the two relations. So what is Q? Here's all of the relevant cases for finite differencing:
 \begin{enumerate}
 	\item \textbf{Dirichlet$_0$}: If you have any $v$ in the interior, its unique extension to satisfying the BCs is sticking $0$'s on the end, so $Q = [0;I;0]$ is linear, meaning $Q = Q_a$ and $Q_b=0$.
-	
+
 	\item \textbf{Dirichlet}: The boundary is not dependent on any points in the interior, and therefore $Q_a = [0;I;0]$, but, in order to satisfy the boundary conditions, you need $ Q_b=[\text{BC 1};0,...,0;\text{BC 2}]$.
-	
-	\item \textbf{Neumann}: You have to pick a discretization of B. 
-	This defines linear relation between the interior points and the boundary conditions. For example, the first order discretization of the boundary derivative means that 
+
+	\item \textbf{Neumann}: You have to pick a discretization of B.
+	This defines linear relation between the interior points and the boundary conditions. For example, the first order discretization of the boundary derivative means that
 	\begin{equation}
 	\frac{db}{dx} = \frac{u[2] - u[1]}{dx} = \text{BC 1}
 	\end{equation}
-	
+
 	and, therefore, $u[1] = u[2] - dx\text{BC 1}$. You can see that this implies that $Q_b = [dx\text{BC 1};0,...,\\0;dx \text{BC 2}]$ and that $Q_a$ is the identity matrix for the interior points and $[1,0, 0,...,0]$ for the first row\footnote{So that $Q_a v = v[1] = u[2]$.} and $[0,...,0,0,1]$ for the last row.%\footnote{so that $Q_a v = v[1] = u[2]$ and $Q_a v = v[I] = u[I-1]$, respectively.}.
-	
+
 	%\item \texbf{Robin}: Left as an exercise for the reader. It's just the same ideas from before to write out the affine relation. It needs a choice of B just like Neumann.
 
 \end{enumerate}
@@ -210,6 +210,24 @@ With this process,
 	\item How to derive all of the matrices of \cref{sec:general}
 	\item The system of equations to solve for $u(x)$ in \cref{eq:general-stationary-HJBE}
 	\item Check that the code \url{operator_examples\simple_stationary_HJBE_reflecting.jl} is correct
+\end{itemize}
+
+
+\subsection{Stationary HJBE with Only Drift}
+Now, do the same after adding in constant drift (and manually choose the correct upwind direction!)
+$$
+d x_t = \mu dt
+$$
+With a generator
+$$
+	\A \equiv \mu \D[x]
+$$
+With this process,
+\begin{itemize}
+	\item How to derive all of the matrices of \cref{sec:general}.  Be careful to use the appropriate upwind direction for the first order term.
+	\item The system of equations to solve for $u(x)$ in \cref{eq:general-stationary-HJBE}
+	\item Write julia code to solve for $u(x)$ with the grid
+	\item Check these for $\mu < 0$ and $\mu > 0$.
 \end{itemize}
 
 
