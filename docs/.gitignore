@@ -6,3 +6,6 @@
 *.pdf
 *.gz
 _minted*
+*.fdb_latexmk
+*.bbl
+*.blg
