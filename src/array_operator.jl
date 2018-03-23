@@ -9,7 +9,7 @@ mutable struct DiffEqArrayOperator{T,Arr<:Union{T,AbstractMatrix{T}},Sca,F} <: A
     update_func::F
 end
 
-DEFAULT_UPDATE_FUNC = (L,t,u)->nothing
+DEFAULT_UPDATE_FUNC = (L,u,p,t)->nothing
 
 function DiffEqArrayOperator(A::Number,α=1.0,
                              update_func = DEFAULT_UPDATE_FUNC)
@@ -57,16 +57,16 @@ Base.expm(L::DiffEqArrayOperator) = expm(full(L))
 DiffEqBase.has_expm(L::DiffEqArrayOperator) = true
 Base.size(L::DiffEqArrayOperator) = size(L.A)
 Base.norm(L::DiffEqArrayOperator, p::Real=2) = norm(L.A, p) * abs(L.α.coeff)
-DiffEqBase.update_coefficients!(L::DiffEqArrayOperator,t,u) = (L.update_func(L.A,t,u); L.α = L.α(t); nothing)
-DiffEqBase.update_coefficients(L::DiffEqArrayOperator,t,u)  = (L.update_func(L.A,t,u); L.α = L.α(t); L)
+DiffEqBase.update_coefficients!(L::DiffEqArrayOperator,u,p,t) = (L.update_func(L.A,u,p,t); L.α = L.α(t); nothing)
+DiffEqBase.update_coefficients(L::DiffEqArrayOperator,u,p,t)  = (L.update_func(L.A,u,p,t); L.α = L.α(t); L)
 
 function (L::DiffEqArrayOperator)(u,p,t)
-  update_coefficients!(L,t,u)
+  update_coefficients!(L,u,p,t)
   L*u
 end
 
 function (L::DiffEqArrayOperator)(du,u,p,t)
-  update_coefficients!(L,t,u)
+  update_coefficients!(L,u,p,t)
   A_mul_B!(du,L,u)
 end
 
