@@ -13,7 +13,7 @@ La = L * a
 @test expm(La) ≈ expm(a*A)
 @test La[2,3] ≈ A[2,3] # should this be La[2,3] == a*A[2,3]?
 
-update_func = (_A,t,u) -> _A .= t * A
+update_func = (_A,u,p,t) -> _A .= t * A
 t = 3.0
 Atmp = zeros(N,N)
 Lt = DiffEqArrayOperator(Atmp, a, update_func) 
