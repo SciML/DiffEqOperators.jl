@@ -39,7 +39,7 @@
 		\item Consider we have $\hat{I}_j$ points, $\set{x^j_i}_{i=1}^{\hat{I}_j}$%I think here you mean \hat{I}_j instead of \hat{I}.
 		 with $x^j_1 = \underline{x}^j$ and $x^j_I = \bar{x}^j$ when $x^j \in [\underline{x}^j, \bar{x}^j]$ for each $j \in \{1,...,n\}$.  After discretizing, we will often denote the grid with the variable name, i.e. $x^j \equiv \set{x^j_i}_{i=1}^{\hat{I}_j}$
 		In the simple case of a uniform grid, $\Delta^j \equiv x_{i+1}^j - x_i^j$ for all $i < \hat{I}^j$.
-		\item When we discretize a function, use the function name without arguments to denote the vector.  i.e. $\hat{u}(x)$ discretized on a grid $\set{x_i}_{i=1}^{\hat{I}}$  is $\hat{u} \equiv \set{\hat{u}(x_i)}_{i=1}^{\hat{I}} \in \R^{\hat{I}}$, where $\hat{I} = \sum_{j=1}^n \hat{I}_j$.
+		\item When we discretize a function, use the function name without arguments to denote the vector.  i.e. $\hat{u}(x)$ discretized on a grid $\set{x_i}_{i=1}^{\hat{I}}$  is $\hat{u} \equiv \set{\hat{u}(x_i)}_{i=1}^{\hat{I}} \in \R^{\hat{I}}$, where $\hat{I} = \sum_{j=1}^n \hat{I}_j$ and $I = \sum_{j = 1}^n I_j$.
 		Use $i=1,... I_j$ as the grid in the interior. Moreover, define $I_{j,L}$ and $I_{j,H}$ as the non interior grid points. Therefore, $\hat{I}_j = I_j + I_{j,L} + I_{j,H}$. % Again, I think you mean I_j's in above cases.
 		 Notice that the solution to the discretized function is $u \in R^{\hat{I}}$ if stationary.
 		
@@ -69,18 +69,38 @@
 		B\cdot \hat{u} \equiv \begin{bmatrix}
 		\text{b}_{x^{1},L} & ... & \text{b}_{x^{N},L}\\
 		\text{b}_{x^{2},H} & ... & \text{b}_{x^{N},H}
+		\end{bmatrix}\cdot\hat{u} = \begin{bmatrix}
+		\text{BC}_{1, L}&\text{BC}_{2, L}&\dots&\text{BC}_{n, L}\\
+		\text{BC}_{1, H}&\text{BC}_{2, H}&\dots&\text{BC}_{n, H}
 		\end{bmatrix}\label{B_operator_block}
 		\end{equation}
-		for any $\hat{u}$ in the space of functions that satisfy the boundary conditions and where b$_{x^j,k}$ is a block matrix satisfying b$_{x^j,k}\cdot \hat{u}_{x^j} = \text{BC}_k$ for $k \in \{L,H\}$ and $j = 1, 2,\dots n$. The dimension of b$_{x^j,k}$ is $I_{j,k} \times \hat{I}_j$. 
+		for any $\hat{u}$ in the space of functions that satisfy the boundary conditions and where b$_{x^j,k}$ is a block matrix satisfying b$_{x^j,k}\cdot \hat{u}_{x^j} = \text{BC}_{j,k}$ for $k \in \{L,H\}$ and $j = 1, 2,\dots n$. The dimension of b$_{x^j,k}$ is $I_{j,k} \times \hat{I}_j$. 
 		
 		Notice that B is not necessarily unique. The choice of B is exactly the choice of boundary value discretization. For instance, choosing to do first or second order Neumann BCs is simply the choice of the operator B. The size of $B$ is $(I_L + I_H) \times \hat{I}$.
 		
 		\item R is the restriction operator which is defined by the domain. It removes columns which are not in the interior. 
 		For an univariate process, we have:
 		\begin{equation}
-		R\cdot \hat{u}  \equiv\set{u(x_i)}_{i \in \{1,...,I\}} \in \R^{I} \label{R_operator}
+		R\cdot \hat{u}  \equiv\set{u(x_j)}_{j \in \{1,...,I\}} \in \R^{I} \label{R_operator}
 		\end{equation}
-		Notice that R has size $I \times \hat{I}$.
+		Notice that R has size $I \times \hat{I}$ and R is defined as
+		\begin{equation}
+		R = \begin{bmatrix}
+		R_1&\mathbf{0}_1&\dots&\mathbf{0}_1\\
+		\mathbf{0}_2&R_2&\dots&\mathbf{0}_2\\
+		\vdots&\vdots&\ddots&\vdots\\
+		\mathbf{0}_n&\mathbf{0}_n&\dots&R_n
+		\end{bmatrix}
+		\end{equation}
+		where the dimension of $\mathbf{0}_j$ is $I_j\times\hat{I}_j$ and 
+		\begin{equation}
+		R_j = \underbrace{\begin{bmatrix}
+		0&\dots&0&1&0&\dots&0&0&\dots&0\\
+		0&\dots&0&0&1&\dots&0&0&\dots&0\\
+		\vdots&\ddots&\vdots&\vdots&\vdots&\ddots&\vdots&\vdots&\ddots&\vdots\\
+		0&\dots&0&0&0&\dots&1&0&\dots&0
+		\end{bmatrix}}_{I_{j, L}\qquad+\qquad I_j\qquad+\qquad I_{j, H}}
+		\end{equation}
 		\item Q is the operator that is defined as
 		\begin{equation}
 		Q \cdot R\cdot\hat{u} = \hat{u}\label{Q_operator_1}
@@ -91,6 +111,9 @@
 		B\cdot Q\cdot u  = \begin{bmatrix}
 		\text{b}_{x^{1},L} & ... & \text{b}_{x^{N},L}\\
 		\text{b}_{x^{2},H} & ... & \text{b}_{x^{N},H}
+		\end{bmatrix}=\begin{bmatrix}
+		\text{BC}_{1, L}&\text{BC}_{2, L}&\dots&\text{BC}_{n, L}\\
+		\text{BC}_{1, H}&\text{BC}_{2, H}&\dots&\text{BC}_{n, H}
 		\end{bmatrix}\label{Q_operator_2}
 		\end{equation}
 		basically saying that it's a map from discretizations of functions in the interior to functions which satisfy the BCs. In order to hold on trivial $u$, we need that the interior of $Q$ is identity, so it is defined by its first and last rows.\\
@@ -99,14 +122,14 @@
 		\item Now let's focus on solving an expression like $\hat{u}^d = A \hat{u}$, where the superscript $d$ means the discretized version of the variable. Consider, with some abuse of notation, that such expression means both the discretized and non-discretized forms. Then we have two relations\footnote{We could not find a way to clearly show two relations above are correct, but some intuitions are provided in the text}:
 		
 		\begin{align}
-		[A[:, I_L] A[:, I_H]]\cdot\left([B[:, I_L] B[:, I_H]]^{-1}\begin{bmatrix}
+		[A[:, 1:I_L] A[:,\hat{I}-I_H+1:\hat{I}]]\cdot\left([B[:,1:I_L] B[:,\hat{I}-I_H+1:\hat{I}]]^{-1}\begin{bmatrix}
 		\text{b}_{x^{1},L} & ... & \text{b}_{x^{N},L}\\
 		\text{b}_{x^{2},H} & ... & \text{b}_{x^{N},H}
 		\end{bmatrix}\right) = A\cdot Q_b\label{affine_relation_1}\\
-		R(A-[A[:, I_L] A[:, I_H]]\cdot([B[:, I_L] B[:, I_H]]^{-1} B) = A\cdot Q_a\label{affine_relation_2}
+		R(A-[A[:,1:I_L] A[:,\hat{I}-I_H+1:\hat{I}]]\cdot([B[:,1:I_L] B[:,\hat{I}-I_H+1:\hat{I}]]^{-1} B) = A\cdot Q_a\label{affine_relation_2}
 		\end{align}
 		
-		Our intuition is that the main idea here is using interiors to recover a relation that boundary conditions should satisfy. Since $Q_b$ is a $\hat{I}\times 1$ matrix containing zeros excepts two ends, the two non-zero elements in $Q_b$ capture partial information of boundary nodes (the part that is ``independent'' of interiors).  Recall \eqref{B_operator_block}, so $\left([B[:, I_L] B[:, I_H]]^{-1}\begin{bmatrix}
+		Our intuition is that the main idea here is using interiors to recover a relation that boundary conditions should satisfy. Since $Q_b$ is a $\hat{I}\times 1$ matrix containing zeros excepts two ends, the two non-zero elements in $Q_b$ capture partial information of boundary nodes (the part that is ``independent'' of interiors).  Recall \eqref{B_operator_block}, so $\left([B[:,1:I_L] B[:,\hat{I}-I_H+1:\hat{I}]]^{-1}\begin{bmatrix}
 		\text{b}_{x^{1},L} & ... & \text{b}_{x^{N},L}\\
 		\text{b}_{x^{2},H} & ... & \text{b}_{x^{N},H}
 		\end{bmatrix}\right)$ recovers the ``independent" part of boundary nodes. Then it is reasonable to expect that \eqref{affine_relation_1} holds.
