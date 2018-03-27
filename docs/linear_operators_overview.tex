@@ -36,21 +36,23 @@
 	
 	\paragraph{Grids}Consider the multivariate function of $x = (x^1,...,x^n )$:
 	\begin{itemize}
-		\item Consider we have $\hat{I}_j$ points, $\set{x^j_i}_{i=1}^{\hat{I}}$ with $x^j_1 = \underline{x}^j$ and $x^j_I = \bar{x}^j$ when $x^j \in [\underline{x}^j, \bar{x}^j]$ for each $j \in \{1,...,n\}$.  After discretizing, we will often denote the grid with the variable name, i.e. $x^j \equiv \set{x^j_i}_{i=1}^{\hat{I}_j}$
+		\item Consider we have $\hat{I}_j$ points, $\set{x^j_i}_{i=1}^{\hat{I}_j}$%I think here you mean \hat{I}_j instead of \hat{I}.
+		 with $x^j_1 = \underline{x}^j$ and $x^j_I = \bar{x}^j$ when $x^j \in [\underline{x}^j, \bar{x}^j]$ for each $j \in \{1,...,n\}$.  After discretizing, we will often denote the grid with the variable name, i.e. $x^j \equiv \set{x^j_i}_{i=1}^{\hat{I}_j}$
 		In the simple case of a uniform grid, $\Delta^j \equiv x_{i+1}^j - x_i^j$ for all $i < \hat{I}^j$.
 		\item When we discretize a function, use the function name without arguments to denote the vector.  i.e. $\hat{u}(x)$ discretized on a grid $\set{x_i}_{i=1}^{\hat{I}}$  is $\hat{u} \equiv \set{\hat{u}(x_i)}_{i=1}^{\hat{I}} \in \R^{\hat{I}}$, where $\hat{I} = \sum_{j=1}^n \hat{I}_j$.
-		Use $i=1,... I$ as the grid in the interior. Moreover, define $I_L$ and $I_H$ as the non interior grid points. Therefore, $\hat{I} = I + I_L + I_H$. Notice that the solution to the discretized function is $u \in R^I$ if stationary.
+		Use $i=1,... I_j$ as the grid in the interior. Moreover, define $I_{j,L}$ and $I_{j,H}$ as the non interior grid points. Therefore, $\hat{I}_j = I_j + I_{j,L} + I_{j,H}$. % Again, I think you mean I_j's in above cases.
+		 Notice that the solution to the discretized function is $u \in R^{\hat{I}}$ if stationary.
 		
 		We construct the discretized $\hat{u}$ as a block matrix of size $\hat{I}\times n$:
 		\begin{equation}
 		\hat{u} = \begin{bmatrix}
-		u_{x^1} & 0       & ...    & 0\\
-		0       & u_{x^2} & ...    & 0\\
+		\hat{u}_{x^1} & \mathbf{0}_1       & ...    & \mathbf{0}_1\\
+		\mathbf{0}_2       & \hat{u}_{x^2} & ...    & \mathbf{0}_2\\
 		\vdots  & \vdots  & \ddots & \vdots \\
-		0       & 0       & ...    & u_{x^n}\\
+		\mathbf{0}_n       & \mathbf{0}_n       & ...    & \hat{u}_{x^n}\\
 		\end{bmatrix}\label{u_def}
 		\end{equation}
-		where, for each row, each 0 is a block of zeros with size $I_j \times 1$.
+		where, $\mathbf{0}_j$ is a block of zeros with size $\hat{I}_j \times 1$.
 		
 		
 		
@@ -69,7 +71,7 @@
 		\text{b}_{x^{2},H} & ... & \text{b}_{x^{N},H}
 		\end{bmatrix}\label{B_operator_block}
 		\end{equation}
-		for any $\hat{u}$ in the space of functions that satisfy the boundary conditions and where b$_{x^i,j}$ is the boundary condition for $j \in \{L,H\}$ and the argument $x^i$. b$_{x^i,j}$ has size $I_j \times \hat{I}$. 
+		for any $\hat{u}$ in the space of functions that satisfy the boundary conditions and where b$_{x^j,k}$ is a block matrix satisfying b$_{x^j,k}\cdot \hat{u}_{x^j} = \text{BC}_k$ for $k \in \{L,H\}$ and $j = 1, 2,\dots n$. The dimension of b$_{x^j,k}$ is $I_{j,k} \times \hat{I}_j$. 
 		
 		Notice that B is not necessarily unique. The choice of B is exactly the choice of boundary value discretization. For instance, choosing to do first or second order Neumann BCs is simply the choice of the operator B. The size of $B$ is $(I_L + I_H) \times \hat{I}$.
 		
