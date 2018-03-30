@@ -6,6 +6,9 @@
 \crefname{equation}{}{} %
 %\usepackage{minted} %If require code snippets, turn back on
 \usepackage[nohead]{geometry}
+\usepackage{tikz}
+\usetikzlibrary{decorations.pathreplacing,angles,quotes,calligraphy}
+\usepackage{graphicx}
 
 %Some macros
 \newcommand{\set}[1]{\ensuremath{\left\{{#1}\right\}}}
@@ -67,16 +70,16 @@
 		\item B is the boundary condition operator. For $N$ dimensions, we can define B as a block matrix in the form:
 		\begin{equation}
 		B\cdot \hat{u} \equiv \begin{bmatrix}
-		\text{b}_{x^{1},L} & ... & \text{b}_{x^{N},L}\\
-		\text{b}_{x^{2},H} & ... & \text{b}_{x^{N},H}
+		\text{B}_{x^{1},L} & ... & \text{B}_{x^{N},L}\\
+		\text{B}_{x^{2},H} & ... & \text{B}_{x^{N},H}
 		\end{bmatrix}\cdot\hat{u} = \begin{bmatrix}
-		\text{BC}_{1, L}&\text{BC}_{2, L}&\dots&\text{BC}_{n, L}\\
-		\text{BC}_{1, H}&\text{BC}_{2, H}&\dots&\text{BC}_{n, H}
+		\text{z}_{1, L}&\text{z}_{2, L}&\dots&\text{z}_{n, L}\\
+		\text{z}_{1, H}&\text{z}_{2, H}&\dots&\text{z}_{n, H}
 		\end{bmatrix}\label{B_operator_block}
 		\end{equation}
-		for any $\hat{u}$ in the space of functions that satisfy the boundary conditions and where b$_{x^j,k}$ is a block matrix satisfying b$_{x^j,k}\cdot \hat{u}_{x^j} = \text{BC}_{j,k}$ for $k \in \{L,H\}$ and $j = 1, 2,\dots n$. The dimension of b$_{x^j,k}$ is $I_{j,k} \times \hat{I}_j$. 
+		for any $\hat{u}$ in the space of functions that satisfy the boundary conditions and where B$_{x^j,k}$ is a block matrix satisfying B$_{x^j,k}\cdot \hat{u}_{x^j} = \text{z}_{j,k}$ for $k \in \{L,H\}$ and $j = 1, 2,\dots n$. The dimension of B$_{x^j,k}$ is $I_{j,k} \times \hat{I}_j$. 
 		
-		Notice that B is not necessarily unique. The choice of B is exactly the choice of boundary value discretization. For instance, choosing to do first or second order Neumann BCs is simply the choice of the operator B. The size of $B$ is $(I_L + I_H) \times \hat{I}$.
+		Notice that B is not necessarily unique. The choice of B is exactly the choice of boundary value discretization. For instance, choosing to do first or second order Neumann border conditions is simply the choice of the operator B. The size of $B$ is $(I_L + I_H) \times \hat{I}$.
 		
 		\item R is the restriction operator which is defined by the domain. It removes columns which are not in the interior. 
 		For an univariate process, we have:
@@ -84,39 +87,60 @@
 		R\cdot \hat{u}  \equiv\set{u(x_j)}_{j \in \{1,...,I\}} \in \R^{I} \label{R_operator}
 		\end{equation}
 		Notice that R has size $I \times \hat{I}$ and R is defined as
-		\begin{equation}
-		R = \begin{bmatrix}
-		R_1&\mathbf{0}_1&\dots&\mathbf{0}_1\\
-		\mathbf{0}_2&R_2&\dots&\mathbf{0}_2\\
-		\vdots&\vdots&\ddots&\vdots\\
-		\mathbf{0}_n&\mathbf{0}_n&\dots&R_n
-		\end{bmatrix}
-		\end{equation}
-		where the dimension of $\mathbf{0}_j$ is $I_j\times\hat{I}_j$ and 
-		\begin{equation}
-		R_j = \underbrace{\begin{bmatrix}
+				\begin{equation}
+		R_j = %\underbrace{
+		\begin{bmatrix}
 		0&\dots&0&1&0&\dots&0&0&\dots&0\\
 		0&\dots&0&0&1&\dots&0&0&\dots&0\\
 		\vdots&\ddots&\vdots&\vdots&\vdots&\ddots&\vdots&\vdots&\ddots&\vdots\\
 		0&\dots&0&0&0&\dots&1&0&\dots&0
-		\end{bmatrix}}_{I_{j, L}\qquad+\qquad I_j\qquad+\qquad I_{j, H}}
+		\end{bmatrix}%}_{I_{j, L}\qquad+\qquad I_j\qquad+\qquad I_{j, H}}
 		\end{equation}
+		\hspace{5.1cm} \begin{tikzpicture}[every text node part/.style={align=center}]
+		
+		\draw[black, thick, decoration = {brace,mirror,raise=0cm},decorate] (8,0) -- node[below=6pt] {$I_{j,L}$} (9.6,0);
+		
+		\draw[black, thick, decoration = {brace,mirror,raise=0cm}, decorate]
+		(10,0) -- node[below=6pt] {$I_{j}$} (12.1,0);
+		
+		\draw[black, thick, decoration = {brace,mirror,raise=0cm},decorate] (12.5,0) -- node[below=6pt] {$I_{j,H}$} (14.1,0);
+		
+		\end{tikzpicture}
+		
 		\item Q is the operator that is defined as
 		\begin{equation}
 		Q \cdot R\cdot\hat{u} = \hat{u}\label{Q_operator_1}
 		\end{equation}
-		for any $\hat{u}$ that satisfies the BCs. (Notice that $Q = R^{-1}$ if R is square, and this is only true as maps on functions which satisfy the boundary).\\
-		It has a second relation 
+		for any $\hat{u}$ that satisfies the border conditions. (Notice that $Q = R^{-1}$ if R is square, and this is only true as maps on functions which satisfy the boundary). Formally, we define $Q$ as a matrix of size $\hat{I} \times I$ given by:
+		\begin{equation}
+		Q = \begin{bmatrix}
+		Q_1 & \mathbf{0}_1       & ...    & \mathbf{0}_1\\
+		\mathbf{0}_2       & Q_2 & ...    & \mathbf{0}_2\\
+		\vdots  & \vdots  & \ddots & \vdots \\
+		\mathbf{0}_n       & \mathbf{0}_n       & ...    & Q_n\\
+		\end{bmatrix}\label{Q_def}
+		\end{equation}
+		where, for any arbitrary $j$, $Q_j$ is a partitioned matrix of size $\hat{I_j} \times I_j$ given by:
+		\begin{equation}
+		Q_j = \begin{bmatrix}
+		 &  & Q_{j,L} &   & \\
+		 &  & \mathbb{I}_{(I_j \times I_j)} \\
+		 &  & Q_{j,H} &   & \\
+		\end{bmatrix}\label{Qj_def}
+		\end{equation}
+		whose submatrices $Q_{j,L}$ and $Q_{j,H}$ (of size $I_{j,L} \times I_j$ and $I_{j,H} \times I_j$, respectively) elements depend on the border conditions and the submatrix $\mathbb{I}_{(I_j\times I_j)}$ is an identity matrix of dimension $I_j$. 
+		
+		Q also has a second relation: 
 		\begin{equation}
 		B\cdot Q\cdot u  = \begin{bmatrix}
-		\text{b}_{x^{1},L} & ... & \text{b}_{x^{N},L}\\
-		\text{b}_{x^{2},H} & ... & \text{b}_{x^{N},H}
-		\end{bmatrix}u=\begin{bmatrix}
-		\text{BC}_{1, L}&\text{BC}_{2, L}&\dots&\text{BC}_{n, L}\\
-		\text{BC}_{1, H}&\text{BC}_{2, H}&\dots&\text{BC}_{n, H}
+		\text{B}_{x^{1},L} & ... & \text{B}_{x^{N},L}\\
+		\text{B}_{x^{2},H} & ... & \text{B}_{x^{N},H}
+		\end{bmatrix}\hat{u}=\begin{bmatrix}
+		\text{z}_{1, L}&\text{z}_{2, L}&\dots&\text{z}_{n, L}\\
+		\text{z}_{1, H}&\text{z}_{2, H}&\dots&\text{z}_{n, H}
 		\end{bmatrix}\label{Q_operator_2}
 		\end{equation}
-		basically saying that it's a map from discretizations of functions in the interior to functions which satisfy the BCs. In order to hold on trivial $u$, we need that the interior of $Q$ is identity, so it is defined by its first and last rows.\\
+		basically saying that it's a map from discretizations of functions in the interior to functions which satisfy the border conditions. In order to hold on trivial $u$, we need that the interior of $Q$ is identity, so it is defined by its first and last rows.\\
 		Q is actually in general affine, meaning that $Q\cdot \hat{u} = Q_a\cdot \hat{u} + Q_b$. For example, the definition given of inner product make $Q\cdot x=b$ in an iterative solver converge to $Q_a\cdot x = b - Q_b$. From the relations, $Q_a$ is $\hat{I}\times I$ and $Q_b$ is of length $\hat{I}$. In order for $Q\cdot R\cdot u = u$ to hold for trivial $\hat{u}$, we need that $Q_b$ is zero except in the boundary rows.
 		
 		\item Now let's focus on solving an expression like $\hat{u}^d = A \hat{u}$, where the superscript $d$ means the discretized version of the variable. Consider, with some abuse of notation, that such expression means both the discretized and non-discretized forms. Then we have two relations\footnote{We could not find a way to clearly show two relations above are correct, but some intuitions are provided in the text}:
@@ -125,7 +149,9 @@
 		[A[:, 1:I_L] A[:,\hat{I}-I_H+1:\hat{I}]]\cdot\left([B[:,1:I_L] B[:,\hat{I}-I_H+1:\hat{I}]]^{-1}\begin{bmatrix}
 		\text{b}_{x^{1},L} & ... & \text{b}_{x^{N},L}\\
 		\text{b}_{x^{2},H} & ... & \text{b}_{x^{N},H}
-		\end{bmatrix}\right) = A\cdot Q_b\label{affine_relation_1}\\
+		\end{bmatrix}\right) = A\cdot Q_b\label{affine_relation_1}
+		\end{align}
+		\begin{align}
 		R(A-[A[:,1:I_L] A[:,\hat{I}-I_H+1:\hat{I}]]\cdot([B[:,1:I_L] B[:,\hat{I}-I_H+1:\hat{I}]]^{-1} B) = A\cdot Q_a\label{affine_relation_2}
 		\end{align}
 		
@@ -154,16 +180,18 @@
 		
 	This shows that what's important and non-trivial is $Q$. It contains all of the information about both the boundaries and the domain from the two relations. So what is Q? Here's all of the relevant cases for finite differencing:
 	\begin{enumerate}
-	\item \textbf{Dirichlet$_0$}: If you have any $v$ in the interior, its unique extension to satisfying the BCs is 
-			sticking $0$'s on the end, so $Q = [\{0\}_1^{I_L};Id(I); \{0\}_1^{I_H}]$ is linear\footnote{Notice that $Id(I)$ here is the identity matrix, which has size $I\times I$}, meaning $Q = Q_a$ and $Q_b=0$.
+	\item \textbf{Dirichlet$_0$}: If you have any $v$ in the interior, its unique extension to satisfying the border conditions is sticking $0$'s on the ends, so both $Q_{j,L}$ and $Q_{j,H}$ are null matrices, i.e. block matrices in which all elements are zero. Therefore, Q is linear, meaning $Q = Q_a$ and $Q_b$ is a null matrix.
 			
-	\item \textbf{Dirichlet}: The boundary is not dependent on any points in the interior, and therefore $Q_a = [\{0\}_1^{I_L};Id(I);\{0\}_1^{I_H}]$, but, in order to satisfy the boundary conditions, you need $ Q_b=[\text{B}[I_L,:];\{0\}_1^I;\text{B}[I_H,:]]$.
+	\item \textbf{Dirichlet}: The boundary is not dependent on any points in the interior, and therefore $Q_a$ is identical to the previous case ($Q_{j,a} = [\textbf{0}_{(I_{j,L} \times I_j)}; \mathbb{I}_{(I_j \times I_j)} ; \textbf{0}_{(I_{j,H} \times I_j,)} ]$), but now Q is no longer linear and
+	 $Q_{j,b}$ is given by 
+	 $Q_{j,b} = [\text{B}_{j,L}[1,\dots,I_L,:]; \textbf{0}_{(I_j\times I_j)};
+	\text{B}_{j,H}[\hat{I}_j - I_H,\dots,\hat{I},:]]$.
 			
 	\item \textbf{Neumann}: You have to pick a discretization of B. 
-			This defines linear relation between the interior points and the boundary conditions. For example, the first order discretization of the boundary derivative means that 
+	This defines linear relation between the interior points and the boundary conditions. For example, for the univariate case, the first order discretization of the boundary derivative means that 
 			
 	\begin{equation}
-		\frac{db}{dx} = \frac{\hat{u}[2] - \hat{u}[1]}{dx} = \text{B}[I_L,:]
+		\frac{db}{dx} = \frac{\hat{u_j}[2] - \hat{u}[1]}{dx} = \text{B}[1,\dots,I_{L},:]
 	\end{equation}
 			
 	and, therefore, $u[1] = u[2] - dx\text{B}[I_L,:]$. You can see that this implies that $Q_b = [dx\text{B}[I_L,:];\{0\}_1^I;dx \text{B}[I_H,:]]$ and that $Q_a$ is the identity matrix for the interior points and $[1,0, 0,...,0]$ for the first $I_L$ rows\footnote{So that $Q_a u = u[1] = \hat{u}[I_L+1]$.} and $[0,...,0,0,1]$ for the last $I_H$ rows.%\footnote{so that $Q_a v = v[1] = u[2]$ and $Q_a v = v[I] = u[I-1]$, respectively.}.
