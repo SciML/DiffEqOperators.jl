@@ -239,7 +239,7 @@ L = r\cdot \mathbf{I}_{\hat{I}\times\hat{I}}-\underbrace{\begin{bmatrix}
 \vdots&\vdots&\vdots&\ddots&0&0&0\\
 0&0&0&\cdots&1&-2&1\\
 0&0&0&\cdots&0&1&-1
-\end{bmatrix}}_{\equiv A}=
+\end{bmatrix}}_{\equiv A}\Delta^{-2}=
 \begin{bmatrix}
 r\Delta^2+1&-1&0&\dots&0&0&0\\
 -1&r\Delta^2+2&-1&\dots&0&0&0\\
@@ -291,27 +291,35 @@ According to \eqref{HJBE_reflecting_barriers_PDE}, we can identify $x_0$ and $x_
 &\begin{cases}
 \begin{bmatrix}
 -1&r\Delta^2+2&-1&\dots&0&0&0
-\end{bmatrix}\cdot u &= x_1\\
+\end{bmatrix}\cdot \hat{u} &= x_1\\
 \begin{bmatrix}
 0&0&0&\cdots&-1&r\Delta^2+2&-1
-\end{bmatrix}\cdot u& = x_I
+\end{bmatrix}\cdot \hat{u}& = x_I
 \end{cases}\\
 &\begin{cases}
-x_0 &= (r\Delta^2+1)x_1-x_2\\
-x_{I+1}&=(r\Delta^2+1)x_I-x_{I_1}
+u(x_0) &= (r\Delta^2+2)u(x_1)-u(x_2) - x_1\\
+u(x_{I+1})&=(r\Delta^2+1)u(x_I)-u(x-{I_1})-x_I
 \end{cases}
 \end{align}
-Thus, $Q$ is defined by $Q\cdot R\cdot\hat{u} = \hat{u}$, where
+Thus, $Q$ is defined by $Q\cdot R\cdot\hat{u}\equiv Q_a\cdot R\cdot\hat{u}+Q_b = \hat{u}$, where
 \begin{equation}
-Q = \begin{bmatrix}
-r\Delta^2+1&-1&\cdots&0&0\\
+Q_a = \begin{bmatrix}
+r\Delta^2+2&-1&\cdots&0&0\\
 1&0&\cdots&0&0\\
 0&1&\cdots&0&0\\
 \vdots&\vdots&\ddots&\vdots&\vdots\\
 0&0&\cdots&1&0\\
 0&0&\cdots&0&1\\
-0&0&\cdots&-1&r\Delta^2+1
-\end{bmatrix}_{\hat{I}\times I}
+0&0&\cdots&-1&r\Delta^2+2
+\end{bmatrix}_{\hat{I}\times I}\quad\text{and}\quad Q_b = \begin{bmatrix}
+-x_1\\
+0\\
+0\\
+\vdots\\
+0\\
+0\\
+-x_{I}
+\end{bmatrix}_{\hat{I}\times 1}
 \end{equation}
 Then we should be able to express $\hat{u}$ in terms of $A$, $B$, $R$, and $Q$ as in \eqref{affine_relation_1} and \eqref{affine_relation_2}.
 
