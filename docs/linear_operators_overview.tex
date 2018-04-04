@@ -226,6 +226,94 @@ With this process,
 	\item The system of equations to solve for $u(x)$ in \cref{eq:general-stationary-HJBE}
 	\item Check that the code \url{operator_examples\simple_stationary_HJBE_reflecting.jl} is correct
 \end{itemize}
+We can re-define the problem as 
+\begin{align}
+\mathcal{L} u(x) &= x\label{HJBE_reflecting_barriers_PDE}\\
+\text{where }\mathcal{L}&\equiv r - \A
+\end{align}
+We first consider a one-dimension case where $x\in [0, 1]$. Let $I_L = I_H = 1$ and thereby $\Delta  = \frac{1}{\bar{I}}$ and $\hat{I} = I+2$. The matrix form of operator $\mathcal{L}$ can be defined as
+\begin{equation}
+L = r\cdot \mathbf{I}_{\hat{I}\times\hat{I}}-\underbrace{\begin{bmatrix}
+-1&1&0&\dots&0&0&0\\
+1&-2&1&\dots&0&0&0\\
+\vdots&\vdots&\vdots&\ddots&0&0&0\\
+0&0&0&\cdots&1&-2&1\\
+0&0&0&\cdots&0&1&-1
+\end{bmatrix}}_{\equiv A}=
+\begin{bmatrix}
+r\Delta^2+1&-1&0&\dots&0&0&0\\
+-1&r\Delta^2+2&-1&\dots&0&0&0\\
+\vdots&\vdots&\vdots&\ddots&0&0&0\\
+0&0&0&\cdots&-1&r\Delta^2+2&-1\\
+0&0&0&\cdots&0&-1&r\Delta^2+1
+\end{bmatrix}\Delta^{-2}
+\end{equation}
+where the dimension of A is $\hat{I}\times\hat{I}$.\\
+Since $x\in[0, 1]$, we have boundary conditions 
+\begin{align}
+\mathcal{L} u(\underline{x}) &= 0\\
+\mathcal{L} u(\bar{x})& = 1
+\end{align}
+Then we can define $B$ as
+\begin{equation}
+B\cdot\hat{u} =\underbrace{\begin{bmatrix}
+r\Delta^2+1&-1&0&\dots&0&0&0\\
+0&0&0&\cdots&0&-1&r\Delta^2+1
+\end{bmatrix}}_{\equiv B}\cdot\hat{u} = \begin{bmatrix}
+0\\
+1
+\end{bmatrix}
+\end{equation}
+where $\hat{u} = \begin{bmatrix}
+u(x_0)\\
+u(x_1)\\
+\vdots\\
+u(x_I)\\
+u(x_{I+1})
+\end{bmatrix}_{\hat{I}\times 1}$.\\
+$R$ is defined as 
+\begin{equation}
+R\cdot \hat{u} =\begin{bmatrix}
+0&1&0&\cdots&0&0\\
+0&0&1&\cdots&0&0\\
+\vdots&\vdots&\vdots&\ddots&\vdots&\vdots\\
+0&0&0&\cdots&1&0
+\end{bmatrix}_{I\times\hat{I}}\cdot \hat{u}		 
+=\begin{bmatrix}
+u(x_1)\\
+u(x_2)\\
+\vdots\\
+u(x_I)
+\end{bmatrix} \in \R^{I} 
+\end{equation}
+According to \eqref{HJBE_reflecting_barriers_PDE}, we can identify $x_0$ and $x_{I+1}$ by following relations
+\begin{align}
+&\begin{cases}
+\begin{bmatrix}
+-1&r\Delta^2+2&-1&\dots&0&0&0
+\end{bmatrix}\cdot u &= x_1\\
+\begin{bmatrix}
+0&0&0&\cdots&-1&r\Delta^2+2&-1
+\end{bmatrix}\cdot u& = x_I
+\end{cases}\\
+&\begin{cases}
+x_0 &= (r\Delta^2+1)x_1-x_2\\
+x_{I+1}&=(r\Delta^2+1)x_I-x_{I_1}
+\end{cases}
+\end{align}
+Thus, $Q$ is defined by $Q\cdot R\cdot\hat{u} = \hat{u}$, where
+\begin{equation}
+Q = \begin{bmatrix}
+r\Delta^2+1&-1&\cdots&0&0\\
+1&0&\cdots&0&0\\
+0&1&\cdots&0&0\\
+\vdots&\vdots&\ddots&\vdots&\vdots\\
+0&0&\cdots&1&0\\
+0&0&\cdots&0&1\\
+0&0&\cdots&-1&r\Delta^2+1
+\end{bmatrix}_{\hat{I}\times I}
+\end{equation}
+Then we should be able to express $\hat{u}$ in terms of $A$, $B$, $R$, and $Q$ as in \eqref{affine_relation_1} and \eqref{affine_relation_2}.
 
 \subsection{Stationary HJBE with a Lower Absorbing Barrier}
 Take the stochastic process
