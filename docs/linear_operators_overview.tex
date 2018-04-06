@@ -69,15 +69,38 @@
 		
 		\item B is the boundary condition operator. For $N$ dimensions, we can define B as a block matrix in the form:
 		\begin{equation}
-		B\cdot \hat{u} \equiv \begin{bmatrix}
-		\text{B}_{x^{1},L} & ... & \text{B}_{x^{N},L}\\
-		\text{B}_{x^{2},H} & ... & \text{B}_{x^{N},H}
-		\end{bmatrix}\cdot\hat{u} = \begin{bmatrix}
-		\text{z}_{1, L}&\text{z}_{2, L}&\dots&\text{z}_{n, L}\\
-		\text{z}_{1, H}&\text{z}_{2, H}&\dots&\text{z}_{n, H}
-		\end{bmatrix}\label{B_operator_block}
+		B\cdot \hat{u} \equiv 
+		%\begin{bmatrix}
+		%\text{B}_{x^{1},L} & ... & \text{B}_{x^{N},L}\\
+		%\text{B}_{x^{2},H} & ... & \text{B}_{x^{N},H}
+		%\end{bmatrix}
+		\begin{bmatrix}
+		\text{B}_{x^{1},L} & \mathbf{0}_{1,L}       & ...    & \mathbf{0}_{1,L}\\
+		\text{B}_{x^{1},H} & \mathbf{0}_{1,H}       & ...    & \mathbf{0}_{1,H}\\
+		\mathbf{0}_{2,L}   & \text{B}_{x^{2},L} &   ...    & \mathbf{0}_{2,L}\\
+		\mathbf{0}_{2,H}   & \text{B}_{x^{2},H} &   ...    & \mathbf{0}_{2,H}\\
+		\vdots  & \vdots  & \ddots & \vdots \\
+		\mathbf{0}_{N,L}       & ...    & \mathbf{0}_{N,L} & \text{B}_{x^{N},L} & \\
+		\mathbf{0}_{N,H}       & ...    & \mathbf{0}_{N,H} & \text{B}_{x^{N},H} & \\
+		\end{bmatrix}
+		\hat{u}
+		=
+		\begin{bmatrix}
+		\text{z}_{{1},L} & \mathbf{0}_{1,L}       & ...    & \mathbf{0}_{1,L}\\
+		\text{z}_{{1},H} & \mathbf{0}_{1,H}       & ...    & \mathbf{0}_{1,H}\\
+		\mathbf{0}_{2,L}   & \text{z}_{{2},L} &   ...    & \mathbf{0}_{2,L}\\
+		\mathbf{0}_{2,H}   & \text{z}_{{2},H} &   ...    & \mathbf{0}_{2,H}\\
+		\vdots  & \vdots  & \ddots & \vdots \\
+		\mathbf{0}_{N,L}       & ...    & \mathbf{0}_{N,L} & \text{z}_{{N},L} & \\
+		\mathbf{0}_{N,H}       & ...    & \mathbf{0}_{N,H} & \text{z}_{{N},H} & \\
+		\end{bmatrix}
+		%\begin{bmatrix}
+		%\text{z}_{1, L}&\text{z}_{2, L}&\dots&\text{z}_{n, L}\\
+		%\text{z}_{1, H}&\text{z}_{2, H}&\dots&\text{z}_{n, H}
+		%\end{bmatrix}
+		\label{B_operator_block}
 		\end{equation}
-		for any $\hat{u}$ in the space of functions that satisfy the boundary conditions and where B$_{x^j,k}$ is a block matrix satisfying B$_{x^j,k}\cdot \hat{u}_{x^j} = \text{z}_{j,k}$ for $k \in \{L,H\}$ and $j = 1, 2,\dots n$. The dimension of B$_{x^j,k}$ is $I_{j,k} \times \hat{I}_j$. 
+		for any $\hat{u}$ in the space of functions that satisfy the boundary conditions and where B$_{x^j,k}$ is a block matrix satisfying B$_{x^j,k}\cdot \hat{u}_{x^j} = \text{z}_{j,k}$ for $k \in \{L,H\}$ and $j = 1, 2,\dots n$. The size of B$_{x^j,k}$ is $I_{j,k} \times \hat{I}_j$.
 		
 		Notice that B is not necessarily unique. The choice of B is exactly the choice of boundary value discretization. For instance, choosing to do first or second order Neumann border conditions is simply the choice of the operator B. The size of $B$ is $(I_L + I_H) \times \hat{I}$.
 		
@@ -132,14 +155,39 @@
 		
 		Q also has a second relation: 
 		\begin{equation}
-		B\cdot Q\cdot u  = \begin{bmatrix}
-		\text{B}_{x^{1},L} & ... & \text{B}_{x^{N},L}\\
-		\text{B}_{x^{2},H} & ... & \text{B}_{x^{N},H}
-		\end{bmatrix}\hat{u}=\begin{bmatrix}
-		\text{z}_{1, L}&\text{z}_{2, L}&\dots&\text{z}_{n, L}\\
-		\text{z}_{1, H}&\text{z}_{2, H}&\dots&\text{z}_{n, H}
-		\end{bmatrix}\label{Q_operator_2}
+		B\cdot Q\cdot u  = 
+		%\begin{bmatrix}
+		%\text{B}_{x^{1},L} & ... & \text{B}_{x^{N},L}\\
+		%\text{B}_{x^{2},H} & ... & \text{B}_{x^{N},H}
+		%\end{bmatrix}
+		\begin{bmatrix}
+		\text{B}_{x^{1},L} & \mathbf{0}_{1,L}       & ...    & \mathbf{0}_{1,L}\\
+		\text{B}_{x^{1},H} & \mathbf{0}_{1,H}       & ...    & \mathbf{0}_{1,H}\\
+		\mathbf{0}_{2,L}   & \text{B}_{x^{2},L} &   ...    & \mathbf{0}_{2,L}\\
+		\mathbf{0}_{2,H}   & \text{B}_{x^{2},H} &   ...    & \mathbf{0}_{2,H}\\
+		\vdots  & \vdots  & \ddots & \vdots \\
+		\mathbf{0}_{N,L}       & ...    & \mathbf{0}_{N,L} & \text{B}_{x^{N},L} & \\
+		\mathbf{0}_{N,H}       & ...    & \mathbf{0}_{N,H} & \text{B}_{x^{N},H} & \\
+		\end{bmatrix}
+		\hat{u}
+		=
+		\begin{bmatrix}
+		\text{z}_{{1},L} & \mathbf{0}_{1,L}       & ...    & \mathbf{0}_{1,L}\\
+		\text{z}_{{1},H} & \mathbf{0}_{1,H}       & ...    & \mathbf{0}_{1,H}\\
+		\mathbf{0}_{2,L}   & \text{z}_{{2},L} &   ...    & \mathbf{0}_{2,L}\\
+		\mathbf{0}_{2,H}   & \text{z}_{{2},H} &   ...    & \mathbf{0}_{2,H}\\
+		\vdots  & \vdots  & \ddots & \vdots \\
+		\mathbf{0}_{N,L}       & ...    & \mathbf{0}_{N,L} & \text{z}_{{N},L} & \\
+		\mathbf{0}_{N,H}       & ...    & \mathbf{0}_{N,H} & \text{z}_{{N},H} & \\
+		\end{bmatrix}
+		%\begin{bmatrix}
+		%\text{z}_{1, L}&\text{z}_{2, L}&\dots&\text{z}_{n, L}\\
+		%\text{z}_{1, H}&\text{z}_{2, H}&\dots&\text{z}_{n, H}
+		%\end{bmatrix}
+		%\end{bmatrix}
+		\label{Q_operator_2}
 		\end{equation}
+		
 		basically saying that it's a map from discretizations of functions in the interior to functions which satisfy the border conditions. In order to hold on trivial $u$, we need that the interior of $Q$ is identity, so it is defined by its first and last rows.\\
 		Q is actually in general affine, meaning that $Q\cdot \hat{u} = Q_a\cdot \hat{u} + Q_b$. For example, the definition given of inner product make $Q\cdot x=b$ in an iterative solver converge to $Q_a\cdot x = b - Q_b$. From the relations, $Q_a$ is $\hat{I}\times I$ and $Q_b$ is of length $\hat{I}$. In order for $Q\cdot R\cdot u = u$ to hold for trivial $\hat{u}$, we need that $Q_b$ is zero except in the boundary rows.
 		
@@ -147,12 +195,12 @@
 		
 		\begin{align}
 		[A[:, 1:I_L] A[:,\hat{I}-I_H+1:\hat{I}]]\cdot\left([B[:,1:I_L] B[:,\hat{I}-I_H+1:\hat{I}]]^{-1}\begin{bmatrix}
-		\text{b}_{x^{1},L} & ... & \text{b}_{x^{N},L}\\
-		\text{b}_{x^{2},H} & ... & \text{b}_{x^{N},H}
+		\text{z}_{x^{1},L} & ... & \text{z}_{x^{N},L}\\
+		\text{z}_{x^{2},H} & ... & \text{z}_{x^{N},H}
 		\end{bmatrix}\right) = A\cdot Q_b\label{affine_relation_1}
 		\end{align}
 		\begin{align}
-		R(A-[A[:,1:I_L] A[:,\hat{I}-I_H+1:\hat{I}]]\cdot([B[:,1:I_L] B[:,\hat{I}-I_H+1:\hat{I}]]^{-1} B) = A\cdot Q_a\label{affine_relation_2}
+		R(A-[A[:,1:I_L] A[:,\hat{I}-I_H+1:\hat{I}]]\cdot([B[:,1:I_L] B[:,\hat{I}-I_H+1:\hat{I}]]^{-1} B)) = A\cdot Q_a\label{affine_relation_2}
 		\end{align}
 		
 		Our intuition is that the main idea here is using interiors to recover a relation that boundary conditions should satisfy. Since $Q_b$ is a $\hat{I}\times 1$ matrix containing zeros excepts two ends, the two non-zero elements in $Q_b$ capture partial information of boundary nodes (the part that is ``independent'' of interiors).  Recall \eqref{B_operator_block}, so $\left([B[:,1:I_L] B[:,\hat{I}-I_H+1:\hat{I}]]^{-1}\begin{bmatrix}
@@ -231,23 +279,25 @@ We can re-define the problem as
 \mathcal{L} u(x) &= x\label{HJBE_reflecting_barriers_PDE}\\
 \text{where }\mathcal{L}&\equiv r - \A
 \end{align}
-We first consider a one-dimension case where $x\in [0, 1]$. Let $I_L = I_H = 1$ and thereby $\Delta  = \frac{1}{\bar{I}}$ and $\hat{I} = I+2$. The matrix form of operator $\mathcal{L}$ can be defined as
-\begin{equation}
-L = r\cdot \mathbf{I}_{\hat{I}\times\hat{I}}-\underbrace{\begin{bmatrix}
+We first consider a one-dimension case where $x\in [0, 1]$. Let $I_L = I_H = 1$ and thereby $\Delta  = \frac{1}{\hat{I}}$ and $\hat{I} = I+2$. The matrix form of operator $\mathcal{L}$ can be defined as
+
+\begin{align*}
+L &= r\cdot \mathbf{I}_{\hat{I}\times\hat{I}}-\underbrace{\begin{bmatrix}
 -1&1&0&\dots&0&0&0\\
 1&-2&1&\dots&0&0&0\\
-\vdots&\vdots&\vdots&\ddots&0&0&0\\
+\vdots&\vdots&\vdots&\ddots&\vdots&\vdots&\vdots\\
 0&0&0&\cdots&1&-2&1\\
 0&0&0&\cdots&0&1&-1
-\end{bmatrix}}_{\equiv A}\Delta^{-2}=
-\begin{bmatrix}
+\end{bmatrix}}_{\equiv A}\Delta^{-2}
+\\
+& = \begin{bmatrix}
 r\Delta^2+1&-1&0&\dots&0&0&0\\
 -1&r\Delta^2+2&-1&\dots&0&0&0\\
 \vdots&\vdots&\vdots&\ddots&0&0&0\\
 0&0&0&\cdots&-1&r\Delta^2+2&-1\\
 0&0&0&\cdots&0&-1&r\Delta^2+1
 \end{bmatrix}\Delta^{-2}
-\end{equation}
+\end{align*}
 where the dimension of A is $\hat{I}\times\hat{I}$.\\
 Since $x\in[0, 1]$, we have boundary conditions 
 \begin{align}
@@ -291,14 +341,15 @@ According to \eqref{HJBE_reflecting_barriers_PDE}, we can identify $x_0$ and $x_
 &\begin{cases}
 \begin{bmatrix}
 -1&r\Delta^2+2&-1&\dots&0&0&0
-\end{bmatrix}\cdot \hat{u} &= x_1\\
+\end{bmatrix}\cdot \hat{u} &= x_1
+\\[.25cm]
 \begin{bmatrix}
 0&0&0&\cdots&-1&r\Delta^2+2&-1
 \end{bmatrix}\cdot \hat{u}& = x_I
 \end{cases}\\
 &\begin{cases}
 u(x_0) &= (r\Delta^2+2)u(x_1)-u(x_2) - x_1\\
-u(x_{I+1})&=(r\Delta^2+1)u(x_I)-u(x-{I_1})-x_I
+u(x_{I+1})&=(r\Delta^2+1)u(x_I)-u(x_{I -1})-x_I
 \end{cases}
 \end{align}
 Thus, $Q$ is defined by $Q\cdot R\cdot\hat{u}\equiv Q_a\cdot R\cdot\hat{u}+Q_b = \hat{u}$, where
