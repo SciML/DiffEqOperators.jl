@@ -201,11 +201,10 @@
 		\end{align}
 		\begin{align}
 		R(A-[A[:,1:I_L] A[:,\hat{I}-I_H+1:\hat{I}]]\cdot([B[:,1:I_L] B[:,\hat{I}-I_H+1:\hat{I}]]^{-1} B)) = A\cdot Q_a\label{affine_relation_2}
-		\end{align}
-		
-		Our intuition is that the main idea here is using interiors to recover a relation that boundary conditions should satisfy. Since $Q_b$ is a $\hat{I}\times 1$ matrix containing zeros excepts two ends, the two non-zero elements in $Q_b$ capture partial information of boundary nodes (the part that is ``independent'' of interiors).  Recall \eqref{B_operator_block}, so $\left([B[:,1:I_L] B[:,\hat{I}-I_H+1:\hat{I}]]^{-1}\begin{bmatrix}
-		\text{b}_{x^{1},L} & ... & \text{b}_{x^{N},L}\\
-		\text{b}_{x^{2},H} & ... & \text{b}_{x^{N},H}
+		\end{align}		
+Our intuition is that the main idea here is using interiors to recover a relation that boundary conditions should satisfy. Since $Q_b$ is a $\hat{I}\times 1$ matrix containing zeros excepts two ends, the two non-zero elements in $Q_b$ capture partial information of boundary nodes (the part that is ``independent'' of interiors).  Recall \eqref{B_operator_block}, so $\left([B[:,1:I_L] B[:,\hat{I}-I_H+1:\hat{I}]]^{-1}\begin{bmatrix}
+		\text{z}_{x^{1},L} & ... & \text{z}_{x^{N},L}\\
+		\text{z}_{x^{2},H} & ... & \text{z}_{x^{N},H}
 		\end{bmatrix}\right)$ recovers the ``independent" part of boundary nodes. Then it is reasonable to expect that \eqref{affine_relation_1} holds.
 		
 		Multiply both sides of \eqref{affine_relation_2} by $\hat{u}$, we can roughly rewrite the relation as
@@ -279,8 +278,7 @@ We can re-define the problem as
 \A u(x) &= x\label{HJBE_reflecting_barriers_PDE}\\
 \text{where }\A&\equiv r - \frac{1}{2}\partial_{xx}
 \end{align}
-<<<<<<< HEAD
-We first consider a one-dimension case where $x\in [0, 1]$. Let $I_L = I_H = 1$ and thereby $\Delta  = \frac{1}{\bar{I}}$ and $\hat{I} = I+2$. The matrix form of operator $\A$ can be defined as
+We first consider a one-dimension case where $x\in [0, 1]$. Let $I_L = I_H = 1$ and thereby $\Delta  = \frac{1}{\hat{I}}$ and $\hat{I} = I+2$. The matrix form of operator $\A$ can be defined as
 \begin{align}
 A &= r\cdot \mathbf{I}_{\hat{I}\times\hat{I}}-\underbrace{\begin{bmatrix}
 -1&1&0&\dots&0&0&0\\
@@ -302,27 +300,7 @@ A &= r\cdot \mathbf{I}_{\hat{I}\times\hat{I}}-\underbrace{\begin{bmatrix}
 0&0&0&\cdots&0&-1&2r\Delta^2+1
 \end{bmatrix}\frac{\Delta^{-2}}{2}
 \end{align}
-=======
-We first consider a one-dimension case where $x\in [0, 1]$. Let $I_L = I_H = 1$ and thereby $\Delta  = \frac{1}{\hat{I}}$ and $\hat{I} = I+2$. The matrix form of operator $\mathcal{L}$ can be defined as
 
-\begin{align*}
-L &= r\cdot \mathbf{I}_{\hat{I}\times\hat{I}}-\underbrace{\begin{bmatrix}
--1&1&0&\dots&0&0&0\\
-1&-2&1&\dots&0&0&0\\
-\vdots&\vdots&\vdots&\ddots&\vdots&\vdots&\vdots\\
-0&0&0&\cdots&1&-2&1\\
-0&0&0&\cdots&0&1&-1
-\end{bmatrix}}_{\equiv A}\Delta^{-2}
-\\
-& = \begin{bmatrix}
-r\Delta^2+1&-1&0&\dots&0&0&0\\
--1&r\Delta^2+2&-1&\dots&0&0&0\\
-\vdots&\vdots&\vdots&\ddots&0&0&0\\
-0&0&0&\cdots&-1&r\Delta^2+2&-1\\
-0&0&0&\cdots&0&-1&r\Delta^2+1
-\end{bmatrix}\Delta^{-2}
-\end{align*}
->>>>>>> 92e77e97ce7dea4ae0d64e86bf4984fe56ef9e40
 where the dimension of A is $\hat{I}\times\hat{I}$.\\
 Since $x\in[0, 1]$, we have boundary conditions 
 \begin{align}
@@ -359,15 +337,15 @@ u(x_1)\\
 u(x_2)\\
 \vdots\\
 u(x_I)
-\end{bmatrix} \in \R^{I} 
+\end{bmatrix} \equiv u\in \R^{I} 
 \end{equation}
 According to \eqref{HJBE_reflecting_barriers_PDE}, we can identify $x_0$ and $x_{I+1}$ by following relations
 \begin{align}
 &\begin{cases}
-<<<<<<< HEAD
 \frac{\Delta^{-2}}{2}\begin{bmatrix}
 -1&2r\Delta^2+2&-1&\dots&0&0&0
 \end{bmatrix}\cdot \hat{u} &= x_1\\
+\\[.05cm]
 \frac{\Delta^{-2}}{2}\begin{bmatrix}
 0&0&0&\cdots&-1&2r\Delta^2+2&-1
 \end{bmatrix}\cdot \hat{u}& = x_I
@@ -375,19 +353,6 @@ According to \eqref{HJBE_reflecting_barriers_PDE}, we can identify $x_0$ and $x_
 &\begin{cases}
 u(x_0) &= (2r\Delta^2+2)u(x_1)-u(x_2) - \frac{2}{\Delta^{-2}}x_1\\
 u(x_{I+1})&=(2r\Delta^2+1)u(x_I)-u(x-{I_1})-\frac{2}{\Delta^{-2}}x_I
-=======
-\begin{bmatrix}
--1&r\Delta^2+2&-1&\dots&0&0&0
-\end{bmatrix}\cdot \hat{u} &= x_1
-\\[.25cm]
-\begin{bmatrix}
-0&0&0&\cdots&-1&r\Delta^2+2&-1
-\end{bmatrix}\cdot \hat{u}& = x_I
-\end{cases}\\
-&\begin{cases}
-u(x_0) &= (r\Delta^2+2)u(x_1)-u(x_2) - x_1\\
-u(x_{I+1})&=(r\Delta^2+1)u(x_I)-u(x_{I -1})-x_I
->>>>>>> 92e77e97ce7dea4ae0d64e86bf4984fe56ef9e40
 \end{cases}
 \end{align}
 Thus, $Q$ is defined by $Q\cdot R\cdot\hat{u}\equiv Q_a\cdot R\cdot\hat{u}+Q_b = \hat{u}$, where
