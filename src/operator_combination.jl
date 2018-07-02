@@ -30,7 +30,7 @@
 #=
     Fallback methods that use the full representation
 =#
-Base.exp(A::LinearCombination) = expm(full(A))
+Base.exp(A::LinearCombination) = exp(full(A))
 Base.:\(A::AbstractVecOrMat, B::LinearCombination) = A \ full(B)
 Base.:\(A::LinearCombination, B::AbstractVecOrMat) = full(A) \ B
 Base.:/(A::AbstractVecOrMat, B::LinearCombination) = A / full(B)

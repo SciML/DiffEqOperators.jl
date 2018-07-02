@@ -1,5 +1,5 @@
 
-immutable FiniteDifference{T<:Real,S<:SVector,LBC,RBC} <: AbstractDerivativeOperator{T}
+struct FiniteDifference{T<:Real,S<:SVector,LBC,RBC} <: AbstractDerivativeOperator{T}
     derivative_order    :: Int
     approximation_order :: Int
     dx                  :: Vector{T}

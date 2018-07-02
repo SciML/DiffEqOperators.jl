@@ -1,4 +1,4 @@
-using Base.Test
+using Test
 using DiffEqOperators, OrdinaryDiffEq
 
 @testset "KdV equation (Single Solition)" begin

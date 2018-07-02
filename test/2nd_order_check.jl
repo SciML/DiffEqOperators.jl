@@ -1,4 +1,4 @@
-using DiffEqOperators, Base.Test
+using DiffEqOperators, Test
 
 ord = 2               # Order of approximation
 Δx = 0.025π

@@ -1,4 +1,4 @@
-using Base.Test
+using Test
 using OrdinaryDiffEq
 
 @testset "Parabolic Heat Equation with Dirichlet BCs" begin
