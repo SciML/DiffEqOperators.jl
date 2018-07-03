@@ -1,4 +1,4 @@
-using DiffEqOperators
+using DiffEqOperators, LinearAlgebra
 using Test
 using SpecialMatrices, SpecialFunctions
 

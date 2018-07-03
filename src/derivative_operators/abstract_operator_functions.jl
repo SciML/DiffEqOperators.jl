@@ -148,6 +148,7 @@ end
 # Base.length(A::AbstractDerivativeOperator) = A.stencil_length
 Base.ndims(A::AbstractDerivativeOperator) = 2
 Base.size(A::AbstractDerivativeOperator) = (A.dimension, A.dimension)
+Base.size(A::AbstractDerivativeOperator,i::Integer) = size(A)[i]
 Base.length(A::AbstractDerivativeOperator) = reduce(*, size(A))
 
 

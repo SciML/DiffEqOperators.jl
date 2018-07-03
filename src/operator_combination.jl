@@ -36,19 +36,19 @@ Base.:\(A::LinearCombination, B::AbstractVecOrMat) = full(A) \ B
 Base.:/(A::AbstractVecOrMat, B::LinearCombination) = A / full(B)
 Base.:/(A::LinearCombination, B::AbstractVecOrMat) = full(A) / B
 
-Base.norm(A::IdentityMap{T}, p::Real=2) where T = real(one(T))
-Base.norm(A::LinearCombination, p::Real=2) = norm(full(A), p)
+LinearAlgebra.opnorm(A::IdentityMap{T}, p::Real=2) where T = real(one(T))
+LinearAlgebra.opnorm(A::LinearCombination, p::Real=2) = opnorm(full(A), p)
 #=
-    The norm of A+B is difficult to calculate, but in many applications we only
-    need an estimate of the norm (e.g. for error analysis) so it makes sense to
+    The opnorm of A+B is difficult to calculate, but in many applications we only
+    need an estimate of the opnorm (e.g. for error analysis) so it makes sense to
     compute the upper bound given by the triangle inequality
 
         |A + B| <= |A| + |B|
 
-    For derivative operators A and B, their Inf norm can be calculated easily
-    and thus so is the Inf norm bound of A + B.
+    For derivative operators A and B, their Inf opnorm can be calculated easily
+    and thus so is the Inf opnorm bound of A + B.
 =#
-normbound(a::Number, p::Real=2) = abs(a)
-normbound(A::AbstractArray, p::Real=2) = norm(A, p)
-normbound(A::Union{AbstractDiffEqLinearOperator,IdentityMap}, p::Real=2) = norm(A, p)
-normbound(A::LinearCombination, p::Real=2) = sum(abs.(A.coeffs) .* normbound.(A.maps, p))
+opnormbound(a::Number, p::Real=2) = abs(a)
+opnormbound(A::AbstractArray, p::Real=2) = opnorm(A, p)
+opnormbound(A::Union{AbstractDiffEqLinearOperator,IdentityMap}, p::Real=2) = opnorm(A, p)
+opnormbound(A::LinearCombination, p::Real=2) = sum(abs.(A.coeffs) .* opnormbound.(A.maps, p))

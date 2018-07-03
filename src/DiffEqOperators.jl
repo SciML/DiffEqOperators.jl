@@ -25,5 +25,5 @@ include("derivative_operators/boundary_operators.jl")
 
 export DiffEqScalar, DiffEqArrayOperator
 export AbstractDerivativeOperator, DerivativeOperator, UpwindOperator, FiniteDifference
-export normbound
+export opnormbound
 end # module

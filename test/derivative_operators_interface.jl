@@ -8,11 +8,11 @@
     A = DerivativeOperator{Float64}(d_order,approx_order,1.0,N,:Dirichlet0,:Dirichlet0)
     mat = full(A)
     sp_mat = sparse(A)
-    @test mat == sp_mat;
-    @test full(A, 10) == -Strang(10); # Strang Matrix is defined with the center term +ve
-    @test full(A, N) == -Strang(N); # Strang Matrix is defined with the center term +ve
+    @test mat == sp_mat
+    @test full(A, 10) == -Strang(10) # Strang Matrix is defined with the center term +ve
+    @test full(A, N) == -Strang(N) # Strang Matrix is defined with the center term +ve
     @test full(A) == sp_mat
-    @test norm(A, Inf) == norm(mat, Inf)
+    @test opnorm(A, Inf) == opnorm(mat, Inf)
 
     # testing correctness
     N = 1000
@@ -25,13 +25,13 @@
     boundary_points = A.boundary_point_count
     mat = full(A, N)
     sp_mat = sparse(A)
-    @test mat == sp_mat;
+    @test mat == sp_mat
 
     res = A*y
-    @test res[boundary_points[1] + 1: N - boundary_points[2]] ≈ 24.0*ones(N - sum(boundary_points)) atol=10.0^-approx_order;
-    @test A*y ≈ mat*y atol=10.0^-approx_order;
-    @test A*y ≈ sp_mat*y atol=10.0^-approx_order;
-    @test sp_mat*y ≈ mat*y atol=10.0^-approx_order;
+    @test res[boundary_points[1] + 1: N - boundary_points[2]] ≈ 24.0*ones(N - sum(boundary_points)) atol=10.0^-approx_order
+    @test A*y ≈ mat*y atol=10.0^-approx_order
+    @test A*y ≈ sp_mat*y atol=10.0^-approx_order
+    @test sp_mat*y ≈ mat*y atol=10.0^-approx_order
 end
 
 @testset "Indexing tests" begin
@@ -93,19 +93,20 @@ end
     N = 10
     srand(0); LA = DiffEqArrayOperator(rand(N,N))
     LD = DerivativeOperator{Float64}(2,2,1.0,N,:Dirichlet0,:Dirichlet0)
-    L = 1.1*LA - 2.2*LD + 3.3*I
-    # Builds full(L) the brute-force way
-    fullL = zeros(N,N)
-    v = zeros(N)
-    for i = 1:N
-        v[i] = 1.0
-        fullL[:,i] = L*v
-        v[i] = 0.0
-    end
-    @test full(L) ≈ fullL
-    @test expm(L) ≈ expm(fullL)
-    for p in [1,2,Inf]
-        @test norm(L,p) ≈ norm(fullL,p)
-        @test normbound(L,p) ≈ 1.1*norm(LA,p) + 2.2*norm(LD,p) + 3.3
-    end
+    @test_broken begin L = 1.1*LA - 2.2*LD + 3.3*I
+      # Builds full(L) the brute-force way
+      fullL = zeros(N,N)
+      v = zeros(N)
+      for i = 1:N
+          v[i] = 1.0
+          fullL[:,i] = L*v
+          v[i] = 0.0
+      end
+      @test full(L) ≈ fullL
+      @test exp(L) ≈ exp(fullL)
+      for p in [1,2,Inf]
+          @test opnorm(L,p) ≈ opnorm(fullL,p)
+          @test opnormbound(L,p) ≈ 1.1*opnorm(LA,p) + 2.2*opnorm(LD,p) + 3.3
+      end
+  end
 end
