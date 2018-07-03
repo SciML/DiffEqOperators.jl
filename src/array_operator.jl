@@ -67,7 +67,7 @@ end
 
 function (L::DiffEqArrayOperator)(du,u,p,t)
   update_coefficients!(L,u,p,t)
-  A_mul_B!(du,L,u)
+  mul!(du,L,u)
 end
 
 ### Forward some extra operations
@@ -83,13 +83,13 @@ Base.:*(L::DiffEqArrayOperator,α::Number) = α*L
 Base.:*(L::DiffEqArrayOperator,b::AbstractVector) = L.α.coeff*L.A*b
 Base.:*(L::DiffEqArrayOperator,b::AbstractArray) = L.α.coeff*L.A*b
 
-function Base.A_mul_B!(v::AbstractVector,L::DiffEqArrayOperator,b::AbstractVector)
-    A_mul_B!(v,L.A,b)
+function LinearAlgebra.mul!(v::AbstractVector,L::DiffEqArrayOperator,b::AbstractVector)
+    mul!(v,L.A,b)
     scale!(v,L.α.coeff)
 end
 
-function Base.A_mul_B!(v::AbstractArray,L::DiffEqArrayOperator,b::AbstractArray)
-    A_mul_B!(v,L.A,b)
+function LinearAlgebra.mul!(v::AbstractArray,L::DiffEqArrayOperator,b::AbstractArray)
+    mul!(v,L.A,b)
     scale!(v,L.α.coeff)
 end
 

@@ -4,7 +4,7 @@
 =#
 
 (L::LinearCombination)(u,p,t) = L*u
-(L::LinearCombination)(du,u,p,t) = A_mul_B!(du,L,u)
+(L::LinearCombination)(du,u,p,t) = mul!(du,L,u)
 
 #=
     The fallback implementation in LinearMaps.jl effectively computes A*eye(N),

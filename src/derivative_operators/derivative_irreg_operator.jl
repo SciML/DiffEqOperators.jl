@@ -61,7 +61,7 @@ struct FiniteDifference{T<:Real,S<:SVector,LBC,RBC} <: AbstractDerivativeOperato
 end
 
 
-function Base.A_mul_B!(x_temp::AbstractVector{T}, A::FiniteDifference{T}, x::AbstractVector{T}) where T<:Real
+function LinearAlgebra.mul!(x_temp::AbstractVector{T}, A::FiniteDifference{T}, x::AbstractVector{T}) where T<:Real
     convolve_BC_left!(x_temp, x, A)
     convolve_interior!(x_temp, x, A)
     convolve_BC_right!(x_temp, x, A)
@@ -392,6 +392,6 @@ end
 
 
 (L::FiniteDifference)(u,p,t) = L*u
-(L::FiniteDifference)(du,u,p,t) = A_mul_B!(du,L,u)
+(L::FiniteDifference)(du,u,p,t) = mul!(du,L,u)
 # get_LBC(::FiniteDifference{A,B,C,D}) where {A,B,C,D} = C
 # get_RBC(::FiniteDifference{A,B,C,D}) where {A,B,C,D} = D

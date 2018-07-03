@@ -7,7 +7,7 @@ function *(A::AbstractDerivativeOperator,x::AbstractVector)
     =#
     get_type(A) != eltype(x) ? error("DiffEqOperator and array are not of same type!") : nothing
     y = zeros(promote_type(eltype(A),eltype(x)), length(x))
-    Base.A_mul_B!(y, A::AbstractDerivativeOperator, x::AbstractVector)
+    LinearAlgebra.mul!(y, A::AbstractDerivativeOperator, x::AbstractVector)
     return y
 end
 
@@ -19,7 +19,7 @@ function *(A::AbstractDerivativeOperator,M::AbstractMatrix)
     =#
     get_type(A) != eltype(M) ? error("DiffEqOperator and array are not of same type!") : nothing
     y = zeros(promote_type(eltype(A),eltype(M)), size(M))
-    Base.A_mul_B!(y, A::AbstractDerivativeOperator, M::AbstractMatrix)
+    LinearAlgebra.mul!(y, A::AbstractDerivativeOperator, M::AbstractMatrix)
     return y
 end
 
@@ -31,7 +31,7 @@ function *(M::AbstractMatrix,A::AbstractDerivativeOperator)
     =#
     get_type(A) != eltype(M) ? error("DiffEqOperator and array are not of same type!") : nothing
     y = zeros(promote_type(eltype(A),eltype(M)), size(M))
-    Base.A_mul_B!(y, A::AbstractDerivativeOperator, M::AbstractMatrix)
+    LinearAlgebra.mul!(y, A::AbstractDerivativeOperator, M::AbstractMatrix)
     return y
 end
 
@@ -435,7 +435,7 @@ end
 
 
 (L::DerivativeOperator)(u,p,t) = L*u
-(L::DerivativeOperator)(du,u,p,t) = A_mul_B!(du,L,u)
+(L::DerivativeOperator)(du,u,p,t) = mul!(du,L,u)
 get_LBC(::DerivativeOperator{A,B,C,D}) where {A,B,C,D} = C
 get_RBC(::DerivativeOperator{A,B,C,D}) where {A,B,C,D} = D
 

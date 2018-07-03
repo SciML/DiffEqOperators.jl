@@ -92,7 +92,7 @@ end
                 calculating the effect on a unit vector to get the matrix of transformation
                 to get the vector in the new vector space.
             =#
-            A_mul_B!(view(mat, :, i - cng[1] + 1), A, v)
+            mul!(view(mat, :, i - cng[1] + 1), A, v)
             v[i] = zero(T)
         end
         return mat[rng, :]
@@ -106,7 +106,7 @@ end
                 calculating the effect on a unit vector to get the matrix of transformation
                 to get the vector in the new vector space.
             =#
-            A_mul_B!(view(mat, i - rng[1] + 1, :), A, v)
+            mul!(view(mat, i - rng[1] + 1, :), A, v)
             v[i] = zero(T)
         end
         return mat[:, cng]
@@ -114,13 +114,13 @@ end
 end
 
 #=
-    This the basic A_Mul_B! function which is broken up into 3 parts ie. handling the left
+    This the basic mul! function which is broken up into 3 parts ie. handling the left
     boundary, handling the interior and handling the right boundary. Finally the vector is
     scaled appropriately according to the derivative order and the degree of discretizaiton.
     We also update the time stamp of the DerivativeOperator inside to manage time dependent
     boundary conditions.
 =#
-function Base.A_mul_B!(x_temp::AbstractVector{T}, A::Union{DerivativeOperator{T},UpwindOperator{T}}, x::AbstractVector{T}) where T<:Real
+function LinearAlgebra.mul!(x_temp::AbstractVector{T}, A::Union{DerivativeOperator{T},UpwindOperator{T}}, x::AbstractVector{T}) where T<:Real
     convolve_BC_left!(x_temp, x, A)
     convolve_interior!(x_temp, x, A)
     convolve_BC_right!(x_temp, x, A)
@@ -129,17 +129,17 @@ function Base.A_mul_B!(x_temp::AbstractVector{T}, A::Union{DerivativeOperator{T}
 end
 
 #=
-    This definition of the A_mul_B! function makes it possible to apply the LinearOperator on
+    This definition of the mul! function makes it possible to apply the LinearOperator on
     a matrix and not just a vector. It basically transforms the rows one at a time.
 =#
-function Base.A_mul_B!(x_temp::AbstractArray{T,2}, A::AbstractDerivativeOperator{T}, M::AbstractMatrix{T}) where T<:Real
+function LinearAlgebra.mul!(x_temp::AbstractArray{T,2}, A::AbstractDerivativeOperator{T}, M::AbstractMatrix{T}) where T<:Real
     if size(x_temp) == reverse(size(M))
         for i = 1:size(M,1)
-            A_mul_B!(view(x_temp,i,:), A, view(M,i,:))
+            mul!(view(x_temp,i,:), A, view(M,i,:))
         end
     else
         for i = 1:size(M,2)
-            A_mul_B!(view(x_temp,:,i), A, view(M,:,i))
+            mul!(view(x_temp,:,i), A, view(M,:,i))
         end
     end
 end
@@ -176,7 +176,7 @@ function Base.full(A::AbstractDerivativeOperator{T}, N::Int=A.dimension) where T
             calculating the effect on a unit vector to get the matrix of transformation
             to get the vector in the new vector space.
         =#
-        A_mul_B!(view(mat,:,i), A, v)
+        mul!(view(mat,:,i), A, v)
         v[i] = zero(T)
     end
     return mat
@@ -202,7 +202,7 @@ function Base.sparse(A::AbstractDerivativeOperator{T}) where T
             calculating the effect on a unit vector to get the matrix of transformation
             to get the vector in the new vector space.
         =#
-        A_mul_B!(row, A, v)
+        mul!(row, A, v)
         copy!(view(mat,:,i), row)
         row .= 0.*row;
         v[i] = zero(T)

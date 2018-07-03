@@ -34,9 +34,9 @@ A = A/(Δx^2)
 const tmp1 = similar(x)
 const tmp2 = similar(x)
 function f(t,u,du)
-    A_mul_B!(tmp1,  D1, u)
+    mul!(tmp1,  D1, u)
     @. tmp2 = κ(x)*tmp1
-    A_mul_B!(du,D1,tmp2)
+    mul!(du,D1,tmp2)
 end
 
 du = similar(u0)

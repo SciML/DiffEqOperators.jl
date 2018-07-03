@@ -68,7 +68,7 @@ end
 
 
 (L::UpwindOperator)(t,u) = L*u
-(L::UpwindOperator)(t,u,du) = A_mul_B!(du,L,u)
+(L::UpwindOperator)(t,u,du) = mul!(du,L,u)
 
 function update_coefficients!(A::UpwindOperator{T,S,LBC,RBC};BC=nothing, directions=nothing) where {T<:Real,S<:SVector,RBC,LBC}
     if BC != nothing
