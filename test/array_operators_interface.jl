@@ -1,5 +1,5 @@
 using DiffEqOperators
-using Base.Test
+using Test
 
 N = 5
 srand(0); A = rand(N,N); u = rand(N)
@@ -10,7 +10,7 @@ La = L * a
 @test La * u ≈ (a*A) * u
 @test lufact(La) \ u ≈ (a*A) \ u
 @test norm(La) ≈ norm(a*A)
-@test expm(La) ≈ expm(a*A)
+@test exp(La) ≈ exp(a*A)
 @test La[2,3] ≈ A[2,3] # should this be La[2,3] == a*A[2,3]?
 
 update_func = (_A,u,p,t) -> _A .= t * A

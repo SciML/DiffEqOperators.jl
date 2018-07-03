@@ -2,13 +2,13 @@
 checkbounds(A::AbstractDerivativeOperator, k::Integer, j::Integer) =
     (0 < k ≤ size(A, 1) && 0 < j ≤ size(A, 2) || throw(BoundsError(A, (k,j))))
 
-checkbounds(A::AbstractDerivativeOperator, kr::Range, j::Integer) =
+checkbounds(A::AbstractDerivativeOperator, kr::AbstractRange, j::Integer) =
     (checkbounds(A, first(kr), j); checkbounds(A,  last(kr), j))
 
-checkbounds(A::AbstractDerivativeOperator, k::Integer, jr::Range) =
+checkbounds(A::AbstractDerivativeOperator, k::Integer, jr::AbstractRange) =
     (checkbounds(A, k, first(jr)); checkbounds(A, k,  last(jr)))
 
-checkbounds(A::AbstractDerivativeOperator, kr::Range, jr::Range) =
+checkbounds(A::AbstractDerivativeOperator, kr::AbstractRange, jr::AbstractRange) =
     (checkbounds(A, kr, first(jr)); checkbounds(A, kr,  last(jr)))
 
 checkbounds(A::AbstractDerivativeOperator, k::Colon, j::Integer) =
@@ -213,7 +213,7 @@ end
 #=
     Fallback methods that use the full representation of the operator
 =#
-Base.expm(A::AbstractDerivativeOperator{T}) where T = expm(full(A))
+Base.expm(A::AbstractDerivativeOperator{T}) where T = exp(full(A))
 Base.:\(A::AbstractVecOrMat, B::AbstractDerivativeOperator) = A \ full(B)
 Base.:\(A::AbstractDerivativeOperator, B::AbstractVecOrMat) = full(A) \ B
 Base.:/(A::AbstractVecOrMat, B::AbstractDerivativeOperator) = A / full(B)

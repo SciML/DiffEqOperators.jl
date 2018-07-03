@@ -1,5 +1,5 @@
 using DiffEqOperators
-using Base.Test
+using Test
 using SpecialMatrices, SpecialFunctions
 
 tic()
