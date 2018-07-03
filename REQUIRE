@@ -1,4 +1,3 @@
-julia 0.6
+julia 0.7-beta
 DiffEqBase 1.19.0
-LinearMaps
 StaticArrays

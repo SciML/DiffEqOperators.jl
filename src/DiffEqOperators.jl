@@ -2,8 +2,6 @@ __precompile__()
 
 module DiffEqOperators
 
-import LinearMaps: LinearMap, AbstractLinearMap
-using LinearMaps: LinearCombination, IdentityMap
 import Base: *, getindex
 using DiffEqBase, StaticArrays
 import DiffEqBase: update_coefficients, update_coefficients!
@@ -23,7 +21,7 @@ include("derivative_operators/abstract_operator_functions.jl")
 include("derivative_operators/boundary_operators.jl")
 
 ### Linear Combination of Operators
-include("operator_combination.jl")
+#include("operator_combination.jl")
 
 export DiffEqScalar, DiffEqArrayOperator
 export AbstractDerivativeOperator, DerivativeOperator, UpwindOperator, FiniteDifference
