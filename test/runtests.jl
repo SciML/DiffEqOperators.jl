@@ -1,6 +1,6 @@
 using DiffEqOperators, LinearAlgebra
 using Test
-using SpecialMatrices, SpecialFunctions
+using SpecialMatrices
 
 tic()
 @time @testset "Array Operators Interface" begin include("array_operators_interface.jl") end

@@ -93,7 +93,8 @@ end
     N = 10
     srand(0); LA = DiffEqArrayOperator(rand(N,N))
     LD = DerivativeOperator{Float64}(2,2,1.0,N,:Dirichlet0,:Dirichlet0)
-    @test_broken begin L = 1.1*LA - 2.2*LD + 3.3*I
+    @test_broken begin
+      L = 1.1*LA - 2.2*LD + 3.3*I
       # Builds full(L) the brute-force way
       fullL = zeros(N,N)
       v = zeros(N)
