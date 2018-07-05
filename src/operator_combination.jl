@@ -13,7 +13,7 @@
     Instead, build up the full matrix for each operator iteratively.
 =#
 # TODO: Type dispatch for this is incorrect at the moment
-# function Base.full(A::LinearCombination{T,Tuple{Vararg{O}},Ts}) where {T,O<:Union{AbstractDiffEqLinearOperator,IdentityMap},Ts}
+# function Base.full(A::LinearCombination{T,Tuple{Vararg{O}},Ts}) where {T,O<:Union{DiffEqBase.AbstractDiffEqLinearOperator,IdentityMap},Ts}
 #     out = zeros(T,size(A))
 #     for i = 1:length(A.maps)
 #         c = A.coeffs[i]
@@ -50,5 +50,5 @@ LinearAlgebra.opnorm(A::LinearCombination, p::Real=2) = opnorm(full(A), p)
 =#
 opnormbound(a::Number, p::Real=2) = abs(a)
 opnormbound(A::AbstractArray, p::Real=2) = opnorm(A, p)
-opnormbound(A::Union{AbstractDiffEqLinearOperator,IdentityMap}, p::Real=2) = opnorm(A, p)
+opnormbound(A::Union{DiffEqBase.AbstractDiffEqLinearOperator,IdentityMap}, p::Real=2) = opnorm(A, p)
 opnormbound(A::LinearCombination, p::Real=2) = sum(abs.(A.coeffs) .* opnormbound.(A.maps, p))

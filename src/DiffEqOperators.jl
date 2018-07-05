@@ -6,7 +6,7 @@ import Base: *, getindex
 using DiffEqBase, StaticArrays, LinearAlgebra
 import DiffEqBase: update_coefficients, update_coefficients!
 
-abstract type AbstractDerivativeOperator{T} <: AbstractDiffEqLinearOperator{T} end
+abstract type AbstractDerivativeOperator{T} <: DiffEqBase.AbstractDiffEqLinearOperator{T} end
 
 ### Basic Operators
 include("diffeqscalar.jl")

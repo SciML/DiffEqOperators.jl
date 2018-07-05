@@ -1,5 +1,5 @@
 ### AbstractDiffEqLinearOperator defined by an array and update functions
-mutable struct DiffEqArrayOperator{T,Arr<:Union{T,AbstractMatrix{T}},Sca,F} <: AbstractDiffEqLinearOperator{T}
+mutable struct DiffEqArrayOperator{T,Arr<:Union{T,AbstractMatrix{T}},Sca,F} <: DiffEqBase.AbstractDiffEqLinearOperator{T}
     A::Arr
     α::Sca
     _isreal::Bool
