@@ -56,6 +56,7 @@ Base.full(L::DiffEqArrayOperator) = full(L.A) .* L.α.coeff
 Base.exp(L::DiffEqArrayOperator) = exp(full(L))
 DiffEqBase.has_exp(L::DiffEqArrayOperator) = true
 Base.size(L::DiffEqArrayOperator) = size(L.A)
+Base.size(L::DiffEqArrayOperator, m::Integer) = size(L.A, m)
 LinearAlgebra.opnorm(L::DiffEqArrayOperator, p::Real=2) = opnorm(L.A, p) * abs(L.α.coeff)
 DiffEqBase.update_coefficients!(L::DiffEqArrayOperator,u,p,t) = (L.update_func(L.A,u,p,t); L.α = L.α(t); nothing)
 DiffEqBase.update_coefficients(L::DiffEqArrayOperator,u,p,t)  = (L.update_func(L.A,u,p,t); L.α = L.α(t); L)
@@ -85,17 +86,17 @@ Base.:*(L::DiffEqArrayOperator,b::AbstractArray) = L.α.coeff*L.A*b
 
 function LinearAlgebra.mul!(v::AbstractVector,L::DiffEqArrayOperator,b::AbstractVector)
     mul!(v,L.A,b)
-    scale!(v,L.α.coeff)
+    rmul!(v,L.α.coeff)
 end
 
 function LinearAlgebra.mul!(v::AbstractArray,L::DiffEqArrayOperator,b::AbstractArray)
     mul!(v,L.A,b)
-    scale!(v,L.α.coeff)
+    rmul!(v,L.α.coeff)
 end
 
 function Base.A_ldiv_B!(x,L::DiffEqArrayOperator, b::AbstractArray)
     A_ldiv_B!(x,L.A,b)
-    scale!(x,inv(L.α.coeff))
+    rmul!(x,inv(L.α.coeff))
 end
 
 function Base.:/(x,L::DiffEqArrayOperator)
@@ -134,7 +135,7 @@ Base.svdfact!(L::DiffEqArrayOperator,args...)  = FactorizedDiffEqArrayOperator(s
 
 function Base.A_ldiv_B!(x,L::FactorizedDiffEqArrayOperator, b::AbstractArray)
     A_ldiv_B!(x,L.A,b)
-    scale!(x,inv(L.inv_coeff))
+    rmul!(x,inv(L.inv_coeff))
 end
 
 function Base.:\(L::FactorizedDiffEqArrayOperator, b::AbstractArray)
