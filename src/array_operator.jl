@@ -56,6 +56,7 @@ Base.full(L::DiffEqArrayOperator) = full(L.A) .* L.α.coeff
 Base.exp(L::DiffEqArrayOperator) = exp(full(L))
 DiffEqBase.has_exp(L::DiffEqArrayOperator) = true
 Base.size(L::DiffEqArrayOperator) = size(L.A)
+Base.size(L::DiffEqArrayOperator, m::Integer) = size(L.A, m)
 LinearAlgebra.opnorm(L::DiffEqArrayOperator, p::Real=2) = opnorm(L.A, p) * abs(L.α.coeff)
 DiffEqBase.update_coefficients!(L::DiffEqArrayOperator,u,p,t) = (L.update_func(L.A,u,p,t); L.α = L.α(t); nothing)
 DiffEqBase.update_coefficients(L::DiffEqArrayOperator,u,p,t)  = (L.update_func(L.A,u,p,t); L.α = L.α(t); L)
