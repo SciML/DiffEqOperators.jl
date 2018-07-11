@@ -10,7 +10,7 @@ the following signature:
 You can also use `setval!(α,A)` to bypass the `update_coefficients!` interface
 and directly mutate the array's value.
 """
-struct DiffEqArrayOperator{T,AType<:AbstractMatrix{T},F} <: AbstractDiffEqLinearOperator{T}
+mutable struct DiffEqArrayOperator{T,AType<:AbstractMatrix{T},F} <: AbstractDiffEqLinearOperator{T}
   A::AType
   update_func::F
   DiffEqArrayOperator(A::AType; update_func=DEFAULT_UPDATE_FUNC()) where {AType} = 
