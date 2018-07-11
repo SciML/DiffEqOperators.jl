@@ -2,9 +2,9 @@ __precompile__()
 
 module DiffEqOperators
 
-import Base: *, getindex
+import Base: *, /, \, size, getindex, setindex!, Matrix
 using DiffEqBase, StaticArrays, LinearAlgebra
-import LinearAlgebra: mul!, lmul!, rmul!, axpy!
+import LinearAlgebra: mul!, lmul!, rmul!, axpy!, opnorm, factorize
 import DiffEqBase: AbstractDiffEqLinearOperator, update_coefficients!, is_constant
 
 abstract type AbstractDerivativeOperator{T} <: AbstractDiffEqLinearOperator{T} end

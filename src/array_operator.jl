@@ -1,146 +1,60 @@
-### AbstractDiffEqLinearOperator defined by an array and update functions
-mutable struct DiffEqArrayOperator{T,Arr<:Union{T,AbstractMatrix{T}},Sca,F} <: DiffEqBase.AbstractDiffEqLinearOperator{T}
-    A::Arr
-    α::Sca
-    _isreal::Bool
-    _issymmetric::Bool
-    _ishermitian::Bool
-    _isposdef::Bool
-    update_func::F
-end
-
-function DiffEqArrayOperator(A::Number,α=1.0,
-                             update_func = DEFAULT_UPDATE_FUNC)
-    if (typeof(α) <: Number)
-        _α = DiffEqScalar(nothing,α)
-    elseif (typeof(α) <: DiffEqScalar) # Must be a DiffEqScalar already
-        _α = α
-    else # Assume it's some kind of function
-        # Wrapping the function call in one() should solve any cases
-        # where the function is not well-behaved at 0.0, as long as
-        # the return type is correct.
-        _α = DiffEqScalar(α,one(α(0.0)))
-    end
-    DiffEqArrayOperator{typeof(A),typeof(A),typeof(_α),
-    typeof(update_func)}(
-    A,_α,isreal(A),issymmetric(A),ishermitian(A),
-    isposdef(A),update_func)
-end
-
-function DiffEqArrayOperator(A::AbstractMatrix{T},α=1.0,
-                             update_func = DEFAULT_UPDATE_FUNC) where T
-    if (typeof(α) <: Number)
-        _α = DiffEqScalar(nothing,α)
-    elseif (typeof(α) <: DiffEqScalar) # Must be a DiffEqScalar already
-        _α = α
-    else # Assume it's some kind of function
-        # Wrapping the function call in one() should solve any cases
-        # where the function is not well-behaved at 0.0, as long as
-        # the return type is correct.
-        _α = DiffEqScalar(α,one(α(0.0)))
-    end
-    DiffEqArrayOperator{T,typeof(A),typeof(_α),
-    typeof(update_func)}(
-    A,_α,isreal(A),issymmetric(A),ishermitian(A),
-    isposdef(A),update_func)
-end
-
-Base.isreal(L::DiffEqArrayOperator) = L._isreal
-Base.issymmetric(L::DiffEqArrayOperator) = L._issymmetric
-Base.ishermitian(L::DiffEqArrayOperator) = L._ishermitian
-Base.isposdef(L::DiffEqArrayOperator) = L._isposdef
-DiffEqBase.is_constant(L::DiffEqArrayOperator) = L.update_func == DEFAULT_UPDATE_FUNC
-Base.full(L::DiffEqArrayOperator) = full(L.A) .* L.α.coeff
-Base.exp(L::DiffEqArrayOperator) = exp(full(L))
-DiffEqBase.has_exp(L::DiffEqArrayOperator) = true
-Base.size(L::DiffEqArrayOperator) = size(L.A)
-Base.size(L::DiffEqArrayOperator, m::Integer) = size(L.A, m)
-LinearAlgebra.opnorm(L::DiffEqArrayOperator, p::Real=2) = opnorm(L.A, p) * abs(L.α.coeff)
-DiffEqBase.update_coefficients!(L::DiffEqArrayOperator,u,p,t) = (L.update_func(L.A,u,p,t); L.α = L.α(t); nothing)
-DiffEqBase.update_coefficients(L::DiffEqArrayOperator,u,p,t)  = (L.update_func(L.A,u,p,t); L.α = L.α(t); L)
-
-function (L::DiffEqArrayOperator)(u,p,t)
-  update_coefficients!(L,u,p,t)
-  L*u
-end
-
-function (L::DiffEqArrayOperator)(du,u,p,t)
-  update_coefficients!(L,u,p,t)
-  mul!(du,L,u)
-end
-
-### Forward some extra operations
-function Base.:*(α::Number,L::DiffEqArrayOperator)
-    DiffEqArrayOperator(L.A,DiffEqScalar(L.α.func,L.α.coeff*α),L.update_func)
-end
-
-function Base.:*(α::Number,L::DiffEqArrayOperator{T,Arr,Sca,F}) where {T,Arr<:Number,Sca,F}
-    L.α.coeff*α*L.A
-end
-
-Base.:*(L::DiffEqArrayOperator,α::Number) = α*L
-Base.:*(L::DiffEqArrayOperator,b::AbstractVector) = L.α.coeff*L.A*b
-Base.:*(L::DiffEqArrayOperator,b::AbstractArray) = L.α.coeff*L.A*b
-
-function LinearAlgebra.mul!(v::AbstractVector,L::DiffEqArrayOperator,b::AbstractVector)
-    mul!(v,L.A,b)
-    rmul!(v,L.α.coeff)
-end
-
-function LinearAlgebra.mul!(v::AbstractArray,L::DiffEqArrayOperator,b::AbstractArray)
-    mul!(v,L.A,b)
-    rmul!(v,L.α.coeff)
-end
-
-function Base.A_ldiv_B!(x,L::DiffEqArrayOperator, b::AbstractArray)
-    A_ldiv_B!(x,L.A,b)
-    rmul!(x,inv(L.α.coeff))
-end
-
-function Base.:/(x,L::DiffEqArrayOperator)
-    x/(L.α.coeff*L.A)
-end
-
-function Base.:/(L::DiffEqArrayOperator,x)
-    L.α.coeff*L.A/x
-end
-
 """
-FactorizedDiffEqArrayOperator{T,I}
+    DiffEqArrayOperator(A[; update_func])
 
-A helper function for holding factorized version of the DiffEqArrayOperator
+Represents a time-dependent linear operator given by an AbstractMatrix. The
+update function is called by `update_coefficients!` and is assumed to have
+the following signature:
+
+    update_func(A::AbstractMatrix,u,p,t) -> [modifies A]
+
+You can also use `setval!(α,A)` to bypass the `update_coefficients!` interface
+and directly mutate the array's value.
 """
-struct FactorizedDiffEqArrayOperator{T,I}
-    A::T
-    inv_coeff::I
+struct DiffEqArrayOperator{T,AType<:AbstractMatrix{T},F} <: AbstractDiffEqLinearOperator{T}
+  A::AType
+  update_func::F
+  DiffEqArrayOperator(A::AType; update_func=DEFAULT_UPDATE_FUNC()) where {AType} = 
+    new{eltype(A),AType,typeof(update_func)}(A, update_func)
 end
 
-Base.factorize(L::DiffEqArrayOperator)         = FactorizedDiffEqArrayOperator(factorize(L.A),inv(L.α.coeff))
-Base.lufact(L::DiffEqArrayOperator,args...)    = FactorizedDiffEqArrayOperator(lufact(L.A,args...),inv(L.α.coeff))
-Base.lufact!(L::DiffEqArrayOperator,args...)   = FactorizedDiffEqArrayOperator(lufact!(L.A,args...),inv(L.α.coeff))
-Base.qrfact(L::DiffEqArrayOperator,args...)    = FactorizedDiffEqArrayOperator(qrfact(L.A,args...),inv(L.α.coeff))
-Base.qrfact!(L::DiffEqArrayOperator,args...)   = FactorizedDiffEqArrayOperator(qrfact!(L.A,args...),inv(L.α.coeff))
-Base.cholfact(L::DiffEqArrayOperator,args...)  = FactorizedDiffEqArrayOperator(cholfact(L.A,args...),inv(L.α.coeff))
-Base.cholfact!(L::DiffEqArrayOperator,args...) = FactorizedDiffEqArrayOperator(cholfact!(L.A,args...),inv(L.α.coeff))
-Base.ldltfact(L::DiffEqArrayOperator,args...)  = FactorizedDiffEqArrayOperator(ldltfact(L.A,args...),inv(L.α.coeff))
-Base.ldltfact!(L::DiffEqArrayOperator,args...) = FactorizedDiffEqArrayOperator(ldltfact!(L.A,args...),inv(L.α.coeff))
-Base.bkfact(L::DiffEqArrayOperator,args...)    = FactorizedDiffEqArrayOperator(bkfact(L.A,args...),inv(L.α.coeff))
-Base.bkfact!(L::DiffEqArrayOperator,args...)   = FactorizedDiffEqArrayOperator(bkfact!(L.A,args...),inv(L.α.coeff))
-Base.lqfact(L::DiffEqArrayOperator,args...)    = FactorizedDiffEqArrayOperator(lqfact(L.A,args...),inv(L.α.coeff))
-Base.lqfact!(L::DiffEqArrayOperator,args...)   = FactorizedDiffEqArrayOperator(lqfact!(L.A,args...),inv(L.α.coeff))
-Base.svdfact(L::DiffEqArrayOperator,args...)   = FactorizedDiffEqArrayOperator(svdfact(L.A,args...),inv(L.α.coeff))
-Base.svdfact!(L::DiffEqArrayOperator,args...)  = FactorizedDiffEqArrayOperator(svdfact!(L.A,args...),inv(L.α.coeff))
+update_coefficients!(L::DiffEqArrayOperator,u,p,t) = (L.update_func(L.A,u,p,t); L)
+setval!(L::DiffEqArrayOperator, A) = (L.A = A; L)
+is_constant(L::DiffEqArrayOperator) = L.update_func == DEFAULT_UPDATE_FUNC()
+(L::DiffEqArrayOperator)(u,p,t) = (update_coefficients!(L,u,p,t); L.A * u)
+(L::DiffEqArrayOperator)(du,u,p,t) = (update_coefficients!(L,u,p,t); mul!(du, L.A, u))
 
-function Base.A_ldiv_B!(x,L::FactorizedDiffEqArrayOperator, b::AbstractArray)
-    A_ldiv_B!(x,L.A,b)
-    rmul!(x,inv(L.inv_coeff))
+# Forward operations that use the underlying array
+for pred in (:isreal, :issymmetric, :ishermitian, :isposdef)
+  @eval LinearAlgebra.$pred(L::DiffEqArrayOperator) = $pred(L.A)
+end
+size(L::DiffEqArrayOperator) = size(L.A)
+size(L::DiffEqArrayOperator, m) = size(L.A, m)
+opnorm(L::DiffEqArrayOperator, p::Real=2) = opnorm(L.A, p)
+getindex(L::DiffEqArrayOperator, i::Int) = L.A[i]
+getindex(L::DiffEqArrayOperator, I::Vararg{Int, N}) where {N} = L.A[I...]
+setindex!(L::DiffEqArrayOperator, v, i::Int) = (L.A[i] = v)
+setindex!(L::DiffEqArrayOperator, v, I::Vararg{Int, N}) where {N} = (L.A[I...] = v)
+*(L::DiffEqArrayOperator, x) = L.A * x
+*(x, L::DiffEqArrayOperator) = x * L.A
+/(L::DiffEqArrayOperator, x) = L.A / x
+/(x, L::DiffEqArrayOperator) = x / L.A
+mul!(Y, L::DiffEqArrayOperator, B) = mul!(Y, L.A, B)
+ldiv!(Y, L::DiffEqArrayOperator, B) = ldiv!(Y, L.A, B)
+
+# Forward operations that use the full matrix
+Matrix(L::DiffEqArrayOperator) = Matrix(L.A)
+Base.exp(L::DiffEqArrayOperator) = exp(Matrix(L))
+
+# Factorization
+struct FactorizedDiffEqArrayOperator{T<:Number,FType<:Factorization{T}} <: AbstractDiffEqLinearOperator{T}
+  F::FType
 end
 
-function Base.:\(L::FactorizedDiffEqArrayOperator, b::AbstractArray)
-    (L.A \ b) * L.inv_coeff
+factorize(L::DiffEqArrayOperator) = FactorizedDiffEqArrayOperator(factorize(L.A))
+for fact in (:lu, :lu!, :qr, :qr!, :chol, :chol!, :ldlt, :ldlt!,
+  :bkfact, :bkfact!, :lq, :lq!, :svd, :svd!)
+  @eval LinearAlgebra.$fact(L::DiffEqArrayOperator, args...) = FactorizedDiffEqArrayOperator($fact(L.A, args...))
 end
 
-@inline Base.getindex(L::DiffEqArrayOperator,i::Int) = L.A[i]
-@inline Base.getindex(L::DiffEqArrayOperator,I::Vararg{Int, N}) where {N} = L.A[I...]
-@inline Base.setindex!(L::DiffEqArrayOperator, v, i::Int) = (L.A[i]=v)
-@inline Base.setindex!(L::DiffEqArrayOperator, v, I::Vararg{Int, N}) where {N} = (L.A[I...]=v)
+ldiv!(Y, L::FactorizedDiffEqArrayOperator, B) = ldiv!(Y, L.F, B)
+\(L::FactorizedDiffEqArrayOperator, x) = L.F \ x
