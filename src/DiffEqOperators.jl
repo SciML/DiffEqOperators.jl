@@ -4,9 +4,13 @@ module DiffEqOperators
 
 import Base: *, getindex
 using DiffEqBase, StaticArrays, LinearAlgebra
-import DiffEqBase: update_coefficients, update_coefficients!
+import LinearAlgebra: mul!, lmul!, rmul!, axpy!
+import DiffEqBase: AbstractDiffEqLinearOperator, update_coefficients!, is_constant
 
-abstract type AbstractDerivativeOperator{T} <: DiffEqBase.AbstractDiffEqLinearOperator{T} end
+abstract type AbstractDerivativeOperator{T} <: AbstractDiffEqLinearOperator{T} end
+
+struct DEFAULT_UPDATE_FUNC end
+(::DEFAULT_UPDATE_FUNC)(A,u,p,t) = A
 
 ### Basic Operators
 include("diffeqscalar.jl")

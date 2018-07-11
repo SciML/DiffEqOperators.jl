@@ -9,8 +9,6 @@ mutable struct DiffEqArrayOperator{T,Arr<:Union{T,AbstractMatrix{T}},Sca,F} <: D
     update_func::F
 end
 
-DEFAULT_UPDATE_FUNC = (L,u,p,t)->nothing
-
 function DiffEqArrayOperator(A::Number,α=1.0,
                              update_func = DEFAULT_UPDATE_FUNC)
     if (typeof(α) <: Number)
