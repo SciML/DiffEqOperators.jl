@@ -9,8 +9,7 @@ import DiffEqBase: AbstractDiffEqLinearOperator, update_coefficients!, is_consta
 
 abstract type AbstractDerivativeOperator{T} <: AbstractDiffEqLinearOperator{T} end
 
-struct DEFAULT_UPDATE_FUNC end
-(::DEFAULT_UPDATE_FUNC)(A,u,p,t) = A
+DEFAULT_UPDATE_FUNC(A,u,p,t) = A
 
 ### Basic Operators
 include("diffeqscalar.jl")

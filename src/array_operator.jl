@@ -13,13 +13,13 @@ and directly mutate the array's value.
 mutable struct DiffEqArrayOperator{T,AType<:AbstractMatrix{T},F} <: AbstractDiffEqLinearOperator{T}
   A::AType
   update_func::F
-  DiffEqArrayOperator(A::AType; update_func=DEFAULT_UPDATE_FUNC()) where {AType} = 
+  DiffEqArrayOperator(A::AType; update_func=DEFAULT_UPDATE_FUNC) where {AType} = 
     new{eltype(A),AType,typeof(update_func)}(A, update_func)
 end
 
 update_coefficients!(L::DiffEqArrayOperator,u,p,t) = (L.update_func(L.A,u,p,t); L)
 setval!(L::DiffEqArrayOperator, A) = (L.A = A; L)
-is_constant(L::DiffEqArrayOperator) = L.update_func == DEFAULT_UPDATE_FUNC()
+is_constant(L::DiffEqArrayOperator) = L.update_func == DEFAULT_UPDATE_FUNC
 (L::DiffEqArrayOperator)(u,p,t) = (update_coefficients!(L,u,p,t); L.A * u)
 (L::DiffEqArrayOperator)(du,u,p,t) = (update_coefficients!(L,u,p,t); mul!(du, L.A, u))
 
@@ -43,7 +43,7 @@ ldiv!(Y, L::DiffEqArrayOperator, B) = ldiv!(Y, L.A, B)
 
 # Forward operations that use the full matrix
 Matrix(L::DiffEqArrayOperator) = Matrix(L.A)
-Base.exp(L::DiffEqArrayOperator) = exp(Matrix(L))
+LinearAlgebra.exp(L::DiffEqArrayOperator) = exp(Matrix(L))
 
 # Factorization
 struct FactorizedDiffEqArrayOperator{T<:Number,FType<:Factorization{T}} <: AbstractDiffEqLinearOperator{T}
