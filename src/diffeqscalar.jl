@@ -21,12 +21,15 @@ update_coefficients!(α::DiffEqScalar,u,p,t) = (α.val = α.update_func(α.val,u
 setval!(α::DiffEqScalar, val) = (α.val = val; α)
 is_constant(α::DiffEqScalar) = α.update_func == DEFAULT_UPDATE_FUNC
 
-*(α::DiffEqScalar, x) = α.val * x
-*(x, α::DiffEqScalar) = x * α.val
+for op in (:*, :/, :\)
+  @eval $op(α::DiffEqScalar, x) = $op(α.val, x)
+  @eval $op(x, α::DiffEqScalar) = $op(x, α.val)
+end
 lmul!(α::DiffEqScalar, B) = lmul!(α.val, B)
 rmul!(B, α::DiffEqScalar) = rmul!(B, α.val)
 mul!(Y, α::DiffEqScalar, B) = mul!(Y, α.val, B)
 axpy!(α::DiffEqScalar, X, Y) = axpy!(α.val, X, Y)
+Base.abs(α::DiffEqScalar) = abs(α.val)
 
 (α::DiffEqScalar)(u,p,t) = (update_coefficients!(α,u,p,t); α.val * u)
 (α::DiffEqScalar)(du,u,p,t) = (update_coefficients!(α,u,p,t); @. du = α.val * u)

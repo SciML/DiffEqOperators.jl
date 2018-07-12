@@ -24,6 +24,7 @@ is_constant(L::DiffEqArrayOperator) = L.update_func == DEFAULT_UPDATE_FUNC
 (L::DiffEqArrayOperator)(du,u,p,t) = (update_coefficients!(L,u,p,t); mul!(du, L.A, u))
 
 # Forward operations that use the underlying array
+convert(::Type{AbstractMatrix}, L::DiffEqArrayOperator) = L.A
 for pred in (:isreal, :issymmetric, :ishermitian, :isposdef)
   @eval LinearAlgebra.$pred(L::DiffEqArrayOperator) = $pred(L.A)
 end
@@ -34,10 +35,10 @@ getindex(L::DiffEqArrayOperator, i::Int) = L.A[i]
 getindex(L::DiffEqArrayOperator, I::Vararg{Int, N}) where {N} = L.A[I...]
 setindex!(L::DiffEqArrayOperator, v, i::Int) = (L.A[i] = v)
 setindex!(L::DiffEqArrayOperator, v, I::Vararg{Int, N}) where {N} = (L.A[I...] = v)
-*(L::DiffEqArrayOperator, x) = L.A * x
-*(x, L::DiffEqArrayOperator) = x * L.A
-/(L::DiffEqArrayOperator, x) = L.A / x
-/(x, L::DiffEqArrayOperator) = x / L.A
+for op in (:*, :/, :\)
+  @eval $op(L::DiffEqArrayOperator, x) = $op(L.A, x)
+  @eval $op(x, L::DiffEqArrayOperator) = $op(x, L.A)
+end
 mul!(Y, L::DiffEqArrayOperator, B) = mul!(Y, L.A, B)
 ldiv!(Y, L::DiffEqArrayOperator, B) = ldiv!(Y, L.A, B)
 
