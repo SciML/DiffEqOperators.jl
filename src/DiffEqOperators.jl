@@ -24,8 +24,8 @@ include("derivative_operators/derivative_operator.jl")
 include("derivative_operators/abstract_operator_functions.jl")
 include("derivative_operators/boundary_operators.jl")
 
-### Linear Combination of Operators
-#include("operator_combination.jl")
+### Composite Operators
+include("composite_operator.jl")
 
 export DiffEqScalar, DiffEqArrayOperator
 export AbstractDerivativeOperator, DerivativeOperator, UpwindOperator, FiniteDifference
