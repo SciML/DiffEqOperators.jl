@@ -4,7 +4,7 @@ module DiffEqOperators
 
 import Base: +, -, *, /, \, size, getindex, setindex!, Matrix, convert
 using DiffEqBase, StaticArrays, LinearAlgebra
-import LinearAlgebra: mul!, lmul!, rmul!, axpy!, opnorm, factorize
+import LinearAlgebra: mul!, ldiv!, lmul!, rmul!, axpy!, opnorm, factorize
 import DiffEqBase: AbstractDiffEqLinearOperator, update_coefficients!, is_constant
 
 abstract type AbstractDerivativeOperator{T} <: AbstractDiffEqLinearOperator{T} end

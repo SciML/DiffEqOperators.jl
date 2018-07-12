@@ -57,5 +57,6 @@ for fact in (:lu, :lu!, :qr, :qr!, :chol, :chol!, :ldlt, :ldlt!,
   @eval LinearAlgebra.$fact(L::DiffEqArrayOperator, args...) = FactorizedDiffEqArrayOperator($fact(L.A, args...))
 end
 
+size(L::FactorizedDiffEqArrayOperator, args...) = size(L.F, args...)
 ldiv!(Y, L::FactorizedDiffEqArrayOperator, B) = ldiv!(Y, L.F, B)
 \(L::FactorizedDiffEqArrayOperator, x) = L.F \ x

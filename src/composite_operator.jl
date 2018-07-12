@@ -113,10 +113,70 @@ function mul!(y::AbstractVector, L::DiffEqOperatorCombination, b::AbstractVector
   return y
 end
 
+# Composition (A ∘ B)
+struct DiffEqOperatorComposition{T,O<:Tuple{Vararg{AbstractDiffEqLinearOperator{T}}},
+  C<:Tuple{Vararg{AbstractVector{T}}}} <: AbstractDiffEqCompositeOperator{T}
+  ops::O # stored in the order of application
+  caches::C
+  function DiffEqOperatorComposition(ops; caches=nothing)
+    T = eltype(ops[1])
+    # TODO: safecheck dimensions
+    if caches == nothing
+      # Construct a list of caches to be used by mul! and ldiv!
+      caches = []
+      for op in ops[1:end-1]
+        push!(caches, Vector{T}(undef, size(op, 1)))
+      end
+      caches = tuple(caches...)
+    end
+    new{T,typeof(ops),typeof(caches)}(ops, caches)
+  end
+end
+*(ops::AbstractDiffEqLinearOperator...) = DiffEqOperatorComposition(reverse(ops))
+∘(L1::AbstractDiffEqLinearOperator, L2::AbstractDiffEqLinearOperator) = DiffEqOperatorComposition((L2, L1))
+*(L1::DiffEqOperatorComposition, L2::AbstractDiffEqLinearOperator) = DiffEqOperatorComposition((L2, L1.ops...))
+∘(L1::DiffEqOperatorComposition, L2::AbstractDiffEqLinearOperator) = DiffEqOperatorComposition((L2, L1.ops...))
+*(L1::AbstractDiffEqLinearOperator, L2::DiffEqOperatorComposition) = DiffEqOperatorComposition((L2.ops..., L1))
+∘(L1::AbstractDiffEqLinearOperator, L2::DiffEqOperatorComposition) = DiffEqOperatorComposition((L2.ops..., L1))
+*(L1::DiffEqOperatorComposition, L2::DiffEqOperatorComposition) = DiffEqOperatorComposition((L2.ops..., L1.ops...))
+∘(L1::DiffEqOperatorComposition, L2::DiffEqOperatorComposition) = DiffEqOperatorComposition((L2.ops..., L1.ops...))
+getops(L::DiffEqOperatorComposition) = L.ops
+Matrix(L::DiffEqOperatorComposition) = prod(Matrix, reverse(L.ops))
+convert(::Type{AbstractMatrix}, L::DiffEqOperatorComposition) =
+  prod(op -> convert(AbstractMatrix, op), reverse(L.ops))
 
+size(L::DiffEqOperatorComposition) = (size(L.ops[end], 1), size(L.ops[1], 2))
+size(L::DiffEqOperatorComposition, m::Integer) = size(L)[m]
+opnorm(L::DiffEqOperatorComposition) = prod(opnorm, L.ops)
+*(L::DiffEqOperatorComposition, x::AbstractVecOrMat) = foldl((acc, op) -> op*acc, L.ops; init=x)
+*(x::AbstractVecOrMat, L::DiffEqOperatorComposition) = foldl((acc, op) -> acc*op, reverse(L.ops); init=x)
+/(L::DiffEqOperatorComposition, x::AbstractVecOrMat) = foldl((acc, op) -> op/acc, L.ops; init=x)
+/(x::AbstractVecOrMat, L::DiffEqOperatorComposition) = foldl((acc, op) -> acc/op, L.ops; init=x)
+\(L::DiffEqOperatorComposition, x::AbstractVecOrMat) = foldl((acc, op) -> op\acc, reverse(L.ops); init=x)
+\(x::AbstractVecOrMat, L::DiffEqOperatorComposition) = foldl((acc, op) -> acc\op, reverse(L.ops); init=x)
+function mul!(y::AbstractVector, L::DiffEqOperatorComposition, b::AbstractVector)
+  mul!(L.caches[1], L.ops[1], b)
+  for i in 2:length(L.ops) - 1
+    mul!(L.caches[i], L.ops[i], L.caches[i-1])
+  end
+  mul!(y, L.ops[end], L.caches[end])
+end
+function ldiv!(y::AbstractVector, L::DiffEqOperatorComposition, b::AbstractVector)
+  ldiv!(L.caches[end], L.ops[end], b)
+  for i in length(L.ops) - 1:-1:2
+    ldiv!(L.caches[i-1], L.ops[i], L.caches[i])
+  end
+  ldiv!(y, L.ops[1], L.caches[1])
+end
+factorize(L::DiffEqOperatorComposition) = prod(factorize, reverse(L.ops))
+for fact in (:lu, :lu!, :qr, :qr!, :chol, :chol!, :ldlt, :ldlt!, 
+  :bkfact, :bkfact!, :lq, :lq!, :svd, :svd!)
+  @eval LinearAlgebra.$fact(L::DiffEqOperatorComposition, args...) = 
+    prod(op -> $fact(op, args...), reverse(L.ops))
+end
 
 # The (u,p,t) and (du,u,p,t) interface
-for T in [DiffEqScaledOperator, DiffEqOperatorCombination]
+for T in [DiffEqScaledOperator, DiffEqOperatorCombination, DiffEqOperatorComposition]
   (L::T)(u,p,t) = (update_coefficients!(L,u,p,t); L * u)
   (L::T)(du,u,p,t) = (update_coefficients!(L,u,p,t); mul!(du,L,u))
 end
