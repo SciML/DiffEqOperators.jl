@@ -2,7 +2,7 @@ __precompile__()
 
 module DiffEqOperators
 
-import Base: *, /, \, size, getindex, setindex!, Matrix, convert
+import Base: +, -, *, /, \, size, getindex, setindex!, Matrix, convert
 using DiffEqBase, StaticArrays, LinearAlgebra
 import LinearAlgebra: mul!, lmul!, rmul!, axpy!, opnorm, factorize
 import DiffEqBase: AbstractDiffEqLinearOperator, update_coefficients!, is_constant

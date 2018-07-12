@@ -46,6 +46,7 @@ struct DiffEqScaledOperator{T,F,OpType<:AbstractDiffEqLinearOperator{T}} <: Abst
   op::OpType
 end
 *(α::DiffEqScalar{T,F}, L::AbstractDiffEqLinearOperator{T}) where {T,F} = DiffEqScaledOperator(α, L)
+-(L::AbstractDiffEqLinearOperator{T}) where {T} = DiffEqScalar(-one(T)) * L
 getops(L::DiffEqScaledOperator) = (L.coeff, L.op)
 Matrix(L::DiffEqScaledOperator) = L.coeff * Matrix(L.op)
 convert(::Type{AbstractMatrix}, L::DiffEqScaledOperator) = L.coeff * convert(AbstractMatrix, L.op)
@@ -72,8 +73,50 @@ for fact in (:lu, :lu!, :qr, :qr!, :chol, :chol!, :ldlt, :ldlt!,
     L.coeff * fact(L.op, args...)
 end
 
+# Linear Combination
+struct DiffEqOperatorCombination{T,O<:Tuple{Vararg{AbstractDiffEqLinearOperator{T}}},
+  C<:AbstractVector{T}} <: AbstractDiffEqCompositeOperator{T}
+  ops::O
+  cache::C
+  function DiffEqOperatorCombination(ops; cache=nothing)
+    T = eltype(ops[1])
+    if cache == nothing
+      cache = Vector{T}(undef, size(ops[1], 1))
+    end
+    # TODO: safecheck dimensions
+    new{T,typeof(ops),typeof(cache)}(ops, cache)
+  end
+end
++(ops::AbstractDiffEqLinearOperator...) = DiffEqOperatorCombination(ops)
++(L1::DiffEqOperatorCombination, L2::AbstractDiffEqLinearOperator) = DiffEqOperatorCombination((L1.ops..., L2))
++(L1::AbstractDiffEqLinearOperator, L2::DiffEqOperatorCombination) = DiffEqOperatorCombination((L1, L2.ops...))
++(L1::DiffEqOperatorCombination, L2::DiffEqOperatorCombination) = DiffEqOperatorCombination((L1.ops..., L2.ops...))
+-(L1::AbstractDiffEqLinearOperator, L2::AbstractDiffEqLinearOperator) = L1 + (-L2)
+getops(L::DiffEqOperatorCombination) = L.ops
+Matrix(L::DiffEqOperatorCombination) = sum(Matrix, L.ops)
+convert(::Type{AbstractMatrix}, L::DiffEqOperatorCombination) =
+  sum(op -> convert(AbstractMatrix, op), L.ops)
+
+size(L::DiffEqOperatorCombination, args...) = size(L.ops[1], args...)
+getindex(L::DiffEqOperatorCombination, i::Int) = sum(op -> op[i], L.ops)
+getindex(L::DiffEqOperatorCombination, I::Vararg{Int, N}) where {N} = sum(op -> op[I...], L.ops)
+*(L::DiffEqOperatorCombination, x::AbstractVecOrMat) = sum(op -> op * x, L.ops)
+*(x::AbstractVecOrMat, L::DiffEqOperatorCombination) = sum(op -> x * op, L.ops)
+/(L::DiffEqOperatorCombination, x::AbstractVecOrMat) = sum(op -> op / x, L.ops)
+\(x::AbstractVecOrMat, L::DiffEqOperatorCombination) = sum(op -> x \ op, L.ops)
+function mul!(y::AbstractVector, L::DiffEqOperatorCombination, b::AbstractVector)
+  mul!(y, L.ops[1], b)
+  for op in L.ops[2:end]
+    mul!(L.cache, op, b)
+    y .+= L.cache
+  end
+  return y
+end
+
+
+
 # The (u,p,t) and (du,u,p,t) interface
-for T in [DiffEqScaledOperator]
+for T in [DiffEqScaledOperator, DiffEqOperatorCombination]
   (L::T)(u,p,t) = (update_coefficients!(L,u,p,t); L * u)
   (L::T)(du,u,p,t) = (update_coefficients!(L,u,p,t); mul!(du,L,u))
 end
