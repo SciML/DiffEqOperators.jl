@@ -36,8 +36,8 @@ getindex(L::DiffEqArrayOperator, I::Vararg{Int, N}) where {N} = L.A[I...]
 setindex!(L::DiffEqArrayOperator, v, i::Int) = (L.A[i] = v)
 setindex!(L::DiffEqArrayOperator, v, I::Vararg{Int, N}) where {N} = (L.A[I...] = v)
 for op in (:*, :/, :\)
-  @eval $op(L::DiffEqArrayOperator, x) = $op(L.A, x)
-  @eval $op(x, L::DiffEqArrayOperator) = $op(x, L.A)
+  @eval $op(L::DiffEqArrayOperator{T,AType,F}, x::AbstractVecOrMat{T}) where {T,AType,F} = $op(L.A, x)
+  @eval $op(x::AbstractVecOrMat{T}, L::DiffEqArrayOperator{T,AType,F}) where {T,AType,F} = $op(x, L.A)
 end
 mul!(Y, L::DiffEqArrayOperator, B) = mul!(Y, L.A, B)
 ldiv!(Y, L::DiffEqArrayOperator, B) = ldiv!(Y, L.A, B)

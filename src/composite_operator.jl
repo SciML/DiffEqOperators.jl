@@ -18,11 +18,15 @@ getindex(L::AbstractDiffEqCompositeOperator, i::Int) = convert(AbstractMatrix,L)
 getindex(L::AbstractDiffEqCompositeOperator, I::Vararg{Int, N}) where {N} = 
   convert(AbstractMatrix,L)[I...]
 for op in (:*, :/, :\)
-  @eval $op(L::AbstractDiffEqCompositeOperator, x) = $op(convert(AbstractMatrix,L), x)
-  @eval $op(x, L::AbstractDiffEqCompositeOperator) = $op(x, convert(AbstractMatrix,L))
+  @eval $op(L::AbstractDiffEqCompositeOperator{T}, x::AbstractVecOrMat{T}) where {T} =
+    $op(convert(AbstractMatrix,L), x)
+  @eval $op(x::AbstractVecOrMat{T}, L::AbstractDiffEqCompositeOperator{T}) where {T} =
+    $op(x, convert(AbstractMatrix,L))
 end
-mul!(Y, L::AbstractDiffEqCompositeOperator, B) = mul!(Y, convert(AbstractMatrix,L), B)
-ldiv!(Y, L::AbstractDiffEqCompositeOperator, B) = ldiv!(Y, convert(AbstractMatrix,L), B)
+mul!(Y::AbstractVecOrMat{T}, L::AbstractDiffEqCompositeOperator{T},
+  B::AbstractVecOrMat{T}) where {T} = mul!(Y, convert(AbstractMatrix,L), B)
+ldiv!(Y::AbstractVecOrMat{T}, L::AbstractDiffEqCompositeOperator{T},
+  B::AbstractVecOrMat{T}) where {T} = ldiv!(Y, convert(AbstractMatrix,L), B)
 for pred in (:isreal, :issymmetric, :ishermitian, :isposdef)
   @eval LinearAlgebra.$pred(L::AbstractDiffEqCompositeOperator) = $pred(convert(AbstractArray, L))
 end
@@ -51,14 +55,16 @@ opnorm(L::DiffEqScaledOperator, p::Real=2) = abs(L.coeff) * opnorm(L.op, p)
 getindex(L::DiffEqScaledOperator, i::Int) = L.coeff * L.op[i]
 getindex(L::DiffEqScaledOperator, I::Vararg{Int, N}) where {N} = 
   L.coeff * L.op[I...]
-*(L::DiffEqScaledOperator, x) = L.coeff * (L.op * x)
-*(x, L::DiffEqScaledOperator) = (L.op * x) * L.coeff
-/(L::DiffEqScaledOperator, x) = L.coeff * (L.op / x)
-/(x, L::DiffEqScaledOperator) = 1/L.coeff * (x / L.op)
-\(L::DiffEqScaledOperator, x) = 1/L.coeff * (L.op \ x)
-\(x, L::DiffEqScaledOperator) = L.coeff * (x \ L)
-mul!(Y, L::DiffEqScaledOperator, B) = lmul!(L.coeff, mul!(Y, L.op, B))
-ldiv!(Y, L::DiffEqScaledOperator, B) = lmul!(1/L.coeff, ldiv!(Y, L.op, B))
+*(L::DiffEqScaledOperator{T,F}, x::AbstractVecOrMat{T}) where {T,F} = L.coeff * (L.op * x)
+*(x::AbstractVecOrMat{T}, L::DiffEqScaledOperator{T,F}) where {T,F} = (L.op * x) * L.coeff
+/(L::DiffEqScaledOperator{T,F}, x::AbstractVecOrMat{T}) where {T,F} = L.coeff * (L.op / x)
+/(x::AbstractVecOrMat{T}, L::DiffEqScaledOperator{T,F}) where {T,F} = 1/L.coeff * (x / L.op)
+\(L::DiffEqScaledOperator{T,F}, x::AbstractVecOrMat{T}) where {T,F} = 1/L.coeff * (L.op \ x)
+\(x::AbstractVecOrMat{T}, L::DiffEqScaledOperator{T,F}) where {T,F} = L.coeff * (x \ L)
+mul!(Y::AbstractVecOrMat{T}, L::DiffEqScaledOperator{T,F},
+  B::AbstractVecOrMat{T}) where {T,F} = lmul!(L.coeff, mul!(Y, L.op, B))
+ldiv!(Y::AbstractVecOrMat{T}, L::DiffEqScaledOperator{T,F},
+  B::AbstractVecOrMat{T}) where {T,F} = lmul!(1/L.coeff, ldiv!(Y, L.op, B))
 factorize(L::DiffEqScaledOperator) = L.coeff * factorize(L.op)
 for fact in (:lu, :lu!, :qr, :qr!, :chol, :chol!, :ldlt, :ldlt!, 
   :bkfact, :bkfact!, :lq, :lq!, :svd, :svd!)
