@@ -73,7 +73,7 @@ for fact in (:lu, :lu!, :qr, :qr!, :chol, :chol!, :ldlt, :ldlt!,
 end
 
 # The (u,p,t) and (du,u,p,t) interface
-for T in subtypes(AbstractDiffEqCompositeOperator)
+for T in [DiffEqScaledOperator]
   (L::T)(u,p,t) = (update_coefficients!(L,u,p,t); L * u)
   (L::T)(du,u,p,t) = (update_coefficients!(L,u,p,t); mul!(du,L,u))
 end
