@@ -10,7 +10,8 @@ import DiffEqBase: AbstractDiffEqLinearOperator, update_coefficients!, is_consta
 abstract type AbstractDerivativeOperator{T} <: AbstractDiffEqLinearOperator{T} end
 abstract type AbstractDiffEqCompositeOperator{T} <: AbstractDiffEqLinearOperator{T} end
 
-DEFAULT_UPDATE_FUNC(A,u,p,t) = A
+### Common default methods for the operators
+include("common_defaults.jl")
 
 ### Basic Operators
 include("basic_operators.jl")
@@ -25,6 +26,13 @@ include("derivative_operators/boundary_operators.jl")
 
 ### Composite Operators
 include("composite_operators.jl")
+
+# The (u,p,t) and (du,u,p,t) interface
+for T in [DiffEqScalar, DiffEqArrayOperator, FactorizedDiffEqArrayOperator, 
+  DiffEqScaledOperator, DiffEqOperatorCombination, DiffEqOperatorComposition]
+  (L::T)(u,p,t) = (update_coefficients!(L,u,p,t); L * u)
+  (L::T)(du,u,p,t) = (update_coefficients!(L,u,p,t); mul!(du,L,u))
+end
 
 export DiffEqScalar, DiffEqArrayOperator
 export AbstractDerivativeOperator, DerivativeOperator, UpwindOperator, FiniteDifference
