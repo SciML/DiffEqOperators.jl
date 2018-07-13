@@ -84,7 +84,13 @@ ldiv!(Y, L::DiffEqArrayOperator, B) = ldiv!(Y, L.A, B)
 Matrix(L::DiffEqArrayOperator) = Matrix(L.A)
 LinearAlgebra.exp(L::DiffEqArrayOperator) = exp(Matrix(L))
 
-# Factorization
+"""
+    FactorizedDiffEqArrayOperator(F)
+
+Like DiffEqArrayOperator, but stores a Factorization instead.
+
+Supports left division and `ldiv!` when applied to an array.
+"""
 struct FactorizedDiffEqArrayOperator{T<:Number,FType<:Factorization{T}} <: AbstractDiffEqLinearOperator{T}
   F::FType
 end
@@ -95,6 +101,10 @@ for fact in (:lu, :lu!, :qr, :qr!, :chol, :chol!, :ldlt, :ldlt!,
   @eval LinearAlgebra.$fact(L::DiffEqArrayOperator, args...) = FactorizedDiffEqArrayOperator($fact(L.A, args...))
 end
 
+Matrix(L::FactorizedDiffEqArrayOperator) = Matrix(L.F)
+convert(::Type{AbstractMatrix}, L::FactorizedDiffEqArrayOperator) = convert(AbstractMatrix, L.F)
+is_constant(::FactorizedDiffEqArrayOperator) = true
+update_coefficients(L::FactorizedDiffEqArrayOperator,u,p,t) = L
 size(L::FactorizedDiffEqArrayOperator, args...) = size(L.F, args...)
-ldiv!(Y, L::FactorizedDiffEqArrayOperator, B) = ldiv!(Y, L.F, B)
-\(L::FactorizedDiffEqArrayOperator, x) = L.F \ x
+ldiv!(Y::AbstractVecOrMat, L::FactorizedDiffEqArrayOperator, B::AbstractVecOrMat) = ldiv!(Y, L.F, B)
+\(L::FactorizedDiffEqArrayOperator, x::AbstractVecOrMat) = L.F \ x
