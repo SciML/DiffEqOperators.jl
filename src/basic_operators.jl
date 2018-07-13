@@ -1,3 +1,19 @@
+struct DiffEqIdentity{T,N} <: AbstractDiffEqLinearOperator{T} end
+DiffEqIdentity(u) = DiffEqIdentity{eltype(u),length(u)}()
+size(::DiffEqIdentity{T,N}) where {T,N} = (N,N)
+size(::DiffEqIdentity{T,N}, m::Integer) where {T,N} = (m == 1 || m == 2) ? N : 1
+opnorm(::DiffEqIdentity{T,N}, p::Real=2) where {T,N} = one(T)
+convert(::Type{AbstractMatrix}, ::DiffEqIdentity{T,N}) where {T,N} = Diagonal(ones(T,N))
+for op in (:*, :/, :\)
+  @eval $op(::DiffEqIdentity{T,N}, x::AbstractVecOrMat) where {T,N} = $op(I, x)
+  @eval $op(x::AbstractVecOrMat, ::DiffEqIdentity{T,N}) where {T,N} = $op(x, I)
+end
+mul!(Y::AbstractVecOrMat, ::DiffEqIdentity, B::AbstractVecOrMat) = Y .= B
+ldiv!(Y::AbstractVecOrMat, ::DiffEqIdentity, B::AbstractVecOrMat) = Y .= B
+for pred in (:isreal, :issymmetric, :ishermitian, :isposdef)
+  @eval LinearAlgebra.$pred(::DiffEqIdentity) = true
+end
+
 """
     DiffEqScalar(val[; update_func])
 
