@@ -2,15 +2,19 @@ __precompile__()
 
 module DiffEqOperators
 
-import Base: *, getindex
+import Base: +, -, *, /, \, size, getindex, setindex!, Matrix, convert
 using DiffEqBase, StaticArrays, LinearAlgebra
-import DiffEqBase: update_coefficients, update_coefficients!
+import LinearAlgebra: mul!, ldiv!, lmul!, rmul!, axpy!, opnorm, factorize
+import DiffEqBase: AbstractDiffEqLinearOperator, update_coefficients!, is_constant
 
-abstract type AbstractDerivativeOperator{T} <: DiffEqBase.AbstractDiffEqLinearOperator{T} end
+abstract type AbstractDerivativeOperator{T} <: AbstractDiffEqLinearOperator{T} end
+abstract type AbstractDiffEqCompositeOperator{T} <: AbstractDiffEqLinearOperator{T} end
+
+### Common default methods for the operators
+include("common_defaults.jl")
 
 ### Basic Operators
-include("diffeqscalar.jl")
-include("array_operator.jl")
+include("basic_operators.jl")
 
 ### Derivative Operators
 include("derivative_operators/fornberg.jl")
@@ -20,10 +24,16 @@ include("derivative_operators/derivative_operator.jl")
 include("derivative_operators/abstract_operator_functions.jl")
 include("derivative_operators/boundary_operators.jl")
 
-### Linear Combination of Operators
-#include("operator_combination.jl")
+### Composite Operators
+include("composite_operators.jl")
 
-export DiffEqScalar, DiffEqArrayOperator
+# The (u,p,t) and (du,u,p,t) interface
+for T in [DiffEqScalar, DiffEqArrayOperator, FactorizedDiffEqArrayOperator, DiffEqIdentity,
+  DiffEqScaledOperator, DiffEqOperatorCombination, DiffEqOperatorComposition]
+  (L::T)(u,p,t) = (update_coefficients!(L,u,p,t); L * u)
+  (L::T)(du,u,p,t) = (update_coefficients!(L,u,p,t); mul!(du,L,u))
+end
+
+export DiffEqScalar, DiffEqArrayOperator, DiffEqIdentity, getops
 export AbstractDerivativeOperator, DerivativeOperator, UpwindOperator, FiniteDifference
-export opnormbound
 end # module

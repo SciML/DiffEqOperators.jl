@@ -2,8 +2,8 @@ using DiffEqOperators, LinearAlgebra
 using Test
 using SpecialMatrices, StaticArrays, SpecialFunctions
 
-tic()
-@time @testset "Array Operators Interface" begin include("array_operators_interface.jl") end
+@time @testset "Basic Operators Interface" begin include("basic_operators_interface.jl") end
+@time @testset "Composite Operators Interface" begin include("composite_operators_interface.jl") end
 @time @testset "Derivative Operators Interface" begin include("derivative_operators_interface.jl") end
 @time @testset "Dirichlet BCs" begin include("dirichlet.jl") end
 @time @testset "Periodic BCs" begin include("periodic.jl") end
@@ -13,7 +13,6 @@ tic()
 @time @testset "Finite Difference Operator" begin include("generic_operator_check.jl") end
 @time @testset "KdV" begin include("KdV.jl") end # KdV times out
 @time @testset "Heat Equation" begin include("heat_eqn.jl") end
-toc()
 
 
 
