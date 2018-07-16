@@ -34,6 +34,6 @@ for T in [DiffEqScalar, DiffEqArrayOperator, FactorizedDiffEqArrayOperator, Diff
   (L::T)(du,u,p,t) = (update_coefficients!(L,u,p,t); mul!(du,L,u))
 end
 
-export DiffEqScalar, DiffEqArrayOperator, DiffEqIdentity
+export DiffEqScalar, DiffEqArrayOperator, DiffEqIdentity, getops
 export AbstractDerivativeOperator, DerivativeOperator, UpwindOperator, FiniteDifference
 end # module

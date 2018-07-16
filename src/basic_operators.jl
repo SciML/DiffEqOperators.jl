@@ -40,8 +40,8 @@ setval!(α::DiffEqScalar, val) = (α.val = val; α)
 is_constant(α::DiffEqScalar) = α.update_func == DEFAULT_UPDATE_FUNC
 
 for op in (:*, :/, :\)
-  @eval $op(α::DiffEqScalar, x::AbstractVecOrMat) = $op(α.val, x)
-  @eval $op(x::AbstractVecOrMat, α::DiffEqScalar) = $op(x, α.val)
+  @eval $op(α::DiffEqScalar, x::Union{AbstractVecOrMat,Number}) = $op(α.val, x)
+  @eval $op(x::Union{AbstractVecOrMat,Number}, α::DiffEqScalar) = $op(x, α.val)
 end
 lmul!(α::DiffEqScalar, B::AbstractVecOrMat) = lmul!(α.val, B)
 rmul!(B::AbstractVecOrMat, α::DiffEqScalar) = rmul!(B, α.val)

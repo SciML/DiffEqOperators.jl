@@ -11,8 +11,8 @@ getindex(L::AbstractDiffEqLinearOperator, i::Int) = convert(AbstractMatrix,L)[i]
 getindex(L::AbstractDiffEqLinearOperator, I::Vararg{Int, N}) where {N} = 
   convert(AbstractMatrix,L)[I...]
 for op in (:*, :/, :\)
-  @eval $op(L::AbstractDiffEqLinearOperator, x::AbstractVecOrMat) = $op(convert(AbstractMatrix,L), x)
-  @eval $op(x::AbstractVecOrMat, L::AbstractDiffEqLinearOperator) = $op(x, convert(AbstractMatrix,L))
+  @eval $op(L::AbstractDiffEqLinearOperator, x::Union{AbstractVecOrMat,Number}) = $op(convert(AbstractMatrix,L), x)
+  @eval $op(x::Union{AbstractVecOrMat,Number}, L::AbstractDiffEqLinearOperator) = $op(x, convert(AbstractMatrix,L))
 end
 mul!(Y::AbstractVecOrMat, L::AbstractDiffEqLinearOperator, B::AbstractVecOrMat) =
   mul!(Y, convert(AbstractMatrix,L), B)
