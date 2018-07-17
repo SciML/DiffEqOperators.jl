@@ -33,6 +33,7 @@ mutable struct DiffEqScalar{T<:Number,F} <: AbstractDiffEqLinearOperator{T}
     new{T,typeof(update_func)}(val, update_func)
 end
 
+convert(::Type{Number}, α::DiffEqScalar) = α.val
 size(::DiffEqScalar) = ()
 size(::DiffEqScalar, ::Integer) = 1
 update_coefficients!(α::DiffEqScalar,u,p,t) = (α.val = α.update_func(α.val,u,p,t); α)
