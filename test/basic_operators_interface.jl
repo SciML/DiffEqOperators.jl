@@ -12,6 +12,7 @@ end
 @testset "Scalar Operators" begin
   u = [1.0, 2.0]; u2 = [1.0, 2.0]
   α = DiffEqScalar(2.0)
+  @test convert(Number, α) == 2.0
   @test α * u == 2.0u
   lmul!(α, u2); @test u2 == 2.0u
   @test size(α) == ()
