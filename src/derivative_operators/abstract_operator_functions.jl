@@ -192,7 +192,7 @@ end
     return the inner stencil of the matrix transformation. The user will have to manually
     incorporate the BCs at the ends.
 =#
-function Base.sparse(A::AbstractDerivativeOperator{T}) where T
+function SparseArrays.sparse(A::AbstractDerivativeOperator{T}) where T
     N = A.dimension
     mat = spzeros(T, N, N)
     v = zeros(T, N)
@@ -214,7 +214,7 @@ end
 #=
     Fallback methods that use the full representation of the operator
 =#
-Base.expm(A::AbstractDerivativeOperator{T}) where T = exp(full(A))
+Base.exp(A::AbstractDerivativeOperator{T}) where T = exp(full(A))
 Base.:\(A::AbstractVecOrMat, B::AbstractDerivativeOperator) = A \ full(B)
 Base.:\(A::AbstractDerivativeOperator, B::AbstractVecOrMat) = full(A) \ B
 Base.:/(A::AbstractVecOrMat, B::AbstractDerivativeOperator) = A / full(B)
