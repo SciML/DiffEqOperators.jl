@@ -3,7 +3,7 @@ using DiffEqOperators, OrdinaryDiffEq
 
 @testset "KdV equation (Single Solition)" begin
     N = 21
-    local Δx = 1/(N-1)
+    Δx = 1/(N-1)
     r = 0.5
 
     # x = 10:Δx:30;
@@ -11,14 +11,14 @@ using DiffEqOperators, OrdinaryDiffEq
     # ϕ(x,t) = (r/2)*sech.((sqrt(r)*(x-r*t)/2)-7).^2 # solution of the single forward moving wave
     ϕ(x,t) = (1/2)*sech.((x-t)/2).^2 # solution of the single forward moving wave
 
-    local u0 = ϕ(x,0);
+    u0 = ϕ(x,0);
     oriu = zeros(size(x));
 
     const du3 = zeros(size(x));
     const temp = zeros(size(x));
 
     # A = DerivativeOperator{Float64}(1,2,Δx,length(x),:Dirichlet0,:Dirichlet0);
-    local A = UpwindOperator{Float64}(1,3,Δx,length(x),true.|BitVector(undef,length(x)),
+    A = UpwindOperator{Float64}(1,3,Δx,length(x),true.|BitVector(undef,length(x)),
                                 :Dirichlet0,:Dirichlet0);
     # C = DerivativeOperator{Float64}(3,2,Δx,length(x),:Dirichlet0,:Dirichlet0);
     C = UpwindOperator{Float64}(3,3,Δx,length(x),true.|BitVector(undef,length(x)),

@@ -19,7 +19,7 @@ end
     N = 512
     dx = 2π/(N-1)
     x = collect(-pi : dx : pi);
-    u0 = -(x - 0.5).^2 + 1/12;
+    u0 = @. -(x - 0.5)^2 + 1/12;
     B = DerivativeOperator{Float64}(1,2,dx,N,:None,:None);
     deriv_start, deriv_end = (B*u0)[1], (B*u0)[end]
 
