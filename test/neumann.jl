@@ -60,8 +60,8 @@ end
     x = 0:h_inv:1
     A = DerivativeOperator{Float64}(d_order,approx_order,h_inv,N,:Neumann,:Neumann;BC=(1,-1))
     boundary_points = A.boundary_point_count
-    res = A*(x.*(1-x))
-    @test res ≈ -2*ones(x) atol=10.0^-approx_order
+    res = A*(x.*(1.0.-x))
+    @test res ≈ -2*ones(size(x)) atol=10.0^-approx_order
 
     # A = DerivativeOperator{BigFloat}(d_order,approx_order,N,:Neumann0,:Neumann0)
     # y = convert(Array{BigFloat, 1}, y)

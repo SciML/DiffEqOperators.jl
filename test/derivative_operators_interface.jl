@@ -1,3 +1,5 @@
+using SparseArrays
+
 function strang_matrix(N)
   A = zeros(N,N)
   for i in 1:N, j in 1:N
@@ -19,8 +21,8 @@ end
     sp_mat = sparse(A)
     @test mat == sp_mat
 
-    @test full(A, 10) == -strang_matrix(10) # Strang Matrix is defined with the center term +ve
-    @test full(A, N) == -strang_matrix(N) # Strang Matrix is defined with the center term +ve
+    @test full(A, 10) == strang_matrix(10) # Strang Matrix is defined with the center term +ve
+    @test full(A, N) == strang_matrix(N) # Strang Matrix is defined with the center term +ve
     @test full(A) == sp_mat
     @test opnorm(A, Inf) == opnorm(mat, Inf)
 
@@ -78,8 +80,8 @@ end
     d_order = 2
     approx_order = 2
 
-    xarr = linspace(0,1,N)
-    yarr = linspace(0,1,M)
+    xarr = range(0,stop=1,length=N)
+    yarr = range(0,stop=1,length=M)
     dx = xarr[2]-xarr[1]
     dy = yarr[2]-yarr[1]
     F = [x^2+y for x = xarr, y = yarr]

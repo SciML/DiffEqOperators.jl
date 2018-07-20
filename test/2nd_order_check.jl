@@ -11,14 +11,14 @@ using DiffEqOperators, Test
   u0 = cos.(x)
   du_true = -cos.(x)
 
-  M = full(Tridiagonal([1.0 for i in 1:N+1],[-2.0 for i in 1:N+2],[1.0 for i in 1:N+1]))
+  M = Matrix(Tridiagonal([1.0 for i in 1:N+1],[-2.0 for i in 1:N+2],[1.0 for i in 1:N+1]))
   # Do the reflections, different for x and y operators
   M[end,1] = 1.0
   M[1,end] = 1.0
   M = M/(Δx^2)
   @test M*u0 ≈ D2*u0
 
-  A = zeros(M)
+  A = zeros(size(M))
   for i in 1:N+2, j in 1:N+2
       i == j && (A[i,j] = -0.5)
       abs(i - j) == 2 && (A[i,j] = 0.25)
@@ -32,8 +32,8 @@ using DiffEqOperators, Test
   @test A*u0 ≈ D1*(D1*u0)
 
   κ(x) = 1.0
-  const tmp1 = similar(x)
-  const tmp2 = similar(x)
+  tmp1 = similar(x)
+  tmp2 = similar(x)
   function f(t,u,du)
       mul!(tmp1,  D1, u)
       @. tmp2 = κ(x)*tmp1
