@@ -42,7 +42,7 @@ end
     T = eltype(A.stencil_coefs)
     v = zeros(T, A.dimension)
     v[j] = one(T)
-    copy!(v, A*v)
+    copyto!(v, A*v)
     return v
 end
 
@@ -52,7 +52,7 @@ end
     T = eltype(A.stencil_coefs)
     v = zeros(T, A.dimension)
     v[i] = one(T)
-    copy!(v, A*v)
+    copyto!(v, A*v)
     return v
 end
 
@@ -124,7 +124,7 @@ function LinearAlgebra.mul!(x_temp::AbstractVector{T}, A::Union{DerivativeOperat
     convolve_BC_left!(x_temp, x, A)
     convolve_interior!(x_temp, x, A)
     convolve_BC_right!(x_temp, x, A)
-    scale!(x_temp, 1./(A.dx^A.derivative_order))
+    rmul!(x_temp, @.(1/(A.dx^A.derivative_order)))
     A.t[] += 1 # incrementing the internal time stamp
 end
 
@@ -157,7 +157,7 @@ Base.length(A::AbstractDerivativeOperator) = reduce(*, size(A))
 =#
 Base.transpose(A::Union{DerivativeOperator,UpwindOperator}) = A
 Base.ctranspose(A::Union{DerivativeOperator,UpwindOperator}) = A
-Base.issymmetric(::Union{DerivativeOperator,UpwindOperator}) = true
+LinearAlgebra.issymmetric(::Union{DerivativeOperator,UpwindOperator}) = true
 
 #=
     This function ideally should give us a matrix which when multiplied with the input vector
@@ -204,8 +204,8 @@ function SparseArrays.sparse(A::AbstractDerivativeOperator{T}) where T
             to get the vector in the new vector space.
         =#
         mul!(row, A, v)
-        copy!(view(mat,:,i), row)
-        row .= 0.*row;
+        copyto!(view(mat,:,i), row)
+        @. row = 0 * row;
         v[i] = zero(T)
     end
     return mat

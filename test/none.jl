@@ -1,10 +1,10 @@
 using Test
 
 @testset "None BC DerivativeOperator" begin
-    N = 10
+    local N = 10
     d_order = 1
     approx_order = 2
-    A = DerivativeOperator{Float64}(d_order,approx_order,1.0,N,:None,:None)
+    local A = DerivativeOperator{Float64}(d_order,approx_order,1.0,N,:None,:None)
     Amat = full(A)
 
     @test Amat[1,1:3] ≈ [-1.5, 2.0, -0.5]
@@ -76,6 +76,8 @@ end
 
 
 @testset "FiniteDifference Operator sin(x)==d/dx^4 sin(x)" begin
+
+    local x
 
     n = 1000
     x = erf.(linspace(-2,2,n))*2π

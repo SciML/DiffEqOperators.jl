@@ -3,7 +3,8 @@ DiffEqIdentity(u) = DiffEqIdentity{eltype(u),length(u)}()
 size(::DiffEqIdentity{T,N}) where {T,N} = (N,N)
 size(::DiffEqIdentity{T,N}, m::Integer) where {T,N} = (m == 1 || m == 2) ? N : 1
 opnorm(::DiffEqIdentity{T,N}, p::Real=2) where {T,N} = one(T)
-convert(::Type{AbstractMatrix}, ::DiffEqIdentity{T,N}) where {T,N} = Diagonal(ones(T,N))
+convert(::Type{AbstractMatrix}, ::DiffEqIdentity{T,N}) where {T,N} =
+                                              LinearAlgebra.Diagonal(ones(T,N))
 for op in (:*, :/, :\)
   @eval $op(::DiffEqIdentity{T,N}, x::AbstractVecOrMat) where {T,N} = $op(I, x)
   @eval $op(x::AbstractVecOrMat, ::DiffEqIdentity{T,N}) where {T,N} = $op(x, I)
@@ -65,7 +66,7 @@ and directly mutate the array's value.
 mutable struct DiffEqArrayOperator{T,AType<:AbstractMatrix{T},F} <: AbstractDiffEqLinearOperator{T}
   A::AType
   update_func::F
-  DiffEqArrayOperator(A::AType; update_func=DEFAULT_UPDATE_FUNC) where {AType} = 
+  DiffEqArrayOperator(A::AType; update_func=DEFAULT_UPDATE_FUNC) where {AType} =
     new{eltype(A),AType,typeof(update_func)}(A, update_func)
 end
 

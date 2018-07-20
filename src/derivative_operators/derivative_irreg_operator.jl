@@ -234,10 +234,10 @@ function left_Neumann_BC!(::Type{Val{:FD}},low_boundary_coefs,stencil_length,der
     first_order_coeffs = calculate_weights(1, zero(T), x[1:boundary_length])
     original_coeffs =  calculate_weights(derivative_order, zero(T), x[1:boundary_length])
     l_diff = original_coeffs[end]/first_order_coeffs[end]
-    scale!(first_order_coeffs, original_coeffs[end]/first_order_coeffs[end])
-    # scale!(original_coeffs, first_order_coeffs[end]/original_coeffs[end])
+    rmul!(first_order_coeffs, original_coeffs[end]/first_order_coeffs[end])
+    # rmul!(original_coeffs, first_order_coeffs[end]/original_coeffs[end])
     @. original_coeffs = original_coeffs - first_order_coeffs
-    # copy!(first_order_coeffs, first_order_coeffs[1:end-1])
+    # copyto!(first_order_coeffs, first_order_coeffs[1:end-1])
     push!(low_boundary_coefs, original_coeffs[1:end-1])
 
     for i in 2 : boundary_point_count
@@ -274,10 +274,10 @@ end
 #     original_coeffs = calculate_weights(derivative_order, x[end-boundary_point_count+1], x[end - boundary_length + 1 : end])
 #
 #     r_diff = original_coeffs[1]/first_order_coeffs[1]
-#     scale!(first_order_coeffs, original_coeffs[1]/first_order_coeffs[1])
-#     # scale!(original_coeffs, first_order_coeffs[1]/original_coeffs[1])
+#     rmul!(first_order_coeffs, original_coeffs[1]/first_order_coeffs[1])
+#     # rmul!(original_coeffs, first_order_coeffs[1]/original_coeffs[1])
 #     @. original_coeffs = original_coeffs - first_order_coeffs
-#     # copy!(first_order_coeffs, first_order_coeffs[1:end-1])
+#     # copyto!(first_order_coeffs, first_order_coeffs[1:end-1])
 #     push!(high_boundary_coefs, original_coeffs[2:end])
 #     #TODO doesnt work... i don't get it.
 #     for i in length(x) - boundary_point_count+2 : length(x)
@@ -314,10 +314,10 @@ end
 #     original_coeffs =  calculate_weights(derivative_order, (0)*grid_step, collect(zero(T) : grid_step : (boundary_length-1) * grid_step))
 #
 #     l_diff = original_coeffs[end]/first_order_coeffs[end]
-#     scale!(first_order_coeffs, original_coeffs[end]/first_order_coeffs[end])
-#     # scale!(original_coeffs, first_order_coeffs[end]/original_coeffs[end])
+#     rmul!(first_order_coeffs, original_coeffs[end]/first_order_coeffs[end])
+#     # rmul!(original_coeffs, first_order_coeffs[end]/original_coeffs[end])
 #     @. original_coeffs = original_coeffs - first_order_coeffs
-#     # copy!(first_order_coeffs, first_order_coeffs[1:end-1])
+#     # copyto!(first_order_coeffs, first_order_coeffs[1:end-1])
 #     push!(low_boundary_coefs, original_coeffs[1:end-1])
 #
 #     for i in 2 : boundary_point_count
@@ -352,16 +352,16 @@ end
 #     reverse!(first_order_coeffs)
 #     isodd(flag) ? negate!(first_order_coeffs) : nothing
 #
-#     copy!(original_coeffs, calculate_weights(derivative_order, (boundary_point_count-1)*grid_step,
+#     copyto!(original_coeffs, calculate_weights(derivative_order, (boundary_point_count-1)*grid_step,
 #                                              collect(zero(T) : grid_step : (boundary_length-1) * grid_step)))
 #     reverse!(original_coeffs)
 #     isodd(flag) ? negate!(original_coeffs) : nothing
 #
 #     r_diff = original_coeffs[1]/first_order_coeffs[1]
-#     scale!(first_order_coeffs, original_coeffs[1]/first_order_coeffs[1])
-#     # scale!(original_coeffs, first_order_coeffs[1]/original_coeffs[1])
+#     rmul!(first_order_coeffs, original_coeffs[1]/first_order_coeffs[1])
+#     # rmul!(original_coeffs, first_order_coeffs[1]/original_coeffs[1])
 #     @. original_coeffs = original_coeffs - first_order_coeffs
-#     # copy!(first_order_coeffs, first_order_coeffs[1:end-1])
+#     # copyto!(first_order_coeffs, first_order_coeffs[1:end-1])
 #
 #     for i in 2 : boundary_point_count
 #         #=

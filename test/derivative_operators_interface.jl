@@ -1,3 +1,12 @@
+function strang_matrix(N)
+  A = zeros(N,N)
+  for i in 1:N, j in 1:N
+      abs(i-j)<=1 && (A[i,j]+=1)
+      i==j && (A[i,j]-=3)
+  end
+  A
+end
+
 # tests for full and sparse function
 @testset "Full and Sparse functions:" begin
     N = 100
@@ -9,8 +18,9 @@
     mat = full(A)
     sp_mat = sparse(A)
     @test mat == sp_mat
-    @test full(A, 10) == -Strang(10) # Strang Matrix is defined with the center term +ve
-    @test full(A, N) == -Strang(N) # Strang Matrix is defined with the center term +ve
+
+    @test full(A, 10) == -strang_matrix(10) # Strang Matrix is defined with the center term +ve
+    @test full(A, N) == -strang_matrix(N) # Strang Matrix is defined with the center term +ve
     @test full(A) == sp_mat
     @test opnorm(A, Inf) == opnorm(mat, Inf)
 

@@ -1,6 +1,6 @@
 using DiffEqOperators, LinearAlgebra
 using Test
-using SpecialMatrices, StaticArrays, SpecialFunctions
+using StaticArrays, SpecialFunctions
 
 @time @testset "Basic Operators Interface" begin include("basic_operators_interface.jl") end
 @time @testset "Composite Operators Interface" begin include("composite_operators_interface.jl") end

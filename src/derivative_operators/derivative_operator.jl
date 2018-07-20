@@ -45,10 +45,10 @@ end
 
 function negate!(arr::T) where T
     if size(arr,2) == 1
-        scale!(arr,-one(eltype(arr[1]))) #fix right neumann bc, eltype(Vector{T}) doesnt work.
+        rmul!(arr,-one(eltype(arr[1]))) #fix right neumann bc, eltype(Vector{T}) doesnt work.
     else
         for row in arr
-            scale!(row,-one(eltype(arr[1])))
+            rmul!(row,-one(eltype(arr[1])))
         end
     end
 end
@@ -268,10 +268,10 @@ function left_Neumann_BC!(::Type{Val{:LO}},low_boundary_coefs,stencil_length,der
     first_order_coeffs = calculate_weights(1, (0)*grid_step, collect(zero(T) : grid_step : (boundary_length-1)*grid_step))
     original_coeffs =  calculate_weights(derivative_order, (0)*grid_step, collect(zero(T) : grid_step : (boundary_length-1) * grid_step))
     l_diff = original_coeffs[end]/first_order_coeffs[end]
-    scale!(first_order_coeffs, original_coeffs[end]/first_order_coeffs[end])
-    # scale!(original_coeffs, first_order_coeffs[end]/original_coeffs[end])
+    rmul!(first_order_coeffs, original_coeffs[end]/first_order_coeffs[end])
+    # rmul!(original_coeffs, first_order_coeffs[end]/original_coeffs[end])
     @. original_coeffs = original_coeffs - first_order_coeffs
-    # copy!(first_order_coeffs, first_order_coeffs[1:end-1])
+    # copyto!(first_order_coeffs, first_order_coeffs[1:end-1])
     push!(low_boundary_coefs, original_coeffs[1:end-1])
 
     for i in 2 : boundary_point_count
@@ -305,17 +305,17 @@ function right_Neumann_BC!(::Type{Val{:LO}},high_boundary_coefs,stencil_length,d
     reverse!(first_order_coeffs)
     isodd(flag) ? negate!(first_order_coeffs) : nothing
 
-    copy!(original_coeffs, calculate_weights(derivative_order, (boundary_point_count-1)*grid_step,
+    copyto!(original_coeffs, calculate_weights(derivative_order, (boundary_point_count-1)*grid_step,
                                              collect(zero(T) : grid_step : (boundary_length-1) * grid_step)))
 
     reverse!(original_coeffs)
     isodd(flag) ? negate!(original_coeffs) : nothing
 
     r_diff = original_coeffs[1]/first_order_coeffs[1]
-    scale!(first_order_coeffs, original_coeffs[1]/first_order_coeffs[1])
-    # scale!(original_coeffs, first_order_coeffs[1]/original_coeffs[1])
+    rmul!(first_order_coeffs, original_coeffs[1]/first_order_coeffs[1])
+    # rmul!(original_coeffs, first_order_coeffs[1]/original_coeffs[1])
     @. original_coeffs = original_coeffs - first_order_coeffs
-    # copy!(first_order_coeffs, first_order_coeffs[1:end-1])
+    # copyto!(first_order_coeffs, first_order_coeffs[1:end-1])
 
     for i in 2 : boundary_point_count
         #=
@@ -357,10 +357,10 @@ function left_Robin_BC!(::Type{Val{:LO}},low_boundary_coefs,stencil_length,param
     original_coeffs =  calculate_weights(derivative_order, (0)*grid_step, collect(zero(T) : grid_step : (boundary_length-1) * grid_step))
 
     l_diff = original_coeffs[end]/first_order_coeffs[end]
-    scale!(first_order_coeffs, original_coeffs[end]/first_order_coeffs[end])
-    # scale!(original_coeffs, first_order_coeffs[end]/original_coeffs[end])
+    rmul!(first_order_coeffs, original_coeffs[end]/first_order_coeffs[end])
+    # rmul!(original_coeffs, first_order_coeffs[end]/original_coeffs[end])
     @. original_coeffs = original_coeffs - first_order_coeffs
-    # copy!(first_order_coeffs, first_order_coeffs[1:end-1])
+    # copyto!(first_order_coeffs, first_order_coeffs[1:end-1])
     push!(low_boundary_coefs, original_coeffs[1:end-1])
 
     for i in 2 : boundary_point_count
@@ -395,16 +395,16 @@ function right_Robin_BC!(::Type{Val{:LO}},high_boundary_coefs,stencil_length,par
     reverse!(first_order_coeffs)
     isodd(flag) ? negate!(first_order_coeffs) : nothing
 
-    copy!(original_coeffs, calculate_weights(derivative_order, (boundary_point_count-1)*grid_step,
+    copyto!(original_coeffs, calculate_weights(derivative_order, (boundary_point_count-1)*grid_step,
                                              collect(zero(T) : grid_step : (boundary_length-1) * grid_step)))
     reverse!(original_coeffs)
     isodd(flag) ? negate!(original_coeffs) : nothing
 
     r_diff = original_coeffs[1]/first_order_coeffs[1]
-    scale!(first_order_coeffs, original_coeffs[1]/first_order_coeffs[1])
-    # scale!(original_coeffs, first_order_coeffs[1]/original_coeffs[1])
+    rmul!(first_order_coeffs, original_coeffs[1]/first_order_coeffs[1])
+    # rmul!(original_coeffs, first_order_coeffs[1]/original_coeffs[1])
     @. original_coeffs = original_coeffs - first_order_coeffs
-    # copy!(first_order_coeffs, first_order_coeffs[1:end-1])
+    # copyto!(first_order_coeffs, first_order_coeffs[1:end-1])
 
     for i in 2 : boundary_point_count
         #=

@@ -1,5 +1,4 @@
 using Test
-using SpecialMatrices
 
 @testset "Periodic BC DO" begin
     N = 100
