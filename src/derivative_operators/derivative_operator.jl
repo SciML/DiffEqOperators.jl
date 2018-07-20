@@ -68,8 +68,10 @@ struct DerivativeOperator{T<:Real,S<:SVector,LBC,RBC} <: AbstractDerivativeOpera
     boundary_condition  :: Ref{Tuple{Tuple{T,T,Any},Tuple{T,T,Any}}}
     t                   :: Ref{Int}
 
-    Base.@pure function DerivativeOperator{T,S,LBC,RBC}(derivative_order::Int, approximation_order::Int, dx::T,
-                                            dimension::Int, BC) where {T<:Real,S<:SVector,LBC,RBC}
+    function DerivativeOperator{T,S,LBC,RBC}(derivative_order::Int,
+                                             approximation_order::Int, dx::T,
+                                             dimension::Int, BC) where
+                                             {T<:Real,S<:SVector,LBC,RBC}
         dimension            = dimension
         dx                   = dx
         stencil_length       = derivative_order + approximation_order - 1 + (derivative_order+approximation_order)%2
@@ -449,4 +451,4 @@ function LinearAlgebra.opnorm(A::DerivativeOperator{T,S,LBC,RBC}, p::Real=2) whe
     else
         opnorm(full(A), p)
     end
-end 
+end

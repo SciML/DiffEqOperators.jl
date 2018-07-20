@@ -87,6 +87,6 @@ end
 
     y = @. sin(x)+2 #avoid 0.0
     res = A*y
-    @test res[boundary_points[1] + 1: N - boundary_points[2]]+2. ≈ y[boundary_points[1] + 1: N - boundary_points[2]] atol=10.0^-1;
+    @test res[boundary_points[1] .+ 1: N - boundary_points[2]] .+ 2.0 ≈ y[boundary_points[1] .+ 1: N - boundary_points[2]] atol=10.0^-1;
 
 end
