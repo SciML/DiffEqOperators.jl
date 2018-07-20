@@ -76,7 +76,7 @@ end
        C(t,u,du3)
        A(t, u, du)
        @. temp = -6*u*du - du3
-       copy!(du,temp)
+       copyto!(du,temp)
     end
 
     u0 = ϕ(x,0);
