@@ -13,8 +13,11 @@ struct FiniteDifference{T<:Real,S<:SVector,LBC,RBC} <: AbstractDerivativeOperato
     boundary_condition  :: Ref{Tuple{Tuple{T,T,Any},Tuple{T,T,Any}}}
     t                   :: Ref{Int}
 
-    Base.@pure function FiniteDifference{T,S,LBC,RBC}(derivative_order::Int, approximation_order::Int, dx::Vector{T},
-                                            dimension::Int, BC) where {T<:Real,S<:SVector,LBC,RBC}
+    function FiniteDifference{T,S,LBC,RBC}(derivative_order::Int,
+                                           approximation_order::Int,
+                                           dx::Vector{T},
+                                           dimension::Int, BC) where
+                                           {T<:Real,S<:SVector,LBC,RBC}
         # dimension            = dimension
         # dx                   = dx
         stencil_length       = derivative_order + approximation_order - 1 + (derivative_order+approximation_order)%2
@@ -32,8 +35,9 @@ struct FiniteDifference{T<:Real,S<:SVector,LBC,RBC} <: AbstractDerivativeOperato
         high_boundary_coefs  = Vector{T}[]
 
         stl_2 = div(stencil_length,2)
+
         stencil_coefs        =[convert(SVector{stencil_length, T}, calculate_weights(derivative_order, zero(T),
-                               x[i-stl_2 : i+stl_2]-x[i])) for i in stl_2+1:dimension-stl_2]
+                               x[i-stl_2 : i+stl_2].-x[i])) for i in stl_2+1:dimension-stl_2]
 
         left_bndry = initialize_left_boundary!(Val{:FD},low_boundary_coefs,stencil_coefs[1:bl],
                                                 BC,derivative_order,grid_step[1:bl],bl,bpc_array,LBC)
