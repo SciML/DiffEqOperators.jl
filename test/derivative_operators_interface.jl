@@ -17,13 +17,13 @@ end
     x = collect(1:1.0:N).^2
 
     A = DerivativeOperator{Float64}(d_order,approx_order,1.0,N,:Dirichlet0,:Dirichlet0)
-    mat = full(A)
+    mat = convert(Array,A)
     sp_mat = sparse(A)
     @test mat == sp_mat
 
-    @test full(A, 10) == strang_matrix(10) # Strang Matrix is defined with the center term +ve
-    @test full(A, N) == strang_matrix(N) # Strang Matrix is defined with the center term +ve
-    @test full(A) == sp_mat
+    @test convert(Array, A, 10) == strang_matrix(10) # Strang Matrix is defined with the center term +ve
+    @test convert(Array, A, N) == strang_matrix(N) # Strang Matrix is defined with the center term +ve
+    @test convert(Array,A) == sp_mat
     @test opnorm(A, Inf) == opnorm(mat, Inf)
 
     # testing correctness
@@ -35,7 +35,7 @@ end
 
     A = DerivativeOperator{BigFloat}(d_order,approx_order,one(BigFloat),N,:Dirichlet0,:Dirichlet0)
     boundary_points = A.boundary_point_count
-    mat = full(A, N)
+    mat = convert(Array, A, N)
     sp_mat = sparse(A)
     @test mat == sp_mat
 
@@ -53,7 +53,7 @@ end
 
     A = DerivativeOperator{Float64}(d_order,approx_order,1.0,N,:Dirichlet0,:Dirichlet0)
     @test A[1,1] ≈ 13.717407 atol=1e-4
-    @test A[:,1] == (full(A))[:,1]
+    @test A[:,1] == (convert(Array,A))[:,1]
     @test A[10,20] == 0
 
     for i in 1:N
@@ -66,7 +66,7 @@ end
     approx_order = 2
 
     A = DerivativeOperator{Float64}(d_order,approx_order,1.0,N,:Dirichlet0,:Dirichlet0)
-    M = full(A)
+    M = convert(Array,A)
 
     @test A[1,1] == -2.0
     @test A[1:4,1] == M[1:4,1]
@@ -103,11 +103,11 @@ end
 @testset "Linear combinations of operators" begin
     # Only tests the additional functionality defined in "operator_combination.jl"
     N = 10
-    srand(0); LA = DiffEqArrayOperator(rand(N,N))
+    Random.seed!(0); LA = DiffEqArrayOperator(rand(N,N))
     LD = DerivativeOperator{Float64}(2,2,1.0,N,:Dirichlet0,:Dirichlet0)
     @test_broken begin
       L = 1.1*LA - 2.2*LD + 3.3*I
-      # Builds full(L) the brute-force way
+      # Builds convert(L) the brute-force way
       fullL = zeros(N,N)
       v = zeros(N)
       for i = 1:N
@@ -115,7 +115,7 @@ end
           fullL[:,i] = L*v
           v[i] = 0.0
       end
-      @test full(L) ≈ fullL
+      @test convert(L) ≈ fullL
       @test exp(L) ≈ exp(fullL)
       for p in [1,2,Inf]
           @test opnorm(L,p) ≈ opnorm(fullL,p)

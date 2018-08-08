@@ -18,7 +18,7 @@ checkbounds(A::AbstractDerivativeOperator, k::Integer, j::Colon) =
     (0 < k ≤ size(A, 1) || throw(BoundsError(A, (k,size(A,2)))))
 
 
-# BandedMatrix{A,B,C,D}(A::DerivativeOperator{A,B,C,D}) = BandedMatrix(full(A, A.stencil_length), A.stencil_length, div(A.stencil_length,2), div(A.stencil_length,2))
+# BandedMatrix{A,B,C,D}(A::DerivativeOperator{A,B,C,D}) = BandedMatrix(convert(Array, A, A.stencil_length), A.stencil_length, div(A.stencil_length,2), div(A.stencil_length,2))
 
 # ~~ getindex ~~
 @inline function getindex(A::AbstractDerivativeOperator, i::Int, j::Int)
@@ -36,7 +36,7 @@ checkbounds(A::AbstractDerivativeOperator, k::Integer, j::Colon) =
 end
 
 # scalar - colon - colon
-@inline getindex(A::AbstractDerivativeOperator, kr::Colon, jr::Colon) = full(A)
+@inline getindex(A::AbstractDerivativeOperator, kr::Colon, jr::Colon) = convert(Array,A)
 
 @inline function getindex(A::AbstractDerivativeOperator, rc::Colon, j)
     T = eltype(A.stencil_coefs)
@@ -59,13 +59,13 @@ end
 
 # UnitRanges
 @inline function getindex(A::AbstractDerivativeOperator, rng::UnitRange{Int}, cc::Colon)
-    m = full(A)
+    m = convert(Array,A)
     return m[rng, cc]
 end
 
 
 @inline function getindex(A::AbstractDerivativeOperator, rc::Colon, rng::UnitRange{Int})
-    m = full(A)
+    m = convert(Array,A)
     return m[rnd, cc]
 end
 
@@ -156,7 +156,7 @@ Base.length(A::AbstractDerivativeOperator) = reduce(*, size(A))
     For the evenly spaced grid we have a symmetric matrix
 =#
 Base.transpose(A::Union{DerivativeOperator,UpwindOperator}) = A
-Base.ctranspose(A::Union{DerivativeOperator,UpwindOperator}) = A
+Base.adjoint(A::Union{DerivativeOperator,UpwindOperator}) = A
 LinearAlgebra.issymmetric(::Union{DerivativeOperator,UpwindOperator}) = true
 
 #=
@@ -167,7 +167,7 @@ LinearAlgebra.issymmetric(::Union{DerivativeOperator,UpwindOperator}) = true
     return the inner stencil of the matrix transformation. The user will have to manually
     incorporate the BCs at the ends.
 =#
-function Base.full(A::AbstractDerivativeOperator{T}, N::Int=A.dimension) where T
+function Base.convert(::Type{Array}, A::AbstractDerivativeOperator{T}, N::Int=A.dimension) where T
     @assert N >= A.stencil_length # stencil must be able to fit in the matrix
     mat = zeros(T, (N, N))
     v = zeros(T, N)
@@ -214,8 +214,8 @@ end
 #=
     Fallback methods that use the full representation of the operator
 =#
-Base.exp(A::AbstractDerivativeOperator{T}) where T = exp(full(A))
-Base.:\(A::AbstractVecOrMat, B::AbstractDerivativeOperator) = A \ full(B)
-Base.:\(A::AbstractDerivativeOperator, B::AbstractVecOrMat) = full(A) \ B
-Base.:/(A::AbstractVecOrMat, B::AbstractDerivativeOperator) = A / full(B)
-Base.:/(A::AbstractDerivativeOperator, B::AbstractVecOrMat) = full(A) / B
+Base.exp(A::AbstractDerivativeOperator{T}) where T = exp(convert(Array,A))
+Base.:\(A::AbstractVecOrMat, B::AbstractDerivativeOperator) = A \ convert(Array,B)
+Base.:\(A::AbstractDerivativeOperator, B::AbstractVecOrMat) = convert(Array,A) \ B
+Base.:/(A::AbstractVecOrMat, B::AbstractDerivativeOperator) = A / convert(Array,B)
+Base.:/(A::AbstractDerivativeOperator, B::AbstractVecOrMat) = convert(Array,A) / B

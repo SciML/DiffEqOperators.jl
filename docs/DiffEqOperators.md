@@ -34,7 +34,7 @@ We have generated an operator which produces the 2nd order approximation of the 
 
 We can get the linear operator as a matrix as follows:-
 
-    julia> full(A)
+    julia> convert(Array,A)
     10×10 Array{Float64,2}:
      -2.0   1.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0
       1.0  -2.0   1.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0

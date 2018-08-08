@@ -1,6 +1,7 @@
 using DiffEqOperators, LinearAlgebra
 using Test
 using StaticArrays, SpecialFunctions
+import Base: isapprox
 
 @time @testset "Basic Operators Interface" begin include("basic_operators_interface.jl") end
 @time @testset "Composite Operators Interface" begin include("composite_operators_interface.jl") end

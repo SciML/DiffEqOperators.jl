@@ -20,7 +20,7 @@ end
 end
 
 @testset "Array Operators" begin
-  srand(0); A = rand(2,2); u = rand(2); du = zeros(2)
+  Random.seed!(0); A = rand(2,2); u = rand(2); du = zeros(2)
   L = DiffEqArrayOperator(A)
   @test Matrix(L) == A
   @test size(L) == size(A)
@@ -34,7 +34,7 @@ end
 end
 
 @testset "Mutable Array Operators" begin
-  srand(0); A = rand(2,2); u = rand(2); du = zeros(2)
+  Random.seed!(0); A = rand(2,2); u = rand(2); du = zeros(2)
   update_func = (_A,u,p,t) -> _A .= t * A
   Lt = DiffEqArrayOperator(zeros(2,2); update_func=update_func)
   t = 5.0

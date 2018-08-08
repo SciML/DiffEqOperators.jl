@@ -13,7 +13,7 @@
         D1 = DerivativeOperator{Float64}(dor,aor,dx[1],length(x),:None,:None)
         D2 = DiffEqOperators.FiniteDifference{Float64}(dor,aor,dx,length(x),:None,:None)
 
-        @test full(D1) ≈ full(D2)
+        @test convert(Array, D1) ≈ convert(Array, D2)
     end
 
 end

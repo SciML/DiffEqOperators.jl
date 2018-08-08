@@ -38,8 +38,8 @@ mul!(Y::AbstractVecOrMat, L::DiffEqScaledOperator, B::AbstractVecOrMat) =
 ldiv!(Y::AbstractVecOrMat, L::DiffEqScaledOperator, B::AbstractVecOrMat) =
   lmul!(1/L.coeff, ldiv!(Y, L.op, B))
 factorize(L::DiffEqScaledOperator) = L.coeff * factorize(L.op)
-for fact in (:lu, :lu!, :qr, :qr!, :chol, :chol!, :ldlt, :ldlt!, 
-  :bkfact, :bkfact!, :lq, :lq!, :svd, :svd!)
+for fact in (:lu, :lu!, :qr, :qr!, :cholesky, :cholesky!, :ldlt, :ldlt!, 
+  :bunchkaufman, :bunchkaufman!, :lq, :lq!, :svd, :svd!)
   @eval LinearAlgebra.$fact(L::DiffEqScaledOperator, args...) = 
     L.coeff * fact(L.op, args...)
 end
@@ -140,8 +140,8 @@ function ldiv!(y::AbstractVector, L::DiffEqOperatorComposition, b::AbstractVecto
   ldiv!(y, L.ops[1], L.caches[1])
 end
 factorize(L::DiffEqOperatorComposition) = prod(factorize, reverse(L.ops))
-for fact in (:lu, :lu!, :qr, :qr!, :chol, :chol!, :ldlt, :ldlt!, 
-  :bkfact, :bkfact!, :lq, :lq!, :svd, :svd!)
+for fact in (:lu, :lu!, :qr, :qr!, :cholesky, :cholesky!, :ldlt, :ldlt!, 
+  :bunchkaufman, :bunchkaufman!, :lq, :lq!, :svd, :svd!)
   @eval LinearAlgebra.$fact(L::DiffEqOperatorComposition, args...) = 
     prod(op -> $fact(op, args...), reverse(L.ops))
 end
