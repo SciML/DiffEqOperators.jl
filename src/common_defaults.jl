@@ -23,8 +23,8 @@ for pred in (:isreal, :issymmetric, :ishermitian, :isposdef)
 end
 factorize(L::AbstractDiffEqLinearOperator) = 
   FactorizedDiffEqArrayOperator(factorize(convert(AbstractMatrix, L)))
-for fact in (:lu, :lu!, :qr, :qr!, :chol, :chol!, :ldlt, :ldlt!, 
-  :bkfact, :bkfact!, :lq, :lq!, :svd, :svd!)
+for fact in (:lu, :lu!, :qr, :qr!, :cholesky, :cholesky!, :ldlt, :ldlt!, 
+  :bunchkaufman, :bunchkaufman!, :lq, :lq!, :svd, :svd!)
   @eval LinearAlgebra.$fact(L::AbstractDiffEqLinearOperator, args...) = 
     FactorizedDiffEqArrayOperator($fact(convert(AbstractMatrix, L), args...))
 end

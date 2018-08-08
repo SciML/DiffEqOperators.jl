@@ -156,7 +156,7 @@ Base.length(A::AbstractDerivativeOperator) = reduce(*, size(A))
     For the evenly spaced grid we have a symmetric matrix
 =#
 Base.transpose(A::Union{DerivativeOperator,UpwindOperator}) = A
-Base.ctranspose(A::Union{DerivativeOperator,UpwindOperator}) = A
+Base.adjoint(A::Union{DerivativeOperator,UpwindOperator}) = A
 LinearAlgebra.issymmetric(::Union{DerivativeOperator,UpwindOperator}) = true
 
 #=
@@ -167,7 +167,7 @@ LinearAlgebra.issymmetric(::Union{DerivativeOperator,UpwindOperator}) = true
     return the inner stencil of the matrix transformation. The user will have to manually
     incorporate the BCs at the ends.
 =#
-function Base.full(A::AbstractDerivativeOperator{T}, N::Int=A.dimension) where T
+function Base.convert(::Type{Array}, A::AbstractDerivativeOperator{T}, N::Int=A.dimension) where T
     @assert N >= A.stencil_length # stencil must be able to fit in the matrix
     mat = zeros(T, (N, N))
     v = zeros(T, N)
