@@ -449,6 +449,6 @@ function LinearAlgebra.opnorm(A::DerivativeOperator{T,S,LBC,RBC}, p::Real=2) whe
     if p == Inf && LBC in [:Dirichlet0, :Neumann0, :periodic] && RBC in [:Dirichlet0, :Neumann0, :periodic]
         sum(abs.(A.stencil_coefs)) / A.dx^A.derivative_order
     else
-        opnorm(full(A), p)
+        opnorm(convert(Array,A), p)
     end
 end

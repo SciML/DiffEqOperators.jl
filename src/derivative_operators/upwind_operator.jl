@@ -232,6 +232,6 @@ function LinearAlgebra.opnorm(A::UpwindOperator{T,S,LBC,RBC}, p::Real=2) where {
     if p == Inf && LBC in [:Dirichlet0, :Neumann0, :periodic] && RBC in [:Dirichlet0, :Neumann0, :periodic]
         max(sum(abs.(A.up_stencil_coefs)) / A.dx^A.derivative_order, sum(abs.(A.down_stencil_coefs)) / A.dx^A.derivative_order)
     else
-        opnorm(full(A), p)
+        opnorm(convert(Array,A), p)
     end
 end
