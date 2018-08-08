@@ -3,7 +3,7 @@ using DiffEqBase: is_constant
 using DiffEqOperators: DiffEqScaledOperator, DiffEqOperatorCombination, DiffEqOperatorComposition
 
 @testset "Operator Compostion" begin
-  srand(0)
+  Random.seed!(0)
   A1 = rand(2,3)
   A2 = rand(3,2)
   b = rand()

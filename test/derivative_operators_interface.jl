@@ -103,7 +103,7 @@ end
 @testset "Linear combinations of operators" begin
     # Only tests the additional functionality defined in "operator_combination.jl"
     N = 10
-    srand(0); LA = DiffEqArrayOperator(rand(N,N))
+    Random.seed!(0); LA = DiffEqArrayOperator(rand(N,N))
     LD = DerivativeOperator{Float64}(2,2,1.0,N,:Dirichlet0,:Dirichlet0)
     @test_broken begin
       L = 1.1*LA - 2.2*LD + 3.3*I
