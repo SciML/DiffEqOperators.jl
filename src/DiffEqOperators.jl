@@ -1,5 +1,3 @@
-__precompile__()
-
 module DiffEqOperators
 
 import Base: +, -, *, /, \, size, getindex, setindex!, Matrix, convert
