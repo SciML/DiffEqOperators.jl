@@ -28,3 +28,15 @@ u = reshape(A\f,N,N)
 using GR; surface(u)
 ```
 
+This approach extends to higher dimensions as well; e.g., the Laplacian on the unit cube can be constructed by
+
+```julia
+function Laplacian§D(N)
+    h = 1/N
+    D2 = sparse(DerivativeOperator{Float64}(2,2,h,N,:Dirichlet0,:Dirichlet0))
+    Id = sparse(I,N,N)
+    A = -kron(D2,Id,Id) - kron(Id,D2,Id) - kron(Id,Id,D2)
+    return A
+end
+```
+
