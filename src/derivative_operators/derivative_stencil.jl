@@ -111,9 +111,9 @@ function mul!(y::AbstractVector{T}, L::UniformUpwindStencil{T,S}, x::AbstractVec
     coeffs = L.stencil_coefs
     Threads.@threads for i in 1 : length(y)
         ytemp = zero(T)
-        # Default to using forward difference
+        # Default to using backward difference
         @inbounds for j in 1 : L.stencil_length
-            ytemp += coeffs[j] * x[i+j-stencil_rem+boundary_pad]
+            ytemp += coeffs[j] * x[i+j-1]
         end
         y[i] = ytemp
     end
@@ -121,12 +121,13 @@ function mul!(y::AbstractVector{T}, L::UniformUpwindStencil{T,S}, x::AbstractVec
 end
 function convert(::Type{AbstractMatrix}, L::UniformUpwindStencil)
     stencil_rem = 1 - L.stencil_length % 2
-    boundary_pad = op.stencil_length - 1
+    boundary_pad = L.stencil_length - 1
     coeffs = L.stencil_coefs
     mat = spzeros(eltype(L), size(L,1), size(L,2))
     for i in 1:size(L,1)
-        for j in 1:L.stencil_length
-            mat[i, i+j-1-stencil_rem+boundary_pad] = coeffs[j]
+        # Default to using backward difference
+        for j in 1 : L.stencil_length
+            mat[i, i+j-1] = coeffs[j]
         end
     end
     return mat
@@ -143,7 +144,7 @@ ScaledUniformUpwindStencil = DiffEqScaledOperator{T,F,UniformUpwindStencil{T,S}}
 function mul!(y::AbstractVector, L::ScaledUniformUpwindStencil, x::AbstractVector)
     c = convert(Number, L.coeff)
     op = L.op
-    stencil_rem = 1 - op.stencil_length % 2
+    # stencil_rem = 1 - op.stencil_length % 2
     boundary_pad = op.stencil_length - 1
     coeffs = op.stencil_coefs
     T = eltype(L)
@@ -151,15 +152,15 @@ function mul!(y::AbstractVector, L::ScaledUniformUpwindStencil, x::AbstractVecto
         Threads.@threads for i in 1 : length(y)
             ytemp = zero(T)
             @inbounds for j in 1 : op.stencil_length
-                ytemp += coeffs[j] * x[i+j-1-stencil_rem+boundary_pad]
+                ytemp += coeffs[j] * x[i+j-1+boundary_pad]
             end
             y[i] = c * ytemp
         end
     else # backward difference
         Threads.@threads for i in 1 : length(y)
             ytemp = zero(T)
-            @inbounds for j in -op.stencil_length+1 : 0
-                ytemp += coeffs[j+op.stencil_length] * x[i+j+stencil_rem+boundary_pad]
+            @inbounds for j in 1 : op.stencil_length
+                ytemp += coeffs[j] * x[i+j-1]
             end
             y[i] = c * ytemp
         end
@@ -173,25 +174,26 @@ end
 function convert(::Type{AbstractMatrix}, L::ScaledUniformUpwindStencil)
     c = convert(Number, L.coeff)
     op = L.op
-    stencil_rem = 1 - op.stencil_length % 2
+    # stencil_rem = 1 - op.stencil_length % 2
     boundary_pad = op.stencil_length - 1
     coeffs = op.stencil_coefs
     mat = spzeros(eltype(op), size(op,1), size(op,2))
     if c < 0 # forward difference
         for i in 1:size(op,1)
             for j in 1:op.stencil_length
-                mat[i, i+j-1-stencil_rem+boundary_pad] = c * coeffs[j]
+                mat[i, i+j-1+boundary_pad] = c * coeffs[j]
             end
         end
     else # backward difference
         for i in 1:size(op,1)
-            for j in -op.stencil_length+1:0
-                mat[i, i+j+stencil_rem+boundary_pad] = c * coeffs[j+op.stencil_length]
+            for j in 1:op.stencil_length
+                mat[i, i+j-1] = c * coeffs[j]
             end
         end
     end
     return mat
 end
+Matrix(L::ScaledUniformUpwindStencil) = Matrix(convert(AbstractMatrix, L))
 
 ##################################################
 # Common Methods
