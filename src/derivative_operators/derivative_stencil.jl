@@ -75,7 +75,53 @@ function convert(::Type{AbstractMatrix}, L::IrregularDerivativeStencil)
     return mat
 end
 
-DerivativeStencil = Union{UniformDerivativeStencil, IrregularDerivativeStencil}
+struct UniformUpwindStencil{T,S<:SVector} <: AbstractDiffEqLinearOperator{T}
+    derivative_order    :: Int
+    approximation_order :: Int
+    dimension           :: Tuple{Int,Int}
+    stencil_length      :: Int
+    stencil_coefs       :: S
+    function UniformUpwindStencil(dorder,aorder,dx::T,dim_extended) where {T}
+        stencil_length = dorder + aorder
+        dim = (dim_extended - stencil_length + 1, dim_extended)
+        #=
+            We are implementing biased Upwind Operators which use a point from the other direction
+            also to ensure a more stable solution.
+            http://ac.els-cdn.com/S0378475401002889/1-s2.0-S0378475401002889-main.pdf?_tid=534e0818-8b0b-11e7-8b12-00000aab0f01&acdnat=1503826821_3bf9422abe7aa2d3613c5b644b6e258f - page 11
+        =#
+        stencil_coefs = convert(SVector{stencil_length,T}, calculate_weights(
+            dorder, dx * ((stencil_length + 1) % 2), dx .* collect(0 : stencil_length-1)))
+        new{T,typeof(stencil_coefs)}(dorder,aorder,dim,stencil_length,stencil_coefs,stencil_coefs)
+    end
+    UniformUpwindStencil(xgrid::AbstractRange{T},dorder,aorder) where {T} =
+        UniformUpwindStencil(dorder,aorder,step(xgrid),length(xgrid))
+end
+function mul!(y::AbstractVector{T}, L::UniformUpwindStencil{T,S}, x::AbstractVector{T}) where {T,S}
+    stencil_rem = 1 - L.stencil_length % 2
+    coeffs = L.stencil_coefs
+    Threads.@threads for i in 1 : length(y)
+        ytemp = zero(T)
+        # Default to using forward difference
+        @inbounds for j in 1 : L.stencil_length
+            ytemp += coeffs[j] * x[i+j-stencil_rem]
+        end
+        y[i] = ytemp
+    end
+end
+function convert(::Type{AbstractMatrix}, L::UniformUpwindStencil)
+    stencil_rem = 1 - L.stencil_length % 2
+    coeffs = L.stencil_coefs
+    mat = spzeros(eltype(L), size(L,1), size(L,2))
+    for i in 1:size(L,1)
+        for j in 1:L.stencil_length
+            mat[i, i+j-stencil_rem] = coeffs[j]
+        end
+    end
+    return mat
+end
+
+# Common Methods
+DerivativeStencil = Union{UniformDerivativeStencil,IrregularDerivativeStencil,UniformUpwindStencil}
 size(L::DerivativeStencil) = L.dimension
 size(L::DerivativeStencil, i::Int) = i <= 2 ? L.dimension[i] : 1
 function *(L::DerivativeStencil, x::AbstractVector)
