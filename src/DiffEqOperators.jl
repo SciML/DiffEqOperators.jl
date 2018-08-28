@@ -15,17 +15,17 @@ include("common_defaults.jl")
 ### Basic Operators
 include("basic_operators.jl")
 
+### Composite Operators
+include("composite_operators.jl")
+
 ### Derivative Operators
+include("derivative_operators/derivative_stencil.jl")
 include("derivative_operators/fornberg.jl")
 include("derivative_operators/upwind_operator.jl")
 include("derivative_operators/derivative_irreg_operator.jl")
 include("derivative_operators/derivative_operator.jl")
 include("derivative_operators/abstract_operator_functions.jl")
 include("derivative_operators/boundary_operators.jl")
-include("derivative_operators/derivative_stencil.jl")
-
-### Composite Operators
-include("composite_operators.jl")
 
 # The (u,p,t) and (du,u,p,t) interface
 for T in [DiffEqScalar, DiffEqArrayOperator, FactorizedDiffEqArrayOperator, DiffEqIdentity,

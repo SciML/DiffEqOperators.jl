@@ -92,7 +92,7 @@ struct UniformUpwindStencil{T,S<:SVector} <: AbstractStencilOperator{T}
     stencil_coefs       :: S
     function UniformUpwindStencil(dorder,aorder,dx::T,dim_extended) where {T}
         stencil_length = dorder + aorder
-        dim = (dim_extended - stencil_length + 1, dim_extended)
+        dim = (dim_extended - 2 * (stencil_length - 1), dim_extended)
         #=
             We are implementing biased Upwind Operators which use a point from the other direction
             also to ensure a more stable solution.
@@ -100,30 +100,33 @@ struct UniformUpwindStencil{T,S<:SVector} <: AbstractStencilOperator{T}
         =#
         stencil_coefs = convert(SVector{stencil_length,T}, calculate_weights(
             dorder, dx * ((stencil_length + 1) % 2), dx .* collect(0 : stencil_length-1)))
-        new{T,typeof(stencil_coefs)}(dorder,aorder,dim,stencil_length,stencil_coefs,stencil_coefs)
+        new{T,typeof(stencil_coefs)}(dorder,aorder,dim,stencil_length,stencil_coefs)
     end
     UniformUpwindStencil(xgrid::AbstractRange{T},dorder,aorder) where {T} =
         UniformUpwindStencil(dorder,aorder,step(xgrid),length(xgrid))
 end
 function mul!(y::AbstractVector{T}, L::UniformUpwindStencil{T,S}, x::AbstractVector{T}) where {T,S}
     stencil_rem = 1 - L.stencil_length % 2
+    boundary_pad = L.stencil_length - 1
     coeffs = L.stencil_coefs
     Threads.@threads for i in 1 : length(y)
         ytemp = zero(T)
         # Default to using forward difference
         @inbounds for j in 1 : L.stencil_length
-            ytemp += coeffs[j] * x[i+j-stencil_rem]
+            ytemp += coeffs[j] * x[i+j-stencil_rem+boundary_pad]
         end
         y[i] = ytemp
     end
+    return y
 end
 function convert(::Type{AbstractMatrix}, L::UniformUpwindStencil)
     stencil_rem = 1 - L.stencil_length % 2
+    boundary_pad = op.stencil_length - 1
     coeffs = L.stencil_coefs
     mat = spzeros(eltype(L), size(L,1), size(L,2))
     for i in 1:size(L,1)
         for j in 1:L.stencil_length
-            mat[i, i+j-stencil_rem] = coeffs[j]
+            mat[i, i+j-1-stencil_rem+boundary_pad] = coeffs[j]
         end
     end
     return mat
@@ -133,6 +136,62 @@ end
 # (Naked) upwind stencil operator for irregular grid
 
 # TODO
+
+##################################################
+# Overload multiplication for scaled upwind stencils
+ScaledUniformUpwindStencil = DiffEqScaledOperator{T,F,UniformUpwindStencil{T,S}} where {T,F,S}
+function mul!(y::AbstractVector, L::ScaledUniformUpwindStencil, x::AbstractVector)
+    c = convert(Number, L.coeff)
+    op = L.op
+    stencil_rem = 1 - op.stencil_length % 2
+    boundary_pad = op.stencil_length - 1
+    coeffs = op.stencil_coefs
+    T = eltype(L)
+    if c < 0 # forward difference
+        Threads.@threads for i in 1 : length(y)
+            ytemp = zero(T)
+            @inbounds for j in 1 : op.stencil_length
+                ytemp += coeffs[j] * x[i+j-1-stencil_rem+boundary_pad]
+            end
+            y[i] = c * ytemp
+        end
+    else # backward difference
+        Threads.@threads for i in 1 : length(y)
+            ytemp = zero(T)
+            @inbounds for j in -op.stencil_length+1 : 0
+                ytemp += coeffs[j+op.stencil_length] * x[i+j+stencil_rem+boundary_pad]
+            end
+            y[i] = c * ytemp
+        end
+    end
+    return y
+end
+function *(L::ScaledUniformUpwindStencil, x::AbstractVector)
+    y = zeros(promote_type(eltype(L), eltype(x)), size(L, 1))
+    mul!(y, L, x)
+end
+function convert(::Type{AbstractMatrix}, L::ScaledUniformUpwindStencil)
+    c = convert(Number, L.coeff)
+    op = L.op
+    stencil_rem = 1 - op.stencil_length % 2
+    boundary_pad = op.stencil_length - 1
+    coeffs = op.stencil_coefs
+    mat = spzeros(eltype(op), size(op,1), size(op,2))
+    if c < 0 # forward difference
+        for i in 1:size(op,1)
+            for j in 1:op.stencil_length
+                mat[i, i+j-1-stencil_rem+boundary_pad] = c * coeffs[j]
+            end
+        end
+    else # backward difference
+        for i in 1:size(op,1)
+            for j in -op.stencil_length+1:0
+                mat[i, i+j+stencil_rem+boundary_pad] = c * coeffs[j+op.stencil_length]
+            end
+        end
+    end
+    return mat
+end
 
 ##################################################
 # Common Methods
