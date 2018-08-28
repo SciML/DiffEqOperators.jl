@@ -15,6 +15,17 @@ struct UniformDerivativeStencil{T,S<:SVector} <: AbstractDiffEqLinearOperator{T}
     UniformDerivativeStencil(xgrid::AbstractRange{T},dorder,aorder) where {T} =
         UniformDerivativeStencil(dorder,aorder,step(xgrid),length(xgrid))
 end
+function mul!(y::AbstractVector{T}, L::UniformDerivativeStencil{T,S}, x::AbstractVector{T}) where {T,S}
+    coeffs = L.stencil_coefs
+    Threads.@threads for i in 1:length(y)
+        ytemp = zero(T)
+        @inbounds for idx in 1:L.stencil_length
+            ytemp += coeffs[idx] * x[i + idx - 1]
+        end
+        y[i] = ytemp
+    end
+    return y
+end
 
 struct IrregularDerivativeStencil{T,S<:SVector} <: AbstractDiffEqLinearOperator{T}
     derivative_order    :: Int
@@ -32,7 +43,22 @@ struct IrregularDerivativeStencil{T,S<:SVector} <: AbstractDiffEqLinearOperator{
         new{T,eltype(stencil_coefs)}(dorder,aorder,dim,stencil_length,stencil_coefs)
     end
 end
+function mul!(y::AbstractVector{T}, L::IrregularDerivativeStencil{T,S}, x::AbstractVector{T}) where {T,S}
+    coeffs = L.stencil_coefs
+    Threads.@threads for i in 1:length(y)
+        ytemp = zero(T)
+        @inbounds for idx in 1:L.stencil_length
+            ytemp += coeffs[i][idx] * x[i + idx - 1]
+        end
+        y[i] = ytemp
+    end
+    return y
+end
 
 DerivativeStencil = Union{UniformDerivativeStencil, IrregularDerivativeStencil}
 size(L::DerivativeStencil) = L.dimension
 size(L::DerivativeStencil, i::Int) = i <= 2 ? L.dimension[i] : 1
+function *(L::DerivativeStencil, x::AbstractVector)
+    y = zeros(promote_type(eltype(L), eltype(x)), size(L, 1))
+    mul!(y, L, x)
+end
