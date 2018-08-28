@@ -22,6 +22,7 @@ include("derivative_operators/derivative_irreg_operator.jl")
 include("derivative_operators/derivative_operator.jl")
 include("derivative_operators/abstract_operator_functions.jl")
 include("derivative_operators/boundary_operators.jl")
+include("derivative_operators/derivative_stencil.jl")
 
 ### Composite Operators
 include("composite_operators.jl")
@@ -34,5 +35,6 @@ for T in [DiffEqScalar, DiffEqArrayOperator, FactorizedDiffEqArrayOperator, Diff
 end
 
 export DiffEqScalar, DiffEqArrayOperator, DiffEqIdentity, getops
-export AbstractDerivativeOperator, DerivativeOperator, UpwindOperator, FiniteDifference
+export AbstractDerivativeOperator, DerivativeOperator, UpwindOperator, FiniteDifference,
+       UniformDerivativeStencil, IrregularDerivativeStencil
 end # module
