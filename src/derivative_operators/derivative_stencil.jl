@@ -1,4 +1,8 @@
-struct UniformDerivativeStencil{T,S<:SVector} <: AbstractDiffEqLinearOperator{T}
+abstract type AbstractStencilOperator{T} <: AbstractDiffEqLinearOperator{T} end
+
+##################################################
+# Derivative stencil operator for uniform grid
+struct UniformDerivativeStencil{T,S<:SVector} <: AbstractStencilOperator{T}
     derivative_order    :: Int
     approximation_order :: Int
     dimension           :: Tuple{Int,Int}
@@ -37,7 +41,9 @@ function convert(::Type{AbstractMatrix}, L::UniformDerivativeStencil)
     return mat
 end
 
-struct IrregularDerivativeStencil{T,S<:SVector} <: AbstractDiffEqLinearOperator{T}
+##################################################
+# Derivative stencil operator for irregular grid
+struct IrregularDerivativeStencil{T,S<:SVector} <: AbstractStencilOperator{T}
     derivative_order    :: Int
     approximation_order :: Int
     dimension           :: Tuple{Int,Int}
@@ -75,7 +81,10 @@ function convert(::Type{AbstractMatrix}, L::IrregularDerivativeStencil)
     return mat
 end
 
-struct UniformUpwindStencil{T,S<:SVector} <: AbstractDiffEqLinearOperator{T}
+
+##################################################
+# (Naked) upwind stencil operator for uniform grid
+struct UniformUpwindStencil{T,S<:SVector} <: AbstractStencilOperator{T}
     derivative_order    :: Int
     approximation_order :: Int
     dimension           :: Tuple{Int,Int}
@@ -120,11 +129,16 @@ function convert(::Type{AbstractMatrix}, L::UniformUpwindStencil)
     return mat
 end
 
+##################################################
+# (Naked) upwind stencil operator for irregular grid
+
+# TODO
+
+##################################################
 # Common Methods
-DerivativeStencil = Union{UniformDerivativeStencil,IrregularDerivativeStencil,UniformUpwindStencil}
-size(L::DerivativeStencil) = L.dimension
-size(L::DerivativeStencil, i::Int) = i <= 2 ? L.dimension[i] : 1
-function *(L::DerivativeStencil, x::AbstractVector)
+size(L::AbstractStencilOperator) = L.dimension
+size(L::AbstractStencilOperator, i::Int) = i <= 2 ? L.dimension[i] : 1
+function *(L::AbstractStencilOperator, x::AbstractVector)
     y = zeros(promote_type(eltype(L), eltype(x)), size(L, 1))
     mul!(y, L, x)
 end
