@@ -26,6 +26,16 @@ function mul!(y::AbstractVector{T}, L::UniformDerivativeStencil{T,S}, x::Abstrac
     end
     return y
 end
+function convert(::Type{AbstractMatrix}, L::UniformDerivativeStencil)
+    coeffs = L.stencil_coefs
+    mat = spzeros(eltype(L), size(L,1), size(L,2))
+    for i in 1:size(L,1)
+        for idx in 1:L.stencil_length
+            mat[i, i + idx - 1] = coeffs[idx]
+        end
+    end
+    return mat
+end
 
 struct IrregularDerivativeStencil{T,S<:SVector} <: AbstractDiffEqLinearOperator{T}
     derivative_order    :: Int
@@ -53,6 +63,16 @@ function mul!(y::AbstractVector{T}, L::IrregularDerivativeStencil{T,S}, x::Abstr
         y[i] = ytemp
     end
     return y
+end
+function convert(::Type{AbstractMatrix}, L::IrregularDerivativeStencil)
+    coeffs = L.stencil_coefs
+    mat = spzeros(eltype(L), size(L,1), size(L,2))
+    for i in 1:size(L,1)
+        for idx in 1:L.stencil_length
+            mat[i, i + idx - 1] = coeffs[i][idx]
+        end
+    end
+    return mat
 end
 
 DerivativeStencil = Union{UniformDerivativeStencil, IrregularDerivativeStencil}
