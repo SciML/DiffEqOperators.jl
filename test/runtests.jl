@@ -14,7 +14,7 @@ import Base: isapprox
 @time @testset "Finite Difference Operator" begin include("generic_operator_check.jl") end
 #@time @testset "KdV" begin include("KdV.jl") end # KdV times out and all fails
 @time @testset "Heat Equation" begin include("heat_eqn.jl") end
-
+@time @testset "Generic Derivative Operator Interface" begin include("generic_derivative_operator.jl") end
 
 
 function isapprox(x::DerivativeOperator{T,S,LBC,RBC},y::FiniteDifference{T,S,LBC,RBC}; kwargs...) where {T<:Real,S<:StaticArrays.SVector,LBC,RBC}
