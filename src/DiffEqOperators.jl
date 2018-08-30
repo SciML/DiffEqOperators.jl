@@ -38,5 +38,5 @@ end
 
 export DiffEqScalar, DiffEqArrayOperator, DiffEqIdentity, getops
 export AbstractDerivativeOperator, DerivativeOperator, UpwindOperator, FiniteDifference,
-       UniformDerivativeStencil, IrregularDerivativeStencil, UniformUpwindStencil
+       UniformDerivativeStencil, IrregularDerivativeStencil, UniformUpwindStencil, GenericDerivativeOperator
 end # module
