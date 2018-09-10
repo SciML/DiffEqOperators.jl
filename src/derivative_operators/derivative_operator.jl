@@ -168,14 +168,16 @@ function initialize_left_boundary!(::Type{Val{:LO}},low_boundary_coefs,stencil_c
                                                    boundary_length,dx)*BC[1][3]*dx)
     elseif LBC == :Dirichlet0
         boundary_point_count[1] = div(stencil_length,2)
-        return (one(T),zero(T),left_Dirichlet0_BC!(Val{:LO},low_boundary_coefs,stencil_length,derivative_order,
-                                              grid_step,boundary_length)*BC[1]*dx)
+        left_Dirichlet0_BC!(Val{:LO},low_boundary_coefs,stencil_length,derivative_order,
+                                              grid_step,boundary_length)
+        return (one(T),zero(T),zero(T))
 
     elseif LBC == :Dirichlet
-        # typeof(BC[1]) <: Real ? ret = t->BC[1] : ret = BC[1]
-        boundary_point_count[1] = div(stencil_length,2)
-        return (one(T),zero(T),left_Dirichlet_BC!(Val{:LO},low_boundary_coefs,stencil_length,derivative_order,
-                                              grid_step,boundary_length)*BC[1]*dx)
+        typeof(BC[1]) <: Real ? ret = t->BC[1] : ret = BC[1]
+        boundary_point_count[1] = div(stencil_length,2)+1
+        left_Dirichlet_BC!(Val{:LO},low_boundary_coefs,stencil_length,derivative_order,
+                                              grid_step,boundary_length)
+        return (one(T),zero(T),ret)
 
     elseif LBC == :Neumann0
         return (zero(T),one(T),zero(T))
@@ -207,8 +209,9 @@ function initialize_right_boundary!(::Type{Val{:LO}},high_boundary_coefs,stencil
             functions, one for LinearOperator and one for UpwindOperator. So to select the correct
             function without changing the name, this trick has been applied.
         =#
-        return (zero(T),zero(T),right_None_BC!(Val{:LO},high_boundary_coefs,stencil_length,derivative_order,
-                               grid_step,boundary_length)*BC[2]*dx)
+        right_None_BC!(Val{:LO},high_boundary_coefs,stencil_length,derivative_order,
+                               grid_step,boundary_length)
+        return (zero(T),zero(T),BC[2]*dx)
     elseif RBC == :Neumann
         return (zero(T),one(T),right_Neumann_BC!(Val{:LO},high_boundary_coefs,stencil_length,derivative_order,
                                   grid_step,boundary_length)*BC[2]*dx)
@@ -218,14 +221,16 @@ function initialize_right_boundary!(::Type{Val{:LO}},high_boundary_coefs,stencil
                                                     boundary_length,dx)*BC[2][3]*dx)
     elseif RBC == :Dirichlet0
         boundary_point_count[2] = div(stencil_length,2)
-        return (one(T),zero(T),right_Dirichlet0_BC!(Val{:LO},high_boundary_coefs,stencil_length,derivative_order,
-                               grid_step,boundary_length)*BC[2]*dx)
+        right_Dirichlet0_BC!(Val{:LO},high_boundary_coefs,stencil_length,derivative_order,
+                               grid_step,boundary_length)
+        return (one(T),zero(T),zero(T))
 
     elseif RBC == :Dirichlet
-        boundary_point_count[2] = div(stencil_length,2)
-        # typeof(BC[2]) <: Real ? ret = t->BC[2] : ret = BC[2]
-        return (one(T),zero(T),right_Dirichlet_BC!(Val{:LO},high_boundary_coefs,stencil_length,derivative_order,
-                               grid_step,boundary_length)*BC[2]*dx)
+        boundary_point_count[2] = div(stencil_length,2)+1
+        typeof(BC[2]) <: Real ? ret = t->BC[2] : ret = BC[2]
+        right_Dirichlet_BC!(Val{:LO},high_boundary_coefs,stencil_length,derivative_order,
+                               grid_step,boundary_length)
+        return (one(T),zero(T),ret)
 
     elseif RBC == :Neumann0
         return (zero(T),one(T),zero(T))
@@ -300,11 +305,10 @@ end
 function left_Dirichlet_BC!(::Type{Val{:LO}},low_boundary_coefs,stencil_length,derivative_order,
                        grid_step::T,boundary_length) where T
 
-    boundary_point_count = div(stencil_length,2)
+    boundary_point_count = div(stencil_length,2)+1
     l_diff               = zero(T)
     mid                  = div(stencil_length,2)
-    push!(low_boundary_coefs,[one(T);zeros(T,stencil_length-1)])
-    for i in 2 : boundary_point_count
+    for i in 1 : boundary_point_count
         push!(low_boundary_coefs, calculate_weights(derivative_order, (i-1)*grid_step, collect(zero(T) : grid_step : (boundary_length-1)*grid_step)))
     end
     return l_diff
@@ -312,14 +316,13 @@ end
 
 function right_Dirichlet_BC!(::Type{Val{:LO}},high_boundary_coefs,stencil_length,derivative_order,
                         grid_step::T,boundary_length) where T
-    boundary_point_count = div(stencil_length,2)
+    boundary_point_count = div(stencil_length,2)+1
     high_temp            = zeros(T,boundary_length)
     flag                 = derivative_order*boundary_point_count%2
     aorder               = boundary_length - 1
     r_diff               = zero(T)
 
-    push!(high_boundary_coefs,[zeros(T,stencil_length-1);one(T)])
-    for i in 2 : boundary_point_count
+    for i in 1 : boundary_point_count
         push!(high_boundary_coefs, calculate_weights(derivative_order, -(i-1)*grid_step, reverse(collect(zero(T) : -grid_step : -(boundary_length-1)*grid_step))))
     end
     return r_diff

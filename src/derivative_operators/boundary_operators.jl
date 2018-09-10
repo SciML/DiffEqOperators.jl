@@ -27,6 +27,23 @@ end
 
 
 #= LEFT BOUNDARY CONDITIONS =#
+# function convolve_BC_left!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::DerivativeOperator{T,S,:Dirichlet0,RBC}) where {T<:Real,S<:SVector,RBC}
+#     mid = div(A.stencil_length,2) + 1
+#     bpc = A.stencil_length - mid
+#     for i in 1 : A.boundary_point_count[1]
+#         dirichlet_0!(x_temp, x, A.low_boundary_coefs[][i], mid, bpc, i)
+#     end
+# end
+#
+#
+# function convolve_BC_left!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::FiniteDifference{T,S,:Dirichlet0,RBC}) where {T<:Real,S<:SVector,RBC}
+#     mid = div(A.stencil_length,2) + 1
+#     bpc = A.stencil_length - mid
+#     for i in 1 : A.boundary_point_count[1]
+#         dirichlet_0!(x_temp, x, A.stencil_coefs[][i], mid, bpc, i)
+#     end
+# end
+
 
 function convolve_BC_left!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::UpwindOperator{T,S,:Dirichlet0,RBC}) where {T<:Real,S<:SVector,RBC}
     stencil_length = A.stencil_length
@@ -41,21 +58,36 @@ function convolve_BC_left!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::U
     end
 end
 
-# function convolve_BC_left!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::DerivativeOperator{T,S,:Dirichlet,RBC}) where {T<:Real,S<:SVector,RBC}
-#     x[1] = A.boundary_condition[][1][3](A.t)
-#     mid = div(A.stencil_length,2)+1
-#     for i in 1 : A.boundary_point_count[1]
-#         dirichlet_1!(x_temp, x, A.stencil_coefs, mid, i)
-#     end
-# end
-#
-# function convolve_BC_left!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::FiniteDifference{T,S,:Dirichlet,RBC}) where {T<:Real,S<:SVector,RBC}
-#     x[1] = A.boundary_condition[][1][3](A.t)
-#     mid = div(A.stencil_length,2)+1
-#     for i in 1 : A.boundary_point_count[1]
-#         dirichlet_1!(x_temp, x, A.stencil_coefs[1], mid, i)
-#     end
-# end
+
+
+
+function convolve_BC_left!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::DerivativeOperator{T,S,:Dirichlet,RBC}) where {T<:Real,S<:SVector,RBC}
+    x[1] = A.boundary_condition[][1][3](A.t)
+    halfstencil = div(A.stencil_length, 2)
+    for i in 1 : A.boundary_point_count[1]
+        @inbounds bc = A.low_boundary_coefs[][i]
+        tmp = zero(T)
+        startid = max(0,i-1-halfstencil)
+        @inbounds for j in 1 : length(bc)
+            tmp += bc[j] * x[startid+j]
+        end
+        @inbounds x_temp[i] = tmp
+    end
+end
+
+function convolve_BC_left!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::FiniteDifference{T,S,:Dirichlet,RBC}) where {T<:Real,S<:SVector,RBC}
+    x[1] = A.boundary_condition[][1][3](A.t)
+    halfstencil = div(A.stencil_length, 2)
+    for i in 1 : A.boundary_point_count[1]
+        @inbounds bc = A.low_boundary_coefs[][i]
+        tmp = zero(T)
+        startid = max(0,i-1-halfstencil)
+        @inbounds for j in 1 : length(bc)
+            tmp += bc[j] * x[startid+j]
+        end
+        @inbounds x_temp[i] = tmp
+    end
+end
 
 
 function convolve_BC_left!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::DerivativeOperator{T,S,:periodic,RBC}) where {T<:Real,S<:SVector,RBC}
@@ -112,8 +144,7 @@ end
 
 function convolve_BC_left!(x_temp::AbstractVector{T}, x::AbstractVector{T},
                             A::Union{DerivativeOperator{T,S,:None,RBC},UpwindOperator{T,S,:None,RBC},FiniteDifference{T,S,:None,RBC},
-                                     DerivativeOperator{T,S,:Dirichlet0,RBC},FiniteDifference{T,S,:Dirichlet0,RBC},
-                                     DerivativeOperator{T,S,:Dirichlet,RBC},FiniteDifference{T,S,:Dirichlet,RBC}}) where {T<:Real,S<:SVector,RBC}
+                                     DerivativeOperator{T,S,:Dirichlet0,RBC},FiniteDifference{T,S,:Dirichlet0,RBC}}) where {T<:Real,S<:SVector,RBC}
     halfstencil = div(A.stencil_length, 2)
     for i in 1 : A.boundary_point_count[1]
         @inbounds bc = A.low_boundary_coefs[][i]
@@ -224,25 +255,38 @@ function convolve_BC_right!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::
 end
 
 
-# function convolve_BC_right!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::DerivativeOperator{T,S,LBC,:Dirichlet}) where {T<:Real,S<:SVector,LBC}
-#     N = length(x)
-#     mid = div(A.stencil_length,2) + 1
-#     x[end] = A.boundary_condition[][2][3](A.t)
-#
-#     for i in 1 : A.boundary_point_count[2]
-#         dirichlet_1!(x_temp, x, A.stencil_coefs, mid, N - A.boundary_point_count[2] + i)
-#     end
-# end
-#
-# function convolve_BC_right!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::FiniteDifference{T,S,LBC,:Dirichlet}) where {T<:Real,S<:SVector,LBC}
-#     N = length(x)
-#     mid = div(A.stencil_length,2) + 1
-#     x[end] = A.boundary_condition[][2][3](A.t)
-#
-#     for i in 1 : A.boundary_point_count[2]
-#         dirichlet_1!(x_temp, x, A.stencil_coefs[end], mid, N - A.boundary_point_count[2] + i)
-#     end
-# end
+function convolve_BC_right!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::DerivativeOperator{T,S,LBC,:Dirichlet}) where {T<:Real,S<:SVector,LBC}
+    N = length(x)
+    mid = div(A.stencil_length,2) + 1
+    x[end] = A.boundary_condition[][2][3](A.t)
+    for i in 1 : A.boundary_point_count[2] # the first stencil is for the last point ie. in reverse order
+        @inbounds bc = A.high_boundary_coefs[][i]
+        tmp = zero(T)
+        # startid = max(0,i-1-halfstencil)
+        @inbounds for j in 1 : length(bc)
+            tmp += bc[j] * x[end-length(bc)+j]
+        end
+        @inbounds x_temp[end-i+1] = tmp
+    end
+    # for i in 1 : A.boundary_point_count[2]
+    #     dirichlet_1!(x_temp, x, A.high_boundary_coefs[][i], mid, N - A.boundary_point_count[2] + i)
+    # end
+end
+
+function convolve_BC_right!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::FiniteDifference{T,S,LBC,:Dirichlet}) where {T<:Real,S<:SVector,LBC}
+    N = length(x)
+    mid = div(A.stencil_length,2) + 1
+    x[end] = A.boundary_condition[][2][3](A.t)
+    for i in 1 : A.boundary_point_count[2] # the first stencil is for the last point ie. in reverse order
+        @inbounds bc = A.high_boundary_coefs[][i]
+        tmp = zero(T)
+        # startid = max(0,i-1-halfstencil)
+        @inbounds for j in 1 : length(bc)
+            tmp += bc[j] * x[end-length(bc)+j]
+        end
+        @inbounds x_temp[end-i+1] = tmp
+    end
+end
 
 
 function convolve_BC_right!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::DerivativeOperator{T,S,LBC,:periodic}) where {T<:Real,S<:SVector,LBC}
@@ -304,8 +348,7 @@ end
 
 function convolve_BC_right!(x_temp::AbstractVector{T}, x::AbstractVector{T},
                             A::Union{DerivativeOperator{T,S,LBC,:None},UpwindOperator{T,S,LBC,:None}, FiniteDifference{T,S,LBC,:None},
-                                     DerivativeOperator{T,S,LBC,:Dirichlet0}, FiniteDifference{T,S,LBC,:Dirichlet0},
-                                     DerivativeOperator{T,S,LBC,:Dirichlet}, FiniteDifference{T,S,LBC,:Dirichlet}}) where {T<:Real,S<:SVector,LBC}
+                                     DerivativeOperator{T,S,LBC,:Dirichlet0}, FiniteDifference{T,S,LBC,:Dirichlet0}}) where {T<:Real,S<:SVector,LBC}
     # halfstencil = div(A.stencil_length, 2)
     for i in 1 : A.boundary_point_count[2] # the first stencil is for the last point ie. in reverse order
         @inbounds bc = A.high_boundary_coefs[][i]
@@ -346,20 +389,69 @@ function convolve_BC_right!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::
 end
 
 
-# function dirichlet_1!(x_temp::AbstractVector{T}, x::AbstractVector{T}, coeffs::SVector, mid::Int, i::Int) where T<:Real
-#     stencil_length = length(coeffs)
-#     N = length(x)
-#     #=
-#         Here we are taking the weighted sum of a window of the input vector to calculate the derivative
-#         at the middle point. Once the stencil goes out of the edge, we assume that it has a constant
-#         value outside for all points.
-#     =#
-#     xtempi = zero(T)
-#     @inbounds for idx in 1:stencil_length
-#         xtempi += coeffs[idx] * x[limit(i - (mid-idx), N)]
-#     end
-#     x_temp[i] = xtempi
-# end
+#= DIFFERENT BOUNDARIES =#
+function dirichlet_0!(x_temp::AbstractVector{T}, x::AbstractVector{T}, coeffs, mid::Int, bpc::Int, i::Int) where T<:Real
+    #=
+        The high and low functions determine the starting and ending indices of the weight vector.
+        As we move along the input vector to calculate the derivative at the pointhe weights which
+        are to be considered to calculate the derivative are to be chosen carefully. eg. at the boundaries,
+        only half of the stencil is going to be used to calculate the derivative at that point.
+        So, observing that the left index grows as:-
+                  i ^
+                    |       mid = ceil(stencil_length/2)
+               mid--|       bpc = boundary_point_count
+                    |\
+                    | \
+               0  <_|__\________>
+                    |  bpc      i
+
+        And the right index grows as:-
+                  i ^       mid = ceil(stencil_length/2)
+                    |       bpc = boundary_point_count
+               mid--|_______
+                    |       \
+                    |        \
+               0  <_|_________\___>
+                    |        bpc  i
+        The high and low functions are basically equations of these graphs which are used to calculate
+        the left and right index of the stencil as a function of the index i (where we need to find the derivative).
+    =#
+    stencil_length = length(coeffs)
+    # mid = div(stencil_length, 2) + 1 # generalizing to any mid for upwind operators
+    N = length(x)
+    wndw_low = i>bpc ? 1 : max(1, low(i, mid, bpc))
+    wndw_high = i>N-bpc ? min(stencil_length, high(i, mid, bpc, stencil_length, N)) : stencil_length
+
+    # println(wndw_low," ",wndw_high, " mid = ", mid)
+    # println("#####")
+
+    #=
+        Here we are taking the weighted sum of a window of the input vector to calculate the derivative
+        at the middle point. This requires choosing the end points carefully which are being passed from above.
+    =#
+    xtempi = zero(T)
+    @inbounds for idx in wndw_low:wndw_high
+        xtempi += coeffs[idx] * x[(i - (mid-idx))]
+        # println("i = $i, idx = $((i - (mid-idx))), $(coeffs[idx]) * $(x[(i - (mid-idx))]), xtempi = $xtempi")
+    end
+    x_temp[i] = xtempi
+end
+
+
+function dirichlet_1!(x_temp::AbstractVector{T}, x::AbstractVector{T}, coeffs, mid::Int, i::Int) where T<:Real
+    stencil_length = length(coeffs)
+    N = length(x)
+    #=
+        Here we are taking the weighted sum of a window of the input vector to calculate the derivative
+        at the middle point. Once the stencil goes out of the edge, we assume that it has a constant
+        value outside for all points.
+    =#
+    xtempi = zero(T)
+    @inbounds for idx in 1:stencil_length
+        xtempi += coeffs[idx] * x[limit(i - (mid-idx), N)]
+    end
+    x_temp[i] = xtempi
+end
 
 
 function periodic!(x_temp::AbstractVector{T}, x::AbstractVector{T}, coeffs::SVector, i::Int) where T<:Real
