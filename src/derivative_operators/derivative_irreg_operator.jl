@@ -27,6 +27,7 @@ struct FiniteDifference{T<:Real,S<:SVector,LBC,RBC} <: AbstractDerivativeOperato
         bpc_array            = [bpc,bpc]
         grid_step            = dx #unnecessary
 
+        @assert length(dx)+1 == dimension "Grid steps length should equal operator dimension - 1!"
         if any(x->x<zero(T),dx)
             error("All grid steps must be greater than 0.0!")
         end
@@ -116,24 +117,35 @@ function initialize_left_boundary!(::Type{Val{:FD}},low_boundary_coefs,stencil_c
             function without changing the name, this trick has been applied.
         =#
         boundary_point_count[1] = div(stencil_length,2)
-        return (zero(T),zero(T),left_None_BC!(Val{:FD},low_boundary_coefs,stencil_length,derivative_order,
-                                              grid_step,boundary_length)*BC[1])
+        left_None_BC!(Val{:FD},low_boundary_coefs,stencil_length,derivative_order,
+                                              grid_step,boundary_length)
+        return (zero(T),zero(T),nothing)
     elseif LBC == :Neumann
-        return (zero(T),one(T),left_Neumann_BC!(Val{:FD},low_boundary_coefs,stencil_length,derivative_order,
-                                                grid_step,boundary_length)*BC[1])
+        @warn "$(string(RBC)) boundary condition not verified for arbitrary approximation order!"
+        left_Neumann_BC!(Val{:FD},low_boundary_coefs,stencil_length,derivative_order,
+                                                grid_step,boundary_length)
+        return (zero(T),one(T),BC[1]*grid_ste[1])
     elseif LBC == :Robin
-        error("LBC Robin not yet supported for irregular grid.")
-        # return (BC[1][1],-BC[1][2],left_Robin_BC!(Val{:FD},low_boundary_coefs,stencil_length,
-                                                   # BC[1],derivative_order,grid_step,
-                                                   # boundary_length,dx)*BC[1][3])
+        @warn "$(string(RBC)) boundary condition not verified for arbitrary approximation order!"
+        left_Robin_BC!(Val{:FD},low_boundary_coefs,stencil_length,
+                                                   BC[1],derivative_order,grid_step,
+                                                   boundary_length,dx)
+        return (BC[1][1],-BC[1][2],BC[1][3]*grid_step[1])
     elseif LBC == :Dirichlet0
-        return (one(T),zero(T),zero(T)*BC[1])
+        boundary_point_count[1] = div(stencil_length,2)
+        left_Dirichlet0_BC!(Val{:FD},low_boundary_coefs,stencil_length,derivative_order,
+                                              grid_step,boundary_length)
+        return (one(T),zero(T),zero(T))
 
     elseif LBC == :Dirichlet
         typeof(BC[1]) <: Real ? ret = t->BC[1] : ret = BC[1]
+        boundary_point_count[1] = div(stencil_length,2)+1
+        left_Dirichlet_BC!(Val{:FD},low_boundary_coefs,stencil_length,derivative_order,
+                                              grid_step,boundary_length)
         return (one(T),zero(T),ret)
 
     elseif LBC == :Neumann0
+        @warn "$(string(RBC)) boundary condition not verified for arbitrary approximation order!"
         return (zero(T),one(T),zero(T))
 
     elseif LBC == :periodic
@@ -163,25 +175,35 @@ function initialize_right_boundary!(::Type{Val{:FD}},high_boundary_coefs,stencil
             functions, one for LinearOperator and one for UpwindOperator. So to select the correct
             function without changing the name, this trick has been applied.
         =#
-        return (zero(T),zero(T),right_None_BC!(Val{:FD},high_boundary_coefs,stencil_length,derivative_order,
-                               grid_step,boundary_length)*BC[2])
+        right_None_BC!(Val{:FD},high_boundary_coefs,stencil_length,derivative_order,
+                               grid_step,boundary_length)
+        return (zero(T),zero(T),nothing)
     elseif RBC == :Neumann
-        error("RBC Robin not yet supported for irregular grid.")
-        # return (zero(T),one(T),right_Neumann_BC!(Val{:FD},high_boundary_coefs,stencil_length,derivative_order,
-        #                           grid_step,boundary_length)*BC[2])
+        @warn "$(string(RBC)) boundary condition not verified for arbitrary approximation order!"
+        right_Neumann_BC!(Val{:FD},high_boundary_coefs,stencil_length,derivative_order,
+                                  grid_step,boundary_length)
+        return (zero(T),one(T),BC[2]*grid_step[end])
     elseif RBC == :Robin
-        error("RBC Robin not yet supported for irregular grid.")
-        # return (BC[2][1],BC[2][2],right_Robin_BC!(Val{:FD},high_boundary_coefs,stencil_length,
-                                                    # BC[2],derivative_order,grid_step,
-                                                    # boundary_length,dx)*BC[2][3])
+        @warn "$(string(RBC)) boundary condition not verified for arbitrary approximation order!"
+        right_Robin_BC!(Val{:FD},high_boundary_coefs,stencil_length,
+                                                    BC[2],derivative_order,grid_step,
+                                                    boundary_length,dx)
+        return (BC[2][1],BC[2][2],BC[2][3]*grid_step[end])
     elseif RBC == :Dirichlet0
-        return (one(T),zero(T),zero(T)*BC[2])
+        boundary_point_count[2] = div(stencil_length,2)
+        right_Dirichlet0_BC!(Val{:FD},high_boundary_coefs,stencil_length,derivative_order,
+                               grid_step,boundary_length)
+        return (one(T),zero(T),zero(T))
 
     elseif RBC == :Dirichlet
+        boundary_point_count[2] = div(stencil_length,2)+1
         typeof(BC[2]) <: Real ? ret = t->BC[2] : ret = BC[2]
+        right_Dirichlet_BC!(Val{:FD},high_boundary_coefs,stencil_length,derivative_order,
+                               grid_step,boundary_length)
         return (one(T),zero(T),ret)
 
     elseif RBC == :Neumann0
+        @warn "$(string(RBC)) boundary condition not verified for arbitrary approximation order!"
         return (zero(T),one(T),zero(T))
 
     elseif RBC == :periodic
@@ -199,11 +221,11 @@ function left_None_BC!(::Type{Val{:FD}},low_boundary_coefs,stencil_length,deriva
     boundary_point_count = div(stencil_length,2)
     l_diff               = zero(T)
     mid                  = div(stencil_length,2)
-    x = [0.0; cumsum(grid_step)]
+    x                    = [0.0; cumsum(grid_step[1:boundary_length-1])]
     for i in 1 : boundary_point_count
         # One-sided stencils require more points for same approximation order
         # TODO: I don't know if this is the correct stencil length for i > 1?
-        push!(low_boundary_coefs, calculate_weights(derivative_order, zero(T), x[1:boundary_length].-x[i]))
+        push!(low_boundary_coefs, calculate_weights(derivative_order, x[i], x))
     end
     return l_diff
 end
@@ -216,15 +238,79 @@ function right_None_BC!(::Type{Val{:FD}},high_boundary_coefs,stencil_length,deri
     flag                 = derivative_order*boundary_point_count%2
     aorder               = boundary_length - 1
     r_diff               = zero(T)
-    x                    = [0.0; cumsum(grid_step)]
-
-    for i in length(x) : -1 : length(x) - boundary_point_count + 1
+    x                    = reverse([0.0; -cumsum(reverse(grid_step[end-boundary_length+1:end]))])
+    @show x
+    for i in 1 : boundary_point_count
         # One-sided stencils require more points for same approximation order
-        push!(high_boundary_coefs, calculate_weights(derivative_order,x[i],x[end - boundary_length + 1 : end]))
+        push!(high_boundary_coefs, calculate_weights(derivative_order, x[end-i+1], x))
     end
+
     return r_diff
 end
 
+function left_Dirichlet0_BC!(::Type{Val{:FD}},low_boundary_coefs,stencil_length,derivative_order,
+                       grid_step::Vector{T},boundary_length) where T
+
+    boundary_point_count = div(stencil_length,2)
+    l_diff               = zero(T)
+    mid                  = div(stencil_length,2)
+    x                    = [0.0; cumsum(grid_step[1:boundary_length-1])]
+    for i in 1 : boundary_point_count
+        # One-sided stencils require more points for same approximation order
+        # TODO: I don't know if this is the correct stencil length for i > 1?
+        push!(low_boundary_coefs, calculate_weights(derivative_order, x[i+1], x)[2:end])
+    end
+    return l_diff
+end
+
+function right_Dirichlet0_BC!(::Type{Val{:FD}},high_boundary_coefs,stencil_length,derivative_order,
+                        grid_step::Vector{T},boundary_length) where T
+    boundary_point_count = div(stencil_length,2)
+    high_temp            = zeros(T,boundary_length)
+    flag                 = derivative_order*boundary_point_count%2
+    aorder               = boundary_length - 1
+    r_diff               = zero(T)
+    x                    = reverse([0.0; -cumsum(reverse(grid_step[end-boundary_length+1:end]))])
+
+    for i in 1 : boundary_point_count
+        # One-sided stencils require more points for same approximation order
+        push!(high_boundary_coefs, calculate_weights(derivative_order, x[end-i], x)[1:end-1])
+    end
+
+    return r_diff
+end
+
+function left_Dirichlet_BC!(::Type{Val{:FD}},low_boundary_coefs,stencil_length,derivative_order,
+                       grid_step::Vector{T},boundary_length) where T
+
+    boundary_point_count = div(stencil_length,2)+1
+    l_diff               = zero(T)
+    # mid                  = div(stencil_length,2)
+    x                    = [0.0; cumsum(grid_step[1:boundary_length-1])]
+    for i in 1 : boundary_point_count
+        # One-sided stencils require more points for same approximation order
+        # TODO: I don't know if this is the correct stencil length for i > 1?
+        push!(low_boundary_coefs, calculate_weights(derivative_order, x[i], x))
+    end
+    return l_diff
+end
+
+function right_Dirichlet_BC!(::Type{Val{:FD}},high_boundary_coefs,stencil_length,derivative_order,
+                        grid_step::Vector{T},boundary_length) where T
+    boundary_point_count = div(stencil_length,2)+1
+    high_temp            = zeros(T,boundary_length)
+    flag                 = derivative_order*boundary_point_count%2
+    aorder               = boundary_length - 1
+    r_diff               = zero(T)
+    x                    = reverse([0.0; -cumsum(reverse(grid_step[end-boundary_length+1:end]))])
+    @show x
+    for i in 1 : boundary_point_count
+        # One-sided stencils require more points for same approximation order
+        push!(high_boundary_coefs, calculate_weights(derivative_order, x[end-i+1], x))
+    end
+
+    return r_diff
+end
 
 function left_Neumann_BC!(::Type{Val{:FD}},low_boundary_coefs,stencil_length,derivative_order,
                           grid_step::Vector{T},boundary_length) where T
