@@ -160,9 +160,11 @@ function initialize_left_boundary!(::Type{Val{:LO}},low_boundary_coefs,stencil_c
         return (zero(T),zero(T),left_None_BC!(Val{:LO},low_boundary_coefs,stencil_length,derivative_order,
                                               grid_step,boundary_length)*BC[1]*dx)
     elseif LBC == :Neumann
+        @warn "$(string(RBC)) boundary condition not verified for arbitrary approximation order!"
         return (zero(T),one(T),left_Neumann_BC!(Val{:LO},low_boundary_coefs,stencil_length,derivative_order,
                                                 grid_step,boundary_length)*BC[1]*dx)
     elseif LBC == :Robin
+        @warn "$(string(RBC)) boundary condition not verified for arbitrary approximation order!"
         return (BC[1][1],-BC[1][2],left_Robin_BC!(Val{:LO},low_boundary_coefs,stencil_length,
                                                    BC[1],derivative_order,grid_step,
                                                    boundary_length,dx)*BC[1][3]*dx)
@@ -180,6 +182,7 @@ function initialize_left_boundary!(::Type{Val{:LO}},low_boundary_coefs,stencil_c
         return (one(T),zero(T),ret)
 
     elseif LBC == :Neumann0
+        @warn "$(string(RBC)) boundary condition not verified for arbitrary approximation order!"
         return (zero(T),one(T),zero(T))
 
     elseif LBC == :periodic
@@ -213,9 +216,11 @@ function initialize_right_boundary!(::Type{Val{:LO}},high_boundary_coefs,stencil
                                grid_step,boundary_length)
         return (zero(T),zero(T),BC[2]*dx)
     elseif RBC == :Neumann
+        @warn "$(string(RBC)) boundary condition not verified for arbitrary approximation order!"
         return (zero(T),one(T),right_Neumann_BC!(Val{:LO},high_boundary_coefs,stencil_length,derivative_order,
                                   grid_step,boundary_length)*BC[2]*dx)
     elseif RBC == :Robin
+        @warn "$(string(RBC)) boundary condition not verified for arbitrary approximation order!"
         return (BC[2][1],BC[2][2],right_Robin_BC!(Val{:LO},high_boundary_coefs,stencil_length,
                                                     BC[2],derivative_order,grid_step,
                                                     boundary_length,dx)*BC[2][3]*dx)
@@ -233,6 +238,7 @@ function initialize_right_boundary!(::Type{Val{:LO}},high_boundary_coefs,stencil
         return (one(T),zero(T),ret)
 
     elseif RBC == :Neumann0
+        @warn "$(string(RBC)) boundary condition not verified for arbitrary approximation order!"
         return (zero(T),one(T),zero(T))
 
     elseif RBC == :periodic
