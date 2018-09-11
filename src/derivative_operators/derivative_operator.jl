@@ -160,11 +160,11 @@ function initialize_left_boundary!(::Type{Val{:LO}},low_boundary_coefs,stencil_c
         return (zero(T),zero(T),left_None_BC!(Val{:LO},low_boundary_coefs,stencil_length,derivative_order,
                                               grid_step,boundary_length)*BC[1]*dx)
     elseif LBC == :Neumann
-        @warn "$(string(RBC)) boundary condition not verified for arbitrary approximation order!"
+        @warn "$(string(LBC)) boundary condition not verified for arbitrary approximation order!"
         return (zero(T),one(T),left_Neumann_BC!(Val{:LO},low_boundary_coefs,stencil_length,derivative_order,
                                                 grid_step,boundary_length)*BC[1]*dx)
     elseif LBC == :Robin
-        @warn "$(string(RBC)) boundary condition not verified for arbitrary approximation order!"
+        @warn "$(string(LBC)) boundary condition not verified for arbitrary approximation order!"
         return (BC[1][1],-BC[1][2],left_Robin_BC!(Val{:LO},low_boundary_coefs,stencil_length,
                                                    BC[1],derivative_order,grid_step,
                                                    boundary_length,dx)*BC[1][3]*dx)
@@ -182,7 +182,7 @@ function initialize_left_boundary!(::Type{Val{:LO}},low_boundary_coefs,stencil_c
         return (one(T),zero(T),ret)
 
     elseif LBC == :Neumann0
-        @warn "$(string(RBC)) boundary condition not verified for arbitrary approximation order!"
+        @warn "$(string(LBC)) boundary condition not verified for arbitrary approximation order!"
         return (zero(T),one(T),zero(T))
 
     elseif LBC == :periodic
@@ -256,11 +256,11 @@ function left_None_BC!(::Type{Val{:LO}},low_boundary_coefs,stencil_length,deriva
     boundary_point_count = div(stencil_length,2)
     l_diff               = zero(T)
     mid                  = div(stencil_length,2)
-
+    points               = collect(zero(T) : grid_step : (boundary_length-1)*grid_step)
     for i in 1 : boundary_point_count
         # One-sided stencils require more points for same approximation order
         # TODO: I don't know if this is the correct stencil length for i > 1?
-        push!(low_boundary_coefs, calculate_weights(derivative_order, (i-1)*grid_step, collect(zero(T) : grid_step : (boundary_length-1)*grid_step)))
+        push!(low_boundary_coefs, calculate_weights(derivative_order, (i-1)*grid_step, points))
     end
     return l_diff
 end
@@ -269,14 +269,14 @@ end
 function right_None_BC!(::Type{Val{:LO}},high_boundary_coefs,stencil_length,derivative_order,
                         grid_step::T,boundary_length) where T
     boundary_point_count = div(stencil_length,2)
-    high_temp            = zeros(T,boundary_length)
-    flag                 = derivative_order*boundary_point_count%2
-    aorder               = boundary_length - 1
+    # high_temp            = zeros(T,boundary_length)
+    # flag                 = derivative_order*boundary_point_count%2
+    # aorder               = boundary_length - 1
     r_diff               = zero(T)
-
+    points               = reverse(collect(zero(T) : -grid_step : -(boundary_length-1)*grid_step))
     for i in 1 : boundary_point_count
         # One-sided stencils require more points for same approximation order
-        push!(high_boundary_coefs, calculate_weights(derivative_order, -(i-1)*grid_step, reverse(collect(zero(T) : -grid_step : -(boundary_length-1)*grid_step))))
+        push!(high_boundary_coefs, calculate_weights(derivative_order, -(i-1)*grid_step, points))
     end
     return r_diff
 end
@@ -287,9 +287,9 @@ function left_Dirichlet0_BC!(::Type{Val{:LO}},low_boundary_coefs,stencil_length,
     boundary_point_count = div(stencil_length,2)
     l_diff               = zero(T)
     mid                  = div(stencil_length,2)
-
+    points               = collect(zero(T) : grid_step : (boundary_length-1)*grid_step)
     for i in 1 : boundary_point_count
-        push!(low_boundary_coefs, calculate_weights(derivative_order, i*grid_step, collect(zero(T) : grid_step : (boundary_length-1)*grid_step))[2:end])
+        push!(low_boundary_coefs, calculate_weights(derivative_order, i*grid_step, points)[2:end])
     end
     return l_diff
 end
@@ -297,13 +297,13 @@ end
 function right_Dirichlet0_BC!(::Type{Val{:LO}},high_boundary_coefs,stencil_length,derivative_order,
                         grid_step::T,boundary_length) where T
     boundary_point_count = div(stencil_length,2)
-    high_temp            = zeros(T,boundary_length)
-    flag                 = derivative_order*boundary_point_count%2
-    aorder               = boundary_length - 1
+    # high_temp            = zeros(T,boundary_length)
+    # flag                 = derivative_order*boundary_point_count%2
+    # aorder               = boundary_length - 1
     r_diff               = zero(T)
-
+    points               = reverse(collect(zero(T) : -grid_step : -(boundary_length-1)*grid_step))
     for i in 1 : boundary_point_count
-        push!(high_boundary_coefs, calculate_weights(derivative_order, -i*grid_step, reverse(collect(zero(T) : -grid_step : -(boundary_length-1)*grid_step)))[1:end-1])
+        push!(high_boundary_coefs, calculate_weights(derivative_order, -i*grid_step, points)[1:end-1])
     end
     return r_diff
 end
@@ -313,9 +313,10 @@ function left_Dirichlet_BC!(::Type{Val{:LO}},low_boundary_coefs,stencil_length,d
 
     boundary_point_count = div(stencil_length,2)+1
     l_diff               = zero(T)
-    mid                  = div(stencil_length,2)
+    # mid                  = div(stencil_length,2)
+    points               = collect(zero(T) : grid_step : (boundary_length-1)*grid_step)
     for i in 1 : boundary_point_count
-        push!(low_boundary_coefs, calculate_weights(derivative_order, (i-1)*grid_step, collect(zero(T) : grid_step : (boundary_length-1)*grid_step)))
+        push!(low_boundary_coefs, calculate_weights(derivative_order, (i-1)*grid_step, points))
     end
     return l_diff
 end
@@ -323,13 +324,13 @@ end
 function right_Dirichlet_BC!(::Type{Val{:LO}},high_boundary_coefs,stencil_length,derivative_order,
                         grid_step::T,boundary_length) where T
     boundary_point_count = div(stencil_length,2)+1
-    high_temp            = zeros(T,boundary_length)
-    flag                 = derivative_order*boundary_point_count%2
-    aorder               = boundary_length - 1
+    # high_temp            = zeros(T,boundary_length)
+    # flag                 = derivative_order*boundary_point_count%2
+    # aorder               = boundary_length - 1
     r_diff               = zero(T)
-
+    points               = reverse(collect(zero(T) : -grid_step : -(boundary_length-1)*grid_step))
     for i in 1 : boundary_point_count
-        push!(high_boundary_coefs, calculate_weights(derivative_order, -(i-1)*grid_step, reverse(collect(zero(T) : -grid_step : -(boundary_length-1)*grid_step))))
+        push!(high_boundary_coefs, calculate_weights(derivative_order, -(i-1)*grid_step, points))
     end
     return r_diff
 end
