@@ -1,4 +1,4 @@
-# Solving the Heat Equation using DiffEqOperators
+# Solving the KdV Equation using DiffEqOperators
 
 In this tutorial we will try to solve the famous **KdV equation** which describes the motion of waves on shallow water surfaces.
 The equation is commonly written as 
