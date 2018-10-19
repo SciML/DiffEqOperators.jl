@@ -14,6 +14,7 @@ import Base: isapprox
 @time @testset "Finite Difference Operator" begin include("generic_operator_check.jl") end
 #@time @testset "KdV" begin include("KdV.jl") end # KdV times out and all fails
 @time @testset "Heat Equation" begin include("heat_eqn.jl") end
+@time @testset "Matrix-Free Operators" begin include("matrixfree.jl") end
 
 
 
