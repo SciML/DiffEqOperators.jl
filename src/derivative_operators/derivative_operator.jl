@@ -160,7 +160,6 @@ function initialize_left_boundary!(::Type{Val{:LO}},low_boundary_coefs,stencil_c
         return (zero(T),zero(T),left_None_BC!(Val{:LO},low_boundary_coefs,stencil_length,derivative_order,
                                               grid_step,boundary_length)*BC[1]*dx)
     elseif LBC == :Neumann
-        @warn "$(string(LBC)) boundary condition not verified for arbitrary approximation order!"
         return (zero(T),one(T),left_Neumann_BC!(Val{:LO},low_boundary_coefs,stencil_length,derivative_order,
                                                 grid_step,boundary_length)*BC[1]*dx)
     elseif LBC == :Robin
@@ -182,7 +181,6 @@ function initialize_left_boundary!(::Type{Val{:LO}},low_boundary_coefs,stencil_c
         return (one(T),zero(T),ret)
 
     elseif LBC == :Neumann0
-        @warn "$(string(LBC)) boundary condition not verified for arbitrary approximation order!"
         return (zero(T),one(T),zero(T))
 
     elseif LBC == :periodic
@@ -238,7 +236,6 @@ function initialize_right_boundary!(::Type{Val{:LO}},high_boundary_coefs,stencil
         return (one(T),zero(T),ret)
 
     elseif RBC == :Neumann0
-        @warn "$(string(RBC)) boundary condition not verified for arbitrary approximation order!"
         return (zero(T),one(T),zero(T))
 
     elseif RBC == :periodic
@@ -376,24 +373,23 @@ function right_Neumann_BC!(::Type{Val{:LO}},high_boundary_coefs,stencil_length,d
     original_coeffs      = zeros(T,boundary_length)
     r_diff               = one(T)
     mid                  = div(stencil_length,2)+1
-
+    points               = reverse(collect(zero(T) : -grid_step : -(boundary_length-1)*grid_step))
     # this part is to incorporate the value of first derivative at the right boundary
-    first_order_coeffs = calculate_weights(1, (boundary_point_count-1)*grid_step,
-                                           collect(zero(T) : grid_step : (boundary_length-1) * grid_step))
-    reverse!(first_order_coeffs)
-    isodd(flag) ? negate!(first_order_coeffs) : nothing
+    first_order_coeffs = calculate_weights(1, zero(T), points)
+    # reverse!(first_order_coeffs)
+    # iseven(derivative_order) ? negate!(first_order_coeffs) : nothing
 
-    copyto!(original_coeffs, calculate_weights(derivative_order, (boundary_point_count-1)*grid_step,
-                                             collect(zero(T) : grid_step : (boundary_length-1) * grid_step)))
+    copyto!(original_coeffs, calculate_weights(derivative_order, zero(T), points))
 
-    reverse!(original_coeffs)
-    isodd(flag) ? negate!(original_coeffs) : nothing
+    # reverse!(original_coeffs)
+    # iseven(derivative_order) ? negate!(original_coeffs) : nothing
 
     r_diff = original_coeffs[1]/first_order_coeffs[1]
     rmul!(first_order_coeffs, original_coeffs[1]/first_order_coeffs[1])
     # rmul!(original_coeffs, first_order_coeffs[1]/original_coeffs[1])
     @. original_coeffs = original_coeffs - first_order_coeffs
     # copyto!(first_order_coeffs, first_order_coeffs[1:end-1])
+
 
     for i in 2 : boundary_point_count
         #=
@@ -403,19 +399,16 @@ function right_Neumann_BC!(::Type{Val{:LO}},high_boundary_coefs,stencil_length,d
         =#
         if i > mid
             pos=i-1
-            push!(high_boundary_coefs, calculate_weights(derivative_order, pos*grid_step,
-                                                         collect(zero(T) : grid_step : (boundary_length-1) * grid_step)))
+            push!(high_boundary_coefs, calculate_weights(derivative_order, -pos*grid_step,points))
         else
             pos=i-2
-            push!(high_boundary_coefs, append!([zero(T)],
-                                               calculate_weights(derivative_order, pos*grid_step,
-                                               collect(zero(T) : grid_step : (boundary_length-1) * grid_step))))
+            push!(high_boundary_coefs, append!([zero(T)], calculate_weights(derivative_order, -pos*grid_step,points)))
         end
     end
-    if flag == 1
-        negate!(high_boundary_coefs)
-    end
-    reverse!(high_boundary_coefs)
+    # if iseven(derivative_order)
+    #     negate!(high_boundary_coefs)
+    # end
+    # reverse!(high_boundary_coefs)
     push!(high_boundary_coefs, original_coeffs[2:end])
     return r_diff
 end

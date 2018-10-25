@@ -167,6 +167,8 @@ function initialize_left_boundary!(::Type{Val{:FD}},low_boundary_coefs,stencil_c
 
     elseif LBC == :Neumann0
         @warn "$(string(LBC)) boundary condition not verified for arbitrary approximation order!"
+        left_None_BC!(Val{:FD},low_boundary_coefs,stencil_length,derivative_order,
+                                              grid_step,boundary_length)
         return (zero(T),one(T),zero(T))
 
     elseif LBC == :periodic
