@@ -93,4 +93,5 @@ Matrix(L::FactorizedDiffEqArrayOperator) = Matrix(L.F)
 convert(::Type{AbstractMatrix}, L::FactorizedDiffEqArrayOperator) = convert(AbstractMatrix, L.F)
 size(L::FactorizedDiffEqArrayOperator, args...) = size(L.F, args...)
 ldiv!(Y::AbstractVecOrMat, L::FactorizedDiffEqArrayOperator, B::AbstractVecOrMat) = ldiv!(Y, L.F, B)
+ldiv!(L::FactorizedDiffEqArrayOperator, B::AbstractVecOrMat) = ldiv!(L.F, B)
 \(L::FactorizedDiffEqArrayOperator, x::AbstractVecOrMat) = L.F \ x
