@@ -1,26 +1,26 @@
 import LinearAlgebra: mul!
-struct MatrixFreeOperator{F,N} <: AbstractMatrixFreeOperator{F}
+mutable struct MatrixFreeOperator{F,N} <: AbstractMatrixFreeOperator{F}
   f::F
   args::N
   function MatrixFreeOperator(f::F, args::N) where {F,N}
-    @assert N === Nothing || (N <: Tuple && length(args) == 2) "Arguments of a "*
-    "MatrixFreeOperator must be nothing or a tuple with two elements"
+    @assert (N <: Tuple && length(args) in (1,2)) "Arguments of a "*
+    "MatrixFreeOperator must be a tuple with one or two elements"
     return new{F,N}(f, args)
   end
 end
-MatrixFreeOperator(f) = MatrixFreeOperator(f, nothing)
+MatrixFreeOperator(f) = MatrixFreeOperator(f, (nothing,))
 
-function Base.getproperty(M::MatrixFreeOperator{F,N}, sym::Symbol) where {F,N}
-  if sym === :update_func
-    return N === Nothing ? DEFAULT_UPDATE_FUNC : M.f
-  else
-    return getfield(M, sym)
-  end
+# Interface
+is_constant(M::MatrixFreeOperator) = length(M.args) == 1
+function update_coefficients!(M::MatrixFreeOperator, u, p, t)
+  !is_constant(M) && (M.args = (p, t))
+  return M
 end
 
 function (M::MatrixFreeOperator{F,N})(du, u, p, t) where {F,N}
-  if N === Nothing
-    M.f(du, u)
+  update_coefficients!(M,u,p,t)
+  if is_constant(M)
+    M.f(du, u, p)
   else
     M.f(du, u, p, t)
   end
@@ -28,9 +28,10 @@ function (M::MatrixFreeOperator{F,N})(du, u, p, t) where {F,N}
 end
 
 function (M::MatrixFreeOperator{F,N})(u, p, t) where {F,N}
+  update_coefficients!(M,u,p,t)
   du = similar(u)
-  if N === nothing
-    M.f(du, u)
+  if is_constant(M)
+    M.f(du, u, p)
   else
     M.f(du, u, p, t)
   end
@@ -38,12 +39,12 @@ function (M::MatrixFreeOperator{F,N})(u, p, t) where {F,N}
 end
 
 @inline function mul!(y::AbstractVector, A::MatrixFreeOperator{F,N}, x::AbstractVector) where {F,N}
-  if N === Nothing
-    A.f(y, x)
+  if is_constant(A)
+    A.f(y, x, A.args[1])
   else
     A.f(y, x, A.args[1], A.args[2])
   end
-  y
+  return y
 end
 
 @inline function mul!(Y::AbstractMatrix, A::MatrixFreeOperator{F,N}, X::AbstractMatrix) where {F,N}

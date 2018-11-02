@@ -2,22 +2,49 @@ using Test, LinearAlgebra
 using DiffEqOperators, OrdinaryDiffEq
 
 @testset "Matrix Free Operator" begin
-  f = cumsum!
-  A = MatrixFreeOperator(f)
+  f = (du, u, p) -> begin
+    cumsum!(du, u)
+    @. du = p*du
+  end
+  p = 1.
+  A = MatrixFreeOperator(f, (p,))
   b = rand(5)
-  prob = ODEProblem(A, b, (0,1.))
+  prob = ODEProblem(A, b, (0,1.), p)
   @test_nowarn solve(prob, Tsit5())
-  prob = SplitODEProblem(A, (du,u,p,t)->0, b, (0,1.))
-  Base.size(::typeof(A), n) = n==1 || n == 2 ? 5 : 1
-  LinearAlgebra.opnorm(::typeof(A), n::Real) = n==Inf ? 5 : nothing
-  LinearAlgebra.ishermitian(::typeof(A)) = false
-  @test_nowarn solve(prob, LawsonEuler(krylov=true, m=5), dt=0.1)
+
   f = (du, u, p, t) -> cumsum!(du, u)
   args = (1, 1)
   A = MatrixFreeOperator(f,args)
+  @test is_constant(A) == false
   b = rand(5)
   Base.size(::typeof(A), n) = n==1 || n == 2 ? 5 : 1
   LinearAlgebra.opnorm(::typeof(A), n::Real) = n==Inf ? 5 : nothing
   LinearAlgebra.ishermitian(::typeof(A)) = false
   @test_nowarn solve(prob, LawsonEuler(krylov=true, m=5), dt=0.1)
+
+  A1 = [[4 -6]; [1 -1]]
+  A2 = [[1 2]; [3 2]]
+  THRESHOLD = 1
+  # analytic solution for the DE
+  u1(t) = t < THRESHOLD ? exp(t)*(-1+3exp(t)) : exp(-3-t)*(exp(5)*(-2+7exp(1))+exp(5t)*(-3+8exp(1)))/5
+  u2(t) = t < THRESHOLD ? -exp(t)/2+exp(2t)   : (2-7exp(1))*exp(2-t)/5+exp(-3+4t)*(-3+8exp(1))*(3/10)
+  sol_analytic(t) = [u1(t), u2(t)]
+  # setups for DE solvers
+  function Q!(df, f, p, t)
+      i = t >= THRESHOLD ? 2 : 1
+      A = p[i]
+      mul!(df, A, f)
+  end
+  p = (A1,A2)
+  O = MatrixFreeOperator(Q!, (p, 0.))
+  Base.size(::typeof(O), n) = n==1 || n == 2 ? 2 : 1
+  LinearAlgebra.opnorm(::typeof(O), n::Real) = n==Inf ? 10.0 : nothing
+  LinearAlgebra.ishermitian(::typeof(O)) = false
+  # solve DE numerically
+  T = 2
+  f_0 = [2.0; 1/2]
+  prob = ODEProblem(O,f_0,(0.0,T),p)
+  sol = solve(prob, LinearExponential(krylov=:simple, m=3), tstops=THRESHOLD)
+  @test sol(THRESHOLD) ≈ sol_analytic(THRESHOLD) atol = 1e-3
+  @test sol(T) ≈ sol_analytic(T) atol = 1e-3
 end
