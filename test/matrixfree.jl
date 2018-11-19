@@ -7,19 +7,17 @@ using DiffEqOperators, OrdinaryDiffEq
     @. du = p*du
   end
   p = 1.
-  A = MatrixFreeOperator(f, (p,))
+  A = MatrixFreeOperator(f, (p,), size=(5,5), opnorm=(p)->5)
   b = rand(5)
+  @test is_constant(A)
   prob = ODEProblem(A, b, (0,1.), p)
   @test_nowarn solve(prob, Tsit5())
 
   f = (du, u, p, t) -> cumsum!(du, u)
   args = (1, 1)
-  A = MatrixFreeOperator(f,args)
+  A = MatrixFreeOperator(f,args, size=(5,5), opnorm=(p)->5)
   @test is_constant(A) == false
   b = rand(5)
-  Base.size(::typeof(A), n) = n==1 || n == 2 ? 5 : 1
-  LinearAlgebra.opnorm(::typeof(A), n::Real) = n==Inf ? 5 : nothing
-  LinearAlgebra.ishermitian(::typeof(A)) = false
   @test_nowarn solve(prob, LawsonEuler(krylov=true, m=5), dt=0.1)
 
   A1 = [[4 -6]; [1 -1]]
@@ -31,15 +29,12 @@ using DiffEqOperators, OrdinaryDiffEq
   sol_analytic(t) = [u1(t), u2(t)]
   # setups for DE solvers
   function Q!(df, f, p, t)
-      i = t >= THRESHOLD ? 2 : 1
-      A = p[i]
-      mul!(df, A, f)
+    i = t >= THRESHOLD ? 2 : 1
+    A = p[i]
+    mul!(df, A, f)
   end
   p = (A1,A2)
-  O = MatrixFreeOperator(Q!, (p, 0.))
-  Base.size(::typeof(O), n) = n==1 || n == 2 ? 2 : 1
-  LinearAlgebra.opnorm(::typeof(O), n::Real) = n==Inf ? 10.0 : nothing
-  LinearAlgebra.ishermitian(::typeof(O)) = false
+  O = MatrixFreeOperator(Q!, (p, 0.), size=(2,2), opnorm=(p)->10)
   # solve DE numerically
   T = 2
   f_0 = [2.0; 1/2]
