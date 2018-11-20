@@ -1,14 +1,37 @@
 import LinearAlgebra: mul!
-mutable struct MatrixFreeOperator{F,N} <: AbstractMatrixFreeOperator{F}
+mutable struct MatrixFreeOperator{F,N,S,O} <: AbstractMatrixFreeOperator{F}
   f::F
   args::N
-  function MatrixFreeOperator(f::F, args::N) where {F,N}
+  size::S
+  opnorm::O
+  ishermitian::Bool
+  function MatrixFreeOperator(f::F, args::N;
+                              size=nothing, opnorm=nothing, ishermitian=false) where {F,N}
     @assert (N <: Tuple && length(args) in (1,2)) "Arguments of a "*
     "MatrixFreeOperator must be a tuple with one or two elements"
-    return new{F,N}(f, args)
+    return new{F,N,typeof(size),typeof(opnorm)}(f, args, size, opnorm, ishermitian)
   end
 end
 MatrixFreeOperator(f) = MatrixFreeOperator(f, (nothing,))
+
+function Base.size(M::MatrixFreeOperator)
+  M.size === nothing && error("M.size is nothing, please define size as a tuple of integers")
+  return M.size
+end
+@inline function Base.size(M::MatrixFreeOperator, n)
+  M.size === nothing && error("M.size is nothing, please define size as a tuple of integers")
+  n <= 0 && error("dimension out of range")
+  return n <= length(M.size) ? M.size[n] : 1
+end
+LinearAlgebra.ishermitian(M::MatrixFreeOperator) = M.ishermitian
+function LinearAlgebra.opnorm(M::MatrixFreeOperator, p::Real)
+  M.opnorm === nothing && error("""
+    M.opnorm is nothing, please define opnorm as a function that takes one
+    argument. E.g. `(p::Real) -> p == Inf ? 100 : error("only Inf norm is
+    defined")`
+  """)
+  return M.opnorm(p)
+end
 
 # Interface
 is_constant(M::MatrixFreeOperator) = length(M.args) == 1
