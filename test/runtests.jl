@@ -4,7 +4,9 @@ using StaticArrays, SpecialFunctions
 import Base: isapprox
 
 @time @testset "Basic Operators Interface" begin include("basic_operators_interface.jl") end
+@time @testset "JacVec Operators Interface" begin include("jacvec_operators.jl") end
 @time @testset "Composite Operators Interface" begin include("composite_operators_interface.jl") end
+
 @time @testset "Derivative Operators Interface" begin include("derivative_operators_interface.jl") end
 @time @testset "Dirichlet BCs" begin include("dirichlet.jl") end
 @time @testset "Periodic BCs" begin include("periodic.jl") end
