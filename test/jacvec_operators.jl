@@ -1,4 +1,4 @@
-using DiffEqOperators, ForwardDiff, LinearAlgebra, Test
+using DiffEqOperators, ForwardDiff, LinearAlgebra, Test, DiffEqBase
 const A = rand(300,300)
 f(du,u) = mul!(du,A,u)
 f(u) = A*u

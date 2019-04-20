@@ -1,5 +1,5 @@
 using Test
-using OrdinaryDiffEq
+using OrdinaryDiffEq, DiffEqOperators
 
 @testset "KdV equation (Single Solition)" begin
     N,M = 100,5000

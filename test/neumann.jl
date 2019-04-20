@@ -1,4 +1,4 @@
-using Test
+using Test, DiffEqOperators
 
 @testset "Neumann0 Boundary" begin
     N = 100
