@@ -1,25 +1,22 @@
-using DiffEqOperators, LinearAlgebra
-using Test
-using StaticArrays, SpecialFunctions
+using SafeTestsets
 import Base: isapprox
 
-@time @testset "Basic Operators Interface" begin include("basic_operators_interface.jl") end
-@time @testset "JacVec Operators Interface" begin include("jacvec_operators.jl") end
-@time @testset "Composite Operators Interface" begin include("composite_operators_interface.jl") end
+@time @safetestset "Basic Operators Interface" begin include("basic_operators_interface.jl") end
+@time @safetestset "JacVec Operators Interface" begin include("jacvec_operators.jl") end
+@time @safetestset "Composite Operators Interface" begin include("composite_operators_interface.jl") end
 
-@time @testset "Derivative Operators Interface" begin include("derivative_operators_interface.jl") end
-@time @testset "Dirichlet BCs" begin include("dirichlet.jl") end
-@time @testset "Periodic BCs" begin include("periodic.jl") end
-@time @testset "Neumann BCs" begin include("neumann.jl") end
-@time @testset "2nd order check" begin include("2nd_order_check.jl") end
-@time @testset "None BCs" begin include("none.jl") end
-@time @testset "Finite Difference Operator" begin include("generic_operator_check.jl") end
-#@time @testset "KdV" begin include("KdV.jl") end # KdV times out and all fails
-@time @testset "Heat Equation" begin include("heat_eqn.jl") end
-@time @testset "Matrix-Free Operators" begin include("matrixfree.jl") end
+@time @safetestset "Derivative Operators Interface" begin include("derivative_operators_interface.jl") end
+@time @safetestset "Dirichlet BCs" begin include("dirichlet.jl") end
+@time @safetestset "Periodic BCs" begin include("periodic.jl") end
+@time @safetestset "Neumann BCs" begin include("neumann.jl") end
+@time @safetestset "2nd order check" begin include("2nd_order_check.jl") end
+@time @safetestset "None BCs" begin include("none.jl") end
+@time @safetestset "Finite Difference Operator" begin include("generic_operator_check.jl") end
+#@time @safetestset "KdV" begin include("KdV.jl") end # KdV times out and all fails
+@time @safetestset "Heat Equation" begin include("heat_eqn.jl") end
+@time @safetestset "Matrix-Free Operators" begin include("matrixfree.jl") end
 
-
-
+using StaticArrays, DiffEqOperators
 function isapprox(x::DerivativeOperator{T,S,LBC,RBC},y::FiniteDifference{T,S,LBC,RBC}; kwargs...) where {T<:Real,S<:StaticArrays.SVector,LBC,RBC}
     der_order           = (x,y) -> x.derivative_order == y.derivative_order
     approximation_order = (x,y) -> x.approximation_order == y.approximation_order

@@ -1,4 +1,4 @@
-using Test
+using Test, DiffEqOperators
 
 @testset "Dirichlet0 Boundary Conditions" begin
     N = 100

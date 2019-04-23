@@ -1,4 +1,4 @@
-using Test
+using Test, DiffEqOperators
 
 @testset "Periodic BC DO" begin
     N = 100

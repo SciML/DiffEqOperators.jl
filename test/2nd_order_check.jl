@@ -1,4 +1,4 @@
-using DiffEqOperators, Test
+using DiffEqOperators, Test, LinearAlgebra
 
 @testset "Second Order Value Check" begin
   ord = 2               # Order of approximation

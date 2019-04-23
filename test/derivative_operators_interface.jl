@@ -1,4 +1,4 @@
-using SparseArrays
+using SparseArrays, DiffEqOperators, LinearAlgebra, Random
 
 function strang_matrix(N)
   A = zeros(N,N)
