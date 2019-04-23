@@ -18,7 +18,7 @@ end
 function num_jacvec!(du,f,x,v,cache1 = similar(v),
                  cache2 = similar(v),
                  compute_f0 = false)
-    f0 = f(cache1,x)
+    compute_f0 && f0 = f(cache1,x)
     T = eltype(x)
     # Should it be min? max? mean?
     ϵ = sqrt(eps(real(T))) * max(one(real(T)), abs(minimum(x)))
@@ -94,6 +94,7 @@ function update_coefficients!(L::JacVecOperator,u,p,t)
     L.u = u
     L.p = p
     L.t = t
+    !L.autodiff && L.f(L.cache1,L.u,L.p,L.t)
 end
 
 # Interpret the call as df/du * u
@@ -108,7 +109,7 @@ function (L::JacVecOperator)(du,u,p,t::Number)
     mul!(du,L,u)
 end
 
-Base.:*(L::JacVecOperator,x::AbstractVector) = L.autodiff ? auto_jacvec(_u->L.f(_u,L.p,L.t),L.u,x) : num_jacvec(_u->L.f(_u,L.p,L.t),L.u,x)
+Base.:*(L::JacVecOperator,x::AbstractVector) = L.autodiff ? auto_jacvec(_u->L.f(_u,L.p,L.t),L.u,x) : num_jacvec(_u->L.f(_u,L.p,L.t),L.u,x;compute_f0=false)
 
 function LinearAlgebra.mul!(du::AbstractVector,L::JacVecOperator,x::AbstractVector)
     let p=L.p,t=L.t
@@ -116,13 +117,13 @@ function LinearAlgebra.mul!(du::AbstractVector,L::JacVecOperator,x::AbstractVect
             if L.autodiff
                 auto_jacvec!(du,(_du,_u)->L.f(_du,_u,p,t),L.u,x)
             else
-                num_jacvec!(du,(_du,_u)->L.f(_du,_u,p,t),L.u,x)
+                num_jacvec!(du,(_du,_u)->L.f(_du,_u,p,t),L.u,x;compute_f0=false)
             end
         else
             if L.autodiff
                 auto_jacvec!(du,(_du,_u)->L.f(_du,_u,p,t),L.u,x,L.cache1,L.cache2)
             else
-                num_jacvec!(du,(_du,_u)->L.f(_du,_u,p,t),L.u,x,L.cache1,L.cache2)
+                num_jacvec!(du,(_du,_u)->L.f(_du,_u,p,t),L.u,x,L.cache1,L.cache2;compute_f0=false)
             end
         end
     end
