@@ -1,4 +1,4 @@
-using DiffEqOperators, ForwardDiff, LinearAlgebra, Test, DiffEqBase
+using DiffEqBase, DiffEqOperators, ForwardDiff, LinearAlgebra, Test
 const A = rand(300,300)
 f(du,u) = mul!(du,A,u)
 f(u) = A*u
@@ -26,6 +26,7 @@ DiffEqBase.update_coefficients!(L,v,nothing,nothing)
 @test mul!(du,L,v) ≈ DiffEqOperators.auto_jacvec(f, v, v)
 
 L = JacVecOperator(f,x,autodiff=false)
+DiffEqBase.update_coefficients!(L,x,nothing,nothing)
 @test L*x ≈ DiffEqOperators.num_jacvec(f, x, x)
 @test L*v ≈ DiffEqOperators.num_jacvec(f, x, v)
 @test mul!(du,L,v) ≈ DiffEqOperators.num_jacvec(f, x, v)
@@ -42,7 +43,6 @@ L2 = JacVecOperator{Float64}(f,autodiff=false)
 DiffEqBase.update_coefficients!(L2,x,nothing,nothing)
 @test L2*x ≈ DiffEqOperators.num_jacvec(f, x, x)
 @test L2*v ≈ DiffEqOperators.num_jacvec(f, v, v) rtol=1e-6
-@test mul!(du,L2,x) ≈ DiffEqOperators.num_jacvec(f, x, x)
 
 using OrdinaryDiffEq
 function lorenz(du,u,p,t)
@@ -53,6 +53,11 @@ end
 u0 = [1.0;0.0;0.0]
 tspan = (0.0,100.0)
 ff = ODEFunction(lorenz,jac_prototype=JacVecOperator{Float64}(lorenz,u0))
+prob = ODEProblem(ff,u0,tspan)
+sol = solve(prob,Rosenbrock23())
+sol = solve(prob,Rosenbrock23(linsolve=LinSolveGMRES(tol=1e-10)))
+
+ff = ODEFunction(lorenz,jac_prototype=JacVecOperator{Float64}(lorenz,u0,autodiff=false))
 prob = ODEProblem(ff,u0,tspan)
 sol = solve(prob,Rosenbrock23())
 sol = solve(prob,Rosenbrock23(linsolve=LinSolveGMRES(tol=1e-10)))
