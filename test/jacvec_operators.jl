@@ -1,4 +1,4 @@
-using DiffEqOperators, ForwardDiff, LinearAlgebra, Test
+using DiffEqBase, DiffEqOperators, ForwardDiff, LinearAlgebra, Test
 const A = rand(300,300)
 f(du,u) = mul!(du,A,u)
 f(u) = A*u
@@ -8,24 +8,41 @@ du = similar(x)
 
 cache1 = ForwardDiff.Dual{DiffEqOperators.JacVecTag}.(x, v)
 cache2 = ForwardDiff.Dual{DiffEqOperators.JacVecTag}.(x, v)
-@test DiffEqOperators.jacvec!(du, f, x, v) ≈ ForwardDiff.jacobian(f,similar(x),x)*v
-@test DiffEqOperators.jacvec!(du, f, x, v, cache1, cache2) ≈ ForwardDiff.jacobian(f,similar(x),x)*v
-@test DiffEqOperators.jacvec(f, x, v) ≈ ForwardDiff.jacobian(f,similar(x),x)*v
+@test DiffEqOperators.num_jacvec!(du, f, x, v) ≈ ForwardDiff.jacobian(f,similar(x),x)*v rtol=1e-6
+@test DiffEqOperators.num_jacvec!(du, f, x, v, similar(v), similar(v)) ≈ ForwardDiff.jacobian(f,similar(x),x)*v rtol=1e-6
+@test DiffEqOperators.num_jacvec(f, x, v) ≈ ForwardDiff.jacobian(f,similar(x),x)*v rtol=1e-6
+
+@test DiffEqOperators.auto_jacvec!(du, f, x, v) ≈ ForwardDiff.jacobian(f,similar(x),x)*v
+@test DiffEqOperators.auto_jacvec!(du, f, x, v, cache1, cache2) ≈ ForwardDiff.jacobian(f,similar(x),x)*v
+@test DiffEqOperators.auto_jacvec(f, x, v) ≈ ForwardDiff.jacobian(f,similar(x),x)*v
 
 f(du,u,p,t) = mul!(du,A,u)
 f(u,p,t) = A*u
 L = JacVecOperator(f,x)
-@test L*x ≈ DiffEqOperators.jacvec(f, x, x)
-@test L*v ≈ DiffEqOperators.jacvec(f, x, v)
-@test mul!(du,L,v) ≈ DiffEqOperators.jacvec(f, x, v)
+@test L*x ≈ DiffEqOperators.auto_jacvec(f, x, x)
+@test L*v ≈ DiffEqOperators.auto_jacvec(f, x, v)
+@test mul!(du,L,v) ≈ DiffEqOperators.auto_jacvec(f, x, v)
 DiffEqBase.update_coefficients!(L,v,nothing,nothing)
-@test mul!(du,L,v) ≈ DiffEqOperators.jacvec(f, v, v)
+@test mul!(du,L,v) ≈ DiffEqOperators.auto_jacvec(f, v, v)
+
+L = JacVecOperator(f,x,autodiff=false)
+@test L*x ≈ DiffEqOperators.num_jacvec(f, x, x)
+@test L*v ≈ DiffEqOperators.num_jacvec(f, x, v)
+@test mul!(du,L,v) ≈ DiffEqOperators.num_jacvec(f, x, v)
+DiffEqBase.update_coefficients!(L,v,nothing,nothing)
+@test mul!(du,L,v) ≈ DiffEqOperators.num_jacvec(f, v, v)
 
 L2 = JacVecOperator{Float64}(f)
 DiffEqBase.update_coefficients!(L2,x,nothing,nothing)
-@test L2*x ≈ DiffEqOperators.jacvec(f, x, x)
-@test L2*v ≈ DiffEqOperators.jacvec(f, v, v)
-@test mul!(du,L2,x) ≈ DiffEqOperators.jacvec(f, x, x)
+@test L2*x ≈ DiffEqOperators.auto_jacvec(f, x, x)
+@test L2*v ≈ DiffEqOperators.auto_jacvec(f, v, v)
+@test mul!(du,L2,x) ≈ DiffEqOperators.auto_jacvec(f, x, x)
+
+L2 = JacVecOperator{Float64}(f,autodiff=false)
+DiffEqBase.update_coefficients!(L2,x,nothing,nothing)
+@test L2*x ≈ DiffEqOperators.num_jacvec(f, x, x)
+@test L2*v ≈ DiffEqOperators.num_jacvec(f, v, v) rtol=1e-6
+@test mul!(du,L2,x) ≈ DiffEqOperators.num_jacvec(f, x, x)
 
 using OrdinaryDiffEq
 function lorenz(du,u,p,t)
