@@ -21,7 +21,7 @@ function num_jacvec!(du,f,x,v,cache1 = similar(v),
     compute_f0 && (f(cache1,x))
     T = eltype(x)
     # Should it be min? max? mean?
-    ϵ = sqrt(eps(real(T))) * max(one(real(T)), abs(minimum(x)))
+    ϵ = 1/norm(v)
     @. x += ϵ*v
     f(cache2,x)
     @. x -= ϵ*v
@@ -31,7 +31,7 @@ function num_jacvec(f,x,v,f0=nothing)
     f0 === nothing ? _f0 = f(x) : _f0 = f0
     T = eltype(x)
     # Should it be min? max? mean?
-    ϵ = sqrt(eps(real(T))) * max(one(real(T)), abs(minimum(x)))
+    ϵ = 1/norm(v)
     (f(x.+ϵ.*v) .- f(x))./ϵ
 end
 
