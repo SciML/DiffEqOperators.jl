@@ -1,4 +1,0 @@
-julia 1.0
-DiffEqBase 1.19.0
-StaticArrays
-ForwardDiff
