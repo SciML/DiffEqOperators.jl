@@ -1,4 +1,4 @@
-using Test
+using Test, DiffEqOperators
 using OrdinaryDiffEq
 
 @testset "Parabolic Heat Equation with Dirichlet BCs" begin

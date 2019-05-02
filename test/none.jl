@@ -1,4 +1,4 @@
-using Test
+using Test, DiffEqOperators, SpecialFunctions
 
 @testset "None BC DerivativeOperator" begin
     N = 10

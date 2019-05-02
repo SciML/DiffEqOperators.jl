@@ -1,4 +1,4 @@
-
+using Test, DiffEqOperators
 @testset "FD DO operators comparison" begin
     n = 100
     x=0.0:0.01:2π
