@@ -3,7 +3,7 @@
 In this tutorial we will try to solve the famous **KdV equation** which describes the motion of waves on shallow water surfaces.
 The equation is commonly written as 
 
-        $$\frac{\partial u}{\partial t} + \frac{{\partial}^3 u}{\partial t^3} - 6*u*\frac{\partial u}{\partial t} = 0$.
+        $$\frac{\partial u}{\partial t} + \frac{{\partial}^3 u}{\partial x^3} - 6*u*\frac{\partial u}{\partial x} = 0$.
 
 Lets consider the cosine wave as the initial waveform and evolve it using the equation with a [periodic boundary condition](https://journals.aps.org/prl/pdf/10.1103/PhysRevLett.15.240). This example is taken from [here](https://en.wikipedia.org/wiki/Korteweg%E2%80%93de_Vries_equation).
 
