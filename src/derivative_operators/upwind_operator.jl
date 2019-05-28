@@ -225,7 +225,7 @@ function right_nothing_BC!(::Type{Val{:UO}},high_boundary_coefs,down_stencil_len
 end
 
 #=
-    The Inf opnorm can be calculated easily using the stencil coeffiicents, while other opnorms 
+    The Inf opnorm can be calculated easily using the stencil coeffiicents, while other opnorms
     default to compute from the full matrix form.
 =#
 function LinearAlgebra.opnorm(A::UpwindOperator{T,S,LBC,RBC}, p::Real=2) where {T,S,LBC,RBC}
@@ -234,4 +234,44 @@ function LinearAlgebra.opnorm(A::UpwindOperator{T,S,LBC,RBC}, p::Real=2) where {
     else
         opnorm(convert(Array,A), p)
     end
+end
+
+function LinearAlgebra.Array(A::UpwindOperator{T}) where T
+    L = zeros(T, A.dimension, A.dimension+A.stencil_length-1)
+    for i = 1:A.dimension
+        if A.directions[][i]
+            L[i,i:i+A.stencil_length-1] = A.up_stencil_coefs ./ A.dx^A.derivative_order
+        else
+            L[i,i:i+A.stencil_length-1] = A.down_stencil_coefs ./ A.dx^A.derivative_order
+        end
+    end
+    return L
+end
+
+function SparseArrays.SparseMatrixCSC(A::UpwindOperator{T}) where T
+    L = spzeros(T, A.dimension, A.dimension+A.stencil_length-1)
+    for i = 1:A.dimension
+        if A.directions[][i]
+            L[i,i:i+A.stencil_length-1] = A.up_stencil_coefs ./ A.dx^A.derivative_order
+        else
+            L[i,i:i+A.stencil_length-1] = A.down_stencil_coefs ./ A.dx^A.derivative_order
+        end
+    end
+    return L
+end
+
+function BandedMatrices.BandedMatrix(A::UpwindOperator{T}) where T
+    L = BandedMatrix{T}(undef, (A.dimension, A.dimension+A.stencil_length - 1), (0,A.stencil_length))
+    bands = zeros(Float64, A.dimension, A.stencil_length)
+    for i in 1:A.dimension
+        if A.directions[][i]
+            bands[i,:] = A.up_stencil_coefs ./ A.dx^A.derivative_order
+        else
+            bands[i,:] = A.down_stencil_coefs ./ A.dx^A.derivative_order
+        end
+    end
+    for i in 1:A.stencil_length
+        L[band(i-1)] .= bands[:,i]
+    end
+    return Ls
 end

@@ -2,9 +2,11 @@ module DiffEqOperators
 
 import Base: +, -, *, /, \, size, getindex, setindex!, Matrix, convert
 using DiffEqBase, StaticArrays, LinearAlgebra
-import LinearAlgebra: mul!, ldiv!, lmul!, rmul!, axpy!, opnorm, factorize, I
+import LinearAlgebra: mul!, ldiv!, lmul!, rmul!, axpy!, opnorm, factorize, I, Array
+import SparseArrays: SparseMatrixCSC
+import BandedMatrices: BandedMatrix
 import DiffEqBase: AbstractDiffEqLinearOperator, update_coefficients!, is_constant
-using SparseArrays, ForwardDiff
+using SparseArrays, ForwardDiff, BandedMatrices
 
 abstract type AbstractDerivativeOperator{T} <: AbstractDiffEqLinearOperator{T} end
 abstract type AbstractDiffEqCompositeOperator{T} <: AbstractDiffEqLinearOperator{T} end

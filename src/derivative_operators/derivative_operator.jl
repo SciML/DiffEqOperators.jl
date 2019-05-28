@@ -11,7 +11,6 @@ function *(A::AbstractDerivativeOperator,x::AbstractVector)
     return y
 end
 
-
 function *(A::AbstractDerivativeOperator,M::AbstractMatrix)
     #=
         We will output a vector which is a supertype of the types of A and x
@@ -451,4 +450,31 @@ function LinearAlgebra.opnorm(A::DerivativeOperator{T,S,LBC,RBC}, p::Real=2) whe
     else
         opnorm(convert(Array,A), p)
     end
+end
+
+
+function LinearAlgebra.Array(A::DerivativeOperator{T}) where T
+    L = zeros(T, A.dimension, A.dimension+A.stencil_length-1)
+    for i in 1:A.dimension
+        L[i,i:i+A.stencil_length-1] = A.stencil_coefs ./A.dx^A.derivative_order
+    end
+    return L
+end
+
+
+function SparseArrays.SparseMatrixCSC(A::DerivativeOperator{T}) where T
+    L = spzeros(T, A.dimension, A.dimension+A.stencil_length - 1)
+    for i in 1:A.dimension
+        L[i,i:i+A.stencil_length-1] = A.stencil_coefs ./A.dx^A.derivative_order
+    end
+    return L
+end
+
+
+function BandedMatrices.BandedMatrix(A::DerivativeOperator{T}) where T
+    L = BandedMatrix{T}(undef, (A.dimension, A.dimension+A.stencil_length - 1), (0,A.stencil_length))
+    for i = 1:A.stencil_length
+        L[band(i-1)] .= (A.stencil_coefs[i] / A.dx^A.derivative_order)
+    end
+    return L
 end
