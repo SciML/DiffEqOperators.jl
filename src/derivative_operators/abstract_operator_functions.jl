@@ -128,6 +128,13 @@ function LinearAlgebra.mul!(x_temp::AbstractVector{T}, A::Union{DerivativeOperat
     A.t[] += 1 # incrementing the internal time stamp
 end
 
+
+function LinearAlgebra.mul!(x_temp::AbstractVector{T}, A::InteriorOperator{T}, x::AbstractVector{T}) where T<:Real
+    convolve_interior!(x_temp, x, A)
+    rmul!(x_temp, @.(1/(A.dx^A.derivative_order)))
+end
+
+
 #=
     This definition of the mul! function makes it possible to apply the LinearOperator on
     a matrix and not just a vector. It basically transforms the rows one at a time.
@@ -179,6 +186,25 @@ function Base.convert(::Type{Array}, A::AbstractDerivativeOperator{T}, N::Int=A.
         =#
         mul!(view(mat,:,i), A, v)
         v[i] = zero(T)
+    end
+    return mat
+end
+
+
+function Base.convert(::Type{Array}, A::InteriorOperator{T}, N::Int=A.dimension) where T
+    @assert N >= A.stencil_length # stencil must be able to fit in the matrix
+    gpc = A.ghost_point_count
+    mat = zeros(T, (N, N + 2*gpc))
+    v = zeros(T, N + 2*gpc)
+    for i = 1 + gpc:N+gpc
+        v[i] = one(T)
+        #=
+            calculating the effect on a unit vector to get the matrix of transformation
+            to get the vector in the new vector space.
+        =#
+        mul!(view(mat, i-gpc, :), A, v)
+        v[i] = zero(T)
+        # println(i)
     end
     return mat
 end

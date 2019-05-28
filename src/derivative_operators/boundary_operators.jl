@@ -184,6 +184,23 @@ function convolve_interior!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::
     end
 end
 
+
+function convolve_interior!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::InteriorOperator{T,S}) where {T<:Real,S<:SVector}
+    N = length(x)
+    coeffs = A.stencil_coefs
+    mid = div(A.stencil_length, 2) + 1
+
+    Threads.@threads for i in 1 : N
+        # dirichlet_0!(x_temp,x,A.stencil_coefs, i)
+        xtempi = zero(T)
+        @inbounds for idx in 1:A.stencil_length
+            xtempi += coeffs[idx] * x[i - (mid-idx)]
+        end
+        x_temp[i] = xtempi
+    end
+end
+
+
 function convolve_interior!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::FiniteDifference{T,S,LBC,RBC}) where {T<:Real,S<:SVector,LBC,RBC}
     N = length(x)
     coeffs = A.stencil_coefs

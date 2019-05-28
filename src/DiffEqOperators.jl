@@ -23,6 +23,7 @@ include("jacvec_operators.jl")
 ### Derivative Operators
 include("derivative_operators/fornberg.jl")
 include("derivative_operators/upwind_operator.jl")
+include("derivative_operators/interior_operator.jl")
 include("derivative_operators/derivative_irreg_operator.jl")
 include("derivative_operators/derivative_operator.jl")
 include("derivative_operators/abstract_operator_functions.jl")
@@ -40,5 +41,5 @@ end
 
 export MatrixFreeOperator
 export DiffEqScalar, DiffEqArrayOperator, DiffEqIdentity, JacVecOperator, getops
-export AbstractDerivativeOperator, DerivativeOperator, UpwindOperator, FiniteDifference
+export AbstractDerivativeOperator, DerivativeOperator, InteriorOperator, UpwindOperator, FiniteDifference
 end # module

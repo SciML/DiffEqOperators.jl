@@ -1,5 +1,3 @@
-get_type(::AbstractDerivativeOperator{T}) where {T} = T
-
 function *(A::AbstractDerivativeOperator,x::AbstractVector)
     #=
         We will output a vector which is a supertype of the types of A and x
@@ -438,6 +436,7 @@ end
 
 (L::DerivativeOperator)(u,p,t) = L*u
 (L::DerivativeOperator)(du,u,p,t) = mul!(du,L,u)
+get_type(::DerivativeOperator{A,B,C,D}) where {A,B,C,D} = A
 get_LBC(::DerivativeOperator{A,B,C,D}) where {A,B,C,D} = C
 get_RBC(::DerivativeOperator{A,B,C,D}) where {A,B,C,D} = D
 
