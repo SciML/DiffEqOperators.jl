@@ -273,5 +273,5 @@ function BandedMatrices.BandedMatrix(A::UpwindOperator{T}) where T
     for i in 1:A.stencil_length
         L[band(i-1)] .= bands[:,i]
     end
-    return Ls
+    return L
 end
