@@ -185,7 +185,7 @@ function convolve_interior!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::
 end
 
 
-function convolve_interior!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::InteriorOperator{T,S}) where {T<:Real,S<:SVector}
+function convolve_interior!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::DirichletBCExtended{T,S}) where {T<:Real,S<:SVector}
     N = length(x)
     coeffs = A.stencil_coefs
     mid = div(A.stencil_length, 2) + 1
