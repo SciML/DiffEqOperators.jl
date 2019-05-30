@@ -11,11 +11,12 @@ struct DirichletBCExtended{T<:Real,S<:SVector} <: AbstractDerivativeOperator{T}
     stencil_length      :: Int
     ghost_point_count   :: Int
     stencil_coefs       :: S
-    u                   :: Vector{T}
+    u                   :: AbstractVector{T}
     lbc                 :: T
     rbc                 :: T
+    v                   :: Ref{AbstractVector{T}}
 
-    function DirichletBCExtended{T,S}(u::Vector{T}, lbc::T, rbc::T, derivative_order::Int,
+    function DirichletBCExtended{T,S}(u::AbstractVector{T}, lbc::T, rbc::T, derivative_order::Int,
                                     approximation_order::Int, dx::T) where
                                     {T<:Real,S<:SVector}
         u                    = u
@@ -28,11 +29,14 @@ struct DirichletBCExtended{T<:Real,S<:SVector} <: AbstractDerivativeOperator{T}
         grid_step            = one(T)
         stencil_coefs        = convert(SVector{stencil_length, T}, calculate_weights(derivative_order, zero(T),
                                grid_step .* collect(-div(stencil_length,2) : 1 : div(stencil_length,2))))
+        v                    = Vector{T}
+        # zeros(T, dimension + ghost_point_count)
 
-
-        new(derivative_order, approximation_order, dx, dimension, stencil_length, ghost_point_count, stencil_coefs, u, lbc, rbc)
+        out = new(derivative_order, approximation_order, dx, dimension, stencil_length, ghost_point_count, stencil_coefs, u, lbc, rbc)
+        convolve_interior!(v, u, out)
+        return out
     end
-    DirichletBCExtended{T}(u::Vector{T},lbc::T,rbc::T,dorder::Int,aorder::Int,dx::T) where {T<:Real} =
+    DirichletBCExtended{T}(u::AbstractVector{T},lbc::T,rbc::T,dorder::Int,aorder::Int,dx::T) where {T<:Real} =
         DirichletBCExtended{T, SVector{dorder+aorder-1+(dorder+aorder)%2,T}}(u, lbc, rbc, dorder, aorder, dx)
 end
 
@@ -40,12 +44,12 @@ end
 Base.:*(Q::DirichletBC,u) = DirichletBCExtended(u, Q.l, Q.r, 2, 2, 1.0)
 Base.length(Q::DirichletBCExtended) = length(Q.u) + 2
 Base.lastindex(Q::DirichletBCExtended) = Base.length(Q)
+
 function Base.getindex(Q::DirichletBCExtended,i)
-    @show i
     if i == 1
-        return Q.l
+        return Q.lbc
     elseif i == length(Q)
-        return Q.r
+        return Q.rbc
     else
         return Q.u[i-1]
     end
