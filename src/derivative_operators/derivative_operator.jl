@@ -452,3 +452,72 @@ function LinearAlgebra.opnorm(A::DerivativeOperator{T,S,LBC,RBC}, p::Real=2) whe
         opnorm(convert(Array,A), p)
     end
 end
+
+function LinearAlgebra.Array(A::DerivativeOperator{T}) where T
+    N = A.dimension
+    L = zeros(T, N, N+2)
+    stl = A.stencil_length
+    stl_2 = div(stl,2)
+
+    # Apply lower stencils
+    for i in 1:stl_2-1
+        L[i,1:stl] = calculate_weights(A.derivative_order, one(T)*(i), one(T) .* collect(0:1:stl-1))
+    end
+
+    # Apply inner stencils
+    for i in max(stl_2,1):N-stl_2+1
+        L[i,i-stl_2+1:i+stl_2+1] = A.stencil_coefs
+    end
+
+    # Apply upper stencils
+    for i in N-stl_2+2:N
+        L[i,N-stl+3:N+2] = calculate_weights(A.derivative_order, one(T)*(i-N+stl-2), one(T) .* collect(0:1:stl-1))
+    end
+    return L ./ A.dx^A.derivative_order
+end
+
+function SparseArrays.SparseMatrixCSC(A::DerivativeOperator{T}) where T
+    N = A.dimension
+    L = spzeros(T, N, N+2)
+    stl = A.stencil_length
+    stl_2 = div(stl,2)
+
+    # Apply lower stencils
+    for i in 1:stl_2-1
+        L[i,1:stl] = calculate_weights(A.derivative_order, one(T)*(i), one(T) .* collect(0:1:stl-1))
+    end
+
+    # Apply inner stencils
+    for i in max(stl_2,1):N-stl_2+1
+        L[i,i-stl_2+1:i+stl_2+1] = A.stencil_coefs
+    end
+
+    # Apply upper stencils
+    for i in N-stl_2+2:N
+        L[i,N-stl+3:N+2] = calculate_weights(A.derivative_order, one(T)*(i-N+stl-2), one(T) .* collect(0:1:stl-1))
+    end
+    return L ./ A.dx^A.derivative_order
+end
+
+function BandedMatrices.BandedMatrix(A::DerivativeOperator{T}) where T
+    N = A.dimension
+    stl = A.stencil_length
+    stl_2 = div(stl,2)
+    L = BandedMatrix{T}(undef, (N, N+2), (max(stl_2,1),stl))
+
+    # Apply lower stencils
+    for i in 1:stl_2-1
+        L[i,1:stl] = calculate_weights(A.derivative_order, one(T)*(i), one(T) .* collect(0:1:stl-1))
+    end
+
+    # Apply inner stencils
+    for i in max(stl_2,1):N-stl_2+1
+        L[i,i-stl_2+1:i+stl_2+1] = A.stencil_coefs
+    end
+
+    # Apply upper stencils
+    for i in N-stl_2+2:N
+        L[i,N-stl+3:N+2] = calculate_weights(A.derivative_order, one(T)*(i-N+stl-2), one(T) .* collect(0:1:stl-1))
+    end
+    return L ./ A.dx^A.derivative_order
+end
