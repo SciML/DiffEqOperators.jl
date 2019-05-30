@@ -399,3 +399,75 @@ end
 (L::FiniteDifference)(du,u,p,t) = mul!(du,L,u)
 # get_LBC(::FiniteDifference{A,B,C,D}) where {A,B,C,D} = C
 # get_RBC(::FiniteDifference{A,B,C,D}) where {A,B,C,D} = D
+
+function LinearAlgebra.Array(A::FiniteDifference{T}) where T
+    N = A.dimension
+    L = zeros(T, N, N+2)
+    stl = A.stencil_length
+    stl_2 = div(stl,2)
+    extended_x = one(T).*[-A.dx[1]; zero(T); cumsum([A.dx; A.dx[N-1]])]
+
+    # Apply lower stencils
+    for i in 1:stl_2-1
+        L[i,1:stl] = calculate_weights(A.derivative_order, extended_x[i+1], extended_x[1:stl])
+    end
+
+    # Apply inner stencils
+    for i in max(stl_2,1):N-stl_2+1
+        L[i,i-stl_2+1:i+stl_2+1] = calculate_weights(A.derivative_order, extended_x[i+1], extended_x[i+1-stl_2:i+1+stl_2])
+    end
+
+    # Apply upper stencils
+    for i in N-stl_2+2:N
+        L[i,N-stl+3:N+2] = calculate_weights(A.derivative_order, extended_x[i+1], extended_x[N-stl+3:N+2])
+    end
+    return L
+end
+
+function SparseArrays.SparseMatrixCSC(A::FiniteDifference{T}) where T
+    N = A.dimension
+    L = spzeros(T, N, N+2)
+    stl = A.stencil_length
+    stl_2 = div(stl,2)
+    extended_x = one(T).*[-A.dx[1]; zero(T); cumsum([A.dx; A.dx[N-1]])]
+
+    # Apply lower stencils
+    for i in 1:stl_2-1
+        L[i,1:stl] = calculate_weights(A.derivative_order, extended_x[i+1], extended_x[1:stl])
+    end
+
+    # Apply inner stencils
+    for i in max(stl_2,1):N-stl_2+1
+        L[i,i-stl_2+1:i+stl_2+1] = calculate_weights(A.derivative_order, extended_x[i+1], extended_x[i+1-stl_2:i+1+stl_2])
+    end
+
+    # Apply upper stencils
+    for i in N-stl_2+2:N
+        L[i,N-stl+3:N+2] = calculate_weights(A.derivative_order, extended_x[i+1], extended_x[N-stl+3:N+2])
+    end
+    return L
+end
+
+function BandedMatrices.BandedMatrix(A::FiniteDifference{T}) where T
+    N = A.dimension
+    stl = A.stencil_length
+    stl_2 = div(stl,2)
+    L = BandedMatrix{T}(undef, (N, N+2), (max(stl_2,1),stl))
+    extended_x = one(T).*[-A.dx[1]; zero(T); cumsum([A.dx; A.dx[N-1]])]
+
+    # Apply lower stencils
+    for i in 1:stl_2-1
+        L[i,1:stl] = calculate_weights(A.derivative_order, extended_x[i+1], extended_x[1:stl])
+    end
+
+    # Apply inner stencils
+    for i in max(stl_2,1):N-stl_2+1
+        L[i,i-stl_2+1:i+stl_2+1] = calculate_weights(A.derivative_order, extended_x[i+1], extended_x[i+1-stl_2:i+1+stl_2])
+    end
+
+    # Apply upper stencils
+    for i in N-stl_2+2:N
+        L[i,N-stl+3:N+2] = calculate_weights(A.derivative_order, extended_x[i+1], extended_x[N-stl+3:N+2])
+    end
+    return L
+end
