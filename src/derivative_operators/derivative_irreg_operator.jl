@@ -453,7 +453,7 @@ function BandedMatrices.BandedMatrix(A::FiniteDifference{T}) where T
     N = A.dimension
     stl = A.stencil_length
     stl_2 = div(stl,2)
-    L = BandedMatrix{T}(undef, (N, N+2), (max(stl_2,1),stl))
+    L = BandedMatrix{T}(undef, (N, N+2), (max(stl-3,0),max(stl-1,0)))
     extended_x = one(T).*[-A.dx[1]; zero(T); cumsum([A.dx; A.dx[N-1]])]
 
     # Apply lower stencils

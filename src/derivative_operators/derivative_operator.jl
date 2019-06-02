@@ -503,7 +503,7 @@ function BandedMatrices.BandedMatrix(A::DerivativeOperator{T}) where T
     N = A.dimension
     stl = A.stencil_length
     stl_2 = div(stl,2)
-    L = BandedMatrix{T}(undef, (N, N+2), (max(stl_2,1),stl))
+    L = BandedMatrix{T}(undef, (N, N+2), (max(stl-3,0),max(stl-1,0)))
 
     # Apply lower stencils
     for i in 1:stl_2-1
