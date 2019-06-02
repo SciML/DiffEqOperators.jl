@@ -85,6 +85,8 @@ struct DerivativeOperator{T<:Real,S<:SVector,LBC,RBC} <: AbstractDerivativeOpera
         stencil_coefs        = convert(SVector{stencil_length, T}, calculate_weights(derivative_order, zero(T),
                                grid_step .* collect(-div(stencil_length,2) : 1 : div(stencil_length,2))))
 
+        dimension < stencil_length && throw("Dimension too low for the stencil length of the Operator. Check your dimension length, derivative order, and approximation order.")
+
         left_bndry = initialize_left_boundary!(Val{:LO},low_boundary_coefs,stencil_coefs,BC,derivative_order,
                                                grid_step,bl,bpc_array,dx,LBC)
 
@@ -93,7 +95,6 @@ struct DerivativeOperator{T<:Real,S<:SVector,LBC,RBC} <: AbstractDerivativeOpera
 
         boundary_condition = (left_bndry, right_bndry)
         boundary_point_count = (bpc_array[1],bpc_array[2])
-
         t = 0
 
         new(derivative_order, approximation_order, dx, dimension, stencil_length,
