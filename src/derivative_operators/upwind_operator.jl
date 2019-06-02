@@ -225,7 +225,7 @@ function right_nothing_BC!(::Type{Val{:UO}},high_boundary_coefs,down_stencil_len
 end
 
 #=
-    The Inf opnorm can be calculated easily using the stencil coeffiicents, while other opnorms 
+    The Inf opnorm can be calculated easily using the stencil coeffiicents, while other opnorms
     default to compute from the full matrix form.
 =#
 function LinearAlgebra.opnorm(A::UpwindOperator{T,S,LBC,RBC}, p::Real=2) where {T,S,LBC,RBC}
@@ -234,4 +234,70 @@ function LinearAlgebra.opnorm(A::UpwindOperator{T,S,LBC,RBC}, p::Real=2) where {
     else
         opnorm(convert(Array,A), p)
     end
+end
+
+function LinearAlgebra.Array(A::UpwindOperator{T}) where T
+    N = A.dimension
+    L = zeros(T, N, N+2)
+    stl = A.stencil_length
+
+    # Apply lower stencils
+    for i in 1:stl-2
+        A.directions[][i] ? L[i,i+1:i+stl] = A.up_stencil_coefs : L[i,1:stl] = reverse(calculate_weights(A.derivative_order, one(T)*(stl-1-i), one(T) .* collect(0:1:stl-1)))
+    end
+
+    # Apply inner stencils
+    for i in max(stl-1,1):N-stl+2
+        A.directions[][i] ? L[i,i+1:i+stl] = A.up_stencil_coefs : L[i,i-stl+2:i+1] = A.down_stencil_coefs
+    end
+
+    # Apply upper stencils
+    for i in N-stl+3:N
+        A.directions[][i] ? L[i,N-stl+3:N+2] = calculate_weights(A.derivative_order, one(T)*(i-N+stl-2), one(T) .* collect(0:1:stl-1)) : L[i,i-stl+2:i+1] = A.down_stencil_coefs
+    end
+    return L ./ A.dx^A.derivative_order
+end
+
+function SparseArrays.SparseMatrixCSC(A::UpwindOperator{T}) where T
+    N = A.dimension
+    L = spzeros(T, N, N+2)
+    stl = A.stencil_length
+
+    # Apply lower stencils
+    for i in 1:stl-2
+        A.directions[][i] ? L[i,i+1:i+stl] = A.up_stencil_coefs : L[i,1:stl] = reverse(calculate_weights(A.derivative_order, one(T)*(stl-1-i), one(T) .* collect(0:1:stl-1)))
+    end
+
+    # Apply inner stencils
+    for i in max(stl-1,1):N-stl+2
+        A.directions[][i] ? L[i,i+1:i+stl] = A.up_stencil_coefs : L[i,i-stl+2:i+1] = A.down_stencil_coefs
+    end
+
+    # Apply upper stencils
+    for i in N-stl+3:N
+        A.directions[][i] ? L[i,N-stl+3:N+2] = calculate_weights(A.derivative_order, one(T)*(i-N+stl-2), one(T) .* collect(0:1:stl-1)) : L[i,i-stl+2:i+1] = A.down_stencil_coefs
+    end
+    return L ./ A.dx^A.derivative_order
+end
+
+function BandedMatrices.BandedMatrix(A::UpwindOperator{T}) where T
+    N = A.dimension
+    stl = A.stencil_length
+    L = BandedMatrix{T}(undef, (N, N+2), (max(stl-1,0),max(stl,0)))
+
+    # Apply lower stencils
+    for i in 1:stl-2
+        A.directions[][i] ? L[i,i+1:i+stl] = A.up_stencil_coefs : L[i,1:stl] = reverse(calculate_weights(A.derivative_order, one(T)*(stl-1-i), one(T) .* collect(0:1:stl-1)))
+    end
+
+    # Apply inner stencils
+    for i in max(stl-1,1):N-stl+2
+        A.directions[][i] ? L[i,i+1:i+stl] = A.up_stencil_coefs : L[i,i-stl+2:i+1] = A.down_stencil_coefs
+    end
+
+    # Apply upper stencils
+    for i in N-stl+3:N
+        A.directions[][i] ? L[i,N-stl+3:N+2] = calculate_weights(A.derivative_order, one(T)*(i-N+stl-2), one(T) .* collect(0:1:stl-1)) : L[i,i-stl+2:i+1] = A.down_stencil_coefs
+    end
+    return L ./ A.dx^A.derivative_order
 end
