@@ -240,20 +240,21 @@ function LinearAlgebra.Array(A::UpwindOperator{T}) where T
     N = A.dimension
     L = zeros(T, N, N+2)
     stl = A.stencil_length
+    lbc, ubc = A.boundary_point_count
 
-    # Apply lower stencils
-    for i in 1:stl-2
-        A.directions[][i] ? L[i,i+1:i+stl] = A.up_stencil_coefs : L[i,1:stl] = reverse(calculate_weights(A.derivative_order, one(T)*(stl-1-i), one(T) .* collect(0:1:stl-1)))
+    # Apply lower stencils, here we assume that the A.low_boundary_coefs stores the downwind stencils at the lower boundary
+    for i in 1:lbc
+        A.directions[][i] ? L[i,i+1:i+stl] = A.up_stencil_coefs : L[i,1:A.boundary_length[1]] = A.low_boundary_coefs[][i]
     end
 
     # Apply inner stencils
-    for i in max(stl-1,1):N-stl+2
+    for i in lbc+1:N-ubc
         A.directions[][i] ? L[i,i+1:i+stl] = A.up_stencil_coefs : L[i,i-stl+2:i+1] = A.down_stencil_coefs
     end
 
-    # Apply upper stencils
-    for i in N-stl+3:N
-        A.directions[][i] ? L[i,N-stl+3:N+2] = calculate_weights(A.derivative_order, one(T)*(i-N+stl-2), one(T) .* collect(0:1:stl-1)) : L[i,i-stl+2:i+1] = A.down_stencil_coefs
+    # Apply upper stencils, here we assume that the A.high_boundary_coefs stores the upwind stencils at the upper boundary
+    for i in N-ubc+1:N
+        A.directions[][i] ? L[i,N-A.boundary_length[2]+3:N+2] = A.high_boundary_coefs[][i-N+ubc] : L[i,i-stl+2:i+1] = A.down_stencil_coefs
     end
     return L ./ A.dx^A.derivative_order
 end
@@ -262,20 +263,21 @@ function SparseArrays.SparseMatrixCSC(A::UpwindOperator{T}) where T
     N = A.dimension
     L = spzeros(T, N, N+2)
     stl = A.stencil_length
+    lbc, ubc = A.boundary_point_count
 
-    # Apply lower stencils
-    for i in 1:stl-2
-        A.directions[][i] ? L[i,i+1:i+stl] = A.up_stencil_coefs : L[i,1:stl] = reverse(calculate_weights(A.derivative_order, one(T)*(stl-1-i), one(T) .* collect(0:1:stl-1)))
+    # Apply lower stencils, here we assume that the A.low_boundary_coefs stores the downwind stencils at the lower boundary
+    for i in 1:lbc
+        A.directions[][i] ? L[i,i+1:i+stl] = A.up_stencil_coefs : L[i,1:A.boundary_length[1]] = A.low_boundary_coefs[][i]
     end
 
     # Apply inner stencils
-    for i in max(stl-1,1):N-stl+2
+    for i in lbc+1:N-ubc
         A.directions[][i] ? L[i,i+1:i+stl] = A.up_stencil_coefs : L[i,i-stl+2:i+1] = A.down_stencil_coefs
     end
 
-    # Apply upper stencils
-    for i in N-stl+3:N
-        A.directions[][i] ? L[i,N-stl+3:N+2] = calculate_weights(A.derivative_order, one(T)*(i-N+stl-2), one(T) .* collect(0:1:stl-1)) : L[i,i-stl+2:i+1] = A.down_stencil_coefs
+    # Apply upper stencils, here we assume that the A.high_boundary_coefs stores the upwind stencils at the upper boundary
+    for i in N-ubc+1:N
+        A.directions[][i] ? L[i,N-A.boundary_length[2]+3:N+2] = A.high_boundary_coefs[][i-N+ubc] : L[i,i-stl+2:i+1] = A.down_stencil_coefs
     end
     return L ./ A.dx^A.derivative_order
 end
@@ -284,20 +286,21 @@ function BandedMatrices.BandedMatrix(A::UpwindOperator{T}) where T
     N = A.dimension
     stl = A.stencil_length
     L = BandedMatrix{T}(undef, (N, N+2), (max(stl-1,0),max(stl,0)))
+    lbc, ubc = A.boundary_point_count
 
-    # Apply lower stencils
-    for i in 1:stl-2
-        A.directions[][i] ? L[i,i+1:i+stl] = A.up_stencil_coefs : L[i,1:stl] = reverse(calculate_weights(A.derivative_order, one(T)*(stl-1-i), one(T) .* collect(0:1:stl-1)))
+    # Apply lower stencils, here we assume that the A.low_boundary_coefs stores the downwind stencils at the lower boundary
+    for i in 1:lbc
+        A.directions[][i] ? L[i,i+1:i+stl] = A.up_stencil_coefs : L[i,1:A.boundary_length[1]] = A.low_boundary_coefs[][i]
     end
 
     # Apply inner stencils
-    for i in max(stl-1,1):N-stl+2
+    for i in lbc+1:N-ubc
         A.directions[][i] ? L[i,i+1:i+stl] = A.up_stencil_coefs : L[i,i-stl+2:i+1] = A.down_stencil_coefs
     end
 
-    # Apply upper stencils
-    for i in N-stl+3:N
-        A.directions[][i] ? L[i,N-stl+3:N+2] = calculate_weights(A.derivative_order, one(T)*(i-N+stl-2), one(T) .* collect(0:1:stl-1)) : L[i,i-stl+2:i+1] = A.down_stencil_coefs
+    # Apply upper stencils, here we assume that the A.high_boundary_coefs stores the upwind stencils at the upper boundary
+    for i in N-ubc+1:N
+        A.directions[][i] ? L[i,N-A.boundary_length[2]+3:N+2] = A.high_boundary_coefs[][i-N+ubc] : L[i,i-stl+2:i+1] = A.down_stencil_coefs
     end
     return L ./ A.dx^A.derivative_order
 end
