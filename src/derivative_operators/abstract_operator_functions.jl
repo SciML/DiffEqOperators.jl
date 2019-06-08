@@ -130,7 +130,9 @@ end
 
 
 function LinearAlgebra.mul!(x_temp::AbstractVector{T}, A::DirichletBCExtended{T}, x::AbstractVector{T}) where T<:Real
+    convolve_BC_left!(x_temp, x, A)
     convolve_interior!(x_temp, x, A)
+    convolve_BC_right!(x_temp, x, A)
     rmul!(x_temp, @.(1/(A.dx^A.derivative_order)))
 end
 
@@ -193,16 +195,17 @@ end
 
 function Base.convert(::Type{Array}, A::DirichletBCExtended{T}, N::Int=A.dimension) where T
     @assert N >= A.stencil_length # stencil must be able to fit in the matrix
-    gpc = A.ghost_point_count
-    mat = zeros(T, (N, N + 2*gpc))
-    v = zeros(T, N + 2*gpc)
-    for i = 1 + gpc:N+gpc
+    mat = zeros(T, (N + 2, N))
+    v = zeros(T, N)
+    x_temp = zeros(T, N)
+    for i = 1:N
         v[i] = one(T)
         #=
             calculating the effect on a unit vector to get the matrix of transformation
             to get the vector in the new vector space.
         =#
-        mul!(view(mat, i-gpc, :), A, v)
+        mul!(x_temp, A, v)
+        mat[i+1, :] = x_temp
         v[i] = zero(T)
         # println(i)
     end
