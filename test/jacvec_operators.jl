@@ -29,9 +29,9 @@ L = JacVecOperator(f,x,autodiff=false)
 DiffEqBase.update_coefficients!(L,x,nothing,nothing)
 @test L*x ≈ DiffEqOperators.num_jacvec(f, x, x)
 @test L*v ≈ DiffEqOperators.num_jacvec(f, x, v)
-@test mul!(du,L,v) ≈ DiffEqOperators.num_jacvec(f, x, v)
+@test mul!(du,L,v) ≈ DiffEqOperators.num_jacvec(f, x, v) rtol=1e-6
 DiffEqBase.update_coefficients!(L,v,nothing,nothing)
-@test mul!(du,L,v) ≈ DiffEqOperators.num_jacvec(f, v, v)
+@test mul!(du,L,v) ≈ DiffEqOperators.num_jacvec(f, v, v) rtol=1e-6
 
 L2 = JacVecOperator{Float64}(f)
 DiffEqBase.update_coefficients!(L2,x,nothing,nothing)
