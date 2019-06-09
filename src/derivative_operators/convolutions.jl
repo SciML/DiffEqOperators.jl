@@ -1,36 +1,12 @@
-#= Worker functions=#
-low(i::Int, mid::Int, bpc::Int) = Int(mid + (i-1)*(1-mid)/bpc)
-high(i::Int, mid::Int, bpc::Int, slen::Int, L::Int) = Int(slen - (slen-mid)*(i-L+bpc)/(bpc))
-
-# used in general dirichlet BC. To simulate a constant value beyond the boundary
-limit(i, N) = N>=i>=1 ? i : (i<1 ? 1 : N)
-
-# used in Neumann 0 BC
-function reflect(idx, L)
-    abs1 = abs(L-idx)
-    if L - abs1 > 0
-        return L-abs1
-    else
-        return abs(L-abs1)+2
-    end
-end
-
-# gives the index for periodic BC
-function rem1(idx,L)
-    r = idx%L
-    if r > 0
-        return r
-    else
-        return r+L
-    end
-end
-
+# mul! done by convolutions
 function LinearAlgebra.mul!(x_temp::AbstractVector{T}, A::Union{DerivativeOperator{T},UpwindOperator{T}}, x::AbstractVector{T}) where T<:Real
     convolve_BC_left!(x_temp, x, A)
     convolve_interior!(x_temp, x, A)
     convolve_BC_right!(x_temp, x, A)
     rmul!(x_temp, @.(1/(A.dx^A.derivative_order)))
 end
+
+################################################
 
 # Against a standard vector, assume already padded and just apply the stencil
 function convolve_interior!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::DerivativeOperator{T,S}) where {T<:Real,S<:SVector}
