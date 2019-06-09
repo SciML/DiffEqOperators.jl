@@ -45,4 +45,4 @@ for i in 1:5
 
 end
 
-#TODO: Implement tests for BC's that are contingent on the sign of the coefficient on the boundary near the boundary
+#TODO: Implement tests for BC's that are contingent on the sign of the coefficient on the operator near the boundary
