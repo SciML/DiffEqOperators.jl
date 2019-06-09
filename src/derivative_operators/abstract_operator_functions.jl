@@ -114,24 +114,6 @@ end
 end
 
 #=
-    This the basic mul! function which is broken up into 3 parts ie. handling the left
-    boundary, handling the interior and handling the right boundary. Finally the vector is
-    scaled appropriately according to the derivative order and the degree of discretizaiton.
-    We also update the time stamp of the DerivativeOperator inside to manage time dependent
-    boundary conditions.
-=#
-function LinearAlgebra.mul!(x_temp::AbstractVector{T}, A::Union{DerivativeOperator{T},UpwindOperator{T}}, x::AbstractVector{T}) where T<:Real
-    convolve_interior!(x_temp, x, A)
-    rmul!(x_temp, @.(1/(A.dx^A.derivative_order)))
-end
-function LinearAlgebra.mul!(x_temp::AbstractVector{T}, A::Union{DerivativeOperator{T},UpwindOperator{T}}, x::RobinBCExtended{T}) where T<:Real
-    convolve_BC_left!(x_temp, x, A)
-    convolve_interior!(x_temp, x, A)
-    convolve_BC_right!(x_temp, x, A)
-    rmul!(x_temp, @.(1/(A.dx^A.derivative_order)))
-end
-
-#=
     This definition of the mul! function makes it possible to apply the LinearOperator on
     a matrix and not just a vector. It basically transforms the rows one at a time.
 =#
