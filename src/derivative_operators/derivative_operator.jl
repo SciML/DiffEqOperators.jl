@@ -61,8 +61,7 @@ struct DerivativeOperator{T<:Real,S<:SVector} <: AbstractDerivativeOperator{T}
     dimension           :: Int
     stencil_length      :: Int
     stencil_coefs       :: S
-    boundary_point_count:: Tuple{Int,Int}
-    boundary_length     :: Tuple{Int,Int}
+    boundary_length     :: Int
     low_boundary_coefs  :: Vector{S}
     high_boundary_coefs :: Vector{S}
 
@@ -73,19 +72,13 @@ struct DerivativeOperator{T<:Real,S<:SVector} <: AbstractDerivativeOperator{T}
         dimension            = dimension
         dx                   = dx
         stencil_length       = derivative_order + approximation_order - 1 + (derivative_order+approximation_order)%2
-        bl                   = derivative_order + approximation_order
-        boundary_length      = (bl,bl)
-        bpc                  = stencil_length - div(stencil_length,2) + 1
-        bpc_array            = [bpc,bpc]
-        grid_step            = one(T)
+        boundary_length      = stencil_length - div(stencil_length,2) + 1
         low_boundary_coefs   = Vector{S}[]
         high_boundary_coefs  = Vector{S}[]
-        stencil_coefs        = convert(SVector{stencil_length, T}, calculate_weights(derivative_order, zero(T),
-                               grid_step .* collect(-div(stencil_length,2) : 1 : div(stencil_length,2))))
+        stencil_coefs        = convert(SVector{stencil_length, T}, calculate_weights(derivative_order, zero(T), 1:stencil_length))
 
         new(derivative_order, approximation_order, dx, dimension, stencil_length,
             stencil_coefs,
-            boundary_point_count,
             boundary_length,
             low_boundary_coefs,
             high_boundary_coefs

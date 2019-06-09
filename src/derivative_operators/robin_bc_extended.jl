@@ -14,7 +14,7 @@ struct RobinBC{T}
     end
 end
 
-struct RobinBCExtended{T,T2<:AbstractVector{T}}
+struct RobinBCExtended{T,T2<:AbstractVector{T}} <: AbstractVector{T}
     l::T
     r::T
     u::T2

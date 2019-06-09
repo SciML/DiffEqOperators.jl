@@ -25,7 +25,7 @@ function rem1(idx,L)
     end
 end
 
-function LinearAlgebra.mul!(x_temp::AbstractVector{T}, A::Union{DerivativeOperator{T},UpwindOperator{T}}, x::RobinBCExtended{T}) where T<:Real
+function LinearAlgebra.mul!(x_temp::AbstractVector{T}, A::Union{DerivativeOperator{T},UpwindOperator{T}}, x::AbstractVector{T}) where T<:Real
     convolve_BC_left!(x_temp, x, A)
     convolve_interior!(x_temp, x, A)
     convolve_BC_right!(x_temp, x, A)
@@ -36,7 +36,7 @@ end
 function convolve_interior!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::DerivativeOperator{T,S}) where {T<:Real,S<:SVector}
     @assert length(x_temp) == (length(x) + 2)
     coeffs = A.stencil_coefs
-    Threads.@threads for i in A.boundary_point_count[1]+1 : N-A.boundary_point_count[2]
+    Threads.@threads for i in A.boundary_length : length(x_temp)-A.boundary_length
         xtempi = zero(T)
         @inbounds for idx in 1:A.stencil_length
             xtempi += coeffs[idx] * x[i - (mid-idx)]
@@ -47,7 +47,7 @@ end
 
 function convolve_BC_left!(x_temp::AbstractVector{T}, x::AbstractVector, A::DerivativeOperator{T,S}) where {T<:Real,S<:SVector}
     coeffs = A.low_boundary_coefs
-    Threads.@threads for i in 1 : A.boundary_point_count[1]
+    Threads.@threads for i in 1 : A.boundary_length
         xtempi = coeffs[i][1]*x[1]
         @inbounds for idx in 2:A.stencil_length
             xtempi += coeffs[i][idx] * x[idx]
@@ -59,7 +59,7 @@ end
 function convolve_BC_right!(x_temp::AbstractVector{T}, x::AbstractVector, A::DerivativeOperator{T,S}) where {T<:Real,S<:SVector}
     coeffs = A.low_boundary_coefs
     bc_start = length(x) - A.stencil_length
-    Threads.@threads for i in 1 : A.boundary_point_count[2]
+    Threads.@threads for i in 1 : A.boundary_length
         xtempi = coeffs[i][end]*x[end]
         @inbounds for idx in A.stencil_length:-1:2
             xtempi += coeffs[i][end-idx] * x[end-idx]
@@ -75,7 +75,7 @@ function convolve_interior!(x_temp::AbstractVector{T}, _x::RobinBCExtended, A::D
     coeffs = A.stencil_coefs
     x = _x.u
     # Just do the middle parts
-    Threads.@threads for i in A.boundary_point_count[1]+1 : N-A.boundary_point_count[2]
+    Threads.@threads for i in A.boundary_length : length(x_temp)-A.boundary_length
         xtempi = zero(T)
         @inbounds for idx in 1:A.stencil_length
             xtempi += coeffs[idx] * x[i - (mid-idx) + 1]
@@ -86,7 +86,7 @@ end
 
 function convolve_BC_left!(x_temp::AbstractVector{T}, _x::RobinBCExtended, A::DerivativeOperator{T,S}) where {T<:Real,S<:SVector}
     coeffs = A.low_boundary_coefs
-    Threads.@threads for i in 1 : A.boundary_point_count[1]
+    Threads.@threads for i in 1 : A.boundary_length
         xtempi = coeffs[i][1]*x.l
         @inbounds for idx in 2:A.stencil_length
             xtempi += coeffs[i][idx] * x.u[idx-1]
@@ -98,7 +98,7 @@ end
 function convolve_BC_right!(x_temp::AbstractVector{T}, _x::RobinBCExtended, A::DerivativeOperator{T,S}) where {T<:Real,S<:SVector}
     coeffs = A.low_boundary_coefs
     bc_start = length(x.u) - A.stencil_length
-    Threads.@threads for i in 1 : A.boundary_point_count[2]
+    Threads.@threads for i in 1 : A.boundary_length
         xtempi = coeffs[i][end]*x.r
         @inbounds for idx in A.stencil_length:-1:2
             xtempi += coeffs[i][end-idx] * x.u[end-idx+1]
