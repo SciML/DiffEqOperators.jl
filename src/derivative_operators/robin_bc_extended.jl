@@ -1,4 +1,3 @@
-
 # For a boundary condition, the variables correspond to al*u(0) + bl*u'(0) = cl
 struct RobinBC{T}
     al::T
@@ -23,9 +22,8 @@ struct RobinBCExtended{T,T2<:AbstractVector{T}}
     function RobinBCExtended(u::T2, al::T, bl::T, cl::T,
                                     dx_l::T, ar::T, br::T, cr::T, dx_r::T) where
                                     {T,T2<:AbstractVector{T}}
-        u                    = u
         l = (cl - bl*u[1]/dx_l)*(1/(al-bl/dx_l))
-        r = (cr + br*u[length(u)]/dx_r)*(1/(ar+br/dx_r))
+        r = (cr + br*u[end]/dx_r)*(1/(ar+br/dx_r))
         return new{T,T2}(l, r, u)
 
     end
