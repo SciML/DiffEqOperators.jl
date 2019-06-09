@@ -27,6 +27,7 @@ include("derivative_operators/derivative_irreg_operator.jl")
 include("derivative_operators/derivative_operator.jl")
 include("derivative_operators/abstract_operator_functions.jl")
 include("derivative_operators/boundary_operators.jl")
+include("derivative_operators/robin_bc_extended.jl")
 
 ### Composite Operators
 include("composite_operators.jl")
@@ -41,4 +42,5 @@ end
 export MatrixFreeOperator
 export DiffEqScalar, DiffEqArrayOperator, DiffEqIdentity, JacVecOperator, getops
 export AbstractDerivativeOperator, DerivativeOperator, UpwindOperator, FiniteDifference
+export RobinBC
 end # module
