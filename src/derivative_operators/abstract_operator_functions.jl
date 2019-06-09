@@ -17,9 +17,6 @@ checkbounds(A::AbstractDerivativeOperator, k::Colon, j::Integer) =
 checkbounds(A::AbstractDerivativeOperator, k::Integer, j::Colon) =
     (0 < k ≤ size(A, 1) || throw(BoundsError(A, (k,size(A,2)))))
 
-
-# BandedMatrix{A,B,C,D}(A::DerivativeOperator{A,B,C,D}) = BandedMatrix(convert(Array, A, A.stencil_length), A.stencil_length, div(A.stencil_length,2), div(A.stencil_length,2))
-
 # ~~ getindex ~~
 @inline function getindex(A::AbstractDerivativeOperator, i::Int, j::Int)
     @boundscheck checkbounds(A, i, j)
@@ -152,3 +149,51 @@ Base.:\(A::AbstractVecOrMat, B::AbstractDerivativeOperator) = A \ convert(Array,
 Base.:\(A::AbstractDerivativeOperator, B::AbstractVecOrMat) = convert(Array,A) \ B
 Base.:/(A::AbstractVecOrMat, B::AbstractDerivativeOperator) = A / convert(Array,B)
 Base.:/(A::AbstractDerivativeOperator, B::AbstractVecOrMat) = convert(Array,A) / B
+
+########################################################################
+
+# Are these necessary?
+
+get_type(::AbstractDerivativeOperator{T}) where {T} = T
+
+function *(A::AbstractDerivativeOperator,x::AbstractVector)
+    #=
+        We will output a vector which is a supertype of the types of A and x
+        to ensure numerical stability
+    =#
+    get_type(A) != eltype(x) ? error("DiffEqOperator and array are not of same type!") : nothing
+    y = zeros(promote_type(eltype(A),eltype(x)), length(x))
+    LinearAlgebra.mul!(y, A::AbstractDerivativeOperator, x::AbstractVector)
+    return y
+end
+
+
+function *(A::AbstractDerivativeOperator,M::AbstractMatrix)
+    #=
+        We will output a vector which is a supertype of the types of A and x
+        to ensure numerical stability
+    =#
+    get_type(A) != eltype(M) ? error("DiffEqOperator and array are not of same type!") : nothing
+    y = zeros(promote_type(eltype(A),eltype(M)), size(M))
+    LinearAlgebra.mul!(y, A::AbstractDerivativeOperator, M::AbstractMatrix)
+    return y
+end
+
+
+function *(M::AbstractMatrix,A::AbstractDerivativeOperator)
+    #=
+        We will output a vector which is a supertype of the types of A and x
+        to ensure numerical stability
+    =#
+    get_type(A) != eltype(M) ? error("DiffEqOperator and array are not of same type!") : nothing
+    y = zeros(promote_type(eltype(A),eltype(M)), size(M))
+    LinearAlgebra.mul!(y, A::AbstractDerivativeOperator, M::AbstractMatrix)
+    return y
+end
+
+
+function *(A::AbstractDerivativeOperator,B::AbstractDerivativeOperator)
+    # TODO: it will result in an operator which calculates
+    #       the derivative of order A.dorder + B.dorder of
+    #       approximation_order = min(approx_A, approx_B)
+end

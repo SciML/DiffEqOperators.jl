@@ -32,3 +32,5 @@ function SparseArrays.sparse(A::AbstractDerivativeOperator{T}) where T
     end
     return mat
 end
+
+# BandedMatrix{A,B,C,D}(A::DerivativeOperator{A,B,C,D}) = BandedMatrix(convert(Array, A, A.stencil_length), A.stencil_length, div(A.stencil_length,2), div(A.stencil_length,2))
