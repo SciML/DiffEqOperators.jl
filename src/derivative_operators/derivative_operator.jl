@@ -10,6 +10,19 @@ function *(A::AbstractDerivativeOperator,x::AbstractVector)
 end
 
 
+function *(Q::DirichletBC{T},x::AbstractVector{T}) where {T<:Real}
+    #=
+        We will output a vector which is a supertype of the types of A and x
+        to ensure numerical stability
+    =#
+    get_type(Q) != eltype(x) ? error("DiffEqOperator and array are not of same type!") : nothing
+    y = zeros(promote_type(eltype(Q),eltype(x)), length(x))
+    L = BoundaryPaddedArray{T}(x, Q.l, Q.r, 2, 2, 1.0, 100)
+    LinearAlgebra.mul!(y, L::AbstractDerivativeOperator, x::AbstractVector)
+    return L
+end
+
+
 function *(A::AbstractDerivativeOperator,M::AbstractMatrix)
     #=
         We will output a vector which is a supertype of the types of A and x

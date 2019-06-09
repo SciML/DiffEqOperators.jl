@@ -130,7 +130,7 @@ function convolve_BC_left!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::U
 end
 
 
-function convolve_BC_left!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::Union{DerivativeOperator{T,S,:None,RBC},UpwindOperator{T,S,:None,RBC},FiniteDifference{T,S,:None,RBC},DirichletBCExtended{T,S}}) where {T<:Real,S<:SVector,RBC}
+function convolve_BC_left!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::Union{DerivativeOperator{T,S,:None,RBC},UpwindOperator{T,S,:None,RBC},FiniteDifference{T,S,:None,RBC},BoundaryPaddedArray{T,S}}) where {T<:Real,S<:SVector,RBC}
     halfstencil = div(A.stencil_length, 2)
     for i in 1 : A.boundary_point_count[1]
         @inbounds bc = A.low_boundary_coefs[][i]
@@ -185,7 +185,7 @@ function convolve_interior!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::
 end
 
 
-function convolve_interior!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::DirichletBCExtended{T,S}) where {T<:Real,S<:SVector}
+function convolve_interior!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::BoundaryPaddedArray{T,S}) where {T<:Real,S<:SVector}
     N = length(x)
     coeffs = A.stencil_coefs
     mid = div(A.stencil_length, 2) + 1
@@ -354,7 +354,7 @@ function convolve_BC_right!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::
 end
 
 
-function convolve_BC_right!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::Union{DerivativeOperator{T,S,LBC,:None},UpwindOperator{T,S,LBC,:None}, FiniteDifference{T,S,LBC,:None},DirichletBCExtended{T,S}}) where {T<:Real,S<:SVector,LBC}
+function convolve_BC_right!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::Union{DerivativeOperator{T,S,LBC,:None},UpwindOperator{T,S,LBC,:None}, FiniteDifference{T,S,LBC,:None},BoundaryPaddedArray{T,S}}) where {T<:Real,S<:SVector,LBC}
     # halfstencil = div(A.stencil_length, 2)
     for i in 1 : A.boundary_point_count[2] # the first stencil is for the last point ie. in reverse order
         @inbounds bc = A.high_boundary_coefs[][i]

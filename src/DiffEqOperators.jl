@@ -41,5 +41,5 @@ end
 
 export MatrixFreeOperator
 export DiffEqScalar, DiffEqArrayOperator, DiffEqIdentity, JacVecOperator, getops
-export AbstractDerivativeOperator, DerivativeOperator, DirichletBCExtended, DirichletBC, UpwindOperator, FiniteDifference
+export AbstractDerivativeOperator, DerivativeOperator, BoundaryPaddedArray, DirichletBC, UpwindOperator, FiniteDifference
 end # module

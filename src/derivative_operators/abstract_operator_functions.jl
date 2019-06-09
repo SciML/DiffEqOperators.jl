@@ -129,7 +129,7 @@ function LinearAlgebra.mul!(x_temp::AbstractVector{T}, A::Union{DerivativeOperat
 end
 
 
-function LinearAlgebra.mul!(x_temp::AbstractVector{T}, A::DirichletBCExtended{T}, x::AbstractVector{T}) where T<:Real
+function LinearAlgebra.mul!(x_temp::AbstractVector{T}, A::BoundaryPaddedArray{T}, x::AbstractVector{T}) where T<:Real
     convolve_BC_left!(x_temp, x, A)
     convolve_interior!(x_temp, x, A)
     convolve_BC_right!(x_temp, x, A)
@@ -193,7 +193,7 @@ function Base.convert(::Type{Array}, A::AbstractDerivativeOperator{T}, N::Int=A.
 end
 
 
-function Base.convert(::Type{Array}, A::DirichletBCExtended{T}, N::Int=A.dimension) where T
+function Base.convert(::Type{Array}, A::BoundaryPaddedArray{T}, N::Int=A.dimension) where T
     @assert N >= A.stencil_length # stencil must be able to fit in the matrix
     mat = zeros(T, (N + 2, N))
     v = zeros(T, N)
