@@ -20,14 +20,16 @@ include("basic_operators.jl")
 include("matrixfree_operators.jl")
 include("jacvec_operators.jl")
 
+### Boundary Operators
+include("derivative_operators/robin_bc_extended.jl")
+
 ### Derivative Operators
 include("derivative_operators/fornberg.jl")
 include("derivative_operators/upwind_operator.jl")
 include("derivative_operators/derivative_irreg_operator.jl")
 include("derivative_operators/derivative_operator.jl")
 include("derivative_operators/abstract_operator_functions.jl")
-include("derivative_operators/boundary_operators.jl")
-include("derivative_operators/robin_bc_extended.jl")
+include("derivative_operators/convolutions.jl")
 
 ### Composite Operators
 include("composite_operators.jl")

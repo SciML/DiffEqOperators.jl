@@ -14,7 +14,7 @@ struct RobinBC{T}
     end
 end
 
-struct RobinBCExtended{T,T2<:AbstractVector{T}}
+struct RobinBCExtended{T,T2<:AbstractVector{T}} <: AbstractVector{T}
     l::T
     r::T
     u::T2
@@ -53,24 +53,3 @@ end
 function LinearAlgebra.Array(Q::RobinBCExtended)
     return [Q.l; Q.u; Q.r]
 end
-
-
-#################################################################################################
-
-#=
-(L::DirichletBCExtended)(u,p,t) = L*u
-(L::DirichletBCExtended)(du,u,p,t) = mul!(du,L,u)
-get_type(::DirichletBCExtended{A,B}) where {A,B} = A
-
-#=
-    The Inf opnorm can be calculated easily using the stencil coeffiicents, while other opnorms
-    default to compute from the full matrix form.
-=#
-function LinearAlgebra.opnorm(A::DirichletBCExtended{T,S}, p::Real=2) where {T,S}
-    if p == Inf
-        sum(abs.(A.stencil_coefs)) / A.dx^A.derivative_order
-    else
-        opnorm(convert(Array,A), p)
-    end
-end
-=#
