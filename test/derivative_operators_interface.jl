@@ -16,7 +16,7 @@ end
     approx_order = 2
     x = collect(1:1.0:N).^2
 
-    A = DerivativeOperator{Float64}(d_order,approx_order,1.0,N,:Dirichlet0,:Dirichlet0)
+    A = DerivativeOperator{Float64}(d_order,approx_order,1.0,N)
     mat = convert(Array,A)
     sp_mat = sparse(A)
     @test mat == sp_mat
@@ -33,7 +33,7 @@ end
     y = collect(1:1.0:N).^4 - 2*collect(1:1.0:N).^3 + collect(1:1.0:N).^2;
     y = convert(Array{BigFloat, 1}, y)
 
-    A = DerivativeOperator{BigFloat}(d_order,approx_order,one(BigFloat),N,:Dirichlet0,:Dirichlet0)
+    A = DerivativeOperator{BigFloat}(d_order,approx_order,one(BigFloat),N)
     boundary_points = A.boundary_point_count
     mat = convert(Array, A, N)
     sp_mat = sparse(A)
@@ -51,7 +51,7 @@ end
     d_order = 4
     approx_order = 10
 
-    A = DerivativeOperator{Float64}(d_order,approx_order,1.0,N,:Dirichlet0,:Dirichlet0)
+    A = DerivativeOperator{Float64}(d_order,approx_order,1.0,N)
     @test A[1,1] ≈ 13.717407 atol=1e-4
     @test A[:,1] == (convert(Array,A))[:,1]
     @test A[10,20] == 0
@@ -65,7 +65,7 @@ end
     d_order = 2
     approx_order = 2
 
-    A = DerivativeOperator{Float64}(d_order,approx_order,1.0,N,:Dirichlet0,:Dirichlet0)
+    A = DerivativeOperator{Float64}(d_order,approx_order,1.0,N)
     M = convert(Array,A)
 
     @test A[1,1] == -2.0
@@ -86,8 +86,8 @@ end
     dy = yarr[2]-yarr[1]
     F = [x^2+y for x = xarr, y = yarr]
 
-    A = DerivativeOperator{Float64}(d_order,approx_order,dx,length(xarr),:None,:None)
-    B = DerivativeOperator{Float64}(d_order,approx_order,dy,length(yarr),:None,:None)
+    A = DerivativeOperator{Float64}(d_order,approx_order,dx,length(xarr))
+    B = DerivativeOperator{Float64}(d_order,approx_order,dy,length(yarr))
 
     @test A*F ≈ 2*ones(N,M) atol=1e-2
     @test F*B ≈ 8*ones(N,M) atol=1e-2
@@ -104,7 +104,7 @@ end
     # Only tests the additional functionality defined in "operator_combination.jl"
     N = 10
     Random.seed!(0); LA = DiffEqArrayOperator(rand(N,N))
-    LD = DerivativeOperator{Float64}(2,2,1.0,N,:Dirichlet0,:Dirichlet0)
+    LD = DerivativeOperator{Float64}(2,2,1.0,N)
     @test_broken begin
       L = 1.1*LA - 2.2*LD + 3.3*I
       # Builds convert(L) the brute-force way

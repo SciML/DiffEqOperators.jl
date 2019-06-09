@@ -34,8 +34,9 @@ end
 
 # Against a standard vector, assume already padded and just apply the stencil
 function convolve_interior!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::DerivativeOperator{T,S}) where {T<:Real,S<:SVector}
-    @assert length(x_temp) == (length(x) + 2)
+    @assert length(x_temp) == length(x)
     coeffs = A.stencil_coefs
+    mid = div(A.stencil_length,2) + 1
     Threads.@threads for i in A.boundary_length : length(x_temp)-A.boundary_length
         xtempi = zero(T)
         @inbounds for idx in 1:A.stencil_length
@@ -74,6 +75,7 @@ end
 function convolve_interior!(x_temp::AbstractVector{T}, _x::RobinBCExtended, A::DerivativeOperator{T,S}) where {T<:Real,S<:SVector}
     coeffs = A.stencil_coefs
     x = _x.u
+    mid = div(A.stencil_length,2) + 1
     # Just do the middle parts
     Threads.@threads for i in A.boundary_length : length(x_temp)-A.boundary_length
         xtempi = zero(T)
