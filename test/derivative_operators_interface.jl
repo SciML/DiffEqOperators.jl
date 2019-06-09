@@ -9,6 +9,22 @@ function strang_matrix(N)
   A
 end
 
+function convert_by_multiplication(::Type{Array}, A::AbstractDerivativeOperator{T}, N::Int=A.dimension) where T
+    @assert N >= A.stencil_length # stencil must be able to fit in the matrix
+    mat = zeros(T, (N, N+2))
+    v = zeros(T, N+2)
+    for i=1:N+2
+        v[i] = one(T)
+        #=
+            calculating the effect on a unit vector to get the matrix of transformation
+            to get the vector in the new vector space.
+        =#
+        mul!(view(mat,:,i), A, v)
+        v[i] = zero(T)
+    end
+    return mat
+end
+
 # tests for full and sparse function
 @testset "Full and Sparse functions:" begin
     N = 100
@@ -17,7 +33,7 @@ end
     x = collect(1:1.0:N).^2
 
     A = DerivativeOperator{Float64}(d_order,approx_order,1.0,N)
-    mat = convert(Array,A)
+    mat = convert_by_multiplication(Array,A,N)
     sp_mat = sparse(A)
     @test mat == sp_mat
 

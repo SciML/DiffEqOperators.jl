@@ -154,9 +154,9 @@ LinearAlgebra.issymmetric(::Union{DerivativeOperator,UpwindOperator}) = true
 =#
 function Base.convert(::Type{Array}, A::AbstractDerivativeOperator{T}, N::Int=A.dimension) where T
     @assert N >= A.stencil_length # stencil must be able to fit in the matrix
-    mat = zeros(T, (N+2, N))
+    mat = zeros(T, (N, N+2))
     v = zeros(T, N+2)
-    for i=1:N
+    for i=1:N+2
         v[i] = one(T)
         #=
             calculating the effect on a unit vector to get the matrix of transformation

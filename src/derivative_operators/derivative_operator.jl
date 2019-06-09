@@ -72,10 +72,9 @@ struct DerivativeOperator{T<:Real,S<:SVector} <: AbstractDerivativeOperator{T}
         dimension            = dimension
         dx                   = dx
         stencil_length       = derivative_order + approximation_order - 1 + (derivative_order+approximation_order)%2
-        boundary_length      = stencil_length - div(stencil_length,2) + 1
-
         dummy_x              = -div(stencil_length,2) : div(stencil_length,2)
         deriv_spots          = -div(stencil_length,2) : -1
+        boundary_length      = length(deriv_spots)
 
         stencil_coefs        = convert(SVector{stencil_length, T}, calculate_weights(derivative_order, zero(T), dummy_x))
         low_boundary_coefs   = [convert(SVector{stencil_length, T}, calculate_weights(derivative_order, oneunit(T)*x0, dummy_x)) for x0 in deriv_spots]
