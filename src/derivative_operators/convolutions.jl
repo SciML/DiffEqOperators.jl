@@ -22,7 +22,7 @@ function convolve_interior!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::
     end
 end
 
-function convolve_BC_left!(x_temp::AbstractVector{T}, x::AbstractVector, A::DerivativeOperator{T,S}) where {T<:Real,S<:SVector}
+function convolve_BC_left!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::DerivativeOperator{T,S}) where {T<:Real,S<:SVector}
     coeffs = A.low_boundary_coefs
     Threads.@threads for i in 1 : A.boundary_length
         xtempi = coeffs[i][1]*x[1]
@@ -33,15 +33,14 @@ function convolve_BC_left!(x_temp::AbstractVector{T}, x::AbstractVector, A::Deri
     end
 end
 
-function convolve_BC_right!(x_temp::AbstractVector{T}, x::AbstractVector, A::DerivativeOperator{T,S}) where {T<:Real,S<:SVector}
-    coeffs = A.low_boundary_coefs
-    bc_start = length(x) - A.stencil_length
+function convolve_BC_right!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::DerivativeOperator{T,S}) where {T<:Real,S<:SVector}
+    coeffs = A.high_boundary_coefs
     Threads.@threads for i in 1 : A.boundary_length
         xtempi = coeffs[i][end]*x[end]
-        @inbounds for idx in A.stencil_length:-1:2
+        @inbounds for idx in A.stencil_length:-1:1
             xtempi += coeffs[i][end-idx] * x[end-idx]
         end
-        x_temp[i] = xtempi
+        x_temp[end-A.boundary_length+i] = xtempi
     end
 end
 
