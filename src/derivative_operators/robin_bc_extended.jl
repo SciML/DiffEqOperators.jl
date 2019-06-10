@@ -32,6 +32,7 @@ end
 
 Base.:*(Q::RobinBC,u) = RobinBCExtended(u, Q.al, Q.bl, Q.cl, Q.dx_l, Q.ar, Q.br, Q.cr, Q.dx_r)
 Base.length(Q::RobinBCExtended) = length(Q.u) + 2
+Base.size(Q::RobinBCExtended) = (length(Q.u)+2,)
 Base.lastindex(Q::RobinBCExtended) = Base.length(Q)
 
 function Base.getindex(Q::RobinBCExtended,i)
@@ -45,8 +46,8 @@ function Base.getindex(Q::RobinBCExtended,i)
 end
 
 function LinearAlgebra.Array(Q::RobinBC, N::Int)
-    Q_L = [(-Q.bl/Q.dx_l)/(Q.al-Q.bl/Q.dx_l) transpose(zeros(N-1)); Diagonal(ones(N)); (Q.br/Q.dx_r)/(Q.ar+Q.br/Q.dx_r) transpose(zeros(N-1))]
-    Q_b = [Q.cl; zeros(N); Q.cr]
+    Q_L = [(-Q.bl/Q.dx_l)/(Q.al-Q.bl/Q.dx_l) transpose(zeros(N-1)); Diagonal(ones(N)); transpose(zeros(N-1)) (Q.br/Q.dx_r)/(Q.ar+Q.br/Q.dx_r)]
+    Q_b = [Q.cl/(Q.al-Q.bl/Q.dx_l); zeros(N); Q.cr/(Q.ar+Q.br/Q.dx_r)]
     return (Q_L, Q_b)
 end
 
