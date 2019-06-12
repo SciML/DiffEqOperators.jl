@@ -19,11 +19,12 @@ struct DerivativeOperator{T<:Real,S1<:SVector,S2<:SVector} <: AbstractDerivative
         boundary_length      = derivative_order + approximation_order
         dummy_x              = -div(stencil_length,2) : div(stencil_length,2)
         boundary_x           = -boundary_length+1:0
-        deriv_spots          = -div(stencil_length,2) : -1
-
+        # deriv_spots          = -div(stencil_length,2) : -1
+        deriv_spots          = (-div(stencil_length,2)+1) : -1
+        boundary_length      = length(boundary_x)
         boundary_deriv_spots = boundary_x[1:div(stencil_length,2)]
 
-        boundary_length      = length(boundary_x)
+
         println(boundary_length)
         println(boundary_x)
         println([calculate_weights(derivative_order, oneunit(T)*x0, boundary_x) for x0 in boundary_deriv_spots])

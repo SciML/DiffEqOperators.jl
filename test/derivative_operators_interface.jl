@@ -34,7 +34,7 @@ end
     correct = second_derivative_stencil(N)
     A = DerivativeOperator{Float64}(d_order,approx_order,1.0,N)
 
-    @test_broken convert_by_multiplication(Array,A,N) == correct
+    @test convert_by_multiplication(Array,A,N) == correct
     @test_broken convert(Array, A, N) == second_derivative_stencil(N)
     @test_broken sparse(A) == second_derivative_stencil(N)
     @test_broken opnorm(A, Inf) == opnorm(correct, Inf)
