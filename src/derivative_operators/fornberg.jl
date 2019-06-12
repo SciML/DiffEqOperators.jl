@@ -4,7 +4,7 @@
 # This implements the Fornberg (1988) algorithm (https://doi.org/10.1090/S0025-5718-1988-0935077-0)
 # to obtain Finite Difference weights over arbitrary points to arbitrary order
 
-function calculate_weights(order::Int, x0::T, x::Vector{T}) where T<:Real
+function calculate_weights(order::Int, x0::T, x::AbstractVector) where T<:Real
     #=
         order: The derivative order for which we need the coefficients
         x0   : The point in the array 'x' for which we need the coefficients

@@ -1,3 +1,13 @@
+function negate!(arr::T) where T
+    if size(arr,2) == 1
+        rmul!(arr,-one(eltype(arr[1]))) #fix right neumann bc, eltype(Vector{T}) doesnt work.
+    else
+        for row in arr
+            rmul!(row,-one(eltype(arr[1])))
+        end
+    end
+end
+
 struct UpwindOperator{T<:Real,S<:SVector,LBC,RBC} <: AbstractDerivativeOperator{T}
     derivative_order    :: Int
     approximation_order :: Int
@@ -225,7 +235,7 @@ function right_nothing_BC!(::Type{Val{:UO}},high_boundary_coefs,down_stencil_len
 end
 
 #=
-    The Inf opnorm can be calculated easily using the stencil coeffiicents, while other opnorms 
+    The Inf opnorm can be calculated easily using the stencil coeffiicents, while other opnorms
     default to compute from the full matrix form.
 =#
 function LinearAlgebra.opnorm(A::UpwindOperator{T,S,LBC,RBC}, p::Real=2) where {T,S,LBC,RBC}
