@@ -37,7 +37,7 @@ function convolve_BC_right!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::
     coeffs = A.high_boundary_coefs
     Threads.@threads for i in 1 : A.boundary_length
         xtempi = coeffs[i][end]*x[end]
-        @inbounds for idx in A.stencil_length:-1:1
+        @inbounds for idx in A.stencil_length-1:-1:1
             xtempi += coeffs[i][end-idx] * x[end-idx]
         end
         x_temp[end-A.boundary_length+i] = xtempi

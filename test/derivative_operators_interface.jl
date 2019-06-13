@@ -1,4 +1,4 @@
-using SparseArrays, DiffEqOperators, LinearAlgebra, Random, Test
+using SparseArrays, DiffEqOperators, LinearAlgebra, Random, Test, BandedMatrices
 
 function second_derivative_stencil(N)
   A = zeros(N,N+2)
@@ -30,14 +30,36 @@ end
     N = 10
     d_order = 2
     approx_order = 2
-    x = collect(1:1.0:N).^2
     correct = second_derivative_stencil(N)
     A = DerivativeOperator{Float64}(d_order,approx_order,1.0,N)
 
     @test convert_by_multiplication(Array,A,N) == correct
-    @test_broken convert(Array, A, N) == second_derivative_stencil(N)
-    @test_broken sparse(A) == second_derivative_stencil(N)
+    @test Array(A) == second_derivative_stencil(N)
+    @test sparse(A) == second_derivative_stencil(N)
+    @test BandedMatrix(A) == second_derivative_stencil(N)
     @test_broken opnorm(A, Inf) == opnorm(correct, Inf)
+
+
+    # testing higher derivative and approximation concretization
+    N = 20
+    d_order = 4
+    approx_order = 4
+    A = DerivativeOperator{Float64}(d_order,approx_order,1.0,N)
+    correct = convert_by_multiplication(Array,A,N)
+
+    @test Array(A) == correct
+    @test sparse(A) == correct
+    @test BandedMatrix(A) == correct
+
+    N = 40
+    d_order = 8
+    approx_order = 8
+    A = DerivativeOperator{Float64}(d_order,approx_order,1.0,N)
+    correct = convert_by_multiplication(Array,A,N)
+
+    @test Array(A) == correct
+    @test sparse(A) == correct
+    @test BandedMatrix(A) == correct
 
     # testing correctness of multiplication
     N = 1000
