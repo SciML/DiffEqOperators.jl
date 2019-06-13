@@ -47,7 +47,7 @@ end
 ###########################################
 
 # Against A BC-padded vector, specialize the computation to explicitly use the left, right, and middle parts
-function convolve_interior!(x_temp::AbstractVector{T}, _x::RobinBCExtended, A::DerivativeOperator{T,S}) where {T<:Real,S<:SVector}
+function convolve_interior!(x_temp::AbstractVector{T}, _x::BoundaryPaddedVector, A::DerivativeOperator{T,S}) where {T<:Real,S<:SVector}
     coeffs = A.stencil_coefs
     x = _x.u
     mid = div(A.stencil_length,2) + 1
@@ -61,7 +61,7 @@ function convolve_interior!(x_temp::AbstractVector{T}, _x::RobinBCExtended, A::D
     end
 end
 
-function convolve_BC_left!(x_temp::AbstractVector{T}, _x::RobinBCExtended, A::DerivativeOperator{T,S}) where {T<:Real,S<:SVector}
+function convolve_BC_left!(x_temp::AbstractVector{T}, _x::BoundaryPaddedVector, A::DerivativeOperator{T,S}) where {T<:Real,S<:SVector}
     coeffs = A.low_boundary_coefs
     Threads.@threads for i in 1 : A.boundary_length
         xtempi = coeffs[i][1]*x.l
@@ -72,7 +72,7 @@ function convolve_BC_left!(x_temp::AbstractVector{T}, _x::RobinBCExtended, A::De
     end
 end
 
-function convolve_BC_right!(x_temp::AbstractVector{T}, _x::RobinBCExtended, A::DerivativeOperator{T,S}) where {T<:Real,S<:SVector}
+function convolve_BC_right!(x_temp::AbstractVector{T}, _x::BoundaryPaddedVector, A::DerivativeOperator{T,S}) where {T<:Real,S<:SVector}
     coeffs = A.low_boundary_coefs
     bc_start = length(x.u) - A.stencil_length
     Threads.@threads for i in 1 : A.boundary_length
