@@ -43,7 +43,7 @@ function BandedMatrices.BandedMatrix(A::DerivativeOperator{T}) where T
     bl = A.boundary_length
     stl = A.stencil_length
     stl_2 = div(stl,2)
-    L = BandedMatrix{T}(undef, (N, N+2), (max(stl-3,0),max(stl-1,0)))
+    L = BandedMatrix{T}(Zeros(N, N+2), (max(stl-3,0),max(stl-1,0)))
     for i in 1:A.boundary_length
         L[i,1:stl] = A.low_boundary_coefs[i]
     end
