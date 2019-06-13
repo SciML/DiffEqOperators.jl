@@ -39,9 +39,9 @@ end
 
   Write vector b̄_1 as a vertical concatanation with b0 and the rest of the elements of b̄_1, denoted b̄`_1, the same with ū into u0 and ū`. b̄` = fill(β/Δx, length(stencil)-1)
   Pull out the product of u0 and b0 from the dot product. The stencil used to approximate u` is denoted s. b0 = α+(β/Δx)*s[1]
-  Rearrange terms to find a general formula for u0:= -b̄`_1̇⋅ū`/b0 + γ/b0 , the robin coefficients and Δx.
+  Rearrange terms to find a general formula for u0:= -b̄`_1̇⋅ū`/b0 + γ/b0, which is dependent on ū` the robin coefficients and Δx.
   The non identity part of Qa is qa:= -b`_1/b0 = -β.*s[2:end]/(α+β*s[1]/Δx). The constant part is Qb = γ/(α+β*s[1]/Δx)
-  do the same at the other boundary (amounts to a flip in s.)
+  do the same at the other boundary (amounts to a flip in s with the right boundary coeffs)
 """
 
 # For  condition, the variables correspond to al*u(0) + bl*u'(0) = cl
