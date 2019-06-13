@@ -3,29 +3,6 @@ abstract type AbstractBC{T} end
 # robin, general, and in general neumann BCs are all affine opeartors, meaning that they take the form Qx = Qax + Qb. neumann0 is not however; is a specialization needed?
 abstract type AffineBC{T,V} <: AbstractBC{T} end
 
-struct DirichletBC{T} <: AbstractBC{T}
-    l::T
-    r::T
-end
-
-struct NeumannBC{T, V<:AbstractArray{T}} <: AffineBC{T,V}
-    a_l::V
-    b_l::T
-    a_r::V
-    b_r::T
-    function NeumannBC(l::T, r::T, dx::AbstractArray{T}, order::T = one(T)) where {T,V}
-        s = calculate_weights(1, zero(T), zero(T):order) #generate derivative coefficients about the boundary of required approximation order
-
-        a_l = -dx_l.*s[2:end]./s[1]
-        a_r = -dx_r.*s[end:-1:2]./s[1]
-
-        b_l = dx_l.*l./s[1]
-        b_r = dx_r.*l./s[1]
-
-        return new{T, typeof(a_l)}(a_l, b_l, a_r, b_r)
-    end
-end
-
 struct PeriodicBC{T} <: AbstractBC{T}
 
 end
@@ -42,8 +19,6 @@ end
   The non identity part of Qa is qa:= -b`₁/b0 = -β.*s[2:end]/(α+β*s[1]/Δx). The constant part is Qb = γ/(α+β*s[1]/Δx)
   do the same at the other boundary (amounts to a flip of s[2:end], with the other set of boundary coeffs)
 """
-
-# For  condition, the variables correspond to al*u(0) + bl*u'(0) = cl
 struct RobinBC{T, V<:AbstractVector{T}} <: AffineBC{T,V}
     a_l::V
     b_l::T
@@ -75,7 +50,6 @@ This time there are multiple stencils for multiple derivative orders - these can
 All components that multiply u(0) are factored out, turns out to only involve the first colum of S, s̄0. The rest of S is denoted S`. the coeff of u(0) is s̄0⋅ᾱ[3:end] + α[2].
 the remaining components turn out to be ᾱ[3:end]⋅(S`ū`) or equivalantly (transpose(ᾱ[3:end])*S`)⋅ū`. Rearranging, a stencil q_a to be dotted with ū` upon extension can readily be found, along with a constant component q_b
 """
-#If you know a more correct name for this kind of BC, please post an issue/PR
 struct GeneralBC{T, V<:AbstractVector{T}} <:AffineBC{T,V}
     a_l::V
     b_l::T
@@ -109,12 +83,17 @@ struct GeneralBC{T, V<:AbstractVector{T}} <:AffineBC{T,V}
     end
 end
 
+NeumannBC([l::T, r::T], [dx_l,dx_r], order) where T = RobinBC([zero(T), one(T), l], [zero(T), one(T), r], [dx_l,dx_r], order)
+NeumannBC([l::T, r::T], [dx_l,dx_r]) where T = RobinBC([zero(T), one(T), l], [zero(T), one(T), r], [dx_l,dx_r])
+
+DirichletBC([l::T, r::T], [dx_l,dx_r], order) where T = RobinBC([one(T), zero(T), l], [one(T), zero(T), r], [dx_l,dx_r], order)
+DirichletBC([l::T, r::T], [dx_l,dx_r]) where T = RobinBC([one(T), zero(T), l], [one(T), zero(T), r], [dx_l,dx_r])
+
+
+
 # other acceptable argument signatures
 RobinBC(al::T, bl::T, cl::T, dx_l::T, ar::T, br::T, cr::T, dx_r::T) where T = RobinBC([al,bl,cl], [ar, br, cr], [dx_l, dx_r])
 RobinBC(al::T, bl::T, cl::T, dx_l::T, ar::T, br::T, cr::T, dx_r::T, order::T) where T = RobinBC([al,bl,cl], [ar, br, cr], [dx_l, dx_r], order)
-
-NeumannBC(l::T, dx_l::T, r::T, dx_r::T) where T = NeumannBC(l, r, [dx_l,dx_r])
-NeumannBC(l::T, dx_l::T, r::T, dx_r::T, order::T) where T = NeumannBC(l, r, [dx_l,dx_r], order)
 
 # this  is 'boundary padded vector' as opposed to 'boundary padded array' to distinguish it from the n dimensional implementation that will eventually be neeeded
 struct BoundaryPaddedVector{T,T2 <: AbstractVector{T}}
@@ -123,8 +102,6 @@ struct BoundaryPaddedVector{T,T2 <: AbstractVector{T}}
     u::T2
 end
 
-Base.:*(Q::DirichletBC, u) = BoundaryPaddedVector(Q.l,Q.r,u)
-Base.:*(Q::PeriodicBC, u) = BoundaryPaddedVector(u[end], u[1], u)
 Base.:*(Q::AffineBC, u) = BoundaryPaddedVector(Q.a_l ⋅ u[1:length(Q.a_l)] + Q.b_l, Q.a_r ⋅ u[(end-length(Q.a_r)+1):end] + Q.b_r, u)
 
 Base.size(Q::AbstractBC) = (Inf, Inf) #Is this nessecary?
