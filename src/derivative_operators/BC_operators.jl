@@ -1,6 +1,6 @@
 abstract type AbstractBC{T} end
 
-# robin, general, and in general neumann BCs are all affine opeartors, meaning that they take the form Qx = Qax + Qb. neumann0 is not however; is a specialization needed?
+# Robin, General, and in general Neumann and Dirichlet BCs are all affine opeartors, meaning that they take the form Qx = Qax + Qb.
 abstract type AffineBC{T,V} <: AbstractBC{T} end
 
 struct PeriodicBC{T} <: AbstractBC{T}
@@ -83,13 +83,12 @@ struct GeneralBC{T, V<:AbstractVector{T}} <:AffineBC{T,V}
     end
 end
 
+#implement Neumann and Dirichlet as special cases of RobinBC
 NeumannBC([l::T, r::T], [dx_l,dx_r], order) where T = RobinBC([zero(T), one(T), l], [zero(T), one(T), r], [dx_l,dx_r], order)
 NeumannBC([l::T, r::T], [dx_l,dx_r]) where T = RobinBC([zero(T), one(T), l], [zero(T), one(T), r], [dx_l,dx_r])
 
 DirichletBC([l::T, r::T], [dx_l,dx_r], order) where T = RobinBC([one(T), zero(T), l], [one(T), zero(T), r], [dx_l,dx_r], order)
 DirichletBC([l::T, r::T], [dx_l,dx_r]) where T = RobinBC([one(T), zero(T), l], [one(T), zero(T), r], [dx_l,dx_r])
-
-
 
 # other acceptable argument signatures
 RobinBC(al::T, bl::T, cl::T, dx_l::T, ar::T, br::T, cr::T, dx_r::T) where T = RobinBC([al,bl,cl], [ar, br, cr], [dx_l, dx_r])
