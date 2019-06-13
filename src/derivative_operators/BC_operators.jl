@@ -129,6 +129,7 @@ Base.:*(Q::AffineBC, u) = BoundaryPaddedVector(Q.a_l ⋅ u[1:length(Q.a_l)] + Q.
 
 Base.size(Q::AbstractBC) = (Inf, Inf) #Is this nessecary?
 Base.length(Q::BoundaryPaddedVector) = length(Q.u) + 2
+Base.size(Q::BoundaryPaddedVector) = (length(Q),)
 Base.lastindex(Q::BoundaryPaddedVector) = Base.length(Q)
 
 function Base.getindex(Q::BoundaryPaddedVector,i)
@@ -148,6 +149,12 @@ function LinearAlgebra.Array(Q::AffineBC{T,V}, N::Int) where {T,V}
     return (Q_L, Q_b)
 end
 
+LinearAlgebra.Array(Q::PeriodicBC{T}, N::Int) where T = [transpose(zeros(T, N-1)) one(T); Diagonal(ones(T,N)); one(T) transpose(zeros(T, N-1))]
+#TODO: Concretize DirichletBC
+
+
 function LinearAlgebra.Array(Q::BoundaryPaddedVector)
     return [Q.l; Q.u; Q.r]
 end
+
+#TODO: Implement Sparse concretization
