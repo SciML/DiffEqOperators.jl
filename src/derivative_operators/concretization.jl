@@ -1,36 +1,57 @@
-function Base.convert(::Type{Array}, A::AbstractDerivativeOperator{T}, N::Int=A.dimension) where T
-    @assert N >= A.stencil_length # stencil must be able to fit in the matrix
-    mat = zeros(T, (N, N+2))
-    v = zeros(T, N+2)
-    for i=1:N+2
-        v[i] = one(T)
-        #=
-            calculating the effect on a unit vector to get the matrix of transformation
-            to get the vector in the new vector space.
-        =#
-        mul!(view(mat,:,i), A, v)
-        v[i] = zero(T)
+function LinearAlgebra.Array(A::DerivativeOperator{T}) where T
+    N = A.dimension
+    L = zeros(T, N, N+2)
+    bl = A.boundary_length
+    stl = A.stencil_length
+    stl_2 = div(stl,2)
+    for i in 1:A.boundary_length
+        L[i,1:stl] = A.low_boundary_coefs[i]
     end
-    return mat
+    for i in bl+1:N-bl
+        L[i,i+1-stl_2:i+1+stl_2] = A.stencil_coefs
+    end
+    for i in N-bl+1:N
+        L[i,N-stl+3:N+2] = A.high_boundary_coefs[i-N+bl]
+    end
+    return L / A.dx^A.derivative_order
+end
+
+function SparseArrays.SparseMatrixCSC(A::DerivativeOperator{T}) where T
+    N = A.dimension
+    L = spzeros(T, N, N+2)
+    bl = A.boundary_length
+    stl = A.stencil_length
+    stl_2 = div(stl,2)
+    for i in 1:A.boundary_length
+        L[i,1:stl] = A.low_boundary_coefs[i]
+    end
+    for i in bl+1:N-bl
+        L[i,i+1-stl_2:i+1+stl_2] = A.stencil_coefs
+    end
+    for i in N-bl+1:N
+        L[i,N-stl+3:N+2] = A.high_boundary_coefs[i-N+bl]
+    end
+    return L / A.dx^A.derivative_order
 end
 
 function SparseArrays.sparse(A::AbstractDerivativeOperator{T}) where T
-    N = A.dimension
-    mat = spzeros(T, N, N)
-    v = zeros(T, N)
-    row = zeros(T, N)
-    for i=1:N
-        v[i] = one(T)
-        #=
-            calculating the effect on a unit vector to get the matrix of transformation
-            to get the vector in the new vector space.
-        =#
-        mul!(row, A, v)
-        copyto!(view(mat,:,i), row)
-        @. row = 0 * row;
-        v[i] = zero(T)
-    end
-    return mat
+    SparseMatrixCSC(A)
 end
 
-# BandedMatrix{A,B,C,D}(A::DerivativeOperator{A,B,C,D}) = BandedMatrix(convert(Array, A, A.stencil_length), A.stencil_length, div(A.stencil_length,2), div(A.stencil_length,2))
+function BandedMatrices.BandedMatrix(A::DerivativeOperator{T}) where T
+    N = A.dimension
+    bl = A.boundary_length
+    stl = A.stencil_length
+    stl_2 = div(stl,2)
+    L = BandedMatrix{T}(Zeros(N, N+2), (max(stl-3,0),max(stl-1,0)))
+    for i in 1:A.boundary_length
+        L[i,1:stl] = A.low_boundary_coefs[i]
+    end
+    for i in bl+1:N-bl
+        L[i,i+1-stl_2:i+1+stl_2] = A.stencil_coefs
+    end
+    for i in N-bl+1:N
+        L[i,N-stl+3:N+2] = A.high_boundary_coefs[i-N+bl]
+    end
+    return L / A.dx^A.derivative_order
+end
