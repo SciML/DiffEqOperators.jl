@@ -1,6 +1,6 @@
 abstract type AbstractBC{T} end
 
-# robin, general, and in general neumann BCs are all affine. neumann0 is not however; is a specialization needed?
+# robin, general, and in general neumann BCs are all affine opeartors, meaning that they take the form Qx = Qax + Qb. neumann0 is not however; is a specialization needed?
 abstract type AffineBC{T,V} <: AbstractBC{T} end
 
 struct DirichletBC{T} <: AbstractBC{T}
@@ -36,16 +36,14 @@ end
 
   the variables in correspond to al*u(0) + bl*u'(0) = cl
 
-
-  Write vector b̄_1 as a vertical concatanation with b0 and the rest of the elements of b̄_1, denoted b̄`_1, the same with ū into u0 and ū`. b̄` = fill(β/Δx, length(stencil)-1)
+  Write vector b̄₁ as a vertical concatanation with b0 and the rest of the elements of b̄ ₁, denoted b̄`₁, the same with ū into u0 and ū`. b̄`₁ = b̄`_2 = fill(β/Δx, length(stencil)-1)
   Pull out the product of u0 and b0 from the dot product. The stencil used to approximate u` is denoted s. b0 = α+(β/Δx)*s[1]
-  Rearrange terms to find a general formula for u0:= -b̄`_1̇⋅ū`/b0 + γ/b0, which is dependent on ū` the robin coefficients and Δx.
-  The non identity part of Qa is qa:= -b`_1/b0 = -β.*s[2:end]/(α+β*s[1]/Δx). The constant part is Qb = γ/(α+β*s[1]/Δx)
-  do the same at the other boundary (amounts to a flip in s with the right boundary coeffs)
+  Rearrange terms to find a general formula for u0:= -b̄`₁̇⋅ū`/b0 + γ/b0, which is dependent on ū` the robin coefficients and Δx.
+  The non identity part of Qa is qa:= -b`₁/b0 = -β.*s[2:end]/(α+β*s[1]/Δx). The constant part is Qb = γ/(α+β*s[1]/Δx)
+  do the same at the other boundary (amounts to a flip of s[2:end], with the other set of boundary coeffs)
 """
 
 # For  condition, the variables correspond to al*u(0) + bl*u'(0) = cl
-# this should not break
 struct RobinBC{T, V<:AbstractVector{T}} <: AffineBC{T,V}
     a_l::V
     b_l::T
@@ -56,7 +54,7 @@ struct RobinBC{T, V<:AbstractVector{T}} <: AffineBC{T,V}
         cr, ar, br = r
         dx_l, dx_r = dx
 
-        s = calculate_weights(1, zero(T), zero(T):order) #generate derivative coefficients about the boundary of required approximation order
+        s = calculate_weights(1, zero(T), zero(T):convert(T,order)) #generate derivative coefficients about the boundary of required approximation order
 
         a_l = -bl.*s[2:end]./(al .+ bl*s[1]./dx_l)
         a_r = -br.*s[end:-1:2]./(ar .+ br*s[1]./dx_r)
@@ -71,7 +69,11 @@ end
 """
 Implements a generalization of the Robin boundary condition, where α is a vector of coefficients.
 Represents a condition of the form α[1] + α[2]u[0] + α[3]u'[0] + α[4]u''[0]+... = 0
-Implemented in an analogous way to the RobinBC
+Implemented in a similar way to the RobinBC (see above).
+
+This time there are multiple stencils for multiple derivative orders - these can be written as a matrix S.
+All components that multiply u(0) are factored out, turns out to only involve the first colum of S, s̄0. The rest of S is denoted S`. the coeff of u(0) is s̄0⋅ᾱ[3:end] + α[2].
+the remaining components turn out to be ᾱ[3:end]⋅(S`ū`) or equivalantly (transpose(ᾱ[3:end])*S`)⋅ū`. Rearranging, a stencil q_a to be dotted with ū` upon extension can readily be found, along with a constant component q_b
 """
 #If you know a more correct name for this kind of BC, please post an issue/PR
 struct GeneralBC{T, V<:AbstractVector{T}} <:AffineBC{T,V}
@@ -87,10 +89,10 @@ struct GeneralBC{T, V<:AbstractVector{T}} <:AffineBC{T,V}
         S_r = zeros(T, (nr-2, order+nr-2))
 
         for i in 1:(nl-2)
-            S_l[i,:] = [transpose(calculate_weights(i, zero(T), zero(T):(order+i))) transpose(zeros(T, nl-2-i))] #am unsure if the length of the dummy_x is correct here
+            S_l[i,:] = [transpose(calculate_weights(i, zero(T), zero(T):convert(T, (order+i))) transpose(zeros(T, nl-2-i))] #am unsure if the length of the dummy_x is correct here
         end
         for i in 1:(nr-2)
-            S_r[i,:] = [transpose(calculate_weights(i, zero(T), zero(T):(order+i))) transpose(zeros(T, nr-2-i))]
+            S_r[i,:] = [transpose(calculate_weights(i, zero(T), zero(T):convert(T, order+i))) transpose(zeros(T, nr-2-i))]
         end
         s0_l = S_l[:,1] ; Sl = S_l[2:end,:]
         s0_r = S_r[:,1] ; Sr = S_r[2:end,:]
@@ -98,8 +100,8 @@ struct GeneralBC{T, V<:AbstractVector{T}} <:AffineBC{T,V}
         denoml = αl[2] .+ αl[3:end] ⋅ s0_l
         denomr = αr[2] .+ αr[3:end] ⋅ s0_r
 
-        a_l = -transpose(αl) ⋅ Sl ./denoml
-        a_r = -transpose(αr) ⋅ Sr ./denomr
+        a_l = -transpose(αl) * Sl ./denoml
+        a_r = -transpose(αr) * Sr ./denomr
 
         b_l = -αl[1]/denoml
         b_r = -αr[1]/denomr
@@ -113,13 +115,13 @@ RobinBC(al::T, bl::T, cl::T, dx_l::T, ar::T, br::T, cr::T, dx_r::T, order::T) wh
 
 NeumannBC(l::T, dx_l::T, r::T, dx_r::T) where T = NeumannBC(l, r, [dx_l,dx_r])
 NeumannBC(l::T, dx_l::T, r::T, dx_r::T, order::T) where T = NeumannBC(l, r, [dx_l,dx_r], order)
+
 # this  is 'boundary padded vector' as opposed to 'boundary padded array' to distinguish it from the n dimensional implementation that will eventually be neeeded
 struct BoundaryPaddedVector{T,T2 <: AbstractVector{T}}
     l::T
     r::T
     u::T2
 end
-
 
 Base.:*(Q::DirichletBC, u) = BoundaryPaddedVector(Q.l,Q.r,u)
 Base.:*(Q::PeriodicBC, u) = BoundaryPaddedVector(u[end], u[1], u)
@@ -140,9 +142,9 @@ function Base.getindex(Q::BoundaryPaddedVector,i)
     end
 end
 
-function LinearAlgebra.Array(Q::AffineBC, N::Int)
-    Q_L = [transpose(Q.a_l) transpose(zeros(N-length(Q.a_l))); Diagonal(ones(N)); transpose(zeros(N-length(Q.a_r))) transpose(Q.a_r)]
-    Q_b = [Q.b_l; zeros(N); Q.b_r]
+function LinearAlgebra.Array(Q::AffineBC{T,V}, N::Int) where {T,V}
+    Q_L = [transpose(Q.a_l) transpose(zeros(T, N-length(Q.a_l))); Diagonal(ones(T,N)); transpose(zeros(T, N-length(Q.a_r))) transpose(Q.a_r)]
+    Q_b = [Q.b_l; zeros(T,N); Q.b_r]
     return (Q_L, Q_b)
 end
 
