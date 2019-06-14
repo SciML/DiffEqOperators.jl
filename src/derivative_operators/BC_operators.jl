@@ -1,6 +1,8 @@
 abstract type AbstractBC{T} end
 
-# Robin, General, and in general Neumann and Dirichlet BCs are all affine opeartors, meaning that they take the form Qx = Qax + Qb.
+"""
+Robin, General, and in general Neumann and Dirichlet BCs are all affine opeartors, meaning that they take the form Qx = Qax + Qb.
+"""
 abstract type AffineBC{T,V} <: AbstractBC{T} end
 
 struct PeriodicBC{T} <: AbstractBC{T}
@@ -8,10 +10,10 @@ struct PeriodicBC{T} <: AbstractBC{T}
 end
 
 """
+  The variables in l are [al, bl, cl], and correspond to a BC of the form al*u(0) + bl*u'(0) = cl
+
   Implements a robin boundary condition operator Q that acts on a vector to give an extended vector as a result
   Referring to (https://github.com/JuliaDiffEq/DiffEqOperators.jl/files/3267835/ghost_node.pdf)
-
-  the variables in correspond to al*u(0) + bl*u'(0) = cl
 
   Write vector b̄₁ as a vertical concatanation with b0 and the rest of the elements of b̄ ₁, denoted b̄`₁, the same with ū into u0 and ū`. b̄`₁ = b̄`_2 = fill(β/Δx, length(stencil)-1)
   Pull out the product of u0 and b0 from the dot product. The stencil used to approximate u` is denoted s. b0 = α+(β/Δx)*s[1]
@@ -29,7 +31,7 @@ struct RobinBC{T, V<:AbstractVector{T}} <: AffineBC{T,V}
         cr, ar, br = r
         dx_l, dx_r = dx
 
-        s = calculate_weights(1, zero(T), zero(T):convert(T,order)) #generate derivative coefficients about the boundary of required approximation order
+        s = calculate_weights(1, one(T), one(T):convert(T,order+1)) #generate derivative coefficients about the boundary of required approximation order
 
         a_l = -bl.*s[2:end]./(al .+ bl*s[1]./dx_l)
         a_r = -br.*s[end:-1:2]./(ar .+ br*s[1]./dx_r)
@@ -63,10 +65,10 @@ struct GeneralBC{T, V<:AbstractVector{T}} <:AffineBC{T,V}
         S_r = zeros(T, (nr-2, order+nr-2))
 
         for i in 1:(nl-2)
-            S_l[i,:] = [transpose(calculate_weights(i, zero(T), zero(T):convert(T, (order+i))) transpose(zeros(T, nl-2-i))] #am unsure if the length of the dummy_x is correct here
+            S_l[i,:] = [transpose(calculate_weights(i, one(T), one(T):convert(T, (order+i))) transpose(zeros(T, nl-2-i-order))] #am unsure if the length of the dummy_x is correct here
         end
         for i in 1:(nr-2)
-            S_r[i,:] = [transpose(calculate_weights(i, zero(T), zero(T):convert(T, order+i))) transpose(zeros(T, nr-2-i))]
+            S_r[i,:] = [transpose(calculate_weights(i, one(T), one(T):convert(T, order+i))) transpose(zeros(T, nr-2-i-order))]
         end
         s0_l = S_l[:,1] ; Sl = S_l[2:end,:]
         s0_r = S_r[:,1] ; Sr = S_r[2:end,:]
