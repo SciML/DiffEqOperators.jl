@@ -1,3 +1,10 @@
+#= Worker functions=#
+low(i::Int, mid::Int, bpc::Int) = Int(mid + (i-1)*(1-mid)/bpc)
+high(i::Int, mid::Int, bpc::Int, slen::Int, L::Int) = Int(slen - (slen-mid)*(i-L+bpc)/(bpc))
+
+# used in general dirichlet BC. To simulate a constant value beyond the boundary
+limit(i, N) = N>=i>=1 ? i : (i<1 ? 1 : N)
+
 # ~ bound checking functions ~
 checkbounds(A::AbstractDerivativeOperator, k::Integer, j::Integer) =
     (0 < k ≤ size(A, 1) && 0 < j ≤ size(A, 2) || throw(BoundsError(A, (k,j))))
@@ -18,19 +25,48 @@ checkbounds(A::AbstractDerivativeOperator, k::Integer, j::Colon) =
     (0 < k ≤ size(A, 1) || throw(BoundsError(A, (k,size(A,2)))))
 
 # ~~ getindex ~~
+# @inline function getindex(A::AbstractDerivativeOperator, i::Int, j::Int)
+#     @boundscheck checkbounds(A, i, j)
+#     mid = div(A.stencil_length, 2) + 1
+#     bpc = A.stencil_length - mid
+#     l = max(1, low(j, mid, bpc))
+#     h = min(A.stencil_length, high(j, mid, bpc, A.stencil_length, A.dimension))
+#     slen = h - l + 1
+#     if abs(i - j) > div(slen, 2)
+#         return 0
+#     else
+#         return A.stencil_coefs[mid + j - i]
+#     end
+# end
+
+
 @inline function getindex(A::AbstractDerivativeOperator, i::Int, j::Int)
     @boundscheck checkbounds(A, i, j)
-    mid = div(A.stencil_length, 2) + 1
-    bpc = A.stencil_length - mid
-    l = max(1, low(j, mid, bpc))
-    h = min(A.stencil_length, high(j, mid, bpc, A.stencil_length, A.dimension))
-    slen = h - l + 1
-    if abs(i - j) > div(slen, 2)
-        return 0
+    bpc = A.boundary_point_count
+    N = A.dimension
+    bsl = A.boundary_stencil_length
+    slen = A.stencil_length
+    if bpc > 0 && 1<=i<=bpc
+        if j > bsl
+            return 0
+        else
+            return A.low_boundary_coefs[i][j]
+        end
+    elseif bpc > 0 && (N-bpc)<i<=N
+        if j < N+3-bsl
+            return 0
+        else
+            return A.high_boundary_coefs[i-(N-1)][j-1]
+        end
     else
-        return A.stencil_coefs[mid + j - i]
+        if j < i-bpc || j > i+slen-bpc-1
+            return 0
+        else
+            return A.stencil_coefs[j-i + 1 + bpc]
+        end
     end
 end
+
 
 # scalar - colon - colon
 @inline getindex(A::AbstractDerivativeOperator, kr::Colon, jr::Colon) = convert(Array,A)
@@ -129,7 +165,7 @@ end
 
 # Base.length(A::AbstractDerivativeOperator) = A.stencil_length
 Base.ndims(A::AbstractDerivativeOperator) = 2
-Base.size(A::AbstractDerivativeOperator) = (A.dimension, A.dimension)
+Base.size(A::AbstractDerivativeOperator) = (A.dimension, A.dimension + 2)
 Base.size(A::AbstractDerivativeOperator,i::Integer) = size(A)[i]
 Base.length(A::AbstractDerivativeOperator) = reduce(*, size(A))
 
@@ -196,4 +232,33 @@ function *(A::AbstractDerivativeOperator,B::AbstractDerivativeOperator)
     # TODO: it will result in an operator which calculates
     #       the derivative of order A.dorder + B.dorder of
     #       approximation_order = min(approx_A, approx_B)
+end
+
+
+function convert(::Type{Array}, A::AbstractDerivativeOperator{T}, N::Int=A.dimension) where T
+    @assert N >= A.stencil_length # stencil must be able to fit in the matrix
+    mat = zeros(T, (N, N+2))
+    v = zeros(T, N+2)
+    bpc = A.boundary_point_count
+    bsl = A.boundary_stencil_length
+    if bpc > 0
+        #=
+            Since the boundary stencils are centred at the respective boundary points,
+            the first point is also included
+        =#
+        for i=1:bpc
+            mat[i,1:A.boundary_stencil_length] .= A.low_boundary_coefs[i]
+        end
+        for i=1:bpc
+            mat[N-bpc+i,N+2-bsl+1:N+2] .= A.high_boundary_coefs[i]
+        end
+    end
+
+    for i=1+bpc:N-bpc
+        #=
+            Copy the stencil directly
+        =#
+        mat[i,i-bpc:i+A.stencil_length-bpc-1] .= A.stencil_coefs
+    end
+    return mat
 end

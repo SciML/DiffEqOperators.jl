@@ -69,7 +69,8 @@ end
     y = convert(Array{BigFloat, 1}, y)
 
     A = DerivativeOperator{BigFloat}(d_order,approx_order,one(BigFloat),N)
-    @test_broken mat = convert(Array, A, N)
+    # mat = convert_by_multiplication(Array,A,N) # badly broken!
+    # @test mat = convert(Array, A, N)
     @test_broken sp_mat = sparse(A)
     @test_broken mat == sp_mat
 
@@ -86,7 +87,7 @@ end
     approx_order = 10
 
     A = DerivativeOperator{Float64}(d_order,approx_order,1.0,N)
-    @test_broken A[1,1] ≈ 13.717407 atol=1e-4
+    @test A[1,1] ≈ 13.717407 atol=1e-4
     @test_broken A[:,1] == (convert(Array,A))[:,1]
     @test_broken A[10,20] == 0
 
