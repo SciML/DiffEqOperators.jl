@@ -9,9 +9,7 @@ y_im = exp.(π*im*x)
 yim_ = y_im[2:(end-1)]
 y_ = y[2:(end-1)]
 
-
-
-for dor in 1:6, aor in 1:8
+@test_broken for dor in 1:6, aor in 1:8
 
     D1 = DerivativeOperator{Float64}(dor,aor,dx[1],length(x))
     D2 = DiffEqOperators.FiniteDifference{Float64}(dor,aor,dx,length(x))
@@ -41,5 +39,4 @@ for dor in 1:6, aor in 1:8
     @test_broken y_imprime1 ≈ y_imprime2
 
     #TODO: implement specific tests for the left and right boundary regions, waiting until after update
-    end
 end
