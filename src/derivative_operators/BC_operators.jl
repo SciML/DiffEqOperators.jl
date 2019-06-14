@@ -31,10 +31,10 @@ struct RobinBC{T, V<:AbstractVector{T}} <: AffineBC{T,V}
         cr, ar, br = r
         dx_l, dx_r = dx
 
-        sl = calculate_weights(1, one(T), Array(one(T):convert(T,order+1))) #generate derivative coefficients about the boundary of required approximation order
+        s = calculate_weights(1, one(T), Array(one(T):convert(T,order+1))) #generate derivative coefficients about the boundary of required approximation order
 
-        a_l = -bl.*sl[2:end]./(al .+ bl*sl[1]./dx_l)
-        a_r = br.*s[end:-1:2]./(ar .- br*s[1]./dx_r) # for other boundary stencil is flippedlr with *opposite sign*
+        a_l = -s[2:end]./(1+al*dx_l*s[1]/bl)
+        a_r = s[end:-1:2]./(1-ar*dx_r*s[1]/br) # for other boundary stencil is flippedlr with *opposite sign*
 
         b_l = cl/(al+bl*s[1]/dx_l)
         b_r = cr/(ar-br*s[1]/dx_r)
@@ -93,7 +93,7 @@ DirichletBC(α::AbstractVector{T}, dx::AbstractVector{T}, order) where T = Robin
 DirichletBC(α::AbstractVector{T}, dx::AbstractVector{T}) where T = RobinBC([one(T), zero(T), α[1]], [one(T), zero(T), α[2]], dx)
 
 # other acceptable argument signatures
-RobinBC(al::T, bl::T, cl::T, dx_l::T, ar::T, br::T, cr::T, dx_r::T, order=1) where T = RobinBC([al,bl,cl], [ar, br, cr], [dx_l, dx_r], order)
+RobinBC(al::T, bl::T, cl::T, dx_l::T, ar::T, br::T, cr::T, dx_r::T, order = 1) where T = RobinBC([cl,al,bl], [cr, ar, br], [dx_l, dx_r], order)
 
 # this  is 'boundary padded vector' as opposed to 'boundary padded array' to distinguish it from the n dimensional implementation that will eventually be neeeded
 struct BoundaryPaddedVector{T,T2 <: AbstractVector{T}}
