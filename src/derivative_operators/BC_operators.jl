@@ -31,13 +31,13 @@ struct RobinBC{T, V<:AbstractVector{T}} <: AffineBC{T,V}
         cr, ar, br = r
         dx_l, dx_r = dx
 
-        s = calculate_weights(1, one(T), one(T):convert(T,order+1)) #generate derivative coefficients about the boundary of required approximation order
+        sl = calculate_weights(1, one(T), Array(one(T):convert(T,order+1))) #generate derivative coefficients about the boundary of required approximation order
 
-        a_l = -bl.*s[2:end]./(al .+ bl*s[1]./dx_l)
-        a_r = -br.*s[end:-1:2]./(ar .+ br*s[1]./dx_r)
+        a_l = -bl.*sl[2:end]./(al .+ bl*sl[1]./dx_l)
+        a_r = br.*s[end:-1:2]./(ar .- br*s[1]./dx_r) # for other boundary stencil is flippedlr with *opposite sign*
 
         b_l = cl/(al+bl*s[1]/dx_l)
-        b_r = cr/(ar+br*s[1]/dx_r)
+        b_r = cr/(ar-br*s[1]/dx_r)
 
         return new{T, typeof(a_l)}(a_l, b_l, a_r, b_r)
     end
@@ -65,13 +65,13 @@ struct GeneralBC{T, V<:AbstractVector{T}} <:AffineBC{T,V}
         S_r = zeros(T, (nr-2, order+nr-2))
 
         for i in 1:(nl-2)
-            S_l[i,:] = [transpose(calculate_weights(i, one(T), one(T):convert(T, (order+i))) transpose(zeros(T, nl-2-i-order))] #am unsure if the length of the dummy_x is correct here
+            S_l[i,:] = [transpose(calculate_weights(i, one(T), Array(one(T):convert(T, order+i)))) transpose(zeros(T, nl-2-i-order))] #am unsure if the length of the dummy_x is correct here
         end
         for i in 1:(nr-2)
-            S_r[i,:] = [transpose(calculate_weights(i, one(T), one(T):convert(T, order+i))) transpose(zeros(T, nr-2-i-order))]
+            S_r[i,:] = [transpose(calculate_weights(i, one(T), Array(one(T):convert(T, order+i)))) transpose(zeros(T, nr-2-i-order))]
         end
         s0_l = S_l[:,1] ; Sl = S_l[2:end,:]
-        s0_r = S_r[:,1] ; Sr = S_r[2:end,:]
+        s0_r = -S_r[:,1] ; Sr = -S_r[2:end,:]
 
         denoml = αl[2] .+ αl[3:end] ⋅ s0_l
         denomr = αr[2] .+ αr[3:end] ⋅ s0_r
@@ -86,11 +86,11 @@ struct GeneralBC{T, V<:AbstractVector{T}} <:AffineBC{T,V}
 end
 
 #implement Neumann and Dirichlet as special cases of RobinBC
-NeumannBC([l::T, r::T], [dx_l,dx_r], order) where T = RobinBC([zero(T), one(T), l], [zero(T), one(T), r], [dx_l,dx_r], order)
-NeumannBC([l::T, r::T], [dx_l,dx_r]) where T = RobinBC([zero(T), one(T), l], [zero(T), one(T), r], [dx_l,dx_r])
+NeumannBC(α::AbstractVector{T}, dx::AbstractVector{T}, order) where T = RobinBC([zero(T), one(T), α[1]], [zero(T), one(T), α[2]], dx, order)
+NeumannBC(α::AbstractVector{T}, dx::AbstractVector{T}) where T = RobinBC([zero(T), one(T), α[1]], [zero(T), one(T), α[2]], dx)
 
-DirichletBC([l::T, r::T], [dx_l,dx_r], order) where T = RobinBC([one(T), zero(T), l], [one(T), zero(T), r], [dx_l,dx_r], order)
-DirichletBC([l::T, r::T], [dx_l,dx_r]) where T = RobinBC([one(T), zero(T), l], [one(T), zero(T), r], [dx_l,dx_r])
+DirichletBC(α::AbstractVector{T}, dx::AbstractVector{T}, order) where T = RobinBC([one(T), zero(T), α[1]], [one(T), zero(T), α[2]], dx, order)
+DirichletBC(α::AbstractVector{T}, dx::AbstractVector{T}) where T = RobinBC([one(T), zero(T), α[1]], [one(T), zero(T), α[2]], dx)
 
 # other acceptable argument signatures
 RobinBC(al::T, bl::T, cl::T, dx_l::T, ar::T, br::T, cr::T, dx_r::T) where T = RobinBC([al,bl,cl], [ar, br, cr], [dx_l, dx_r])
@@ -128,7 +128,6 @@ function LinearAlgebra.Array(Q::AffineBC{T,V}, N::Int) where {T,V}
 end
 
 LinearAlgebra.Array(Q::PeriodicBC{T}, N::Int) where T = [transpose(zeros(T, N-1)) one(T); Diagonal(ones(T,N)); one(T) transpose(zeros(T, N-1))]
-#TODO: Concretize DirichletBC
 
 
 function LinearAlgebra.Array(Q::BoundaryPaddedVector)

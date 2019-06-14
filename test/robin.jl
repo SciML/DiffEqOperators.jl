@@ -38,7 +38,7 @@ for i in 1:5
     # Check concretization
     @test Array(Qextended) ≈ CorrectQextended
 
-    # Check that Q_L and Q_b correctly compute RobinBCExtended
+    # Check that Q_L and Q_b correctly compute BoundaryPaddedVector
     @test Q_L*u + Q_b ≈ CorrectQextended
 
     @test [Qextended[1]; Qextended.u; Qextended[5i+2]] ≈ CorrectQextended
