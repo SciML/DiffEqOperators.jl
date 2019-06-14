@@ -118,7 +118,7 @@ end
 function LinearAlgebra.Array(Q::AffineBC{T,V}, N::Int) where {T,V}
     Q_L = [transpose(Q.a_l) transpose(zeros(T, N-length(Q.a_l))); Diagonal(ones(T,N)); transpose(zeros(T, N-length(Q.a_r))) transpose(Q.a_r)]
     Q_b = [Q.b_l; zeros(T,N); Q.b_r]
-    return (Q_L, Q_b)
+    return (Array(Q_L), Q_b)
 end
 
 LinearAlgebra.Array(Q::PeriodicBC{T}, N::Int) where T = [transpose(zeros(T, N-1)) one(T); Diagonal(ones(T,N)); one(T) transpose(zeros(T, N-1))]
