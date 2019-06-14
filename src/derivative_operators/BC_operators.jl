@@ -26,7 +26,7 @@ struct RobinBC{T, V<:AbstractVector{T}} <: AffineBC{T,V}
     b_l::T
     a_r::V
     b_r::T
-    function RobinBC(l::AbstractArray{T}, r::AbstractArray{T}, dx::AbstractArray{T}, order::T = one(T)) where {T,V}
+    function RobinBC(l::AbstractArray{T}, r::AbstractArray{T}, dx::AbstractArray{T}, order = one(T)) where {T}
         cl, al, bl = l
         cr, ar, br = r
         dx_l, dx_r = dx
@@ -57,7 +57,7 @@ struct GeneralBC{T, V<:AbstractVector{T}} <:AffineBC{T,V}
     b_l::T
     a_r::V
     b_r::T
-    function GeneralBC{T,V}(αl::AbstractArray{T}, αr::AbstractArray{T}, dx::AbstractArray{T}, order::T = one(T)) where {T,V<:AbstractArray}
+    function GeneralBC(αl::AbstractArray{T}, αr::AbstractArray{T}, dx::AbstractArray{T}, order = 1) where {T}
         dx_l, dx_r = dx
         nl = length(αl)
         nr = length(αr)
@@ -81,7 +81,7 @@ struct GeneralBC{T, V<:AbstractVector{T}} <:AffineBC{T,V}
 
         b_l = -αl[1]/denoml
         b_r = -αr[1]/denomr
-        new{T, V}(a_l,b_l,reverse!(a_r),b_r)
+        new{T, typeof(a_l)}(a_l,b_l,reverse!(a_r),b_r)
     end
 end
 
@@ -93,8 +93,7 @@ DirichletBC(α::AbstractVector{T}, dx::AbstractVector{T}, order) where T = Robin
 DirichletBC(α::AbstractVector{T}, dx::AbstractVector{T}) where T = RobinBC([one(T), zero(T), α[1]], [one(T), zero(T), α[2]], dx)
 
 # other acceptable argument signatures
-RobinBC(al::T, bl::T, cl::T, dx_l::T, ar::T, br::T, cr::T, dx_r::T) where T = RobinBC([al,bl,cl], [ar, br, cr], [dx_l, dx_r])
-RobinBC(al::T, bl::T, cl::T, dx_l::T, ar::T, br::T, cr::T, dx_r::T, order::T) where T = RobinBC([al,bl,cl], [ar, br, cr], [dx_l, dx_r], order)
+RobinBC(al::T, bl::T, cl::T, dx_l::T, ar::T, br::T, cr::T, dx_r::T, order=1) where T = RobinBC([al,bl,cl], [ar, br, cr], [dx_l, dx_r], order)
 
 # this  is 'boundary padded vector' as opposed to 'boundary padded array' to distinguish it from the n dimensional implementation that will eventually be neeeded
 struct BoundaryPaddedVector{T,T2 <: AbstractVector{T}}
@@ -111,7 +110,6 @@ Base.size(Q::BoundaryPaddedVector) = (length(Q),)
 Base.lastindex(Q::BoundaryPaddedVector) = Base.length(Q)
 
 function Base.getindex(Q::BoundaryPaddedVector,i)
-    @show i
     if i == 1
         return Q.l
     elseif i == length(Q)
@@ -124,11 +122,25 @@ end
 function LinearAlgebra.Array(Q::AffineBC{T,V}, N::Int) where {T,V}
     Q_L = [transpose(Q.a_l) transpose(zeros(T, N-length(Q.a_l))); Diagonal(ones(T,N)); transpose(zeros(T, N-length(Q.a_r))) transpose(Q.a_r)]
     Q_b = [Q.b_l; zeros(T,N); Q.b_r]
+    return (Array(Q_L), Q_b)
+end
+
+function SparseArrays.SparseMatrixCSC(Q::AffineBC{T,V}, N::Int) where {T,V}
+    Q_L = [transpose(Q.a_l) transpose(zeros(T, N-length(Q.a_l))); Diagonal(ones(T,N)); transpose(zeros(T, N-length(Q.a_r))) transpose(Q.a_r)]
+    Q_b = [Q.b_l; zeros(T,N); Q.b_r]
     return (Q_L, Q_b)
+end
+
+function SparseArrays.sparse(Q::AffineBC{T,V}, N::Int) where {T,V}
+    SparseMatrixCSC(Q,N)
 end
 
 LinearAlgebra.Array(Q::PeriodicBC{T}, N::Int) where T = [transpose(zeros(T, N-1)) one(T); Diagonal(ones(T,N)); one(T) transpose(zeros(T, N-1))]
 
+
+LinearAlgebra.Array(Q::PeriodicBC{T}, N::Int) where T = Array([transpose(zeros(T, N-1)) one(T); Diagonal(ones(T,N)); one(T) transpose(zeros(T, N-1))])
+SparseArrays.SparseMatrixCSC(Q::PeriodicBC{T}, N::Int) where T = [transpose(zeros(T, N-1)) one(T); Diagonal(ones(T,N)); one(T) transpose(zeros(T, N-1))]
+SparseArrays.sparse(Q::PeriodicBC{T}, N::Int) where T = SparseMatrixCSC(Q,N)
 
 function LinearAlgebra.Array(Q::BoundaryPaddedVector)
     return [Q.l; Q.u; Q.r]
