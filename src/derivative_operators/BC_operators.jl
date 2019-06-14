@@ -26,7 +26,7 @@ struct RobinBC{T, V<:AbstractVector{T}} <: AffineBC{T,V}
     b_l::T
     a_r::V
     b_r::T
-    function RobinBC(l::AbstractArray{T}, r::AbstractArray{T}, dx::AbstractArray{T}, order::T = one(T)) where {T,V}
+    function RobinBC(l::AbstractArray{T}, r::AbstractArray{T}, dx::AbstractArray{T}, order = one(T)) where {T}
         cl, al, bl = l
         cr, ar, br = r
         dx_l, dx_r = dx
@@ -57,7 +57,7 @@ struct GeneralBC{T, V<:AbstractVector{T}} <:AffineBC{T,V}
     b_l::T
     a_r::V
     b_r::T
-    function GeneralBC{T,V}(αl::AbstractArray{T}, αr::AbstractArray{T}, dx::AbstractArray{T}, order::T = one(T)) where {T,V<:AbstractArray}
+    function GeneralBC(αl::AbstractArray{T}, αr::AbstractArray{T}, dx::AbstractArray{T}, order = 1) where {T}
         dx_l, dx_r = dx
         nl = length(αl)
         nr = length(αr)
@@ -65,7 +65,7 @@ struct GeneralBC{T, V<:AbstractVector{T}} <:AffineBC{T,V}
         S_r = zeros(T, (nr-2, order+nr-2))
 
         for i in 1:(nl-2)
-            S_l[i,:] = [transpose(calculate_weights(i, one(T), one(T):convert(T, (order+i))) transpose(zeros(T, nl-2-i-order))] #am unsure if the length of the dummy_x is correct here
+            S_l[i,:] = [transpose(calculate_weights(i, one(T), one(T):convert(T, (order+i)))) transpose(zeros(T, nl-2-i-order))] #am unsure if the length of the dummy_x is correct here
         end
         for i in 1:(nr-2)
             S_r[i,:] = [transpose(calculate_weights(i, one(T), one(T):convert(T, order+i))) transpose(zeros(T, nr-2-i-order))]
@@ -81,20 +81,15 @@ struct GeneralBC{T, V<:AbstractVector{T}} <:AffineBC{T,V}
 
         b_l = -αl[1]/denoml
         b_r = -αr[1]/denomr
-        new{T, V}(a_l,b_l,reverse!(a_r),b_r)
+        new{T, typeof(a_l)}(a_l,b_l,reverse!(a_r),b_r)
     end
 end
 
 #implement Neumann and Dirichlet as special cases of RobinBC
-NeumannBC([l::T, r::T], [dx_l,dx_r], order) where T = RobinBC([zero(T), one(T), l], [zero(T), one(T), r], [dx_l,dx_r], order)
-NeumannBC([l::T, r::T], [dx_l,dx_r]) where T = RobinBC([zero(T), one(T), l], [zero(T), one(T), r], [dx_l,dx_r])
-
-DirichletBC([l::T, r::T], [dx_l,dx_r], order) where T = RobinBC([one(T), zero(T), l], [one(T), zero(T), r], [dx_l,dx_r], order)
-DirichletBC([l::T, r::T], [dx_l,dx_r]) where T = RobinBC([one(T), zero(T), l], [one(T), zero(T), r], [dx_l,dx_r])
-
+NeumannBC(l::T, r::T, dx_l,dx_r, order=1) where T = RobinBC([zero(T), one(T), l], [zero(T), one(T), r], [dx_l,dx_r], order)
+DirichletBC(l::T, r::T, dx_l,dx_r, order=1) where T = RobinBC([one(T), zero(T), l], [one(T), zero(T), r], [dx_l,dx_r], order)
 # other acceptable argument signatures
-RobinBC(al::T, bl::T, cl::T, dx_l::T, ar::T, br::T, cr::T, dx_r::T) where T = RobinBC([al,bl,cl], [ar, br, cr], [dx_l, dx_r])
-RobinBC(al::T, bl::T, cl::T, dx_l::T, ar::T, br::T, cr::T, dx_r::T, order::T) where T = RobinBC([al,bl,cl], [ar, br, cr], [dx_l, dx_r], order)
+RobinBC(al::T, bl::T, cl::T, dx_l::T, ar::T, br::T, cr::T, dx_r::T, order=1) where T = RobinBC([al,bl,cl], [ar, br, cr], [dx_l, dx_r], order)
 
 # this  is 'boundary padded vector' as opposed to 'boundary padded array' to distinguish it from the n dimensional implementation that will eventually be neeeded
 struct BoundaryPaddedVector{T,T2 <: AbstractVector{T}}
@@ -111,7 +106,6 @@ Base.size(Q::BoundaryPaddedVector) = (length(Q),)
 Base.lastindex(Q::BoundaryPaddedVector) = Base.length(Q)
 
 function Base.getindex(Q::BoundaryPaddedVector,i)
-    @show i
     if i == 1
         return Q.l
     elseif i == length(Q)
