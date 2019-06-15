@@ -56,7 +56,6 @@ checkbounds(A::AbstractDerivativeOperator, k::Integer, j::Colon) =
         if j < N+2-bsl
             return 0
         else
-            @show N-i-1,j-1
             return A.high_boundary_coefs[i-(N-1)][j-1]
         end
     else
