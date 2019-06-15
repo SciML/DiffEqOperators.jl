@@ -21,7 +21,7 @@ include("matrixfree_operators.jl")
 include("jacvec_operators.jl")
 
 ### Boundary Operators
-include("derivative_operators/robin_bc_extended.jl")
+include("derivative_operators/BC_operators.jl")
 
 ### Derivative Operators
 include("derivative_operators/fornberg.jl")
