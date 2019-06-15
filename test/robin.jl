@@ -1,4 +1,4 @@
-#using LinearAlgebra, DiffEqOperators, Random, Test
+using LinearAlgebra, DiffEqOperators, Random, Test
 
 # Generate random parameters
 al = rand(5)
@@ -47,5 +47,5 @@ for i in 1:5
     @test [Qextended[1]; Qextended.u; Qextended[5i+2]] ≈ CorrectQextended
 
 end
-α β γ
+
 #TODO: Implement tests for BC's that are contingent on the sign of the coefficient on the operator near the boundary
