@@ -1,13 +1,13 @@
-#using LinearAlgebra, DiffEqOperators, Random, Test
+using LinearAlgebra, DiffEqOperators, Random, Test
 
 # Generate random parameters
-al = rand(5)
-bl = rand(5)
-cl = rand(5)
+al = (rand(5).-0.5).*2
+bl = (rand(5).-0.5).*2
+cl = (rand(5).-0.5).*2
 dx_l = rand(5)
-ar = rand(5)
-br = rand(5)
-cr = rand(5)
+ar = (rand(5).-0.5).*2
+br = (rand(5).-0.5).*2
+cr = (rand(5).-0.5).*2
 dx_r = rand(5)
 
 # Construct 5 arbitrary RobinBC operators
@@ -35,7 +35,7 @@ for i in 1:5
     @test length(Qextended) ≈ 5i+2
 
     #test the test
-    @test (u[1]*(bl[i]/dx_l[i]))/(al[i]-bl[i]/dx_l[i]) ≈ u[1] / (1-al[i]*dx_l[i]/bl[i])
+    @test (-u[1]*(bl[i]/dx_l[i]))/(al[i]-bl[i]/dx_l[i]) ≈ u[1] / (1-al[i]*dx_l[i]/bl[i])
     @test (u[end]*(br[i]/dx_r[i]))/(ar[i]+br[i]/dx_r[i]) ≈ u[end] / (1+ar[i]*dx_r[i]/br[i])
 
     # Check concretization
@@ -47,5 +47,4 @@ for i in 1:5
     @test [Qextended[1]; Qextended.u; Qextended[5i+2]] ≈ CorrectQextended
 
 end
-α β γ
 #TODO: Implement tests for BC's that are contingent on the sign of the coefficient on the operator near the boundary
