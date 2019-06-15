@@ -18,7 +18,7 @@ for i in 1:5
 
     #Check that Q_L is is correctly computed
     @test Q_L[2:5i+1,1:5i] ≈ Array(I, 5i, 5i)
-    @test Q_L[1,:] ≈ [-1 / (1-al[i]*dx_l[i]/bl[i]); zeros(5i-1)]
+    @test Q_L[1,:] ≈ [1 / (1-al[i]*dx_l[i]/bl[i]); zeros(5i-1)]
     @test Q_L[5i+2,:] ≈ [zeros(5i-1); 1 / (1+ar[i]*dx_r[i]/br[i])]
 
     #Check that Q_b is computed correctly
@@ -29,14 +29,8 @@ for i in 1:5
     u = rand(5i)
 
     Qextended = Q*u
-    CorrectQextended = [(cl[i]+(bl[i]/dx_l[i])*u[1])/(al[i]-bl[i]/dx_l[i]); u; (cr[i]+ (br[i]/dx_r[i])*u[5i])/(ar[i]+br[i]/dx_r[i])]
-
-
+    CorrectQextended = [(cl[i]-(bl[i]/dx_l[i])*u[1])/(al[i]-bl[i]/dx_l[i]); u; (cr[i]+ (br[i]/dx_r[i])*u[5i])/(ar[i]+br[i]/dx_r[i])]
     @test length(Qextended) ≈ 5i+2
-
-    #test the test
-    @test (u[1]*(bl[i]/dx_l[i]))/(al[i]-bl[i]/dx_l[i]) ≈ -u[1] / (1-al[i]*dx_l[i]/bl[i])
-    @test (u[end]*(br[i]/dx_r[i]))/(ar[i]+br[i]/dx_r[i]) ≈ u[end] / (1+ar[i]*dx_r[i]/br[i])
 
     # Check concretization
     @test Array(Qextended) ≈ CorrectQextended

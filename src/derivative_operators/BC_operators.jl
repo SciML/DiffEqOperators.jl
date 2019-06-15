@@ -10,7 +10,7 @@ struct PeriodicBC{T} <: AbstractBC{T}
 end
 
 """
-  The variables in l are [al, bl, cl], and correspond to a BC of the form al*u(0) + bl*u'(0) = cl
+  The variables in l are [αl, βl, γl], and correspond to a BC of the form al*u(0) + bl*u'(0) = cl
 
   Implements a robin boundary condition operator Q that acts on a vector to give an extended vector as a result
   Referring to (https://github.com/JuliaDiffEq/DiffEqOperators.jl/files/3267835/ghost_node.pdf)
@@ -27,17 +27,17 @@ struct RobinBC{T, V<:AbstractVector{T}} <: AffineBC{T,V}
     a_r::V
     b_r::T
     function RobinBC(l::AbstractArray{T}, r::AbstractArray{T}, dx::AbstractArray{T}, order = one(T)) where {T}
-        cl, al, bl = l
-        cr, ar, br = r
+        αl, βl, γl = l
+        αr, βr, γr = r
         dx_l, dx_r = dx
 
         s = calculate_weights(1, one(T), Array(one(T):convert(T,order+1))) #generate derivative coefficients about the boundary of required approximation order
 
-        a_l = -s[2:end]./(1+al*dx_l*s[1]/bl)
-        a_r = s[end:-1:2]./(1-ar*dx_r*s[1]/br) # for other boundary stencil is flippedlr with *opposite sign*
+        a_l = -s[2:end]./(αl*dx_l/βl + s[1])
+        a_r = s[end:-1:2]./(αr*dx_r/βr - s[1]) # for other boundary stencil is flippedlr with *opposite sign*
 
-        b_l = cl/(al+bl*s[1]/dx_l)
-        b_r = cr/(ar-br*s[1]/dx_r)
+        b_l = γl/(αl+βl*s[1]/dx_l)
+        b_r = γr/(αr-βr*s[1]/dx_r)
 
         return new{T, typeof(a_l)}(a_l, b_l, a_r, b_r)
     end
@@ -86,11 +86,10 @@ struct GeneralBC{T, V<:AbstractVector{T}} <:AffineBC{T,V}
 end
 
 #implement Neumann and Dirichlet as special cases of RobinBC
-NeumannBC(  α::AbstractVector{T}, dx::AbstractVector{T}, order=1) where T = RobinBC([zero(T), one(T), α[1]], [zero(T), one(T), α[2]], dx, order)
-DirichletBC(α::AbstractVector{T}, dx::AbstractVector{T}, order=1) where T = RobinBC([one(T), zero(T), α[1]], [one(T), zero(T), α[2]], dx, order)
-
+NeumannBC(α::AbstractVector{T}, dx::AbstractVector{T}, order = 1) where T = RobinBC([zero(T), one(T), α[1]], [zero(T), one(T), α[2]], dx, order)
+DirichletBC(α::AbstractVector{T}, dx::AbstractVector{T}, order = 1) where T = RobinBC([one(T), zero(T), α[1]], [one(T), zero(T), α[2]], dx, order)
 # other acceptable argument signatures
-RobinBC(al::T, bl::T, cl::T, dx_l::T, ar::T, br::T, cr::T, dx_r::T, order = 1) where T = RobinBC([cl,al,bl], [cr, ar, br], [dx_l, dx_r], order)
+RobinBC(al::T, bl::T, cl::T, dx_l::T, ar::T, br::T, cr::T, dx_r::T, order = 1) where T = RobinBC([al,bl, cl], [ar, br, cr], [dx_l, dx_r], order)
 
 # this  is 'boundary padded vector' as opposed to 'boundary padded array' to distinguish it from the n dimensional implementation that will eventually be neeeded
 struct BoundaryPaddedVector{T,T2 <: AbstractVector{T}}
