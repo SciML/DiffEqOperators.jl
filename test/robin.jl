@@ -1,4 +1,4 @@
-#using LinearAlgebra, DiffEqOperators, Random, Test
+using LinearAlgebra, DiffEqOperators, Random, Test
 
 # Generate random parameters
 al = rand(5)
@@ -34,7 +34,7 @@ for i in 1:5
 
     @test length(Qextended) ≈ 5i+2
 
-    #test the test    
+    #test the test
     @test (u[1]*(bl[i]/dx_l[i]))/(al[i]-bl[i]/dx_l[i]) ≈ -u[1] / (1-al[i]*dx_l[i]/bl[i])
     @test (u[end]*(br[i]/dx_r[i]))/(ar[i]+br[i]/dx_r[i]) ≈ u[end] / (1+ar[i]*dx_r[i]/br[i])
 

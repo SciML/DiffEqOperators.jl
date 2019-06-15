@@ -86,11 +86,8 @@ struct GeneralBC{T, V<:AbstractVector{T}} <:AffineBC{T,V}
 end
 
 #implement Neumann and Dirichlet as special cases of RobinBC
-NeumannBC(α::AbstractVector{T}, dx::AbstractVector{T}, order) where T = RobinBC([zero(T), one(T), α[1]], [zero(T), one(T), α[2]], dx, order)
-NeumannBC(α::AbstractVector{T}, dx::AbstractVector{T}) where T = RobinBC([zero(T), one(T), α[1]], [zero(T), one(T), α[2]], dx)
-
-DirichletBC(α::AbstractVector{T}, dx::AbstractVector{T}, order) where T = RobinBC([one(T), zero(T), α[1]], [one(T), zero(T), α[2]], dx, order)
-DirichletBC(α::AbstractVector{T}, dx::AbstractVector{T}) where T = RobinBC([one(T), zero(T), α[1]], [one(T), zero(T), α[2]], dx)
+NeumannBC(  α::AbstractVector{T}, dx::AbstractVector{T}, order=1) where T = RobinBC([zero(T), one(T), α[1]], [zero(T), one(T), α[2]], dx, order)
+DirichletBC(α::AbstractVector{T}, dx::AbstractVector{T}, order=1) where T = RobinBC([one(T), zero(T), α[1]], [one(T), zero(T), α[2]], dx, order)
 
 # other acceptable argument signatures
 RobinBC(al::T, bl::T, cl::T, dx_l::T, ar::T, br::T, cr::T, dx_r::T, order = 1) where T = RobinBC([cl,al,bl], [cr, ar, br], [dx_l, dx_r], order)
@@ -134,9 +131,6 @@ end
 function SparseArrays.sparse(Q::AffineBC{T,V}, N::Int) where {T,V}
     SparseMatrixCSC(Q,N)
 end
-
-LinearAlgebra.Array(Q::PeriodicBC{T}, N::Int) where T = [transpose(zeros(T, N-1)) one(T); Diagonal(ones(T,N)); one(T) transpose(zeros(T, N-1))]
-
 
 LinearAlgebra.Array(Q::PeriodicBC{T}, N::Int) where T = Array([transpose(zeros(T, N-1)) one(T); Diagonal(ones(T,N)); one(T) transpose(zeros(T, N-1))])
 SparseArrays.SparseMatrixCSC(Q::PeriodicBC{T}, N::Int) where T = [transpose(zeros(T, N-1)) one(T); Diagonal(ones(T,N)); one(T) transpose(zeros(T, N-1))]
