@@ -10,13 +10,12 @@ end
 
 # Against a standard vector, assume already padded and just apply the stencil
 function convolve_interior!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::DerivativeOperator{T,S}) where {T<:Real,S<:SVector}
-    # It cannot be true as x_temp is created as zeros(promote_type(eltype(A),eltype(x)), length(x))
-    # @assert length(x_temp)+2 == length(x)
+    @assert length(x_temp)+2 == length(x)
     coeffs = A.stencil_coefs
     mid = div(A.stencil_length,2)
-    Threads.@threads for i in (1+A.boundary_point_count) : (length(x_temp)-A.boundary_point_count-1)
+    for i in (1+A.boundary_point_count) : (length(x_temp)-A.boundary_point_count)
         xtempi = zero(T)
-        @inbounds for idx in 1:A.stencil_length
+        for idx in 1:A.stencil_length
             xtempi += coeffs[idx] * x[i - mid + idx]
         end
         x_temp[i] = xtempi
@@ -25,23 +24,23 @@ end
 
 function convolve_BC_left!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::DerivativeOperator{T,S}) where {T<:Real,S<:SVector}
     coeffs = A.low_boundary_coefs
-    Threads.@threads for i in 1 : A.boundary_point_count
+    for i in 1 : A.boundary_point_count
         xtempi = coeffs[i][1]*x[1]
-        @inbounds for idx in 2:A.boundary_stencil_length
+        for idx in 2:A.boundary_stencil_length
             xtempi += coeffs[i][idx] * x[idx]
         end
-        x_temp[i+1] = xtempi
+        x_temp[i] = xtempi
     end
 end
 
 function convolve_BC_right!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::DerivativeOperator{T,S}) where {T<:Real,S<:SVector}
     coeffs = A.high_boundary_coefs
-    Threads.@threads for i in 1 : A.boundary_point_count
+    for i in 1 : A.boundary_point_count
         xtempi = coeffs[i][end]*x[end]
-        @inbounds for idx in A.boundary_stencil_length:-1:1
+        for idx in (A.boundary_stencil_length-1):-1:1
             xtempi += coeffs[i][end-idx] * x[end-idx]
         end
-        x_temp[end-A.boundary_point_count+i-1] = xtempi
+        x_temp[end-A.boundary_point_count+i] = xtempi
     end
 end
 
@@ -54,7 +53,7 @@ function convolve_interior!(x_temp::AbstractVector{T}, _x::BoundaryPaddedVector,
     x = _x.u
     mid = div(A.stencil_length,2) + 1
     # Just do the middle parts
-    Threads.@threads for i in (1+A.boundary_length) : (length(x_temp)-A.boundary_length)
+    for i in (1+A.boundary_length) : (length(x_temp)-A.boundary_length)
         xtempi = zero(T)
         @inbounds for idx in 1:A.stencil_length
             xtempi += coeffs[idx] * x[i - (mid-idx) + 1]
@@ -65,7 +64,7 @@ end
 
 function convolve_BC_left!(x_temp::AbstractVector{T}, _x::BoundaryPaddedVector, A::DerivativeOperator{T,S}) where {T<:Real,S<:SVector}
     coeffs = A.low_boundary_coefs
-    Threads.@threads for i in 1 : A.boundary_length
+    for i in 1 : A.boundary_length
         xtempi = coeffs[i][1]*x.l
         @inbounds for idx in 2:A.stencil_length
             xtempi += coeffs[i][idx] * x.u[idx-1]
@@ -77,7 +76,7 @@ end
 function convolve_BC_right!(x_temp::AbstractVector{T}, _x::BoundaryPaddedVector, A::DerivativeOperator{T,S}) where {T<:Real,S<:SVector}
     coeffs = A.low_boundary_coefs
     bc_start = length(x.u) - A.stencil_length
-    Threads.@threads for i in 1 : A.boundary_length
+    for i in 1 : A.boundary_length
         xtempi = coeffs[i][end]*x.r
         @inbounds for idx in A.stencil_length:-1:2
             xtempi += coeffs[i][end-idx] * x.u[end-idx+1]

@@ -53,9 +53,10 @@ checkbounds(A::AbstractDerivativeOperator, k::Integer, j::Colon) =
             return A.low_boundary_coefs[i][j]
         end
     elseif bpc > 0 && (N-bpc)<i<=N
-        if j < N+3-bsl
+        if j < N+2-bsl
             return 0
         else
+            @show N-i-1,j-1
             return A.high_boundary_coefs[i-(N-1)][j-1]
         end
     else
@@ -193,23 +194,13 @@ Base.:/(A::AbstractDerivativeOperator, B::AbstractVecOrMat) = convert(Array,A) /
 get_type(::AbstractDerivativeOperator{T}) where {T} = T
 
 function *(A::AbstractDerivativeOperator,x::AbstractVector)
-    #=
-        We will output a vector which is a supertype of the types of A and x
-        to ensure numerical stability
-    =#
-    get_type(A) != eltype(x) ? error("DiffEqOperator and array are not of same type!") : nothing
-    y = zeros(promote_type(eltype(A),eltype(x)), length(x))
+    y = zeros(promote_type(eltype(A),eltype(x)), length(x)-2)
     LinearAlgebra.mul!(y, A::AbstractDerivativeOperator, x::AbstractVector)
     return y
 end
 
 
 function *(A::AbstractDerivativeOperator,M::AbstractMatrix)
-    #=
-        We will output a vector which is a supertype of the types of A and x
-        to ensure numerical stability
-    =#
-    get_type(A) != eltype(M) ? error("DiffEqOperator and array are not of same type!") : nothing
     y = zeros(promote_type(eltype(A),eltype(M)), size(M))
     LinearAlgebra.mul!(y, A::AbstractDerivativeOperator, M::AbstractMatrix)
     return y
@@ -217,48 +208,16 @@ end
 
 
 function *(M::AbstractMatrix,A::AbstractDerivativeOperator)
-    #=
-        We will output a vector which is a supertype of the types of A and x
-        to ensure numerical stability
-    =#
-    get_type(A) != eltype(M) ? error("DiffEqOperator and array are not of same type!") : nothing
     y = zeros(promote_type(eltype(A),eltype(M)), size(M))
     LinearAlgebra.mul!(y, A::AbstractDerivativeOperator, M::AbstractMatrix)
     return y
 end
 
-
+#=
+# For now use slow fallback
 function *(A::AbstractDerivativeOperator,B::AbstractDerivativeOperator)
     # TODO: it will result in an operator which calculates
     #       the derivative of order A.dorder + B.dorder of
     #       approximation_order = min(approx_A, approx_B)
 end
-
-
-function convert(::Type{Array}, A::AbstractDerivativeOperator{T}, N::Int=A.dimension) where T
-    @assert N >= A.stencil_length # stencil must be able to fit in the matrix
-    mat = zeros(T, (N, N+2))
-    v = zeros(T, N+2)
-    bpc = A.boundary_point_count
-    bsl = A.boundary_stencil_length
-    if bpc > 0
-        #=
-            Since the boundary stencils are centred at the respective boundary points,
-            the first point is also included
-        =#
-        for i=1:bpc
-            mat[i,1:A.boundary_stencil_length] .= A.low_boundary_coefs[i]
-        end
-        for i=1:bpc
-            mat[N-bpc+i,N+2-bsl+1:N+2] .= A.high_boundary_coefs[i]
-        end
-    end
-
-    for i=1+bpc:N-bpc
-        #=
-            Copy the stencil directly
-        =#
-        mat[i,i-bpc:i+A.stencil_length-bpc-1] .= A.stencil_coefs
-    end
-    return mat
-end
+=#
