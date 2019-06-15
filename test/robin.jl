@@ -30,13 +30,7 @@ for i in 1:5
 
     Qextended = Q*u
     CorrectQextended = [(cl[i]-(bl[i]/dx_l[i])*u[1])/(al[i]-bl[i]/dx_l[i]); u; (cr[i]+ (br[i]/dx_r[i])*u[5i])/(ar[i]+br[i]/dx_r[i])]
-
-
     @test length(Qextended) ≈ 5i+2
-
-    #test the test
-    @test (u[1]*(bl[i]/dx_l[i]))/(al[i]-bl[i]/dx_l[i]) ≈ u[1] / (1-al[i]*dx_l[i]/bl[i])
-    @test (u[end]*(br[i]/dx_r[i]))/(ar[i]+br[i]/dx_r[i]) ≈ u[end] / (1+ar[i]*dx_r[i]/br[i])
 
     # Check concretization
     @test Array(Qextended) ≈ CorrectQextended
