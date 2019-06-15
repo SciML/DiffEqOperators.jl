@@ -1,6 +1,3 @@
-using Pkg
-Pkg.activate("jsoc_2019")
-Pkg.add("SafeTestsets")
 using SafeTestsets
 import Base: isapprox
 
