@@ -128,7 +128,7 @@ Base.:/(A::AbstractDerivativeOperator, B::AbstractVecOrMat) = Array(A) / B
     The Inf opnorm can be calculated easily using the stencil coeffiicents, while other opnorms
     default to compute from the full matrix form.
 =#
-function LinearAlgebra.opnorm(A::DerivativeOperator{T,S}, p::Real=2) where {T,S}
+function LinearAlgebra.opnorm(A::DerivativeOperator, p::Real=2)
     if p == Inf
         sum(abs.(A.stencil_coefs)) / A.dx^A.derivative_order
     else
@@ -163,6 +163,23 @@ end
 
 function *(A::AbstractDerivativeOperator,B::AbstractDerivativeOperator)
     return BandedMatrix(A)*BandedMatrix(B)
+end
+
+################################################################################
+
+function *(coeff_func::Function, A::DerivativeOperator{T}) where T
+    coefficients = A.coefficients === nothing ? Vector{T}(undef,A.len) : A.coefficients
+    DerivativeOperator{T,typeof(A.dx),typeof(A.stencil_coefs),
+                       typeof(A.low_boundary_coefs),typeof(coefficients),
+                       typeof(coeff_func)}(
+        A.derivative_order, A.approximation_order,
+        A.dx, A.len, A.stencil_length,
+        A.stencil_coefs,
+        A.boundary_stencil_length,
+        A.boundary_point_count,
+        A.low_boundary_coefs,
+        A.high_boundary_coefs,coefficients,coeff_func,A.use_winding
+        )
 end
 
 ################################################################################

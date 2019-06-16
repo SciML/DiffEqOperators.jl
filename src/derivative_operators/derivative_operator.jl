@@ -16,7 +16,7 @@ end
 
 function CenteredDifference(derivative_order::Int,
                             approximation_order::Int, dx::T,
-                            len::Int) where {T<:Real}
+                            len::Int, coeff_func=nothing) where {T<:Real}
 
     stencil_length          = derivative_order + approximation_order - 1 + (derivative_order+approximation_order)%2
     boundary_stencil_length = derivative_order + approximation_order
@@ -32,21 +32,22 @@ function CenteredDifference(derivative_order::Int,
     low_boundary_coefs      = convert(SVector{boundary_point_count},_low_boundary_coefs)
     high_boundary_coefs     = convert(SVector{boundary_point_count},reverse(SVector{boundary_stencil_length, T}[reverse(low_boundary_coefs[i]) for i in 1:boundary_point_count]))
 
+    coefficients            = coeff_func isa Nothing ? nothing : Vector{T}(undef,len)
     DerivativeOperator{T,T,typeof(stencil_coefs),
-                       typeof(low_boundary_coefs),Nothing,
-                       Nothing}(
+                       typeof(low_boundary_coefs),typeof(coefficients),
+                       typeof(coeff_func)}(
         derivative_order, approximation_order, dx, len, stencil_length,
         stencil_coefs,
         boundary_stencil_length,
         boundary_point_count,
         low_boundary_coefs,
-        high_boundary_coefs,nothing,nothing,false
+        high_boundary_coefs,coefficients,coeff_func,false
         )
 end
 
 function CenteredDifference(derivative_order::Int,
                             approximation_order::Int, dx::AbstractVector{T},
-                            len::Int) where {T<:Real}
+                            len::Int, coeff_func=nothing) where {T<:Real}
 
     stencil_length          = derivative_order + approximation_order - 1 + (derivative_order+approximation_order)%2
     boundary_stencil_length = derivative_order + approximation_order
@@ -62,22 +63,24 @@ function CenteredDifference(derivative_order::Int,
     low_boundary_coefs      = convert(SVector{boundary_point_count},_low_boundary_coefs)
     high_boundary_coefs     = convert(SVector{boundary_point_count},reverse(SVector{boundary_stencil_length, T}[reverse(low_boundary_coefs[i]) for i in 1:boundary_point_count]))
 
+    coefficients            = coeff_func isa Nothing ? nothing : Vector{T}(undef,len)
+
     DerivativeOperator{T,typeof(dx),typeof(stencil_coefs),
-                       typeof(low_boundary_coefs),Nothing,
-                       Nothing}(
+                       typeof(low_boundary_coefs),typeof(coefficients),
+                       typeof(coeff_func)}(
         derivative_order, approximation_order, dx,
         len, stencil_length,
         stencil_coefs,
         boundary_stencil_length,
         boundary_point_count,
         low_boundary_coefs,
-        high_boundary_coefs,nothing,nothing,false
+        high_boundary_coefs,coefficients,coeff_func,false
         )
 end
 
 function UpwindDifference(derivative_order::Int,
                           approximation_order::Int, dx::T,
-                          len::Int, coeff_func) where {T<:Real}
+                          len::Int, coeff_func=nothing) where {T<:Real}
 
     stencil_length          = derivative_order + approximation_order - 1 + (derivative_order+approximation_order)%2
     boundary_stencil_length = derivative_order + approximation_order
@@ -109,7 +112,7 @@ end
 
 function UpwindDifference(derivative_order::Int,
                           approximation_order::Int, dx::AbstractVector{T},
-                          len::Int, coeff_func) where {T<:Real}
+                          len::Int, coeff_func=nothing) where {T<:Real}
 
     stencil_length          = derivative_order + approximation_order - 1 + (derivative_order+approximation_order)%2
     boundary_stencil_length = derivative_order + approximation_order
