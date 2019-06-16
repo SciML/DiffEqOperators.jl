@@ -1,4 +1,5 @@
-using SparseArrays, DiffEqOperators, LinearAlgebra, Random, Test, BandedMatrices
+using SparseArrays, DiffEqOperators, LinearAlgebra, Random,
+      Test, BandedMatrices, FillArrays
 
 function second_derivative_stencil(N)
   A = zeros(N,N+2)
@@ -184,23 +185,19 @@ end
 @testset "Linear combinations of operators" begin
     # Only tests the additional functionality defined in "operator_combination.jl"
     N = 10
-    Random.seed!(0); LA = DiffEqArrayOperator(rand(N,N))
+    Random.seed!(0); LA = DiffEqArrayOperator(rand(N,N+2))
     LD = CenteredDifference(2,2,1.0,N)
-    @test_broken begin
-      L = 1.1*LA - 2.2*LD + 3.3*I
-      # Builds convert(L) the brute-force way
-      fullL = zeros(N,N)
-      v = zeros(N)
-      for i = 1:N
-          v[i] = 1.0
-          fullL[:,i] = L*v
-          v[i] = 0.0
-      end
-      @test convert(L) ≈ fullL
-      @test exp(L) ≈ exp(fullL)
-      for p in [1,2,Inf]
-          @test opnorm(L,p) ≈ opnorm(fullL,p)
-          @test opnormbound(L,p) ≈ 1.1*opnorm(LA,p) + 2.2*opnorm(LD,p) + 3.3
-      end
-  end
+    L = 1.1*LA - 2.2*LD + 3.3*Eye(N,N+2)
+    # Builds convert(L) the brute-force way
+    fullL = zeros(N,N+2)
+    v = zeros(N+2)
+    for i = 1:N+2
+        v[i] = 1.0
+        fullL[:,i] = L*v
+        v[i] = 0.0
+    end
+    @test convert(AbstractMatrix,L) ≈ fullL
+    for p in [1,2,Inf]
+        @test opnorm(L,p) ≈ opnorm(fullL,p)
+    end
 end

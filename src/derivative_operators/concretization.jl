@@ -55,3 +55,19 @@ function BandedMatrices.BandedMatrix(A::DerivativeOperator{T}, N::Int=A.len) whe
     end
     return L / A.dx^A.derivative_order
 end
+
+function Base.convert(::Type{Array},A::DerivativeOperator{T}) where T
+    Array(A)
+end
+
+function Base.convert(::Type{SparseMatrixCSC},A::DerivativeOperator{T}) where T
+    SparseMatrixCSC(A)
+end
+
+function Base.convert(::Type{BandedMatrix},A::DerivativeOperator{T}) where T
+    BandedMatrix(A)
+end
+
+function Base.convert(::Type{AbstractMatrix},A::DerivativeOperator{T}) where T
+    BandedMatrix(A)
+end
