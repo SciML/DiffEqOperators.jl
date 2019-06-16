@@ -20,7 +20,7 @@ checkbounds(A::AbstractDerivativeOperator, k::Integer, j::Colon) =
 @inline function getindex(A::AbstractDerivativeOperator, i::Int, j::Int)
     @boundscheck checkbounds(A, i, j)
     bpc = A.boundary_point_count
-    N = A.dimension
+    N = A.len
     bsl = A.boundary_stencil_length
     slen = A.stencil_length
     if bpc > 0 && 1<=i<=bpc
@@ -104,16 +104,16 @@ end
 
 # Base.length(A::AbstractDerivativeOperator) = A.stencil_length
 Base.ndims(A::AbstractDerivativeOperator) = 2
-Base.size(A::AbstractDerivativeOperator) = (A.dimension, A.dimension + 2)
+Base.size(A::AbstractDerivativeOperator) = (A.len, A.len + 2)
 Base.size(A::AbstractDerivativeOperator,i::Integer) = size(A)[i]
 Base.length(A::AbstractDerivativeOperator) = reduce(*, size(A))
 
 #=
     For the evenly spaced grid we have a symmetric matrix
 =#
-Base.transpose(A::Union{DerivativeOperator,UpwindOperator}) = A
-Base.adjoint(A::Union{DerivativeOperator,UpwindOperator}) = A
-LinearAlgebra.issymmetric(::Union{DerivativeOperator,UpwindOperator}) = true
+Base.transpose(A::DerivativeOperator) = A
+Base.adjoint(A::DerivativeOperator) = A
+LinearAlgebra.issymmetric(::DerivativeOperator) = true
 
 #=
     Fallback methods that use the full representation of the operator
@@ -164,3 +164,16 @@ end
 function *(A::AbstractDerivativeOperator,B::AbstractDerivativeOperator)
     return BandedMatrix(A)*BandedMatrix(B)
 end
+
+################################################################################
+
+function DiffEqBase.update_coefficients!(A::AbstractDerivativeOperator,u,p,t)
+    if A.coeff_func !== nothing
+        A.coeff_func(A.coefficients,u,p,t)
+    end
+end
+
+################################################################################
+
+(L::DerivativeOperator)(u,p,t) = L*u
+(L::DerivativeOperator)(du,u,p,t) = mul!(du,L,u)
