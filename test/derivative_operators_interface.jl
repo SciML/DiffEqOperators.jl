@@ -183,7 +183,6 @@ end
 end
 
 @testset "Linear combinations of operators" begin
-    # Only tests the additional functionality defined in "operator_combination.jl"
     N = 10
     Random.seed!(0); LA = DiffEqArrayOperator(rand(N,N+2))
     LD = CenteredDifference(2,2,1.0,N)

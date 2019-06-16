@@ -1,4 +1,4 @@
-abstract type AbstractBC{T} end
+abstract type AbstractBC{T} <: AbstractDiffEqLinearOperator{T} end
 
 """
 Robin, General, and in general Neumann and Dirichlet BCs are all affine opeartors, meaning that they take the form Qx = Qax + Qb.
@@ -92,13 +92,13 @@ DirichletBC(α::AbstractVector{T}, dx::AbstractVector{T}, order = 1) where T = R
 RobinBC(al::T, bl::T, cl::T, dx_l::T, ar::T, br::T, cr::T, dx_r::T, order = 1) where T = RobinBC([al,bl, cl], [ar, br, cr], [dx_l, dx_r], order)
 
 # this  is 'boundary padded vector' as opposed to 'boundary padded array' to distinguish it from the n dimensional implementation that will eventually be neeeded
-struct BoundaryPaddedVector{T,T2 <: AbstractVector{T}}
+struct BoundaryPaddedVector{T,T2 <: AbstractVector{T}} <: AbstractVector{T}
     l::T
     r::T
     u::T2
 end
 
-Base.:*(Q::AffineBC, u) = BoundaryPaddedVector(Q.a_l ⋅ u[1:length(Q.a_l)] + Q.b_l, Q.a_r ⋅ u[(end-length(Q.a_r)+1):end] + Q.b_r, u)
+Base.:*(Q::AffineBC, u::AbstractVector) = BoundaryPaddedVector(Q.a_l ⋅ u[1:length(Q.a_l)] + Q.b_l, Q.a_r ⋅ u[(end-length(Q.a_r)+1):end] + Q.b_r, u)
 
 Base.size(Q::AbstractBC) = (Inf, Inf) #Is this nessecary?
 Base.length(Q::BoundaryPaddedVector) = length(Q.u) + 2
@@ -139,4 +139,14 @@ function LinearAlgebra.Array(Q::BoundaryPaddedVector)
     return [Q.l; Q.u; Q.r]
 end
 
-#TODO: Implement Sparse concretization
+function Base.convert(::Type{Array},A::AbstractBC{T}) where T
+    Array(A)
+end
+
+function Base.convert(::Type{SparseMatrixCSC},A::AbstractBC{T}) where T
+    SparseMatrixCSC(A)
+end
+
+function Base.convert(::Type{AbstractMatrix},A::AbstractBC{T}) where T
+    SparseMatrixCSC(A)
+end
