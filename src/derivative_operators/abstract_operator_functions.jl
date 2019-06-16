@@ -1,10 +1,3 @@
-#= Worker functions=#
-low(i::Int, mid::Int, bpc::Int) = Int(mid + (i-1)*(1-mid)/bpc)
-high(i::Int, mid::Int, bpc::Int, slen::Int, L::Int) = Int(slen - (slen-mid)*(i-L+bpc)/(bpc))
-
-# used in general dirichlet BC. To simulate a constant value beyond the boundary
-limit(i, N) = N>=i>=1 ? i : (i<1 ? 1 : N)
-
 # ~ bound checking functions ~
 checkbounds(A::AbstractDerivativeOperator, k::Integer, j::Integer) =
     (0 < k ≤ size(A, 1) && 0 < j ≤ size(A, 2) || throw(BoundsError(A, (k,j))))
@@ -24,22 +17,6 @@ checkbounds(A::AbstractDerivativeOperator, k::Colon, j::Integer) =
 checkbounds(A::AbstractDerivativeOperator, k::Integer, j::Colon) =
     (0 < k ≤ size(A, 1) || throw(BoundsError(A, (k,size(A,2)))))
 
-# ~~ getindex ~~
-# @inline function getindex(A::AbstractDerivativeOperator, i::Int, j::Int)
-#     @boundscheck checkbounds(A, i, j)
-#     mid = div(A.stencil_length, 2) + 1
-#     bpc = A.stencil_length - mid
-#     l = max(1, low(j, mid, bpc))
-#     h = min(A.stencil_length, high(j, mid, bpc, A.stencil_length, A.dimension))
-#     slen = h - l + 1
-#     if abs(i - j) > div(slen, 2)
-#         return 0
-#     else
-#         return A.stencil_coefs[mid + j - i]
-#     end
-# end
-
-
 @inline function getindex(A::AbstractDerivativeOperator, i::Int, j::Int)
     @boundscheck checkbounds(A, i, j)
     bpc = A.boundary_point_count
@@ -56,7 +33,7 @@ checkbounds(A::AbstractDerivativeOperator, k::Integer, j::Colon) =
         if j < N+2-bsl
             return 0
         else
-            return A.high_boundary_coefs[i-(N-1)][j-1]
+            return A.high_boundary_coefs[bpc-(N-i)][bsl-(N+2-j)]
         end
     else
         if j < i-bpc || j > i+slen-bpc-1
@@ -67,38 +44,29 @@ checkbounds(A::AbstractDerivativeOperator, k::Integer, j::Colon) =
     end
 end
 
-
 # scalar - colon - colon
-@inline getindex(A::AbstractDerivativeOperator, kr::Colon, jr::Colon) = convert(Array,A)
+@inline getindex(A::AbstractDerivativeOperator, ::Colon, ::Colon) = Array(A)
 
-@inline function getindex(A::AbstractDerivativeOperator, rc::Colon, j)
-    T = eltype(A.stencil_coefs)
-    v = zeros(T, A.dimension)
-    v[j] = one(T)
-    copyto!(v, A*v)
-    return v
+@inline function getindex(A::AbstractDerivativeOperator, ::Colon, j)
+    return Array(A)[:,j]
 end
 
 
 # symmetric right now
-@inline function getindex(A::AbstractDerivativeOperator, i, cc::Colon)
-    T = eltype(A.stencil_coefs)
-    v = zeros(T, A.dimension)
-    v[i] = one(T)
-    copyto!(v, A*v)
-    return v
+@inline function getindex(A::AbstractDerivativeOperator, i, ::Colon)
+    return Array(A)[i,:]
 end
 
 
 # UnitRanges
-@inline function getindex(A::AbstractDerivativeOperator, rng::UnitRange{Int}, cc::Colon)
-    m = convert(Array,A)
+@inline function getindex(A::AbstractDerivativeOperator, rng::UnitRange{Int}, ::Colon)
+    m = Array(A)
     return m[rng, cc]
 end
 
 
-@inline function getindex(A::AbstractDerivativeOperator, rc::Colon, rng::UnitRange{Int})
-    m = convert(Array,A)
+@inline function getindex(A::AbstractDerivativeOperator, ::Colon, rng::UnitRange{Int})
+    m = Array(A)
     return m[rnd, cc]
 end
 
@@ -115,35 +83,7 @@ end
 
 
 @inline function getindex(A::AbstractDerivativeOperator{T}, rng::UnitRange{Int}, cng::UnitRange{Int}) where T
-    N = A.dimension
-    if (rng[end] - rng[1]) > ((cng[end] - cng[1]))
-        mat = zeros(T, (N, length(cng)))
-        v = zeros(T, N)
-        for i = cng
-            v[i] = one(T)
-            #=
-                calculating the effect on a unit vector to get the matrix of transformation
-                to get the vector in the new vector space.
-            =#
-            mul!(view(mat, :, i - cng[1] + 1), A, v)
-            v[i] = zero(T)
-        end
-        return mat[rng, :]
-
-    else
-        mat = zeros(T, (length(rng), N))
-        v = zeros(T, N)
-        for i = rng
-            v[i] = one(T)
-            #=
-                calculating the effect on a unit vector to get the matrix of transformation
-                to get the vector in the new vector space.
-            =#
-            mul!(view(mat, i - rng[1] + 1, :), A, v)
-            v[i] = zero(T)
-        end
-        return mat[:, cng]
-    end
+    return Array(A)[rng,cng]
 end
 
 #=
@@ -162,13 +102,11 @@ function LinearAlgebra.mul!(x_temp::AbstractArray{T,2}, A::AbstractDerivativeOpe
     end
 end
 
-
 # Base.length(A::AbstractDerivativeOperator) = A.stencil_length
 Base.ndims(A::AbstractDerivativeOperator) = 2
 Base.size(A::AbstractDerivativeOperator) = (A.dimension, A.dimension + 2)
 Base.size(A::AbstractDerivativeOperator,i::Integer) = size(A)[i]
 Base.length(A::AbstractDerivativeOperator) = reduce(*, size(A))
-
 
 #=
     For the evenly spaced grid we have a symmetric matrix
@@ -180,11 +118,11 @@ LinearAlgebra.issymmetric(::Union{DerivativeOperator,UpwindOperator}) = true
 #=
     Fallback methods that use the full representation of the operator
 =#
-Base.exp(A::AbstractDerivativeOperator{T}) where T = exp(convert(Array,A))
+Base.exp(A::AbstractDerivativeOperator{T}) where T = exp(convert(A))
 Base.:\(A::AbstractVecOrMat, B::AbstractDerivativeOperator) = A \ convert(Array,B)
-Base.:\(A::AbstractDerivativeOperator, B::AbstractVecOrMat) = convert(Array,A) \ B
+Base.:\(A::AbstractDerivativeOperator, B::AbstractVecOrMat) = Array(A) \ B
 Base.:/(A::AbstractVecOrMat, B::AbstractDerivativeOperator) = A / convert(Array,B)
-Base.:/(A::AbstractDerivativeOperator, B::AbstractVecOrMat) = convert(Array,A) / B
+Base.:/(A::AbstractDerivativeOperator, B::AbstractVecOrMat) = Array(A) / B
 
 ########################################################################
 

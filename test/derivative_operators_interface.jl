@@ -138,11 +138,8 @@ end
     @test A[10,20] == 0
 
     correct = Array(A)
-    for i in 1:N-5
+    for i in 1:N
         @test A[i,i] == correct[i,i]
-    end
-    for i in N-4:N
-        @test_broken A[i,i] == correct[i,i]
     end
 
     # Indexing Tests
@@ -154,8 +151,8 @@ end
     M = Array(A,1000)
     @test A[1,1] == M[1,1]
     @test A[1:4,1] == M[1:4,1]
-    @test_broken A[5,2:10] == M[5,2:10]
-    @test_broken A[60:100,500:600] == M[60:100,500:600]
+    @test A[5,2:10] == M[5,2:10]
+    @test A[60:100,500:600] == M[60:100,500:600]
 end
 
 @testset begin "Operations on matrices"
