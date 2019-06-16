@@ -1,4 +1,4 @@
-function LinearAlgebra.Array(A::DerivativeOperator{T}, N::Int=A.dimension) where T
+function LinearAlgebra.Array(A::DerivativeOperator{T}, N::Int=A.len) where T
     L = zeros(T, N, N+2)
     bl = A.boundary_point_count
     stl = A.stencil_length
@@ -16,7 +16,7 @@ function LinearAlgebra.Array(A::DerivativeOperator{T}, N::Int=A.dimension) where
     return L / A.dx^A.derivative_order
 end
 
-function SparseArrays.SparseMatrixCSC(A::DerivativeOperator{T}, N::Int=A.dimension) where T
+function SparseArrays.SparseMatrixCSC(A::DerivativeOperator{T}, N::Int=A.len) where T
     L = spzeros(T, N, N+2)
     bl = A.boundary_point_count
     stl = A.stencil_length
@@ -34,12 +34,11 @@ function SparseArrays.SparseMatrixCSC(A::DerivativeOperator{T}, N::Int=A.dimensi
     return L / A.dx^A.derivative_order
 end
 
-function SparseArrays.sparse(A::AbstractDerivativeOperator{T}, N::Int=A.dimension) where T
+function SparseArrays.sparse(A::AbstractDerivativeOperator{T}, N::Int=A.len) where T
     SparseMatrixCSC(A,N)
 end
 
-function BandedMatrices.BandedMatrix(A::DerivativeOperator{T}, N::Int=A.dimension) where T
-    N = A.dimension
+function BandedMatrices.BandedMatrix(A::DerivativeOperator{T}, N::Int=A.len) where T
     bl = A.boundary_point_count
     stl = A.stencil_length
     bstl = A.boundary_stencil_length
