@@ -167,9 +167,9 @@ end
 
 ################################################################################
 
-function *(coeff_func::Function, A::DerivativeOperator{T}) where T
+function *(coeff_func::Function, A::DerivativeOperator{T,N,Wind}) where {T,N,Wind}
     coefficients = A.coefficients === nothing ? Vector{T}(undef,A.len) : A.coefficients
-    DerivativeOperator{T,typeof(A.dx),typeof(A.stencil_coefs),
+    DerivativeOperator{T,N,Wind,typeof(A.dx),typeof(A.stencil_coefs),
                        typeof(A.low_boundary_coefs),typeof(coefficients),
                        typeof(coeff_func)}(
         A.derivative_order, A.approximation_order,
@@ -178,7 +178,7 @@ function *(coeff_func::Function, A::DerivativeOperator{T}) where T
         A.boundary_stencil_length,
         A.boundary_point_count,
         A.low_boundary_coefs,
-        A.high_boundary_coefs,coefficients,coeff_func,A.use_winding
+        A.high_boundary_coefs,coefficients,coeff_func
         )
 end
 

@@ -1,4 +1,4 @@
-struct DerivativeOperator{T<:Real,T2,S1,S2<:SVector,T3,F} <: AbstractDerivativeOperator{T}
+struct DerivativeOperator{T<:Real,N,Wind,T2,S1,S2<:SVector,T3,F} <: AbstractDerivativeOperator{T}
     derivative_order        :: Int
     approximation_order     :: Int
     dx                      :: T2
@@ -11,12 +11,13 @@ struct DerivativeOperator{T<:Real,T2,S1,S2<:SVector,T3,F} <: AbstractDerivativeO
     high_boundary_coefs     :: S2
     coefficients            :: T3
     coeff_func              :: F
-    use_winding             :: Bool
 end
 
-function CenteredDifference(derivative_order::Int,
+struct CenteredDifference{N} end
+
+function CenteredDifference{N}(derivative_order::Int,
                             approximation_order::Int, dx::T,
-                            len::Int, coeff_func=nothing) where {T<:Real}
+                            len::Int, coeff_func=nothing) where {T<:Real,N}
 
     stencil_length          = derivative_order + approximation_order - 1 + (derivative_order+approximation_order)%2
     boundary_stencil_length = derivative_order + approximation_order
@@ -33,21 +34,21 @@ function CenteredDifference(derivative_order::Int,
     high_boundary_coefs     = convert(SVector{boundary_point_count},reverse(SVector{boundary_stencil_length, T}[reverse(low_boundary_coefs[i]) for i in 1:boundary_point_count]))
 
     coefficients            = coeff_func isa Nothing ? nothing : Vector{T}(undef,len)
-    DerivativeOperator{T,T,typeof(stencil_coefs),
-                       typeof(low_boundary_coefs),typeof(coefficients),
-                       typeof(coeff_func)}(
+    DerivativeOperator{T,N,false,T,typeof(stencil_coefs),
+        typeof(low_boundary_coefs),typeof(coefficients),
+        typeof(coeff_func)}(
         derivative_order, approximation_order, dx, len, stencil_length,
         stencil_coefs,
         boundary_stencil_length,
         boundary_point_count,
         low_boundary_coefs,
-        high_boundary_coefs,coefficients,coeff_func,false
+        high_boundary_coefs,coefficients,coeff_func
         )
 end
 
-function CenteredDifference(derivative_order::Int,
+function CenteredDifference{N}(derivative_order::Int,
                             approximation_order::Int, dx::AbstractVector{T},
-                            len::Int, coeff_func=nothing) where {T<:Real}
+                            len::Int, coeff_func=nothing) where {T<:Real,N}
 
     stencil_length          = derivative_order + approximation_order - 1 + (derivative_order+approximation_order)%2
     boundary_stencil_length = derivative_order + approximation_order
@@ -65,9 +66,9 @@ function CenteredDifference(derivative_order::Int,
 
     coefficients            = coeff_func isa Nothing ? nothing : Vector{T}(undef,len)
 
-    DerivativeOperator{T,typeof(dx),typeof(stencil_coefs),
-                       typeof(low_boundary_coefs),typeof(coefficients),
-                       typeof(coeff_func)}(
+    DerivativeOperator{T,N,false,typeof(dx),typeof(stencil_coefs),
+        typeof(low_boundary_coefs),typeof(coefficients),
+        typeof(coeff_func)}(
         derivative_order, approximation_order, dx,
         len, stencil_length,
         stencil_coefs,
@@ -78,9 +79,11 @@ function CenteredDifference(derivative_order::Int,
         )
 end
 
-function UpwindDifference(derivative_order::Int,
+struct UpwindDifference{N} end
+
+function UpwindDifference{N}(derivative_order::Int,
                           approximation_order::Int, dx::T,
-                          len::Int, coeff_func=nothing) where {T<:Real}
+                          len::Int, coeff_func=nothing) where {T<:Real,N}
 
     stencil_length          = derivative_order + approximation_order - 1 + (derivative_order+approximation_order)%2
     boundary_stencil_length = derivative_order + approximation_order
@@ -98,21 +101,21 @@ function UpwindDifference(derivative_order::Int,
 
     coefficients            = Vector{T}(undef,len)
 
-    DerivativeOperator{T,T,typeof(stencil_coefs),
-                       typeof(low_boundary_coefs),Vector{T},
-                       typeof(coeff_func)}(
+    DerivativeOperator{T,N,true,T,typeof(stencil_coefs),
+        typeof(low_boundary_coefs),Vector{T},
+        typeof(coeff_func)}(
         derivative_order, approximation_order, dx, len, stencil_length,
         stencil_coefs,
         boundary_stencil_length,
         boundary_point_count,
         low_boundary_coefs,
-        high_boundary_coefs,coefficients,coeff_func,true
+        high_boundary_coefs,coefficients,coeff_func
         )
 end
 
-function UpwindDifference(derivative_order::Int,
+function UpwindDifference{N}(derivative_order::Int,
                           approximation_order::Int, dx::AbstractVector{T},
-                          len::Int, coeff_func=nothing) where {T<:Real}
+                          len::Int, coeff_func=nothing) where {T<:Real,N}
 
     stencil_length          = derivative_order + approximation_order - 1 + (derivative_order+approximation_order)%2
     boundary_stencil_length = derivative_order + approximation_order
@@ -130,14 +133,18 @@ function UpwindDifference(derivative_order::Int,
 
     coefficients            = Vector{T}(undef,len)
 
-    DerivativeOperator{T,typeof(dx),typeof(stencil_coefs),
-                       typeof(low_boundary_coefs),Vector{T},
-                       typeof(coeff_func)}(
+    DerivativeOperator{T,N,true,typeof(dx),typeof(stencil_coefs),
+        typeof(low_boundary_coefs),Vector{T},
+        typeof(coeff_func)}(
         derivative_order, approximation_order, dx, len, stencil_length,
         stencil_coefs,
         boundary_stencil_length,
         boundary_point_count,
         low_boundary_coefs,
-        high_boundary_coefs,coefficients,coeff_func,true
+        high_boundary_coefs,coefficients,coeff_func
         )
 end
+
+CenteredDifference(args...) = CenteredDifference{1}(args...)
+UpwindDifference(args...) = UpwindDifference{1}(args...)
+use_winding(A::DerivativeOperator{T,N,Wind}) where {T,N,Wind} = Wind

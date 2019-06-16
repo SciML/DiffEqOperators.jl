@@ -7,18 +7,18 @@ function LinearAlgebra.Array(A::DerivativeOperator{T}, N::Int=A.len) where T
     stl_2 = div(stl,2)
     for i in 1:A.boundary_point_count
         cur_coeff   = typeof(coeff)   <: AbstractVector ? coeff[i] : true
-        cur_stencil = cur_coeff < 0 && A.use_winding ? reverse(A.low_boundary_coefs[i]) : A.low_boundary_coefs[i]
+        cur_stencil = use_winding(A) && cur_coeff < 0 ? reverse(A.low_boundary_coefs[i]) : A.low_boundary_coefs[i]
         L[i,1:bstl] = cur_coeff * cur_stencil
     end
     for i in bl+1:N-bl
         cur_coeff   = typeof(coeff)   <: AbstractVector ? coeff[i] : true
         stencil     = eltype(A.stencil_coefs) <: AbstractVector ? A.stencil_coefs[i] : A.stencil_coefs
-        cur_stencil = cur_coeff < 0 && A.use_winding ? reverse(stencil) : stencil
+        cur_stencil = use_winding(A) && cur_coeff < 0 ? reverse(stencil) : stencil
         L[i,i+1-stl_2:i+1+stl_2] = cur_coeff * cur_stencil
     end
     for i in N-bl+1:N
         cur_coeff   = typeof(coeff)   <: AbstractVector ? coeff[i] : true
-        cur_stencil = cur_coeff < 0 && A.use_winding ? reverse(A.high_boundary_coefs[i-N+bl]) : A.high_boundary_coefs[i-N+bl]
+        cur_stencil = use_winding(A) && cur_coeff < 0 ? reverse(A.high_boundary_coefs[i-N+bl]) : A.high_boundary_coefs[i-N+bl]
         L[i,N-bstl+3:N+2] = cur_coeff * cur_stencil
     end
     return L / A.dx^A.derivative_order
@@ -33,18 +33,18 @@ function SparseArrays.SparseMatrixCSC(A::DerivativeOperator{T}, N::Int=A.len) wh
     coeff   = A.coefficients
     for i in 1:A.boundary_point_count
         cur_coeff   = typeof(coeff)   <: AbstractVector ? coeff[i] : true
-        cur_stencil = cur_coeff < 0 && A.use_winding ? reverse(A.low_boundary_coefs[i]) : A.low_boundary_coefs[i]
+        cur_stencil = use_winding(A) && cur_coeff < 0 ? reverse(A.low_boundary_coefs[i]) : A.low_boundary_coefs[i]
         L[i,1:bstl] = cur_coeff * cur_stencil
     end
     for i in bl+1:N-bl
         cur_coeff   = typeof(coeff)   <: AbstractVector ? coeff[i] : true
         stencil     = eltype(A.stencil_coefs) <: AbstractVector ? A.stencil_coefs[i] : A.stencil_coefs
-        cur_stencil = cur_coeff < 0 && A.use_winding ? reverse(stencil) : stencil
+        cur_stencil = use_winding(A) && cur_coeff < 0 ? reverse(stencil) : stencil
         L[i,i+1-stl_2:i+1+stl_2] = cur_coeff * cur_stencil
     end
     for i in N-bl+1:N
         cur_coeff   = typeof(coeff)   <: AbstractVector ? coeff[i] : true
-        cur_stencil = cur_coeff < 0 && A.use_winding ? reverse(A.high_boundary_coefs[i-N+bl]) : A.high_boundary_coefs[i-N+bl]
+        cur_stencil = use_winding(A) && cur_coeff < 0 ? reverse(A.high_boundary_coefs[i-N+bl]) : A.high_boundary_coefs[i-N+bl]
         L[i,N-bstl+3:N+2] = cur_coeff * cur_stencil
     end
     return L / A.dx^A.derivative_order
@@ -63,18 +63,18 @@ function BandedMatrices.BandedMatrix(A::DerivativeOperator{T}, N::Int=A.len) whe
     L = BandedMatrix{T}(Zeros(N, N+2), (max(stl-3,0,bstl),max(stl-1,0,bstl)))
     for i in 1:A.boundary_point_count
         cur_coeff   = typeof(coeff)   <: AbstractVector ? coeff[i] : true
-        cur_stencil = cur_coeff < 0 && A.use_winding ? reverse(A.low_boundary_coefs[i]) : A.low_boundary_coefs[i]
+        cur_stencil = use_winding(A) && cur_coeff < 0 ? reverse(A.low_boundary_coefs[i]) : A.low_boundary_coefs[i]
         L[i,1:bstl] = cur_coeff * cur_stencil
     end
     for i in bl+1:N-bl
         cur_coeff   = typeof(coeff)   <: AbstractVector ? coeff[i] : true
         stencil     = eltype(A.stencil_coefs) <: AbstractVector ? A.stencil_coefs[i] : A.stencil_coefs
-        cur_stencil = cur_coeff < 0 && A.use_winding ? reverse(stencil) : stencil
+        cur_stencil = use_winding(A) && cur_coeff < 0 ? reverse(stencil) : stencil
         L[i,i+1-stl_2:i+1+stl_2] = cur_coeff * cur_stencil
     end
     for i in N-bl+1:N
         cur_coeff   = typeof(coeff)   <: AbstractVector ? coeff[i] : true
-        cur_stencil = cur_coeff < 0 && A.use_winding ? reverse(A.high_boundary_coefs[i-N+bl]) : A.high_boundary_coefs[i-N+bl]
+        cur_stencil = use_winding(A) && cur_coeff < 0 ? reverse(A.high_boundary_coefs[i-N+bl]) : A.high_boundary_coefs[i-N+bl]
         L[i,N-bstl+3:N+2] = cur_coeff * cur_stencil
     end
     return L / A.dx^A.derivative_order
