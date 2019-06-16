@@ -5,7 +5,7 @@ import Base: isapprox
 @time @safetestset "Robin Boundary Condition Operators" begin include("robin.jl") end
 @time @safetestset "JacVec Operators Interface" begin include("jacvec_operators.jl") end
 @time @safetestset "Composite Operators Interface" begin include("composite_operators_interface.jl") end
-@time @safetestset "BC and Coefficient Compositions" begin include("bc_coeff_compositions.jl")
+@time @safetestset "BC and Coefficient Compositions" begin include("bc_coeff_compositions.jl") end
 @time @safetestset "Derivative Operators Interface" begin include("derivative_operators_interface.jl") end
 @time @safetestset "Validate and Compare Generic Operators" begin include("generic_operator_validation.jl") end
 #@time @safetestset "2nd order check" begin include("2nd_order_check.jl") end
