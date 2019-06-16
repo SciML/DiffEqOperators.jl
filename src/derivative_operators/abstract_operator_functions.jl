@@ -48,25 +48,25 @@ end
 @inline getindex(A::AbstractDerivativeOperator, ::Colon, ::Colon) = Array(A)
 
 @inline function getindex(A::AbstractDerivativeOperator, ::Colon, j)
-    return Array(A)[:,j]
+    return BandedMatrix(A)[:,j]
 end
 
 
 # symmetric right now
 @inline function getindex(A::AbstractDerivativeOperator, i, ::Colon)
-    return Array(A)[i,:]
+    return BandedMatrix(A)[i,:]
 end
 
 
 # UnitRanges
 @inline function getindex(A::AbstractDerivativeOperator, rng::UnitRange{Int}, ::Colon)
-    m = Array(A)
+    m = BandedMatrix(A)
     return m[rng, cc]
 end
 
 
 @inline function getindex(A::AbstractDerivativeOperator, ::Colon, rng::UnitRange{Int})
-    m = Array(A)
+    m = BandedMatrix(A)
     return m[rnd, cc]
 end
 
@@ -83,7 +83,7 @@ end
 
 
 @inline function getindex(A::AbstractDerivativeOperator{T}, rng::UnitRange{Int}, cng::UnitRange{Int}) where T
-    return Array(A)[rng,cng]
+    return BandedMatrix(A)[rng,cng]
 end
 
 #=
@@ -124,9 +124,19 @@ Base.:\(A::AbstractDerivativeOperator, B::AbstractVecOrMat) = Array(A) \ B
 Base.:/(A::AbstractVecOrMat, B::AbstractDerivativeOperator) = A / convert(Array,B)
 Base.:/(A::AbstractDerivativeOperator, B::AbstractVecOrMat) = Array(A) / B
 
-########################################################################
+#=
+    The Inf opnorm can be calculated easily using the stencil coeffiicents, while other opnorms
+    default to compute from the full matrix form.
+=#
+function LinearAlgebra.opnorm(A::DerivativeOperator{T,S}, p::Real=2) where {T,S}
+    if p == Inf
+        sum(abs.(A.stencil_coefs)) / A.dx^A.derivative_order
+    else
+        opnorm(BandedMatrix(A), p)
+    end
+end
 
-# Are these necessary?
+########################################################################
 
 get_type(::AbstractDerivativeOperator{T}) where {T} = T
 
@@ -138,23 +148,19 @@ end
 
 
 function *(A::AbstractDerivativeOperator,M::AbstractMatrix)
-    y = zeros(promote_type(eltype(A),eltype(M)), size(M))
+    y = zeros(promote_type(eltype(A),eltype(M)), size(A,1), size(M,2))
     LinearAlgebra.mul!(y, A::AbstractDerivativeOperator, M::AbstractMatrix)
     return y
 end
 
 
 function *(M::AbstractMatrix,A::AbstractDerivativeOperator)
-    y = zeros(promote_type(eltype(A),eltype(M)), size(M))
-    LinearAlgebra.mul!(y, A::AbstractDerivativeOperator, M::AbstractMatrix)
+    y = zeros(promote_type(eltype(A),eltype(M)), size(M,1), size(A,2))
+    LinearAlgebra.mul!(y, M, BandedMatrix(A))
     return y
 end
 
-#=
-# For now use slow fallback
+
 function *(A::AbstractDerivativeOperator,B::AbstractDerivativeOperator)
-    # TODO: it will result in an operator which calculates
-    #       the derivative of order A.dorder + B.dorder of
-    #       approximation_order = min(approx_A, approx_B)
+    return BandedMatrix(A)*BandedMatrix(B)
 end
-=#

@@ -53,15 +53,3 @@ end
 
 (L::DerivativeOperator)(u,p,t) = L*u
 (L::DerivativeOperator)(du,u,p,t) = mul!(du,L,u)
-
-#=
-    The Inf opnorm can be calculated easily using the stencil coeffiicents, while other opnorms
-    default to compute from the full matrix form.
-=#
-function LinearAlgebra.opnorm(A::DerivativeOperator{T,S}, p::Real=2) where {T,S}
-    if p == Inf && LBC in [:Dirichlet0, :Neumann0, :periodic] && RBC in [:Dirichlet0, :Neumann0, :periodic]
-        sum(abs.(A.stencil_coefs)) / A.dx^A.derivative_order
-    else
-        opnorm(convert(Array,A), p)
-    end
-end

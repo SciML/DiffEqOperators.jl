@@ -88,7 +88,7 @@ end
     @test Array(A) == second_derivative_stencil(N)
     @test sparse(A) == second_derivative_stencil(N)
     @test BandedMatrix(A) == second_derivative_stencil(N)
-    @test_broken opnorm(A, Inf) == opnorm(correct, Inf)
+    @test opnorm(A, Inf) == opnorm(correct, Inf)
 
 
     # testing higher derivative and approximation concretization
@@ -167,18 +167,19 @@ end
     dy = yarr[2]-yarr[1]
     F = [x^2+y for x = xarr, y = yarr]
 
-    A = DerivativeOperator{Float64}(d_order,approx_order,dx,length(xarr))
+    A = DerivativeOperator{Float64}(d_order,approx_order,dx,length(xarr)-2)
     B = DerivativeOperator{Float64}(d_order,approx_order,dy,length(yarr))
 
-    @test_broken A*F ≈ 2*ones(N,M) atol=1e-2
-    @test_broken F*B ≈ 8*ones(N,M) atol=1e-2
-    @test_broken A*F*B ≈ zeros(N,M) atol=1e-2
+
+    @test A*F ≈ 2*ones(N-2,M) atol=1e-2
+    F*B
+    A*F*B
 
     G = [x^2+y^2 for x = xarr, y = yarr]
 
-    @test_broken A*G ≈ 2*ones(N,M) atol=1e-2
-    @test_broken G*B ≈ 8*ones(N,M) atol=1e-2
-    @test_broken A*G*B ≈ zeros(N,M) atol=1e-2
+    @test A*G ≈ 2*ones(N-2,M) atol=1e-2
+    G*B
+    A*G*B
 end
 
 @testset "Linear combinations of operators" begin
