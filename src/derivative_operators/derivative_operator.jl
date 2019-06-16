@@ -23,11 +23,11 @@ struct DerivativeOperator{T<:Real,S1<:SVector,S2<:SVector} <: AbstractDerivative
         boundary_point_count    = div(stencil_length,2) - 1 # -1 due to the ghost point
         # Because it's a N x (N+2) operator, the last stencil on the sides are the [b,0,x,x,x,x] stencils, not the [0,x,x,x,x,x] stencils, since we're never solving for the derivative at the boundary point.
         deriv_spots             = (-div(stencil_length,2)+1) : -1
-        boundary_deriv_spots    = boundary_x[1:div(stencil_length,2)-1]
+        boundary_deriv_spots    = boundary_x[2:div(stencil_length,2)]
 
         stencil_coefs           = convert(SVector{stencil_length, T}, calculate_weights(derivative_order, zero(T), dummy_x))
         low_boundary_coefs      = [convert(SVector{boundary_stencil_length, T}, calculate_weights(derivative_order, oneunit(T)*x0, boundary_x)) for x0 in boundary_deriv_spots]
-        high_boundary_coefs     = reverse!(copy(low_boundary_coefs))
+        high_boundary_coefs     = reverse!(copy([convert(SVector{boundary_stencil_length, T}, reverse(low_boundary_coefs[i])) for i in 1:boundary_point_count]))
 
         new(derivative_order, approximation_order, dx, dimension, stencil_length,
             stencil_coefs,
