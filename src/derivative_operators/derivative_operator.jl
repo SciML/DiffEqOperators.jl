@@ -7,8 +7,8 @@ struct DerivativeOperator{T<:Real,S1<:SVector,S2<:SVector} <: AbstractDerivative
     stencil_coefs           :: S1
     boundary_stencil_length :: Int
     boundary_point_count    :: Int
-    low_boundary_coefs      :: Vector{S2}
-    high_boundary_coefs     :: Vector{S2}
+    low_boundary_coefs      :: S2
+    high_boundary_coefs     :: S2
 end
 
 function CenteredDifference(derivative_order::Int,
@@ -26,8 +26,9 @@ function CenteredDifference(derivative_order::Int,
     boundary_deriv_spots    = boundary_x[2:div(stencil_length,2)]
 
     stencil_coefs           = convert(SVector{stencil_length, T}, calculate_weights(derivative_order, zero(T), dummy_x))
-    low_boundary_coefs      = SVector{boundary_stencil_length, T}[convert(SVector{boundary_stencil_length, T}, calculate_weights(derivative_order, oneunit(T)*x0, boundary_x)) for x0 in boundary_deriv_spots]
-    high_boundary_coefs     = reverse([reverse(low_boundary_coefs[i]) for i in 1:boundary_point_count])
+    _low_boundary_coefs     = SVector{boundary_stencil_length, T}[convert(SVector{boundary_stencil_length, T}, calculate_weights(derivative_order, oneunit(T)*x0, boundary_x)) for x0 in boundary_deriv_spots]
+    low_boundary_coefs      = convert(SVector{boundary_point_count},_low_boundary_coefs)
+    high_boundary_coefs     = convert(SVector{boundary_point_count},reverse(SVector{boundary_stencil_length, T}[reverse(low_boundary_coefs[i]) for i in 1:boundary_point_count]))
 
     DerivativeOperator(derivative_order, approximation_order, dx, dimension, stencil_length,
         stencil_coefs,
