@@ -44,6 +44,6 @@ end
 
 export MatrixFreeOperator
 export DiffEqScalar, DiffEqArrayOperator, DiffEqIdentity, JacVecOperator, getops
-export AbstractDerivativeOperator, DerivativeOperator, UpwindOperator, FiniteDifference
-export RobinBC
+export AbstractDerivativeOperator, DerivativeOperator, CenteredDifference, UpwindOperator, FiniteDifference
+export RobinBC, GeneralBC
 end # module

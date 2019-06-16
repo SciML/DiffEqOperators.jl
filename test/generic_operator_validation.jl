@@ -11,7 +11,7 @@ y_ = y[2:(end-1)]
 
 @test_broken for dor in 1:6, aor in 1:8
 
-    D1 = DerivativeOperator{Float64}(dor,aor,dx[1],length(x))
+    D1 = CenteredDifference(dor,aor,dx[1],length(x))
     D2 = DiffEqOperators.FiniteDifference{Float64}(dor,aor,dx,length(x))
     D = (D1,D2)
     @test_broken convert(Array, D1) ≈ convert(Array, D2)

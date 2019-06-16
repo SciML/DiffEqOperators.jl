@@ -53,7 +53,7 @@ end
 # Do not modify the following test-set unless you are completely certain of your changes.
 @testset "Correctness of Stencils" begin
     N = 20
-    L = DerivativeOperator{Float64}(4,4, 1.0, N)
+    L = CenteredDifference(4,4, 1.0, N)
     correct = fourth_deriv_approx_stencil(N)
 
     # Check that stencils (according to convert_by_multiplication) agree with correct
@@ -64,7 +64,7 @@ end
     @test sparse(L) ≈ correct
     @test BandedMatrix(L) ≈ correct
 
-    L = DerivativeOperator{Float64}(2,4, 1.0, N)
+    L = CenteredDifference(2,4, 1.0, N)
     correct = second_deriv_fourth_approx_stencil(N)
 
     # Check that stencils (according to convert_by_multiplication) agree with correct
@@ -82,7 +82,7 @@ end
     d_order = 2
     approx_order = 2
     correct = second_derivative_stencil(N)
-    A = DerivativeOperator{Float64}(d_order,approx_order,1.0,N)
+    A = CenteredDifference(d_order,approx_order,1.0,N)
 
     @test convert_by_multiplication(Array,A,N) == correct
     @test Array(A) == second_derivative_stencil(N)
@@ -95,7 +95,7 @@ end
     N = 20
     d_order = 4
     approx_order = 4
-    A = DerivativeOperator{Float64}(d_order,approx_order,1.0,N)
+    A = CenteredDifference(d_order,approx_order,1.0,N)
     correct = convert_by_multiplication(Array,A,N)
 
     @test Array(A) ≈ correct
@@ -105,7 +105,7 @@ end
     N = 26
     d_order = 8
     approx_order = 8
-    A = DerivativeOperator{Float64}(d_order,approx_order,1.0,N)
+    A = CenteredDifference(d_order,approx_order,1.0,N)
     correct = convert_by_multiplication(Array,A,N)
 
     @test Array(A) ≈ correct
@@ -119,12 +119,11 @@ end
     y = collect(1:1.0:N+2).^4 - 2*collect(1:1.0:N+2).^3 + collect(1:1.0:N+2).^2;
     y = convert(Array{BigFloat, 1}, y)
 
-    A = DerivativeOperator{BigFloat}(d_order,approx_order,one(BigFloat),N)
+    A = CenteredDifference(d_order,approx_order,one(BigFloat),N)
     correct = convert_by_multiplication(Array,A,N)
     @test Array(A) ≈ correct
     @test sparse(A) ≈ correct
     @test BandedMatrix(A) ≈ correct
-
     @test A*y ≈ Array(A)*y
 end
 
@@ -133,7 +132,7 @@ end
     d_order = 4
     approx_order = 10
 
-    A = DerivativeOperator{Float64}(d_order,approx_order,1.0,N)
+    A = CenteredDifference(d_order,approx_order,1.0,N)
     @test A[1,1] == Array(A)[1,1]
     @test A[10,20] == 0
 
@@ -147,7 +146,7 @@ end
     d_order = 2
     approx_order = 2
 
-    A = DerivativeOperator{Float64}(d_order,approx_order,1.0,N)
+    A = CenteredDifference(d_order,approx_order,1.0,N)
     M = Array(A,1000)
     @test A[1,1] == M[1,1]
     @test A[1:4,1] == M[1:4,1]
@@ -167,8 +166,8 @@ end
     dy = yarr[2]-yarr[1]
     F = [x^2+y for x = xarr, y = yarr]
 
-    A = DerivativeOperator{Float64}(d_order,approx_order,dx,length(xarr)-2)
-    B = DerivativeOperator{Float64}(d_order,approx_order,dy,length(yarr))
+    A = CenteredDifference(d_order,approx_order,dx,length(xarr)-2)
+    B = CenteredDifference(d_order,approx_order,dy,length(yarr))
 
 
     @test A*F ≈ 2*ones(N-2,M) atol=1e-2
@@ -186,7 +185,7 @@ end
     # Only tests the additional functionality defined in "operator_combination.jl"
     N = 10
     Random.seed!(0); LA = DiffEqArrayOperator(rand(N,N))
-    LD = DerivativeOperator{Float64}(2,2,1.0,N)
+    LD = CenteredDifference(2,2,1.0,N)
     @test_broken begin
       L = 1.1*LA - 2.2*LD + 3.3*I
       # Builds convert(L) the brute-force way
