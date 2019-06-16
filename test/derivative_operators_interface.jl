@@ -57,23 +57,23 @@ end
     correct = fourth_deriv_approx_stencil(N)
 
     # Check that stencils (according to convert_by_multiplication) agree with correct
-    @test convert_by_multiplication(Array, L, N) == correct
+    @test convert_by_multiplication(Array, L, N) ≈ correct
 
     # Check that concretization agrees correct
-    @test Array(L) == correct
-    @test sparse(L) == correct
-    @test BandedMatrix(L) == correct
+    @test Array(L) ≈ correct
+    @test sparse(L) ≈ correct
+    @test BandedMatrix(L) ≈ correct
 
     L = DerivativeOperator{Float64}(2,4, 1.0, N)
     correct = second_deriv_fourth_approx_stencil(N)
 
     # Check that stencils (according to convert_by_multiplication) agree with correct
-    @test convert_by_multiplication(Array, L, N) == correct
+    @test convert_by_multiplication(Array, L, N) ≈ correct
 
     # Check that concretization agrees correct
-    @test Array(L) == correct
-    @test sparse(L) == correct
-    @test BandedMatrix(L) == correct
+    @test Array(L) ≈ correct
+    @test sparse(L) ≈ correct
+    @test BandedMatrix(L) ≈ correct
 end
 
 # tests for full and sparse function
