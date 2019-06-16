@@ -65,10 +65,10 @@ function convolve_interior!(x_temp::AbstractVector{T}, _x::BoundaryPaddedVector,
     x = _x.u
     mid = div(A.stencil_length,2) + 1
     # Just do the middle parts
-    for i in (1+A.boundary_length) : (length(x_temp)-A.boundary_length)
+    for i in (1+A.boundary_point_count) : (length(x_temp)-A.boundary_point_count)
         xtempi = zero(T)
-        cur_stencil = eltype(stencil) <: AbstractVector ? stencil[i-A.boundary_length] : stencil
-        cur_coeff   = typeof(coeff)   <: AbstractVector ? coeff[i-A.boundary_length] : true
+        cur_stencil = eltype(stencil) <: AbstractVector ? stencil[i-A.boundary_point_count] : stencil
+        cur_coeff   = typeof(coeff)   <: AbstractVector ? coeff[i-A.boundary_point_count] : true
         cur_stencil = use_winding(A) && cur_coeff < 0 ? reverse(cur_stencil) : cur_stencil
         @inbounds for idx in 1:A.stencil_length
             xtempi += cur_coeff * cur_stencil[idx] * x[i - (mid-idx) + 1]
@@ -80,13 +80,13 @@ end
 function convolve_BC_left!(x_temp::AbstractVector{T}, _x::BoundaryPaddedVector, A::DerivativeOperator) where {T<:Real}
     stencil = A.low_boundary_coefs
     coeff   = A.coefficients
-    for i in 1 : A.boundary_length
-        xtempi = stencil[i][1]*x.l
+    for i in 1 : A.boundary_point_count
+        xtempi = stencil[i][1]*_x.l
         cur_stencil = stencil[i]
-        cur_coeff   = typeof(coeff)   <: AbstractVector ? coeff[i-A.boundary_length] : true
+        cur_coeff   = typeof(coeff)   <: AbstractVector ? coeff[i-A.boundary_point_count] : true
         cur_stencil = use_winding(A) && cur_coeff < 0 ? reverse(cur_stencil) : cur_stencil
         @inbounds for idx in 2:A.stencil_length
-            xtempi += cur_coeff * cur_stencil[idx] * x.u[idx-1]
+            xtempi += cur_coeff * cur_stencil[idx] * _x.u[idx-1]
         end
         x_temp[i] = xtempi
     end
@@ -95,14 +95,14 @@ end
 function convolve_BC_right!(x_temp::AbstractVector{T}, _x::BoundaryPaddedVector, A::DerivativeOperator) where {T<:Real}
     stencil = A.low_boundary_coefs
     coeff   = A.coefficients
-    bc_start = length(x.u) - A.stencil_length
-    for i in 1 : A.boundary_length
-        xtempi = stencil[i][end]*x.r
+    bc_start = length(_x.u) - A.stencil_length
+    for i in 1 : A.boundary_point_count
+        xtempi = stencil[i][end]*_x.r
         cur_stencil = stencil[i]
-        cur_coeff   = typeof(coeff)   <: AbstractVector ? coeff[i-A.boundary_length] : true
+        cur_coeff   = typeof(coeff)   <: AbstractVector ? coeff[i-A.boundary_point_count] : true
         cur_stencil = use_winding(A) && cur_coeff < 0 ? reverse(cur_stencil) : cur_stencil
         @inbounds for idx in A.stencil_length:-1:2
-            xtempi += cur_coeff * cur_stencil[end-idx] * x.u[end-idx+1]
+            xtempi += cur_coeff * cur_stencil[end-idx] * _x.u[end-idx+1]
         end
         x_temp[i] = xtempi
     end
