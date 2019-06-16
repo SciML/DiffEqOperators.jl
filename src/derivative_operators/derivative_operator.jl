@@ -1,15 +1,4 @@
 struct DerivativeOperator{T<:Real,S1<:SVector,S2<:SVector} <: AbstractDerivativeOperator{T}
-<<<<<<< HEAD
-    derivative_order    :: Int
-    approximation_order :: Int
-    dx                  :: T
-    dimension           :: Int
-    stencil_length      :: Int
-    stencil_coefs       :: S1
-    boundary_length     :: Int
-    low_boundary_coefs  :: Vector{S2}
-    high_boundary_coefs :: Vector{S2}
-=======
     derivative_order        :: Int
     approximation_order     :: Int
     dx                      :: T
@@ -20,32 +9,11 @@ struct DerivativeOperator{T<:Real,S1<:SVector,S2<:SVector} <: AbstractDerivative
     boundary_point_count    :: Int
     low_boundary_coefs      :: Vector{S2}
     high_boundary_coefs     :: Vector{S2}
->>>>>>> 4489cdfb3008b4de19aef126f176c343f0390036
 
     function DerivativeOperator{T,S1,S2}(derivative_order::Int,
                                      approximation_order::Int, dx::T,
                                      dimension::Int) where
                                      {T<:Real,S1<:SVector,S2<:SVector}
-<<<<<<< HEAD
-        dimension            = dimension
-        dx                   = dx
-        stencil_length       = derivative_order + approximation_order - 1 + (derivative_order+approximation_order)%2
-        boundary_length      = derivative_order + approximation_order
-        dummy_x              = -div(stencil_length,2) : div(stencil_length,2)
-        boundary_x           = -boundary_length+1:0
-        # deriv_spots          = -div(stencil_length,2) : -1
-        deriv_spots          = (-div(stencil_length,2)+1) : -1
-        boundary_length      = length(boundary_x)
-        boundary_deriv_spots = boundary_x[1:div(stencil_length,2)]
-
-
-        println(boundary_length)
-        println(boundary_x)
-        println([calculate_weights(derivative_order, oneunit(T)*x0, boundary_x) for x0 in boundary_deriv_spots])
-        stencil_coefs        = convert(SVector{stencil_length, T}, calculate_weights(derivative_order, zero(T), dummy_x))
-        low_boundary_coefs   = [convert(SVector{boundary_length, T}, calculate_weights(derivative_order, oneunit(T)*x0, boundary_x)) for x0 in boundary_deriv_spots]
-        high_boundary_coefs  = reverse!(copy(low_boundary_coefs))
-=======
         dimension               = dimension
         dx                      = dx
         stencil_length          = derivative_order + approximation_order - 1 + (derivative_order+approximation_order)%2
@@ -60,7 +28,6 @@ struct DerivativeOperator{T<:Real,S1<:SVector,S2<:SVector} <: AbstractDerivative
         stencil_coefs           = convert(SVector{stencil_length, T}, calculate_weights(derivative_order, zero(T), dummy_x))
         low_boundary_coefs      = [convert(SVector{boundary_stencil_length, T}, calculate_weights(derivative_order, oneunit(T)*x0, boundary_x)) for x0 in boundary_deriv_spots]
         high_boundary_coefs     = reverse!(copy(low_boundary_coefs))
->>>>>>> 4489cdfb3008b4de19aef126f176c343f0390036
 
         new(derivative_order, approximation_order, dx, dimension, stencil_length,
             stencil_coefs,

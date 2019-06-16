@@ -39,10 +39,10 @@ checkbounds(A::AbstractDerivativeOperator, k::Integer, j::Colon) =
             return A.low_boundary_coefs[i][j]
         end
     elseif bpc > 0 && (N-bpc)<i<=N
-        if j < N+3-bsl
+        if j < N+2-bsl
             return 0
         else
-            return A.high_boundary_coefs[i-(N-1)][j-1]
+            return A.high_boundary_coefs[bpc-(N-i)][bsl-(N+2-j)]
         end
     else
         if j < i-bpc || j > i+slen-bpc-1
@@ -55,7 +55,7 @@ end
 
 
 # scalar - colon - colon
-@inline getindex(A::AbstractDerivativeOperator, kr::Colon, jr::Colon) = convert(Array,A)
+@inline getindex(A::AbstractDerivativeOperator, kr::Colon, jr::Colon) = Array(A)
 
 @inline function getindex(A::AbstractDerivativeOperator, rc::Colon, j)
     T = eltype(A.stencil_coefs)
@@ -90,13 +90,13 @@ end
 
 # UnitRanges
 @inline function getindex(A::AbstractDerivativeOperator, rng::UnitRange{Int}, cc::Colon)
-    m = convert(Array,A)
+    m = Array(A)
     return m[rng, cc]
 end
 
 
 @inline function getindex(A::AbstractDerivativeOperator, rc::Colon, rng::UnitRange{Int})
-    m = convert(Array,A)
+    m = Array(A)
     return m[rnd, cc]
 end
 
@@ -151,11 +151,11 @@ LinearAlgebra.issymmetric(::Union{DerivativeOperator,UpwindOperator}) = true
 #=
     Fallback methods that use the full representation of the operator
 =#
-Base.exp(A::AbstractDerivativeOperator{T}) where T = exp(convert(Array,A))
+Base.exp(A::AbstractDerivativeOperator{T}) where T = exp(convert(A))
 Base.:\(A::AbstractVecOrMat, B::AbstractDerivativeOperator) = A \ convert(Array,B)
-Base.:\(A::AbstractDerivativeOperator, B::AbstractVecOrMat) = convert(Array,A) \ B
+Base.:\(A::AbstractDerivativeOperator, B::AbstractVecOrMat) = Array(A) \ B
 Base.:/(A::AbstractVecOrMat, B::AbstractDerivativeOperator) = A / convert(Array,B)
-Base.:/(A::AbstractDerivativeOperator, B::AbstractVecOrMat) = convert(Array,A) / B
+Base.:/(A::AbstractDerivativeOperator, B::AbstractVecOrMat) = Array(A) / B
 
 ########################################################################
 
