@@ -9,6 +9,30 @@ function second_derivative_stencil(N)
   A
 end
 
+# Analytic solutions to higher order operators.
+# Do not modify unless you are completely certain of the changes.
+function fourth_deriv_approx_stencil(N)
+    A = zeros(N,N+2)
+    A[1,1:8] = [3.5 -56/3 42.5 -54.0 251/6 -20.0 5.5 -2/3]
+    A[2,1:8] = [2/3 -11/6 0.0 31/6 -22/3 4.5 -4/3 1/6]
+    A[N-1,N-5:end] = reverse([2/3 -11/6 0.0 31/6 -22/3 4.5 -4/3 1/6], dims=2)
+    A[N,N-5:end] = reverse([3.5 -56/3 42.5 -54.0 251/6 -20.0 5.5 -2/3], dims=2)
+    for i in 3:N-2
+        A[i,i-2:i+4] = [-1/6 2.0 -13/2 28/3 -13/2 2.0 -1/6]
+    end
+    return A
+end
+
+function second_deriv_fourth_approx_stencil(N)
+    A = zeros(N,N+2)
+    A[1,1:6] = [5/6 -1.25 -1/3 7/6 -0.5 5/60]
+    A[N,N-3:end] = reverse([5/6 -1.25 -1/3 7/6 -0.5 5/60], dims=2)
+    for i in 2:N-1
+        A[i,i-1:i+3] = [-1/12 4/3 -5/2 4/3 -1/12]
+    end
+    return A
+end
+
 function convert_by_multiplication(::Type{Array}, A::AbstractDerivativeOperator{T}, N::Int=A.dimension) where T
     @assert N >= A.stencil_length # stencil must be able to fit in the matrix
     mat = zeros(T, (N, N+2))
@@ -23,6 +47,33 @@ function convert_by_multiplication(::Type{Array}, A::AbstractDerivativeOperator{
         v[i] = zero(T)
     end
     return mat
+end
+
+# Tests the corrrectness of stencils, along with concretization.
+# Do not modify the following test-set unless you are completely certain of your changes.
+@testset "Correctness of Stencils" begin
+    N = 20
+    L = DerivativeOperator{Float64}(4,4, 1.0, N)
+    correct = fourth_deriv_approx_stencil(N)
+
+    # Check that stencils (according to convert_by_multiplication) agree with correct
+    @test convert_by_multiplication(Array, L, N) == correct
+
+    # Check that concretization agrees correct
+    @test Array(L) == correct
+    @test sparse(L) == correct
+    @test BandedMatrix(L) == correct
+
+    L = DerivativeOperator{Float64}(2,4, 1.0, N)
+    correct = second_deriv_fourth_approx_stencil(N)
+
+    # Check that stencils (according to convert_by_multiplication) agree with correct
+    @test convert_by_multiplication(Array, L, N) == correct
+
+    # Check that concretization agrees correct
+    @test Array(L) == correct
+    @test sparse(L) == correct
+    @test BandedMatrix(L) == correct
 end
 
 # tests for full and sparse function
