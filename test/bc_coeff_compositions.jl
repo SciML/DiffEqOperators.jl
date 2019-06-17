@@ -25,10 +25,15 @@ DiffEqOperators.update_coefficients!(cL,coeffs,nothing,0.0)
 
 @test cL.coefficients == coeffs
 
-# Fails
-u = rand(20)
-@test_broken LQ = L*Q
-@test_broken LQ*u ≈ L*(Q*u)
+# Test GhostDerivativeOperator constructor by *
+u = rand(N)
+A = L*Q
+@test A*u ≈ L*(Q*u)
+
+# Test concretization. The second test fails due to a a mistake in convolutions
+@test Array(A)[1] ≈ (Array(L)*Array(Q,N)[1], Array(L)*Array(Q,N)[2])[1]
+@test Array(A)[2] ≈ (Array(L)*Array(Q,N)[1], Array(L)*Array(Q,N)[2])[2]
+@test_broken Array(A)[1]*u + Array(A)[2] ≈ L*(Q*u)
 
 u = rand(22)
 @test (L + L2) * u ≈ convert(AbstractMatrix,L + L2) * u ≈ (BandedMatrix(L) + BandedMatrix(L2)) * u

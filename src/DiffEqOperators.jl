@@ -29,6 +29,7 @@ include("derivative_operators/derivative_operator.jl")
 include("derivative_operators/abstract_operator_functions.jl")
 include("derivative_operators/convolutions.jl")
 include("derivative_operators/concretization.jl")
+include("derivative_operators/ghost_derivative_operator.jl")
 
 ### Composite Operators
 include("composite_operators.jl")
@@ -45,4 +46,5 @@ export DiffEqScalar, DiffEqArrayOperator, DiffEqIdentity, JacVecOperator, getops
 export AbstractDerivativeOperator, DerivativeOperator,
        CenteredDifference, UpwindDifference
 export RobinBC, GeneralBC
+export GhostDerivativeOperator
 end # module
