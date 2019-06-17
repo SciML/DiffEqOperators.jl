@@ -17,52 +17,56 @@ checkbounds(A::AbstractDerivativeOperator, k::Colon, j::Integer) =
 checkbounds(A::AbstractDerivativeOperator, k::Integer, j::Colon) =
     (0 < k ≤ size(A, 1) || throw(BoundsError(A, (k,size(A,2)))))
 
-# ~~ getindex ~~
 @inline function getindex(A::AbstractDerivativeOperator, i::Int, j::Int)
     @boundscheck checkbounds(A, i, j)
-    mid = div(A.stencil_length, 2) + 1
-    bpc = A.stencil_length - mid
-    l = max(1, low(j, mid, bpc))
-    h = min(A.stencil_length, high(j, mid, bpc, A.stencil_length, A.dimension))
-    slen = h - l + 1
-    if abs(i - j) > div(slen, 2)
-        return 0
+    bpc = A.boundary_point_count
+    N = A.len
+    bsl = A.boundary_stencil_length
+    slen = A.stencil_length
+    if bpc > 0 && 1<=i<=bpc
+        if j > bsl
+            return 0
+        else
+            return A.low_boundary_coefs[i][j]
+        end
+    elseif bpc > 0 && (N-bpc)<i<=N
+        if j < N+2-bsl
+            return 0
+        else
+            return A.high_boundary_coefs[bpc-(N-i)][bsl-(N+2-j)]
+        end
     else
-        return A.stencil_coefs[mid + j - i]
+        if j < i-bpc || j > i+slen-bpc-1
+            return 0
+        else
+            return A.stencil_coefs[j-i + 1 + bpc]
+        end
     end
 end
 
 # scalar - colon - colon
-@inline getindex(A::AbstractDerivativeOperator, kr::Colon, jr::Colon) = convert(Array,A)
+@inline getindex(A::AbstractDerivativeOperator, ::Colon, ::Colon) = Array(A)
 
-@inline function getindex(A::AbstractDerivativeOperator, rc::Colon, j)
-    T = eltype(A.stencil_coefs)
-    v = zeros(T, A.dimension)
-    v[j] = one(T)
-    copyto!(v, A*v)
-    return v
+@inline function getindex(A::AbstractDerivativeOperator, ::Colon, j)
+    return BandedMatrix(A)[:,j]
 end
 
 
 # symmetric right now
-@inline function getindex(A::AbstractDerivativeOperator, i, cc::Colon)
-    T = eltype(A.stencil_coefs)
-    v = zeros(T, A.dimension)
-    v[i] = one(T)
-    copyto!(v, A*v)
-    return v
+@inline function getindex(A::AbstractDerivativeOperator, i, ::Colon)
+    return BandedMatrix(A)[i,:]
 end
 
 
 # UnitRanges
-@inline function getindex(A::AbstractDerivativeOperator, rng::UnitRange{Int}, cc::Colon)
-    m = convert(Array,A)
+@inline function getindex(A::AbstractDerivativeOperator, rng::UnitRange{Int}, ::Colon)
+    m = BandedMatrix(A)
     return m[rng, cc]
 end
 
 
-@inline function getindex(A::AbstractDerivativeOperator, rc::Colon, rng::UnitRange{Int})
-    m = convert(Array,A)
+@inline function getindex(A::AbstractDerivativeOperator, ::Colon, rng::UnitRange{Int})
+    m = BandedMatrix(A)
     return m[rnd, cc]
 end
 
@@ -79,35 +83,7 @@ end
 
 
 @inline function getindex(A::AbstractDerivativeOperator{T}, rng::UnitRange{Int}, cng::UnitRange{Int}) where T
-    N = A.dimension
-    if (rng[end] - rng[1]) > ((cng[end] - cng[1]))
-        mat = zeros(T, (N, length(cng)))
-        v = zeros(T, N)
-        for i = cng
-            v[i] = one(T)
-            #=
-                calculating the effect on a unit vector to get the matrix of transformation
-                to get the vector in the new vector space.
-            =#
-            mul!(view(mat, :, i - cng[1] + 1), A, v)
-            v[i] = zero(T)
-        end
-        return mat[rng, :]
-
-    else
-        mat = zeros(T, (length(rng), N))
-        v = zeros(T, N)
-        for i = rng
-            v[i] = one(T)
-            #=
-                calculating the effect on a unit vector to get the matrix of transformation
-                to get the vector in the new vector space.
-            =#
-            mul!(view(mat, i - rng[1] + 1, :), A, v)
-            v[i] = zero(T)
-        end
-        return mat[:, cng]
-    end
+    return BandedMatrix(A)[rng,cng]
 end
 
 #=
@@ -126,74 +102,95 @@ function LinearAlgebra.mul!(x_temp::AbstractArray{T,2}, A::AbstractDerivativeOpe
     end
 end
 
-
 # Base.length(A::AbstractDerivativeOperator) = A.stencil_length
 Base.ndims(A::AbstractDerivativeOperator) = 2
-Base.size(A::AbstractDerivativeOperator) = (A.dimension, A.dimension)
+Base.size(A::AbstractDerivativeOperator) = (A.len, A.len + 2)
 Base.size(A::AbstractDerivativeOperator,i::Integer) = size(A)[i]
 Base.length(A::AbstractDerivativeOperator) = reduce(*, size(A))
-
 
 #=
     For the evenly spaced grid we have a symmetric matrix
 =#
-Base.transpose(A::Union{DerivativeOperator,UpwindOperator}) = A
-Base.adjoint(A::Union{DerivativeOperator,UpwindOperator}) = A
-LinearAlgebra.issymmetric(::Union{DerivativeOperator,UpwindOperator}) = true
+Base.transpose(A::DerivativeOperator) = A
+Base.adjoint(A::DerivativeOperator) = A
+LinearAlgebra.issymmetric(::DerivativeOperator) = true
 
 #=
     Fallback methods that use the full representation of the operator
 =#
-Base.exp(A::AbstractDerivativeOperator{T}) where T = exp(convert(Array,A))
+Base.exp(A::AbstractDerivativeOperator{T}) where T = exp(convert(A))
 Base.:\(A::AbstractVecOrMat, B::AbstractDerivativeOperator) = A \ convert(Array,B)
-Base.:\(A::AbstractDerivativeOperator, B::AbstractVecOrMat) = convert(Array,A) \ B
+Base.:\(A::AbstractDerivativeOperator, B::AbstractVecOrMat) = Array(A) \ B
 Base.:/(A::AbstractVecOrMat, B::AbstractDerivativeOperator) = A / convert(Array,B)
-Base.:/(A::AbstractDerivativeOperator, B::AbstractVecOrMat) = convert(Array,A) / B
+Base.:/(A::AbstractDerivativeOperator, B::AbstractVecOrMat) = Array(A) / B
+
+#=
+    The Inf opnorm can be calculated easily using the stencil coeffiicents, while other opnorms
+    default to compute from the full matrix form.
+=#
+function LinearAlgebra.opnorm(A::DerivativeOperator, p::Real=2)
+    if p == Inf
+        sum(abs.(A.stencil_coefs)) / A.dx^A.derivative_order
+    else
+        opnorm(BandedMatrix(A), p)
+    end
+end
 
 ########################################################################
-
-# Are these necessary?
 
 get_type(::AbstractDerivativeOperator{T}) where {T} = T
 
 function *(A::AbstractDerivativeOperator,x::AbstractVector)
-    #=
-        We will output a vector which is a supertype of the types of A and x
-        to ensure numerical stability
-    =#
-    get_type(A) != eltype(x) ? error("DiffEqOperator and array are not of same type!") : nothing
-    y = zeros(promote_type(eltype(A),eltype(x)), length(x))
+    y = zeros(promote_type(eltype(A),eltype(x)), length(x)-2)
     LinearAlgebra.mul!(y, A::AbstractDerivativeOperator, x::AbstractVector)
     return y
 end
 
 
 function *(A::AbstractDerivativeOperator,M::AbstractMatrix)
-    #=
-        We will output a vector which is a supertype of the types of A and x
-        to ensure numerical stability
-    =#
-    get_type(A) != eltype(M) ? error("DiffEqOperator and array are not of same type!") : nothing
-    y = zeros(promote_type(eltype(A),eltype(M)), size(M))
+    y = zeros(promote_type(eltype(A),eltype(M)), size(A,1), size(M,2))
     LinearAlgebra.mul!(y, A::AbstractDerivativeOperator, M::AbstractMatrix)
     return y
 end
 
 
 function *(M::AbstractMatrix,A::AbstractDerivativeOperator)
-    #=
-        We will output a vector which is a supertype of the types of A and x
-        to ensure numerical stability
-    =#
-    get_type(A) != eltype(M) ? error("DiffEqOperator and array are not of same type!") : nothing
-    y = zeros(promote_type(eltype(A),eltype(M)), size(M))
-    LinearAlgebra.mul!(y, A::AbstractDerivativeOperator, M::AbstractMatrix)
+    y = zeros(promote_type(eltype(A),eltype(M)), size(M,1), size(A,2))
+    LinearAlgebra.mul!(y, M, BandedMatrix(A))
     return y
 end
 
 
 function *(A::AbstractDerivativeOperator,B::AbstractDerivativeOperator)
-    # TODO: it will result in an operator which calculates
-    #       the derivative of order A.dorder + B.dorder of
-    #       approximation_order = min(approx_A, approx_B)
+    return BandedMatrix(A)*BandedMatrix(B)
 end
+
+################################################################################
+
+function *(coeff_func::Function, A::DerivativeOperator{T,N,Wind}) where {T,N,Wind}
+    coefficients = A.coefficients === nothing ? Vector{T}(undef,A.len) : A.coefficients
+    DerivativeOperator{T,N,Wind,typeof(A.dx),typeof(A.stencil_coefs),
+                       typeof(A.low_boundary_coefs),typeof(coefficients),
+                       typeof(coeff_func)}(
+        A.derivative_order, A.approximation_order,
+        A.dx, A.len, A.stencil_length,
+        A.stencil_coefs,
+        A.boundary_stencil_length,
+        A.boundary_point_count,
+        A.low_boundary_coefs,
+        A.high_boundary_coefs,coefficients,coeff_func
+        )
+end
+
+################################################################################
+
+function DiffEqBase.update_coefficients!(A::AbstractDerivativeOperator,u,p,t)
+    if A.coeff_func !== nothing
+        A.coeff_func(A.coefficients,u,p,t)
+    end
+end
+
+################################################################################
+
+(L::DerivativeOperator)(u,p,t) = L*u
+(L::DerivativeOperator)(du,u,p,t) = mul!(du,L,u)
