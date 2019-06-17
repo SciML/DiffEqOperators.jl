@@ -48,15 +48,32 @@ end
 @inline getindex(A::AbstractDerivativeOperator, ::Colon, ::Colon) = Array(A)
 
 @inline function getindex(A::AbstractDerivativeOperator, ::Colon, j)
-    return BandedMatrix(A)[:,j]
+    T = eltype(A.stencil_coefs)
+    v = zeros(T, A.len)
+    v[j] = one(T)
+    copyto!(v, A*v)
+    return v
 end
 
-
-# symmetric right now
 @inline function getindex(A::AbstractDerivativeOperator, i, ::Colon)
-    return BandedMatrix(A)[i,:]
-end
+    @boundscheck checkbounds(A, i, 1)
+    T = eltype(A.stencil_coefs)
+    v = zeros(T, A.len+2)
 
+    bpc = A.boundary_point_count
+    N = A.len
+    bsl = A.boundary_stencil_length
+    slen = A.stencil_length
+
+    if bpc > 0 && 1<=i<=bpc
+        v[1:bsl] .= A.low_boundary_coefs[i]
+    elseif bpc > 0 && (N-bpc)<i<=N
+         v[1:bsl]  .= A.high_boundary_coefs[i-(N-1)]
+    else
+        v[i-bpc:i-bpc+slen-1] .= A.stencil_coefs
+    end
+    return v
+end
 
 # UnitRanges
 @inline function getindex(A::AbstractDerivativeOperator, rng::UnitRange{Int}, ::Colon)
