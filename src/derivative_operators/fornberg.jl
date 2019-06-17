@@ -11,6 +11,9 @@ function calculate_weights(order::Int, x0::T, x::AbstractVector) where T<:Real
         x    : A dummy array with relative coordinates, eg. central differences
                need coordinates centred at 0 while those at boundaries need
                coordinates starting from 0 to the end point
+
+        The approximation order of the stencil is automatically determined from
+        the number of requested stencil points.
     =#
     N = length(x)
     @assert order < N "Not enough points for the requested order."

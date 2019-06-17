@@ -17,10 +17,10 @@ using DiffEqOperators, OrdinaryDiffEq
     const du3 = zeros(size(x));
     const temp = zeros(size(x));
 
-    # A = DerivativeOperator{Float64}(1,2,Δx,length(x),:Dirichlet0,:Dirichlet0);
+    # A = CenteredDifference(1,2,Δx,length(x),:Dirichlet0,:Dirichlet0);
     A = UpwindOperator{Float64}(1,3,Δx,length(x),true.|BitVector(undef,length(x)),
                                 :Dirichlet0,:Dirichlet0);
-    # C = DerivativeOperator{Float64}(3,2,Δx,length(x),:Dirichlet0,:Dirichlet0);
+    # C = CenteredDifference(3,2,Δx,length(x),:Dirichlet0,:Dirichlet0);
     C = UpwindOperator{Float64}(3,3,Δx,length(x),true.|BitVector(undef,length(x)),
                                 :Dirichlet0,:Dirichlet0);
 

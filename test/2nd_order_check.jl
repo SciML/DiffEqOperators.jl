@@ -5,8 +5,8 @@ using DiffEqOperators, Test, LinearAlgebra
   Δx = 0.025π
   N = Int(2*(π/Δx)) -2
   x = -π:Δx:π-Δx
-  D1  = DerivativeOperator{Float64}(1,ord,Δx,N,:periodic,:periodic);    # 1nd Derivative
-  D2  = DerivativeOperator{Float64}(2,ord,Δx,N,:periodic,:periodic);    # 2nd Derivative
+  D1  = CenteredDifference(1,ord,Δx,N,:periodic,:periodic);    # 1nd Derivative
+  D2  = CenteredDifference(2,ord,Δx,N,:periodic,:periodic);    # 2nd Derivative
 
   u0 = cos.(x)
   du_true = -cos.(x)

@@ -1,36 +1,97 @@
-function Base.convert(::Type{Array}, A::AbstractDerivativeOperator{T}, N::Int=A.dimension) where T
-    @assert N >= A.stencil_length # stencil must be able to fit in the matrix
-    mat = zeros(T, (N, N+2))
-    v = zeros(T, N+2)
-    for i=1:N+2
-        v[i] = one(T)
-        #=
-            calculating the effect on a unit vector to get the matrix of transformation
-            to get the vector in the new vector space.
-        =#
-        mul!(view(mat,:,i), A, v)
-        v[i] = zero(T)
+function LinearAlgebra.Array(A::DerivativeOperator{T}, N::Int=A.len) where T
+    L = zeros(T, N, N+2)
+    bl = A.boundary_point_count
+    stl = A.stencil_length
+    bstl = A.boundary_stencil_length
+    coeff   = A.coefficients
+    stl_2 = div(stl,2)
+    for i in 1:A.boundary_point_count
+        cur_coeff   = typeof(coeff)   <: AbstractVector ? coeff[i] : true
+        cur_stencil = use_winding(A) && cur_coeff < 0 ? reverse(A.low_boundary_coefs[i]) : A.low_boundary_coefs[i]
+        L[i,1:bstl] = cur_coeff * cur_stencil
     end
-    return mat
+    for i in bl+1:N-bl
+        cur_coeff   = typeof(coeff)   <: AbstractVector ? coeff[i] : true
+        stencil     = eltype(A.stencil_coefs) <: AbstractVector ? A.stencil_coefs[i] : A.stencil_coefs
+        cur_stencil = use_winding(A) && cur_coeff < 0 ? reverse(stencil) : stencil
+        L[i,i+1-stl_2:i+1+stl_2] = cur_coeff * cur_stencil
+    end
+    for i in N-bl+1:N
+        cur_coeff   = typeof(coeff)   <: AbstractVector ? coeff[i] : true
+        cur_stencil = use_winding(A) && cur_coeff < 0 ? reverse(A.high_boundary_coefs[i-N+bl]) : A.high_boundary_coefs[i-N+bl]
+        L[i,N-bstl+3:N+2] = cur_coeff * cur_stencil
+    end
+    return L / A.dx^A.derivative_order
 end
 
-function SparseArrays.sparse(A::AbstractDerivativeOperator{T}) where T
-    N = A.dimension
-    mat = spzeros(T, N, N)
-    v = zeros(T, N)
-    row = zeros(T, N)
-    for i=1:N
-        v[i] = one(T)
-        #=
-            calculating the effect on a unit vector to get the matrix of transformation
-            to get the vector in the new vector space.
-        =#
-        mul!(row, A, v)
-        copyto!(view(mat,:,i), row)
-        @. row = 0 * row;
-        v[i] = zero(T)
+function SparseArrays.SparseMatrixCSC(A::DerivativeOperator{T}, N::Int=A.len) where T
+    L = spzeros(T, N, N+2)
+    bl = A.boundary_point_count
+    stl = A.stencil_length
+    stl_2 = div(stl,2)
+    bstl = A.boundary_stencil_length
+    coeff   = A.coefficients
+    for i in 1:A.boundary_point_count
+        cur_coeff   = typeof(coeff)   <: AbstractVector ? coeff[i] : true
+        cur_stencil = use_winding(A) && cur_coeff < 0 ? reverse(A.low_boundary_coefs[i]) : A.low_boundary_coefs[i]
+        L[i,1:bstl] = cur_coeff * cur_stencil
     end
-    return mat
+    for i in bl+1:N-bl
+        cur_coeff   = typeof(coeff)   <: AbstractVector ? coeff[i] : true
+        stencil     = eltype(A.stencil_coefs) <: AbstractVector ? A.stencil_coefs[i] : A.stencil_coefs
+        cur_stencil = use_winding(A) && cur_coeff < 0 ? reverse(stencil) : stencil
+        L[i,i+1-stl_2:i+1+stl_2] = cur_coeff * cur_stencil
+    end
+    for i in N-bl+1:N
+        cur_coeff   = typeof(coeff)   <: AbstractVector ? coeff[i] : true
+        cur_stencil = use_winding(A) && cur_coeff < 0 ? reverse(A.high_boundary_coefs[i-N+bl]) : A.high_boundary_coefs[i-N+bl]
+        L[i,N-bstl+3:N+2] = cur_coeff * cur_stencil
+    end
+    return L / A.dx^A.derivative_order
 end
 
-# BandedMatrix{A,B,C,D}(A::DerivativeOperator{A,B,C,D}) = BandedMatrix(convert(Array, A, A.stencil_length), A.stencil_length, div(A.stencil_length,2), div(A.stencil_length,2))
+function SparseArrays.sparse(A::AbstractDerivativeOperator{T}, N::Int=A.len) where T
+    SparseMatrixCSC(A,N)
+end
+
+function BandedMatrices.BandedMatrix(A::DerivativeOperator{T}, N::Int=A.len) where T
+    bl = A.boundary_point_count
+    stl = A.stencil_length
+    bstl = A.boundary_stencil_length
+    coeff   = A.coefficients
+    stl_2 = div(stl,2)
+    L = BandedMatrix{T}(Zeros(N, N+2), (max(stl-3,0,bstl),max(stl-1,0,bstl)))
+    for i in 1:A.boundary_point_count
+        cur_coeff   = typeof(coeff)   <: AbstractVector ? coeff[i] : true
+        cur_stencil = use_winding(A) && cur_coeff < 0 ? reverse(A.low_boundary_coefs[i]) : A.low_boundary_coefs[i]
+        L[i,1:bstl] = cur_coeff * cur_stencil
+    end
+    for i in bl+1:N-bl
+        cur_coeff   = typeof(coeff)   <: AbstractVector ? coeff[i] : true
+        stencil     = eltype(A.stencil_coefs) <: AbstractVector ? A.stencil_coefs[i] : A.stencil_coefs
+        cur_stencil = use_winding(A) && cur_coeff < 0 ? reverse(stencil) : stencil
+        L[i,i+1-stl_2:i+1+stl_2] = cur_coeff * cur_stencil
+    end
+    for i in N-bl+1:N
+        cur_coeff   = typeof(coeff)   <: AbstractVector ? coeff[i] : true
+        cur_stencil = use_winding(A) && cur_coeff < 0 ? reverse(A.high_boundary_coefs[i-N+bl]) : A.high_boundary_coefs[i-N+bl]
+        L[i,N-bstl+3:N+2] = cur_coeff * cur_stencil
+    end
+    return L / A.dx^A.derivative_order
+end
+
+function Base.convert(::Type{Array},A::DerivativeOperator{T}) where T
+    Array(A)
+end
+
+function Base.convert(::Type{SparseMatrixCSC},A::DerivativeOperator{T}) where T
+    SparseMatrixCSC(A)
+end
+
+function Base.convert(::Type{BandedMatrix},A::DerivativeOperator{T}) where T
+    BandedMatrix(A)
+end
+
+function Base.convert(::Type{AbstractMatrix},A::DerivativeOperator{T}) where T
+    BandedMatrix(A)
+end
