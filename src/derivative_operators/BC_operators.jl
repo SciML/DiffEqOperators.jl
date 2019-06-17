@@ -68,22 +68,21 @@ struct GeneralBC{T, V<:AbstractVector{T}} <:AffineBC{T,V}
         S_l = zeros(T, (nl-2, order+nl-2))
         S_r = zeros(T, (nr-2, order+nr-2))
 
-
         for i in 1:(nl-2)
-            S_l[i,:] = [transpose(calculate_weights(i, one(T), Array(one(T):convert(T, order+i)))) transpose(zeros(T, nl-2-i-order))] #am unsure if the length of the dummy_x is correct here
+            S_l[i,:] = [transpose(calculate_weights(i, one(T), Array(one(T):convert(T, order+i)))) transpose(zeros(T, Int(nl-2-i)))] #am unsure if the length of the dummy_x is correct here
         end
 
         for i in 1:(nr-2)
-            S_r[i,:] = [transpose(calculate_weights(i, convert(T, order+i), Array(one(T):convert(T, order+i)))) transpose(zeros(T, nr-2-i-order))]
+            S_r[i,:] = [transpose(calculate_weights(i, convert(T, order+i), Array(one(T):convert(T, order+i)))) transpose(zeros(T, Int(nr-2-i)))]
         end
-        s0_l = S_l[:,1] ; Sl = S_l[2:end,:]
-        s0_r = S_r[:,1] ; Sr = S_r[2:end,:]
+        s0_l = S_l[:,1] ; Sl = S_l[:,2:end]
+        s0_r = S_r[:,1] ; Sr = S_r[:,2:end]
 
         denoml = αl[2] .+ αl[3:end] ⋅ s0_l
         denomr = αr[2] .+ αr[3:end] ⋅ s0_r
 
-        a_l = -transpose(αl) * Sl ./denoml
-        a_r = -transpose(αr) * Sr ./denomr
+        a_l = -transpose(transpose(αl[3:end]) * Sl) ./denoml
+        a_r = -transpose(transpose(αr[3:end]) * Sr) ./denomr
 
         b_l = -αl[1]/denoml
         b_r = -αr[1]/denomr
