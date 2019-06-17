@@ -2,7 +2,8 @@ abstract type AbstractBC{T} <: AbstractDiffEqLinearOperator{T} end
 
 # Deepen type tree to support multi layered BCs in the future - a better version of PeriodicBC for example
 abstract type SingleLayerBC{T} <: AbstractBC{T} end
-
+abstract type MultiDimensionalBC{T, N} <: AbstractBC{T}
+abstract type AbstractBoundaryPaddedArray{T, N} <: AbstractArray{T, N}
 """
 Robin, General, and in general Neumann and Dirichlet BCs are all affine opeartors, meaning that they take the form Qx = Qax + Qb.
 """
@@ -97,7 +98,7 @@ DirichletBC(α::AbstractVector{T}, dx::AbstractVector{T}, order = 1) where T = R
 RobinBC(al::T, bl::T, cl::T, dx_l::T, ar::T, br::T, cr::T, dx_r::T, order = 1) where T = RobinBC([al,bl, cl], [ar, br, cr], [dx_l, dx_r], order)
 
 # this  is 'boundary padded vector' as opposed to 'boundary padded array' to distinguish it from the n dimensional implementation that will eventually be neeeded
-struct BoundaryPaddedVector{T,T2 <: AbstractVector{T}} <: AbstractVector{T}
+struct BoundaryPaddedVector{T,T2 <: AbstractVector{T}} <: AbstractBoundaryPaddedArray{T, 1}
     l::T
     r::T
     u::T2
@@ -256,7 +257,7 @@ end
     return lower, upper
 end
 
-struct MultiDimBC{T, N}
+struct MultiDimensionalSingleLayerBC{T, N} <: MultiDimensionalBC{T, N}
     BC::Vector{SingleLayerBC{T}} # I think this has to be an array of non concrete BCs to allow different BCs on different dims
     MultiDimBC(BCs::AbstractBC{T}...) where T = new{T, length(BCs)}(Array(BCs))
     MultiDimBC(BCs::AbstractVector{AbstractBC{T}}) where T = new{T, length(BCs)}(Array(BCs))
@@ -267,17 +268,21 @@ end
 Higher dimensional generalization of BoundaryPaddedVector, pads an array of dimension N with 2*N arrays of dimension N-1, stored in lower and upper.
 
 """
-struct BoundayPaddedArray{T, N, V <: AbstractArray{T}, B <: AbstractArray{T}}
+struct BoundayPaddedArray{T, N, V <: AbstractArray{T}, B <: AbstractArray{T}} <: AbstractBoundaryPaddedArray{T, N}
     lower::Vector{B}
     upper::Vector{B}
     u::V
 end
+Base.size(Q::BoundaryPaddedArray) = size(Q.u) .+ 2
+Base.length(Q::BoundaryPaddedArray) = mapreduce((*), size(Q))
+Base.lastindex(Q::BoundaryPaddedArray) = Base.length(Q)
 
+# Get index is going to be relatively tough.
 """
 If slicemul can be inlined, and the allocation for tmp.u avoided, this will be equivalent to a convolution of the boundary stencil along the nessecary dimension at both boundaries for all dimensions
 """
 
-function Base.:*(Q::MultiDimBC{T, N}, u::AbstractArray{T, N}) where {T, N}
+function Base.:*(Q::MultiDimensionalSingleLayerBC{T, N}, u::AbstractArray{T, N}) where {T, N}
     usize = Array(size(u))
     M = length(usize)
     lower = Vector(Array{T, M-1})
