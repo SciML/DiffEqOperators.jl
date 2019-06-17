@@ -1,9 +1,9 @@
-abstract type AbstractBC{T} <: AbstractDiffEqLinearOperator{T} end
+abstract type AbstractBC{T} end#<: AbstractDiffEqLinearOperator{T} end
 
 # Deepen type tree to support multi layered BCs in the future - a better version of PeriodicBC for example
 abstract type SingleLayerBC{T} <: AbstractBC{T} end
-abstract type MultiDimensionalBC{T, N} <: AbstractBC{T}
-abstract type AbstractBoundaryPaddedArray{T, N} <: AbstractArray{T, N}
+abstract type MultiDimensionalBC{T, N} <: AbstractBC{T} end
+abstract type AbstractBoundaryPaddedArray{T, N} <: AbstractArray{T, N} end
 """
 Robin, General, and in general Neumann and Dirichlet BCs are all affine opeartors, meaning that they take the form Qx = Qax + Qb.
 """
@@ -268,7 +268,7 @@ end
 Higher dimensional generalization of BoundaryPaddedVector, pads an array of dimension N with 2*N arrays of dimension N-1, stored in lower and upper.
 
 """
-struct BoundayPaddedArray{T, N, V <: AbstractArray{T}, B <: AbstractArray{T}} <: AbstractBoundaryPaddedArray{T, N}
+struct BoundaryPaddedArray{T, N, V <: AbstractArray{T}, B <: AbstractArray{T}} <: AbstractBoundaryPaddedArray{T, N}
     lower::Vector{B}
     upper::Vector{B}
     u::V
