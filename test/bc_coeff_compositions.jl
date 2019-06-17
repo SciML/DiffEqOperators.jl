@@ -28,11 +28,11 @@ DiffEqOperators.update_coefficients!(cL,coeffs,nothing,0.0)
 # Test GhostDerivativeOperator constructor by *
 u = rand(N)
 A = L*Q
-@test A*u ≈ L*(Q*u)
+@test_broken A*u ≈ L*(Q*u)
 
 # Test concretization
 @test Array(A)[1] ≈ (Array(L)*Array(Q,N)[1], Array(L)*Array(Q,N)[2])[1]
-@test_broken Array(A)[2] ≈ (Array(L)*Array(Q,N)[1], Array(L)*Array(Q,N)[2])[2]
+@test Array(A)[2] ≈ (Array(L)*Array(Q,N)[1], Array(L)*Array(Q,N)[2])[2]
 @test_broken Array(A)[1]*u + Array(A)[2] ≈ L*(Q*u)
 
 u = rand(22)
