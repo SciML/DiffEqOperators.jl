@@ -67,14 +67,16 @@ struct GeneralBC{T, V<:AbstractVector{T}} <:AffineBC{T,V}
         S_l = zeros(T, (nl-2, order+nl-2))
         S_r = zeros(T, (nr-2, order+nr-2))
 
+
         for i in 1:(nl-2)
             S_l[i,:] = [transpose(calculate_weights(i, one(T), Array(one(T):convert(T, order+i)))) transpose(zeros(T, nl-2-i-order))] #am unsure if the length of the dummy_x is correct here
         end
+
         for i in 1:(nr-2)
-            S_r[i,:] = [transpose(calculate_weights(i, one(T), Array(one(T):convert(T, order+i)))) transpose(zeros(T, nr-2-i-order))]
+            S_r[i,:] = [transpose(calculate_weights(i, convert(T, order+i), Array(one(T):convert(T, order+i)))) transpose(zeros(T, nr-2-i-order))]
         end
         s0_l = S_l[:,1] ; Sl = S_l[2:end,:]
-        s0_r = -S_r[:,1] ; Sr = -S_r[2:end,:]
+        s0_r = S_r[:,1] ; Sr = S_r[2:end,:]
 
         denoml = αl[2] .+ αl[3:end] ⋅ s0_l
         denomr = αr[2] .+ αr[3:end] ⋅ s0_r
@@ -271,14 +273,18 @@ struct BoundayPaddedArray{T, N, V <: AbstractArray{T}, B <: AbstractArray{T}}
     u::V
 end
 
-function Base.:*(Q::MultiDimBC{T, N}, u::AbstractArray{T}) where {T, N}
+"""
+If slicemul can be inlined, and the allocation for tmp.u avoided, this will be equivalent to a convolution of the boundary stencil along the nessecary dimension at both boundaries for all dimensions
+"""
+
+function Base.:*(Q::MultiDimBC{T, N}, u::AbstractArray{T, N}) where {T, N}
     usize = Array(size(u))
     M = length(usize)
-    lower = Array(AbstractArray{M-1,T})
-    upper = Array(AbstractArray{M-1,T})
+    lower = Vector(Array{T, M-1})
+    upper = Vector(Array{T, M-1})
 
     for n in 1:N
         lower[n], upper[n] = slicemul(Q, u, n)
     end
-    return BoundaryPaddedArray{length(usize), T, typeof(u), typeof(lower[1])}(lower, upper, u)
+    return BoundaryPaddedArray{T, M, typeof(u), typeof(lower[1])}(lower, upper, u)
 end
