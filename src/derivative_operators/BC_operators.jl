@@ -1,11 +1,14 @@
 abstract type AbstractBC{T} <: AbstractDiffEqLinearOperator{T} end
 
+# Deepen type tree to support multi layered BCs in the future - a better version of PeriodicBC for example
+abstract type SingleLayerBC{T} <: AbstractBC{T} end
+
 """
 Robin, General, and in general Neumann and Dirichlet BCs are all affine opeartors, meaning that they take the form Qx = Qax + Qb.
 """
-abstract type AffineBC{T,V} <: AbstractBC{T} end
+abstract type AffineBC{T,V} <: SingleLayerBC{T} end
 
-struct PeriodicBC{T} <: AbstractBC{T}
+struct PeriodicBC{T} <: SingleLayerBC{T}
 
 end
 
@@ -26,7 +29,7 @@ struct RobinBC{T, V<:AbstractVector{T}} <: AffineBC{T,V}
     b_l::T
     a_r::V
     b_r::T
-    function RobinBC(l::AbstractArray{T}, r::AbstractArray{T}, dx::AbstractArray{T}, order = one(T)) where {T}
+    function RobinBC(l::AbstractVector{T}, r::AbstractVector{T}, dx::AbstractVector{T}, order = one(T)) where {T}
         αl, βl, γl = l
         αr, βr, γr = r
         dx_l, dx_r = dx
@@ -57,7 +60,7 @@ struct GeneralBC{T, V<:AbstractVector{T}} <:AffineBC{T,V}
     b_l::T
     a_r::V
     b_r::T
-    function GeneralBC(αl::AbstractArray{T}, αr::AbstractArray{T}, dx::AbstractArray{T}, order = 1) where {T}
+    function GeneralBC(αl::AbstractVector{T}, αr::AbstractVector{T}, dx::AbstractVector{T}, order = 1) where {T}
         dx_l, dx_r = dx
         nl = length(αl)
         nr = length(αr)
@@ -98,9 +101,10 @@ struct BoundaryPaddedVector{T,T2 <: AbstractVector{T}} <: AbstractVector{T}
     u::T2
 end
 
+
 Base.:*(Q::AffineBC, u::AbstractVector) = BoundaryPaddedVector(Q.a_l ⋅ u[1:length(Q.a_l)] + Q.b_l, Q.a_r ⋅ u[(end-length(Q.a_r)+1):end] + Q.b_r, u)
 
-Base.size(Q::AbstractBC) = (Inf, Inf) #Is this nessecary?
+Base.size(Q::SingleLayerBC) = (Inf, Inf) #Is this nessecary?
 Base.length(Q::BoundaryPaddedVector) = length(Q.u) + 2
 Base.size(Q::BoundaryPaddedVector) = (length(Q),)
 Base.lastindex(Q::BoundaryPaddedVector) = Base.length(Q)
@@ -139,14 +143,142 @@ function LinearAlgebra.Array(Q::BoundaryPaddedVector)
     return [Q.l; Q.u; Q.r]
 end
 
-function Base.convert(::Type{Array},A::AbstractBC{T}) where T
+function Base.convert(::Type{Array},A::SingleLayerBC{T}) where T
     Array(A)
 end
 
-function Base.convert(::Type{SparseMatrixCSC},A::AbstractBC{T}) where T
+function Base.convert(::Type{SparseMatrixCSC},A::SingleLayerBC{T}) where T
     SparseMatrixCSC(A)
 end
 
-function Base.convert(::Type{AbstractMatrix},A::AbstractBC{T}) where T
+function Base.convert(::Type{AbstractMatrix},A::SingleLayerBC{T}) where T
     SparseMatrixCSC(A)
+end
+
+#######################################################################
+# Multidimensional
+#######################################################################
+
+# One of my utility functions, it works by applying an operator along a slice of u in the dimension specified by n
+# A multidim convolution would be better. - this is unused in DifEqOperators.jl but used as a template for the following functions
+function slicemul(A, u::AbstractArray, dim::Integer)
+    s = size(u)
+    out = similar(u)
+    if dim == 1
+        for j in 1:size[3]
+            for i in 1:size[2]
+                @views out[:,i,j] = A*u[:,i,j]
+            end
+        end
+    elseif dim == 2
+        for j in 1:size[3]
+            for i in 1:size[1]
+                @views out[i,:,j] = A*u[i,:,j]
+            end
+        end
+    elseif dim == 3
+        for j in 1:size[2]
+            for i in 1:size[1]
+                @views out[i,j,:] = A*u[i,j,:]
+            end
+        end
+    else
+        throw("Dim greater than 3 not supported!")
+    end
+    return out
+end
+
+
+# The BC is applied stripwise and the boundary Arrays built from the l/r of the BoundaryPaddedVectors
+@inline function slicemul(A::SingleLayerBC, u::AbstractArray{T, 2}, dim::Integer) where T
+    s = size(u)
+    if dim == 1
+        lower = zeros(T, s[2])
+        upper = deepcopy(lower)
+        for i in 1:s[2]
+            tmp = A*u[:,i]
+            lower[i] = tmp.l
+            upper[i] = tmp.r
+        end
+    elseif dim == 2
+        lower = zeros(T, s[1])
+        upper = deepcopy(lower)
+        for i in 1:s[1]
+            tmp = A*u[i,:]
+            lower[i] = tmp.l
+            upper[i] = tmp.r
+        end
+    elseif dim == 3
+        throw("The 3 dimensional Method should be being called, not this one. Check dispatch.")
+    else
+        throw("Dim greater than 3 not supported!")
+    end
+    return lower, upper
+end
+
+@inline function slicemul(A::SingleLayerBC, u::AbstractArray{T, 3}, dim::Integer) where T
+    s = Array(size(u))
+    if dim == 1
+        lower = zeros(T, s[2], s[3])
+        upper = deepcopy(lower)
+        for j in 1:s[3]
+            for i in 1:s[2]
+                tmp = A*u[:,i,j]
+                lower[i,j] = tmp.l
+                upper[i,j] = tmp.r
+            end
+        end
+    elseif dim == 2
+        lower = zeros(T, s[1], s[3])
+        upper = deepcopy(lower)
+        for j in 1:s[3]
+            for i in 1:s[1]
+                tmp = A*u[i,:,j]
+                lower[i,j] = tmp.l
+                upper[i,j] = tmp.r
+            end
+        end
+    elseif dim == 3
+        lower = zeros(T, s[1], s[2])
+        upper = deepcopy(lower)
+        for j in 1:s[2]
+            for i in 1:s[1]
+                tmp = A*u[i,j,:]
+                lower[i,j] = tmp.l
+                upper[i,j] = tmp.r
+            end
+        end
+    else
+        throw("Dim greater than 3 not supported!")
+    end
+    return lower, upper
+end
+
+struct MultiDimBC{T, N}
+    BC::Vector{SingleLayerBC{T}} # I think this has to be an array of non concrete BCs to allow different BCs on different dims
+    MultiDimBC(BCs::AbstractBC{T}...) where T = new{T, length(BCs)}(Array(BCs))
+    MultiDimBC(BCs::AbstractVector{AbstractBC{T}}) where T = new{T, length(BCs)}(Array(BCs))
+end
+
+
+"""
+Higher dimensional generalization of BoundaryPaddedVector, pads an array of dimension N with 2*N arrays of dimension N-1, stored in lower and upper.
+
+"""
+struct BoundayPaddedArray{T, N, V <: AbstractArray{T}, B <: AbstractArray{T}}
+    lower::Vector{B}
+    upper::Vector{B}
+    u::V
+end
+
+function Base.:*(Q::MultiDimBC{T, N}, u::AbstractArray{T}) where {T, N}
+    usize = Array(size(u))
+    M = length(usize)
+    lower = Array(AbstractArray{M-1,T})
+    upper = Array(AbstractArray{M-1,T})
+
+    for n in 1:N
+        lower[n], upper[n] = slicemul(Q, u, n)
+    end
+    return BoundaryPaddedArray{length(usize), T, typeof(u), typeof(lower[1])}(lower, upper, u)
 end
