@@ -30,6 +30,6 @@ function SparseArrays.SparseMatrixCSC(A::GhostDerivativeOperator{T, E, F},N::Int
     return (SparseMatrixCSC(A.L,N)*SparseMatrixCSC(A.Q,A.L.len)[1], SparseMatrixCSC(A.L,N)*SparseMatrixCSC(A.Q,A.L.len)[2])
 end
 
-function SparseArrays.SparseMatrixCSC(A::GhostDerivativeOperator{T, E, F},N::Int=A.L.len) where {T,E,F}
+function SparseArrays.sparse(A::GhostDerivativeOperator{T, E, F},N::Int=A.L.len) where {T,E,F}
     return SparseMatrixCSC(A,N)
 end
