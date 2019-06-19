@@ -12,3 +12,4 @@ import Base: isapprox
 #@time @safetestset "KdV" begin include("KdV.jl") end # KdV times out and all fails
 #@time @safetestset "Heat Equation" begin include("heat_eqn.jl") end
 @time @safetestset "Matrix-Free Operators" begin include("matrixfree.jl") end
+@time @safetestset "Convolutions" begin include("convolutions.jl") end
