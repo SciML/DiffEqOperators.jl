@@ -49,7 +49,7 @@ end
     Qu = BoundaryPaddedVector(cl, cr, u)
     arrayQu = [cl;u;cr]
 
-    # Check that BoundaryPaddedVector is constructed correctlys
+    # Check that BoundaryPaddedVector is constructed correctly
     @test Qu == arrayQu
 
     # Test for correctness of DerivativeOperator*AbstractVector
@@ -68,7 +68,7 @@ end
     Qu = BoundaryPaddedVector(cl, cr, u)
     arrayQu = [cl;u;cr]
 
-    # Check that BoundaryPaddedVector is constructed correctlys
+    # Check that BoundaryPaddedVector is constructed correctly
     @test Qu == arrayQu
 
     # Test for correctness of DerivativeOperator*AbstractVector
