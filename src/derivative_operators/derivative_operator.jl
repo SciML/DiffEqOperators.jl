@@ -1,3 +1,5 @@
+index(i::Int, N::Int) = i + div(N, 2) + 1
+
 struct DerivativeOperator{T<:Real,N,Wind,T2,S1,S2<:SVector,T3,F} <: AbstractDerivativeOperator{T}
     derivative_order        :: Int
     approximation_order     :: Int
@@ -58,23 +60,26 @@ function CenteredDifference{N}(derivative_order::Int,
     interior_x              = boundary_point_count+2:N+1-boundary_point_count
     dummy_x                 = -div(stencil_length,2) : div(stencil_length,2)-1
     boundary_x              = -boundary_stencil_length+1:0
-    # we will access dx on the coordinates -3,-2,-1,1,2
-    stencil_update_points   = append!(collect(-div(stencil_length,2):-1), collect(1:div(stencil_length,2)))
+
     # Because it's a N x (N+2) operator, the last stencil on the sides are the [b,0,x,x,x,x] stencils, not the [0,x,x,x,x,x] stencils, since we're never solving for the derivative at the boundary point.
     deriv_spots             = (-div(stencil_length,2)+1) : -1
     boundary_deriv_spots    = boundary_x[2:div(stencil_length,2)]
 
-    for i in interior_x
+    function generate_coordinates(i, stencil_x, dummy_x, dx)
         j = 1
-        stencil_x = zeros(T, 5)
-        for x1 in dummy_x
-            stencil_x[stencil_update_points[j]+3] = sign(stencil_update_points[j])*dx[i+x1]
-            j += 1
+        N = length(stencil_x)
+        stencil_x .= stencil_x.*zero(T)
+        for idx in 1:div(N,2)
+            shifted_idx1 = index(idx, N)
+            shifted_idx2 = index(-idx, N)
+            @show shifted_idx1, shifted_idx2, i+idx, i-idx
+            stencil_x[shifted_idx1] = stencil_x[shifted_idx1-1] + dx[i+idx-1]
+            stencil_x[shifted_idx2] = stencil_x[shifted_idx2+1] - dx[i-idx]
         end
+        return stencil_x
     end
 
-
-    stencil_coefs           = [convert(SVector{stencil_length, T}, calculate_weights(derivative_order, zero(T), [sign(x1)*dx[i-x1] for x1 in dummy_x])) for i in interior_x]
+    stencil_coefs           = [convert(SVector{stencil_length, T}, calculate_weights(derivative_order, zero(T), generate_coordinates(i, stencil_x, dummy_x, dx))) for i in interior_x]
 
     _low_boundary_coefs     = SVector{boundary_stencil_length, T}[convert(SVector{boundary_stencil_length, T}, calculate_weights(derivative_order, oneunit(T)*x0, boundary_x)) for x0 in boundary_deriv_spots]
     low_boundary_coefs      = convert(SVector{boundary_point_count},_low_boundary_coefs)
