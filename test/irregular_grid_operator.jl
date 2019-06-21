@@ -36,7 +36,7 @@ end
 
 # Tests the corrrectness of stencils.
 # Do not modify the following test-set unless you are completely certain of your changes.
-@testset "Correctness of Stencils" begin
+@testset "Correctness of Stencils on Uniform grid" begin
     N = 20
     dx = ones(Float64, N+1)
 
@@ -70,6 +70,23 @@ end
     @test sparse(L) ≈ correct
     @test BandedMatrix(L) ≈ correct
 end
+
+# Cross check from http://web.media.mit.edu/~crtaylor/calculator.html
+@testset "Correctness of Stencils on Non-Uniform grid" begin
+    N = 4
+    dx = [0.1, 0.2, 0.3, 0.4, 0.5]
+
+    L = CenteredDifference(2,2, dx, N)
+    correct_interior = [[200/3,  -300/2,  100/3],
+                        [60/3,   -100/3,  40/3],
+                        [200/21, -350/21, 150/21],
+                        [50/9,   -90/9,   40/9]]
+
+    for i in length(L.stencil_coefs)
+        @test L.stencil_coefs[i] ≈ correct_interior[i]
+    end
+end
+
 
 # tests for full and sparse function
 @testset "Full and Sparse functions:" begin

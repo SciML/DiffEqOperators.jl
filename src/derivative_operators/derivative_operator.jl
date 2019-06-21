@@ -71,11 +71,9 @@ function CenteredDifference{N}(derivative_order::Int,
         for idx in 1:div(len,2)
             shifted_idx1 = index(idx, len)
             shifted_idx2 = index(-idx, len)
-            # @show shifted_idx1, shifted_idx2, i+idx, i-idx
             stencil_x[shifted_idx1] = stencil_x[shifted_idx1-1] + dx[i+idx-1]
             stencil_x[shifted_idx2] = stencil_x[shifted_idx2+1] - dx[i-idx]
         end
-        # @show i, stencil_x
         return stencil_x
     end
 
