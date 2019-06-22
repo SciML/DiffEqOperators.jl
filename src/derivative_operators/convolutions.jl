@@ -13,7 +13,12 @@ function convolve_interior!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::
     @assert length(x_temp)+2 == length(x)
     stencil = A.stencil_coefs
     coeff   = A.coefficients
-    mid = div(A.stencil_length,2)
+    # Upwind operators have a non-centred stencil
+    if use_winding(A)
+        mid = 1 + A.stencil_length%2
+    else
+        mid = div(A.stencil_length,2)
+    end
     for i in (1+A.boundary_point_count) : (length(x_temp)-A.boundary_point_count)
         xtempi = zero(T)
         cur_stencil = eltype(stencil) <: AbstractVector ? stencil[i] : stencil
