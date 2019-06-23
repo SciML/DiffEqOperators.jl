@@ -1,5 +1,17 @@
 using LinearAlgebra, DiffEqOperators, Random, Test, BandedMatrices, SparseArrays
 
+function fourth_deriv_approx_stencil(N)
+    A = zeros(N,N+2)
+    A[1,1:8] = [3.5 -56/3 42.5 -54.0 251/6 -20.0 5.5 -2/3]
+    A[2,1:8] = [2/3 -11/6 0.0 31/6 -22/3 4.5 -4/3 1/6]
+    A[N-1,N-5:end] = reverse([2/3 -11/6 0.0 31/6 -22/3 4.5 -4/3 1/6], dims=2)
+    A[N,N-5:end] = reverse([3.5 -56/3 42.5 -54.0 251/6 -20.0 5.5 -2/3], dims=2)
+    for i in 3:N-2
+        A[i,i-2:i+4] = [-1/6 2.0 -13/2 28/3 -13/2 2.0 -1/6]
+    end
+    return A
+end
+
 # Generate random parameters
 al = rand()
 bl = rand()
@@ -48,3 +60,22 @@ A = L*Q
 
 u = rand(22)
 @test (L + L2) * u ≈ convert(AbstractMatrix,L + L2) * u ≈ (BandedMatrix(L) + BandedMatrix(L2)) * u
+
+# Test \
+dx = 0.0001
+x = 0.0001:dx:0.01
+N = length(x)
+u = sin.(x)
+
+L = CenteredDifference(4, 4, dx, N)
+Q = RobinBC(1.0, 0.0, sin(0), dx, 1.0, 0.0, sin(0.01+dx), dx)
+A = L*Q
+
+correct_L = fourth_deriv_approx_stencil(N) / dx^4
+correct_QL = [transpose(zeros(N)); Diagonal(ones(N)); transpose(zeros(N))]
+correct_Qb = [zeros(N+1); sin(0.01+dx)]
+
+correct_x = (correct_L*correct_QL) \ (u - correct_L*correct_Qb)
+x = A \ u
+
+@test_broken x ≈ correct_x
