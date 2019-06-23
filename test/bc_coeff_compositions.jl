@@ -78,4 +78,4 @@ correct_Qb = [zeros(N+1); sin(0.01+dx)]
 correct_x = (correct_L*correct_QL) \ (u - correct_L*correct_Qb)
 x = A \ u
 
-@test_broken x ≈ correct_x
+@test x ≈ correct_x

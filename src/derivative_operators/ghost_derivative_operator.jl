@@ -23,8 +23,8 @@ function *(A::GhostDerivativeOperator{T,E,F}, M::AbstractMatrix{T}) where {T,E,F
 end
 
 function \(A::GhostDerivativeOperator{T,E,F}, u::AbstractVector{T}) where {T,E,F}
-    (QL,Qb) = sparse(A.Q, A.L.len)
-    return (A.L*QL) \ (u - A.L*Qb)
+    (AL,Ab) = Array(A)
+    return AL \ (u - Ab)
 end
 
 function \(A::GhostDerivativeOperator{T,E,F}, M::AbstractMatrix{T}) where {T,E,F}
