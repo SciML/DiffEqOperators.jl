@@ -54,22 +54,32 @@ end
 # Do not modify the following test-set unless you are completely certain of your changes.
 @testset "Correctness of Stencils" begin
     N = 20
-    L = UpwindDifference(1,2, 1.0, N)
-    correct = [-1/2 2.0 -3/2]
+    L1 = UpwindDifference(1,2, 1.0, N, t->1.0)
+    correct = [-3/2, 2.0, -1/2]
+    @test L1.stencil_coefs ≈ correct
 
-    L = UpwindDifference(2,4, 1.0, N)
-    correct = second_deriv_fourth_approx_stencil(N)
-
-    # Check that stencils (according to convert_by_multiplication) agree with correct
-    @test convert_by_multiplication(Array, L, N) ≈ correct
-
-    # Check that concretization agrees correct
-    @test Array(L) ≈ correct
-    @test sparse(L) ≈ correct
-    @test BandedMatrix(L) ≈ correct
+    L1 = UpwindDifference(1,3, 1.0, N, t->1.0)
+    correct = [-2/6, -3/6, 6/6, -1/6]
+    @test L1.stencil_coefs ≈ correct
 end
 
-# tests for full and sparse function
+@testset "Taking derivatives" begin
+    N = 20
+    x = 0:1/N-1:1
+    y = 2x.^2 .- 3x .+2
+
+    # Dirichlet BC with fixed end points
+    Q = RobinBC(1.0, 0.0, y[1], 1.0, 1.0, 0.0, y[end], 1.0)
+
+    L1 = UpwindDifference(1,2, 1.0, N, t->1.0)
+    res = L1*Q*y
+
+    L1 = UpwindDifference(1,3, 1.0, N, t->1.0)
+    correct = [-2/6, -3/6, 6/6, -1/6]
+    @test L1.stencil_coefs ≈ correct
+end
+
+# tests for full and sparse function.... BROKEN!
 @testset "Full and Sparse functions:" begin
     N = 10
     d_order = 2
@@ -82,7 +92,6 @@ end
     @test sparse(A) == second_derivative_stencil(N)
     @test BandedMatrix(A) == second_derivative_stencil(N)
     @test opnorm(A, Inf) == opnorm(correct, Inf)
-
 
     # testing higher derivative and approximation concretization
     N = 20
