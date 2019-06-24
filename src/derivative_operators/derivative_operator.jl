@@ -109,6 +109,7 @@ function UpwindDifference{N}(derivative_order::Int,
     boundary_x              = -boundary_stencil_length+1:0
     boundary_point_count    = div(stencil_length,2) - 1 # -1 due to the ghost point
     # Because it's a N x (N+2) operator, the last stencil on the sides are the [b,0,x,x,x,x] stencils, not the [0,x,x,x,x,x] stencils, since we're never solving for the derivative at the boundary point.
+    @show dummy_x
     deriv_spots             = (-div(stencil_length,2)+1) : -1
     boundary_deriv_spots    = boundary_x[2:div(stencil_length,2)]
     stencil_pivot           = (stencil_length+1)%2 - 1.0
