@@ -3,6 +3,11 @@ function LinearAlgebra.mul!(x_temp::AbstractVector{T}, A::DerivativeOperator, x:
     convolve_BC_left!(x_temp, x, A)
     convolve_interior!(x_temp, x, A)
     convolve_BC_right!(x_temp, x, A)
+    if typeof(A.dx) <: T
+        rmul!(x_temp, @.(1/(A.dx^A.derivative_order)))
+    else
+        nothing # what to do when dx is not uniform???
+    end
     rmul!(x_temp, @.(1/(A.dx^A.derivative_order)))
 end
 
@@ -74,7 +79,6 @@ function convolve_interior!(x_temp::AbstractVector{T}, _x::BoundaryPaddedVector,
     else
         mid = div(A.stencil_length,2)
     end
-    @show mid
     # Just do the middle parts
     for i in (2+A.boundary_point_count) : (length(x_temp)-A.boundary_point_count)-1
         xtempi = zero(T)
@@ -83,7 +87,6 @@ function convolve_interior!(x_temp::AbstractVector{T}, _x::BoundaryPaddedVector,
         cur_stencil = use_winding(A) && cur_coeff < 0 ? reverse(cur_stencil) : cur_stencil
         @inbounds for idx in 1:A.stencil_length
             xtempi += cur_coeff * cur_stencil[idx] * x[(i-1) - (mid-idx) + 1]
-            @show i, idx, cur_stencil[idx], x[i-mid+idx]
         end
         x_temp[i] = xtempi
     end

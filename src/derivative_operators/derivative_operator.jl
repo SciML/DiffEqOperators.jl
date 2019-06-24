@@ -105,15 +105,16 @@ function UpwindDifference{N}(derivative_order::Int,
 
     stencil_length          = derivative_order + approximation_order
     boundary_stencil_length = derivative_order + approximation_order
-    dummy_x                 = -1 : stencil_length - 2
+    dummy_x                 = -1.0 : stencil_length - 2.0
     boundary_x              = -boundary_stencil_length+1:0
     boundary_point_count    = div(stencil_length,2) - 1 # -1 due to the ghost point
     # Because it's a N x (N+2) operator, the last stencil on the sides are the [b,0,x,x,x,x] stencils, not the [0,x,x,x,x,x] stencils, since we're never solving for the derivative at the boundary point.
-    @show dummy_x
     deriv_spots             = (-div(stencil_length,2)+1) : -1
     boundary_deriv_spots    = boundary_x[2:div(stencil_length,2)]
+    stencil_pivot           = (stencil_length+1)%2 - 1.0
+    @show dummy_x, stencil_pivot
+    stencil_coefs           = convert(SVector{stencil_length, T}, calculate_weights(derivative_order, stencil_pivot, dummy_x))
 
-    stencil_coefs           = convert(SVector{stencil_length, T}, calculate_weights(derivative_order, zero(T), dummy_x))
     _low_boundary_coefs     = SVector{boundary_stencil_length, T}[convert(SVector{boundary_stencil_length, T}, calculate_weights(derivative_order, oneunit(T)*x0, boundary_x)) for x0 in boundary_deriv_spots]
     low_boundary_coefs      = convert(SVector{boundary_point_count},_low_boundary_coefs)
     high_boundary_coefs     = convert(SVector{boundary_point_count},reverse(SVector{boundary_stencil_length, T}[reverse(low_boundary_coefs[i]) for i in 1:boundary_point_count]))
