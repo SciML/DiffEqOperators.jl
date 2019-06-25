@@ -65,18 +65,24 @@ end
 
 @testset "Taking derivatives" begin
     N = 20
-    x = 0:1/N-1:1
+    x = 0:1/(N-1):1
     y = 2x.^2 .- 3x .+2
 
     # Dirichlet BC with fixed end points
     Q = RobinBC(1.0, 0.0, y[1], 1.0, 1.0, 0.0, y[end], 1.0)
+    U = UpwindDifference(1,2, 1.0, N, t->1.0)
+    A = CenteredDifference(1,2, 1.0, N)
+    res1 = U*Q*y
+    res2 = A*Q*y
+    @test res1[4:end-1] ≈ res2[2:end-3] atol=10.0^(-2) # shifted due to upwind operators
 
-    L1 = UpwindDifference(1,2, 1.0, N, t->1.0)
-    res = L1*Q*y
-
-    L1 = UpwindDifference(1,3, 1.0, N, t->1.0)
-    correct = [-2/6, -3/6, 6/6, -1/6]
-    @test L1.stencil_coefs ≈ correct
+    y = 3x.^3 .- 4x.^2 .+ 2x .+ 1
+    Q = RobinBC(1.0, 0.0, y[1], 1.0, 1.0, 0.0, y[end], 1.0)
+    U = UpwindDifference(1,2, 1.0, N, t->1.0)
+    A = CenteredDifference(1,2, 1.0, N)
+    res1 = U*Q*y
+    res2 = A*Q*y
+    @test res1[4:end-1] ≈ res2[2:end-3] atol=10.0^(-2) # shifted due to upwind operators
 end
 
 # tests for full and sparse function.... BROKEN!

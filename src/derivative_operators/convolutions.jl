@@ -8,7 +8,6 @@ function LinearAlgebra.mul!(x_temp::AbstractVector{T}, A::DerivativeOperator, x:
     else
         nothing # what to do when dx is not uniform???
     end
-    rmul!(x_temp, @.(1/(A.dx^A.derivative_order)))
 end
 
 ################################################
@@ -31,6 +30,7 @@ function convolve_interior!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::
         cur_stencil = use_winding(A) && cur_coeff < 0 ? reverse(cur_stencil) : cur_stencil
         for idx in 1:A.stencil_length
             xtempi += cur_coeff * cur_stencil[idx] * x[i - mid + idx]
+            # @show i, idx, cur_stencil[idx], i-mid+idx, x[i-mid+idx]
         end
         x_temp[i] = xtempi
     end
@@ -70,6 +70,7 @@ end
 
 # Against A BC-padded vector, specialize the computation to explicitly use the left, right, and middle parts
 function convolve_interior!(x_temp::AbstractVector{T}, _x::BoundaryPaddedVector, A::DerivativeOperator) where {T<:Real}
+    @assert length(x_temp) == length(_x.u)
     stencil = A.stencil_coefs
     coeff   = A.coefficients
     x = _x.u
@@ -79,6 +80,7 @@ function convolve_interior!(x_temp::AbstractVector{T}, _x::BoundaryPaddedVector,
     else
         mid = div(A.stencil_length,2)
     end
+
     # Just do the middle parts
     for i in (2+A.boundary_point_count) : (length(x_temp)-A.boundary_point_count)-1
         xtempi = zero(T)
@@ -86,8 +88,8 @@ function convolve_interior!(x_temp::AbstractVector{T}, _x::BoundaryPaddedVector,
         cur_coeff   = typeof(coeff)   <: AbstractVector ? coeff[i-A.boundary_point_count] : true
         cur_stencil = use_winding(A) && cur_coeff < 0 ? reverse(cur_stencil) : cur_stencil
         @inbounds for idx in 1:A.stencil_length
+            @show i, idx, cur_stencil[idx], i-mid+idx, x[i-mid+idx]
             xtempi += cur_coeff * cur_stencil[idx] * x[(i-1) - (mid-idx) + 1]
-            @show i, idx, cur_stencil[idx], x[i-mid+idx]
         end
         x_temp[i] = xtempi
     end
