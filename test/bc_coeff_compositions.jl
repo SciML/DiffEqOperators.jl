@@ -54,8 +54,15 @@ end
     cL = coeff_func*L
     coeffs = rand(N)
     DiffEqOperators.update_coefficients!(cL,coeffs,nothing,0.0)
+    cA = cL*Q
+    DiffEqOperators.update_coefficients!(cA,coeffs,nothing,0.0)
+    @test cL.coefficients == coeffs == cA.L.coefficients
 
-    @test cL.coefficients == coeffs
+    A = L*Q
+    c2A = coeff_func*A
+    DiffEqOperators.update_coefficients!(c2A,coeffs,nothing,0.0)
+    @test coeffs == c2A.L.coefficients
+
 
     # Test GhostDerivativeOperator constructor by *
     u = rand(N)

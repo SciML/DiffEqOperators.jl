@@ -62,6 +62,17 @@ function \(A::GhostDerivativeOperator{T,E,F}, M::AbstractMatrix{T}) where {T,E,F
     return M_temp
 end
 
+# update coefficients
+function DiffEqBase.update_coefficients!(A::GhostDerivativeOperator{T,E,F},u,p,t) where {T,E,F}
+    DiffEqBase.update_coefficients!(A.L,u,p,t)
+end
+
+function *(coeff_func::Function, A::GhostDerivativeOperator{T,N,Wind}) where {T,N,Wind}
+    (coeff_func*A.L)*A.Q
+end
+
+
+
 
 # length and sizes
 Base.ndims(A::GhostDerivativeOperator) = 2
