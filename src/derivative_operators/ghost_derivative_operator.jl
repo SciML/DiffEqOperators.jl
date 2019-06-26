@@ -35,24 +35,28 @@ end
 
 
 function LinearAlgebra.ldiv!(x::AbstractVector{T}, A::GhostDerivativeOperator{T,E,F}, u::AbstractVector{T}) where {T,E,F}
-    @assert length(x) == size(A,2)
+    @assert length(x) == A.L.len
     (AL,Ab) = Array(A)
     LinearAlgebra.ldiv!(x, lu!(AL), u-Ab)
 end
 
 
 function \(A::GhostDerivativeOperator{T,E,F}, u::AbstractVector{T}) where {T,E,F}
+    @assert length(u) == A.L.len
     x = zeros(T,size(A,2))
     LinearAlgebra.ldiv!(x, A, u)
     return x
 end
 
 function LinearAlgebra.ldiv!(M_temp::AbstractMatrix{T}, A::GhostDerivativeOperator{T,E,F}, M::AbstractMatrix{T}) where {T,E,F}
+    @assert size(M_temp) == size(M)
+    @assert A.L.len == size(M,1)
     (AL,Ab) = Array(A)
     LinearAlgebra.ldiv!(M_temp, lu!(AL), M .- Ab)
 end
 
 function \(A::GhostDerivativeOperator{T,E,F}, M::AbstractMatrix{T}) where {T,E,F}
+    @assert A.L.len == size(M,1)
     M_temp = zeros(T, A.L.len, size(M,2))
     LinearAlgebra.ldiv!(M_temp, A, M)
     return M_temp
