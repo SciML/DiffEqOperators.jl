@@ -29,7 +29,7 @@ end
 
 for MT in [AbstractVector, AbstractMatrix, AbstractArray]
     @eval begin
-        function wacky(A::DerivativeOperator{T,N},M::$MT{T}) where {T<:Real,N}
+        function *(A::DerivativeOperator{T,N},M::$MT{T}) where {T<:Real,N}
             size_x_temp = [size(M)...]
             size_x_temp[N] -= 2
             x_temp = zeros(promote_type(eltype(A),eltype(M)), size_x_temp...)
