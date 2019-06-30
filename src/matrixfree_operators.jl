@@ -6,7 +6,7 @@ mutable struct MatrixFreeOperator{F,N,S,O} <: AbstractMatrixFreeOperator{F}
   opnorm::O
   ishermitian::Bool
   function MatrixFreeOperator(f::F, args::N;
-                              size=nothing, opnorm=nothing, ishermitian=false) where {F,N}
+                              size=nothing, opnorm=true, ishermitian=false) where {F,N}
     @assert (N <: Tuple && length(args) in (1,2)) "Arguments of a "*
     "MatrixFreeOperator must be a tuple with one or two elements"
     return new{F,N,typeof(size),typeof(opnorm)}(f, args, size, opnorm, ishermitian)
