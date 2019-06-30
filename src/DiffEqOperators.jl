@@ -30,6 +30,8 @@ include("derivative_operators/abstract_operator_functions.jl")
 include("derivative_operators/convolutions.jl")
 include("derivative_operators/concretization.jl")
 include("derivative_operators/ghost_derivative_operator.jl")
+include("derivative_operators/derivative_operator_functions.jl")
+
 
 ### Composite Operators
 include("composite_operators.jl")

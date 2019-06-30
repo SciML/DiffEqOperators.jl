@@ -103,22 +103,6 @@ end
     return BandedMatrix(A)[rng,cng]
 end
 
-#=
-    This definition of the mul! function makes it possible to apply the LinearOperator on
-    a matrix and not just a vector. It basically transforms the rows one at a time.
-=#
-function LinearAlgebra.mul!(x_temp::AbstractArray{T,2}, A::AbstractDerivativeOperator{T}, M::AbstractMatrix{T}) where T<:Real
-    if size(x_temp) == reverse(size(M))
-        for i = 1:size(M,1)
-            mul!(view(x_temp,i,:), A, view(M,i,:))
-        end
-    else
-        for i = 1:size(M,2)
-            mul!(view(x_temp,:,i), A, view(M,:,i))
-        end
-    end
-end
-
 # Base.length(A::AbstractDerivativeOperator) = A.stencil_length
 Base.ndims(A::AbstractDerivativeOperator) = 2
 Base.size(A::AbstractDerivativeOperator) = (A.len, A.len + 2)
@@ -156,20 +140,6 @@ end
 ########################################################################
 
 get_type(::AbstractDerivativeOperator{T}) where {T} = T
-
-function *(A::AbstractDerivativeOperator,x::AbstractVector)
-    y = zeros(promote_type(eltype(A),eltype(x)), length(x)-2)
-    LinearAlgebra.mul!(y, A::AbstractDerivativeOperator, x::AbstractVector)
-    return y
-end
-
-
-function *(A::AbstractDerivativeOperator,M::AbstractMatrix)
-    y = zeros(promote_type(eltype(A),eltype(M)), size(A,1), size(M,2))
-    LinearAlgebra.mul!(y, A::AbstractDerivativeOperator, M::AbstractMatrix)
-    return y
-end
-
 
 function *(M::AbstractMatrix,A::AbstractDerivativeOperator)
     y = zeros(promote_type(eltype(A),eltype(M)), size(M,1), size(A,2))
