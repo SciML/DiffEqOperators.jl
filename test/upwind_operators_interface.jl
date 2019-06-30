@@ -3,10 +3,12 @@ using SparseArrays, DiffEqOperators, LinearAlgebra, Random,
 
 function second_derivative_stencil(N)
   A = zeros(N,N+2)
-  for i in 1:N, j in 1:N+2
+  A[1,1:4] = [-0.0, -1.0, 2.0, -1.0]
+  for i in 2:N-1, j in 1:N+2
       (j-i==0 || j-i==2) && (A[i,j]=1)
       j-i==1 && (A[i,j]=-2)
   end
+  A[end,end-3:end] = [-1.0, 2.0, -1.0, 0.0]
   A
 end
 
@@ -91,7 +93,7 @@ end
     d_order = 2
     approx_order = 2
     correct = second_derivative_stencil(N)
-    A = UpwindDifference(d_order,approx_order,1.0,N)
+    A = UpwindDifference(d_order,approx_order,1.0,N,t->1.0)
 
     @test convert_by_multiplication(Array,A,N) == correct
     @test Array(A) == second_derivative_stencil(N)
