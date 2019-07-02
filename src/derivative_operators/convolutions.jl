@@ -6,7 +6,7 @@ function LinearAlgebra.mul!(x_temp::AbstractVector{T}, A::DerivativeOperator, x:
     if typeof(A.dx) <: T
         rmul!(x_temp, @.(1/(A.dx^A.derivative_order)))
     else
-        nothing # what to do when dx is not uniform???
+        nothing
     end
 end
 
