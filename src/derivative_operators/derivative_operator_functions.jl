@@ -59,7 +59,7 @@ for MT in [2,3]
 
             # Setup W, the kernel for NNlib.conv!
             Wdims = ones(Int64, ndims(_x_temp))
-            Wdims[N] = sl
+            Wdims[N] = sl ./ A.dx^A.derivative_order # this will change later 
             W = zeros(Wdims...)
             Widx = Any[Wdims...]
             setindex!(Widx,:,N)
