@@ -59,11 +59,11 @@ for MT in [2,3]
 
             # Setup W, the kernel for NNlib.conv!
             Wdims = ones(Int64, ndims(_x_temp))
-            Wdims[N] = sl ./ A.dx^A.derivative_order # this will change later 
+            Wdims[N] = sl
             W = zeros(Wdims...)
             Widx = Any[Wdims...]
             setindex!(Widx,:,N)
-            W[Widx...] = s
+            W[Widx...] = s ./ A.dx^A.derivative_order # this will change later 
             cv = DenseConvDims(_M, W)
 
             conv!(_x_temp, _M, W, cv)
