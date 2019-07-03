@@ -24,7 +24,8 @@ function convolve_interior!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::
         cur_coeff   = typeof(coeff)   <: AbstractVector ? coeff[i] : true
         cur_stencil = use_winding(A) && cur_coeff < 0 ? reverse(cur_stencil) : cur_stencil
         for idx in 1:A.stencil_length
-            xtempi += cur_coeff * cur_stencil[idx] * x[i - mid + idx]
+            x_idx = use_winding(A) && cur_coeff < 0 ? x[i + mid - idx] : x[i - mid + idx]
+            xtempi += cur_coeff * cur_stencil[idx] * x_idx
             # @show i, idx, cur_stencil[idx], i-mid+idx, x[i-mid+idx]
         end
         x_temp[i] = xtempi
