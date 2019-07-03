@@ -19,6 +19,11 @@ checkbounds(A::AbstractDerivativeOperator, k::Integer, j::Colon) =
 
 @inline function getindex(A::AbstractDerivativeOperator, i::Int, j::Int)
     @boundscheck checkbounds(A, i, j)
+    # TODO: Implement the lazy version
+    if use_winding(A)
+        return Array(A)[i,j]
+    end
+
     bpc = A.boundary_point_count
     N = A.len
     bsl = A.boundary_stencil_length
