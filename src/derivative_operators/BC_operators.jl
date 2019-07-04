@@ -1,20 +1,23 @@
 abstract type AbstractBC{T} <: AbstractDiffEqLinearOperator{T} end
 
+# Deepen type tree to support multi layered BCs in the future - a better version of PeriodicBC for example
+abstract type SingleLayerBC{T} <: AbstractBC{T} end
+abstract type MultiDimensionalBC{T, N} <: AbstractBC{T} end
+abstract type AbstractBoundaryPaddedArray{T, N} <: AbstractArray{T, N} end
 """
 Robin, General, and in general Neumann and Dirichlet BCs are all affine opeartors, meaning that they take the form Qx = Qax + Qb.
 """
-abstract type AffineBC{T,V} <: AbstractBC{T} end
+abstract type AffineBC{T,V} <: SingleLayerBC{T} end
 
-struct PeriodicBC{T} <: AbstractBC{T}
-
+struct PeriodicBC{T} <: SingleLayerBC{T}
 end
 
+struct MultiDimensionalPeriodicBC{T,N}
+end
 """
   The variables in l are [αl, βl, γl], and correspond to a BC of the form al*u(0) + bl*u'(0) = cl
-
   Implements a robin boundary condition operator Q that acts on a vector to give an extended vector as a result
   Referring to (https://github.com/JuliaDiffEq/DiffEqOperators.jl/files/3267835/ghost_node.pdf)
-
   Write vector b̄₁ as a vertical concatanation with b0 and the rest of the elements of b̄ ₁, denoted b̄`₁, the same with ū into u0 and ū`. b̄`₁ = b̄`_2 = fill(β/Δx, length(stencil)-1)
   Pull out the product of u0 and b0 from the dot product. The stencil used to approximate u` is denoted s. b0 = α+(β/Δx)*s[1]
   Rearrange terms to find a general formula for u0:= -b̄`₁̇⋅ū`/b0 + γ/b0, which is dependent on ū` the robin coefficients and Δx.
@@ -26,7 +29,7 @@ struct RobinBC{T, V<:AbstractVector{T}} <: AffineBC{T,V}
     b_l::T
     a_r::V
     b_r::T
-    function RobinBC(l::AbstractArray{T}, r::AbstractArray{T}, dx::AbstractArray{T}, order = one(T)) where {T}
+    function RobinBC(l::AbstractVector{T}, r::AbstractVector{T}, dx::AbstractVector{T}, order = one(T)) where {T}
         αl, βl, γl = l
         αr, βr, γr = r
         dx_l, dx_r = dx
@@ -43,11 +46,12 @@ struct RobinBC{T, V<:AbstractVector{T}} <: AffineBC{T,V}
     end
 end
 
+
+
 """
 Implements a generalization of the Robin boundary condition, where α is a vector of coefficients.
 Represents a condition of the form α[1] + α[2]u[0] + α[3]u'[0] + α[4]u''[0]+... = 0
 Implemented in a similar way to the RobinBC (see above).
-
 This time there are multiple stencils for multiple derivative orders - these can be written as a matrix S.
 All components that multiply u(0) are factored out, turns out to only involve the first colum of S, s̄0. The rest of S is denoted S`. the coeff of u(0) is s̄0⋅ᾱ[3:end] + α[2].
 the remaining components turn out to be ᾱ[3:end]⋅(S`ū`) or equivalantly (transpose(ᾱ[3:end])*S`)⋅ū`. Rearranging, a stencil q_a to be dotted with ū` upon extension can readily be found, along with a constant component q_b
@@ -57,7 +61,7 @@ struct GeneralBC{T, V<:AbstractVector{T}} <:AffineBC{T,V}
     b_l::T
     a_r::V
     b_r::T
-    function GeneralBC(αl::AbstractArray{T}, αr::AbstractArray{T}, dx::AbstractArray{T}, order = 1) where {T}
+    function GeneralBC(αl::AbstractVector{T}, αr::AbstractVector{T}, dx::AbstractVector{T}, order = 1) where {T}
         dx_l, dx_r = dx
         nl = length(αl)
         nr = length(αr)
@@ -65,19 +69,20 @@ struct GeneralBC{T, V<:AbstractVector{T}} <:AffineBC{T,V}
         S_r = zeros(T, (nr-2, order+nr-2))
 
         for i in 1:(nl-2)
-            S_l[i,:] = [transpose(calculate_weights(i, one(T), Array(one(T):convert(T, order+i)))) transpose(zeros(T, nl-2-i-order))] #am unsure if the length of the dummy_x is correct here
+            S_l[i,:] = [transpose(calculate_weights(i, one(T), Array(one(T):convert(T, order+i)))) transpose(zeros(T, Int(nl-2-i)))] #am unsure if the length of the dummy_x is correct here
         end
+
         for i in 1:(nr-2)
-            S_r[i,:] = [transpose(calculate_weights(i, one(T), Array(one(T):convert(T, order+i)))) transpose(zeros(T, nr-2-i-order))]
+            S_r[i,:] = [transpose(calculate_weights(i, convert(T, order+i), Array(one(T):convert(T, order+i)))) transpose(zeros(T, Int(nr-2-i)))]
         end
-        s0_l = S_l[:,1] ; Sl = S_l[2:end,:]
-        s0_r = -S_r[:,1] ; Sr = -S_r[2:end,:]
+        s0_l = S_l[:,1] ; Sl = S_l[:,2:end]
+        s0_r = S_r[:,1] ; Sr = S_r[:,2:end]
 
         denoml = αl[2] .+ αl[3:end] ⋅ s0_l
         denomr = αr[2] .+ αr[3:end] ⋅ s0_r
 
-        a_l = -transpose(αl) * Sl ./denoml
-        a_r = -transpose(αr) * Sr ./denomr
+        a_l = -transpose(transpose(αl[3:end]) * Sl) ./denoml
+        a_r = -transpose(transpose(αr[3:end]) * Sr) ./denomr
 
         b_l = -αl[1]/denoml
         b_r = -αr[1]/denomr
@@ -92,18 +97,20 @@ DirichletBC(α::AbstractVector{T}, dx::AbstractVector{T}, order = 1) where T = R
 RobinBC(al::T, bl::T, cl::T, dx_l::T, ar::T, br::T, cr::T, dx_r::T, order = 1) where T = RobinBC([al,bl, cl], [ar, br, cr], [dx_l, dx_r], order)
 
 # this  is 'boundary padded vector' as opposed to 'boundary padded array' to distinguish it from the n dimensional implementation that will eventually be neeeded
-struct BoundaryPaddedVector{T,T2 <: AbstractVector{T}} <: AbstractVector{T}
+struct BoundaryPaddedVector{T,T2 <: AbstractVector{T}} <: AbstractBoundaryPaddedArray{T, 1}
     l::T
     r::T
     u::T2
 end
 
+
 Base.:*(Q::AffineBC, u::AbstractVector) = BoundaryPaddedVector(Q.a_l ⋅ u[1:length(Q.a_l)] + Q.b_l, Q.a_r ⋅ u[(end-length(Q.a_r)+1):end] + Q.b_r, u)
 
-Base.size(Q::AbstractBC) = (Inf, Inf) #Is this nessecary?
+Base.size(Q::SingleLayerBC) = (Inf, Inf) #Is this nessecary?
 Base.length(Q::BoundaryPaddedVector) = length(Q.u) + 2
 Base.size(Q::BoundaryPaddedVector) = (length(Q),)
 Base.lastindex(Q::BoundaryPaddedVector) = Base.length(Q)
+gettype(Q::AbstractBC{T}) where T = T
 
 function Base.getindex(Q::BoundaryPaddedVector,i)
     if i == 1
@@ -139,14 +146,167 @@ function LinearAlgebra.Array(Q::BoundaryPaddedVector)
     return [Q.l; Q.u; Q.r]
 end
 
-function Base.convert(::Type{Array},A::AbstractBC{T}) where T
+function Base.convert(::Type{Array},A::SingleLayerBC{T}) where T
     Array(A)
 end
 
-function Base.convert(::Type{SparseMatrixCSC},A::AbstractBC{T}) where T
+function Base.convert(::Type{SparseMatrixCSC},A::SingleLayerBC{T}) where T
     SparseMatrixCSC(A)
 end
 
-function Base.convert(::Type{AbstractMatrix},A::AbstractBC{T}) where T
+function Base.convert(::Type{AbstractMatrix},A::SingleLayerBC{T}) where T
     SparseMatrixCSC(A)
+end
+
+#######################################################################
+# Multidimensional
+#######################################################################
+
+"""
+Quick and dirty way to allow mixed boundary types on each end of an array - may need improvement later
+"""
+
+struct MixedBC{T, R <: SingleLayerBC{T}, S <: SingleLayerBC{T}} <: SingleLayerBC{T}
+    lower::R
+    upper::S
+    MixedBC(Qlower,Qupper) = new{Union{gettype(Qlower), gettype{Qupper}}, typeof(Qlower), typeof(Qupper)}(Qlower, Qupper)
+end
+
+function Base.:*(Q::MixedBC, u::AbstractVector)
+    lower = Q.lower*u
+    upper = Q.upper*u
+    return BoundaryPaddedVector(lower.l, u, upper.r)
+end
+#TODO Concretize MixedBC
+
+# The BC is applied stripwise and the boundary Arrays built from the l/r of the BoundaryPaddedVectors
+@inline function slicemul(A::Array{SingleLayerBC}, u::AbstractArray{T, 2}, dim::Integer) where T
+    s = size(u)
+    if dim == 1
+        lower = zeros(T, s[2])
+        upper = deepcopy(lower)
+        for i in 1:s[2]
+            tmp = A[i]*u[:,i]
+            lower[i] = tmp.l
+            upper[i] = tmp.r
+        end
+    elseif dim == 2
+        lower = zeros(T, s[1])
+        upper = deepcopy(lower)
+        for i in 1:s[1]
+            tmp = A[i]*u[i,:]
+            lower[i] = tmp.l
+            upper[i] = tmp.r
+        end
+    elseif dim == 3
+        throw("The 3 dimensional Method should be being called, not this one. Check dispatch.")
+    else
+        throw("Dim greater than 3 not supported!")
+    end
+    return lower, upper
+end
+
+@inline function slicemul(A::Array{SingleLayerBC}, u::AbstractArray{T, 3}, dim::Integer) where T
+    s = Array(size(u))
+    if dim == 1
+        lower = zeros(T, s[2], s[3])
+        upper = deepcopy(lower)
+        for j in 1:s[3]
+            for i in 1:s[2]
+                tmp = A[i,j]*u[:,i,j]
+                lower[i,j] = tmp.l
+                upper[i,j] = tmp.r
+            end
+        end
+    elseif dim == 2
+        lower = zeros(T, s[1], s[3])
+        upper = deepcopy(lower)
+        for j in 1:s[3]
+            for i in 1:s[1]
+                tmp = A[i,j]*u[i,:,j]
+                lower[i,j] = tmp.l
+                upper[i,j] = tmp.r
+            end
+        end
+    elseif dim == 3
+        lower = zeros(T, s[1], s[2])
+        upper = deepcopy(lower)
+        for j in 1:s[2]
+            for i in 1:s[1]
+                tmp = A[i,j]*u[i,j,:]
+                lower[i,j] = tmp.l
+                upper[i,j] = tmp.r
+            end
+        end
+    else
+        throw("Dim greater than 3 not supported!")
+    end
+    return lower, upper
+end
+
+"""
+A multiple dimensional BC, supporting arbitrary BCs at each boundary point
+
+"""
+
+struct MultiDimensionalSingleLayerBC{T, N} <: MultiDimensionalBC{T, N}
+    BCs::Vector{Array{SingleLayerBC{T}, N-1}} # I think this has to be an array of non concrete BCs to allow different BCs on different dims
+
+    MultiDimBC(BCs::Array{SingleLayerBC{T}}...) where T = new{T, length(BCs)}(Vector(BCs))
+    MultiDimBC(BCs::Vector{Array{SingleLayerBC{T}}}) where T = new{T, length(BCs)}(BCs)
+end
+
+
+"""
+Higher dimensional generalization of BoundaryPaddedVector, pads an array of dimension N with 2*N arrays of dimension N-1, stored in lower and upper.
+"""
+struct BoundaryPaddedArray{T, N, V <: AbstractArray{T}, B <: AbstractArray{T}} <: AbstractBoundaryPaddedArray{T, N}
+    lower::Vector{B}
+    upper::Vector{B}
+    u::V
+end
+
+# The concretization of the BoundaryPaddedArray is going to be a nightmare
+
+LinearAlgebra.Array(Q::BoundaryPaddedArray{T,N,V,B}) where {T,N,V,B}
+    N = ndims(Q.u)
+    S = size(Q)
+    out = zeros(T, S...)
+    dimset = 1:dim
+    uview = out
+    for dim in dimset
+        ulowview = selectdim(out, dim, 1)
+        uhighview = selectdim(out, dim, S[dim])
+        uview = selectdim(uview, dim, 2:(S[dim]-1))
+        for otherdim in setdiff(dimset, dim)
+            ulowview = selectdim(ulowview, otherdim, 2:(S[otherdim]-1))
+            uhighview = selectdim(uhighview, otherdim, 2:(S[otherdim]-1))
+        end
+        ulowview .= Q.lower[dim]
+        uhighview .= Q.upper[dim]
+    end
+    uview .= Q.u
+    return out
+end
+
+BoundaryPaddedMatrix{T, V, B} = BoundaryPaddedArray{T, 2, V, B}
+BoundaryPadded3Tensor{T, V, B} = BoundaryPaddedArray{T, 3, V, B}
+
+Base.size(Q::BoundaryPaddedArray) = size(Q.u) .+ 2
+Base.length(Q::BoundaryPaddedArray) = mapreduce((*), size(Q))
+Base.lastindex(Q::BoundaryPaddedArray) = Base.length(Q)
+
+# Get index is going to be relatively tough.
+"""
+If slicemul can be inlined, and the allocation for tmp.u avoided, this will be equivalent to a convolution of the boundary stencil along the nessecary dimension at both boundaries for all dimensions
+"""
+
+function Base.:*(Q::MultiDimensionalSingleLayerBC{T, N}, u::AbstractArray{T, N}) where {T, N}
+    M = ndims(u)
+    lower = Vector(Array{T, M-1}, M)
+    upper = Vector(Array{T, M-1}, M)
+    for n in 1:N
+        lower[n], upper[n] = slicemul(Q, u, n)
+    end
+    return BoundaryPaddedArray{T, M, typeof(u), typeof(lower[1])}(lower, upper, u)
 end
