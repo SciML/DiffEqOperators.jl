@@ -10,15 +10,14 @@ Robin, General, and in general Neumann and Dirichlet BCs are all affine opeartor
 abstract type AffineBC{T,V} <: SingleLayerBC{T} end
 
 struct PeriodicBC{T} <: SingleLayerBC{T}
-
 end
 
+struct MultiDimensionalPeriodicBC{T,N}
+end
 """
   The variables in l are [αl, βl, γl], and correspond to a BC of the form al*u(0) + bl*u'(0) = cl
-
   Implements a robin boundary condition operator Q that acts on a vector to give an extended vector as a result
   Referring to (https://github.com/JuliaDiffEq/DiffEqOperators.jl/files/3267835/ghost_node.pdf)
-
   Write vector b̄₁ as a vertical concatanation with b0 and the rest of the elements of b̄ ₁, denoted b̄`₁, the same with ū into u0 and ū`. b̄`₁ = b̄`_2 = fill(β/Δx, length(stencil)-1)
   Pull out the product of u0 and b0 from the dot product. The stencil used to approximate u` is denoted s. b0 = α+(β/Δx)*s[1]
   Rearrange terms to find a general formula for u0:= -b̄`₁̇⋅ū`/b0 + γ/b0, which is dependent on ū` the robin coefficients and Δx.
@@ -47,11 +46,12 @@ struct RobinBC{T, V<:AbstractVector{T}} <: AffineBC{T,V}
     end
 end
 
+
+
 """
 Implements a generalization of the Robin boundary condition, where α is a vector of coefficients.
 Represents a condition of the form α[1] + α[2]u[0] + α[3]u'[0] + α[4]u''[0]+... = 0
 Implemented in a similar way to the RobinBC (see above).
-
 This time there are multiple stencils for multiple derivative orders - these can be written as a matrix S.
 All components that multiply u(0) are factored out, turns out to only involve the first colum of S, s̄0. The rest of S is denoted S`. the coeff of u(0) is s̄0⋅ᾱ[3:end] + α[2].
 the remaining components turn out to be ᾱ[3:end]⋅(S`ū`) or equivalantly (transpose(ᾱ[3:end])*S`)⋅ū`. Rearranging, a stencil q_a to be dotted with ū` upon extension can readily be found, along with a constant component q_b
@@ -110,6 +110,7 @@ Base.size(Q::SingleLayerBC) = (Inf, Inf) #Is this nessecary?
 Base.length(Q::BoundaryPaddedVector) = length(Q.u) + 2
 Base.size(Q::BoundaryPaddedVector) = (length(Q),)
 Base.lastindex(Q::BoundaryPaddedVector) = Base.length(Q)
+gettype(Q::AbstractBC{T}) where T = T
 
 function Base.getindex(Q::BoundaryPaddedVector,i)
     if i == 1
@@ -161,44 +162,35 @@ end
 # Multidimensional
 #######################################################################
 
-# One of my utility functions, it works by applying an operator along a slice of u in the dimension specified by n
-# A multidim convolution would be better. - this is unused in DifEqOperators.jl but used as a template for the following functions
-function slicemul(A, u::AbstractArray, dim::Integer)
-    s = size(u)
-    out = similar(u)
-    if dim == 1
-        for j in 1:size[3]
-            for i in 1:size[2]
-                @views out[:,i,j] = A*u[:,i,j]
-            end
-        end
-    elseif dim == 2
-        for j in 1:size[3]
-            for i in 1:size[1]
-                @views out[i,:,j] = A*u[i,:,j]
-            end
-        end
-    elseif dim == 3
-        for j in 1:size[2]
-            for i in 1:size[1]
-                @views out[i,j,:] = A*u[i,j,:]
-            end
-        end
-    else
-        throw("Dim greater than 3 not supported!")
-    end
-    return out
+
+"""
+Quick and dirty way to allow mixed boundary types on each end of an array - may need improvement later
+"""
+
+struct MixedBC{T, R <: SingleLayerBC{T}, S <: SingleLayerBC{T}} <: SingleLayerBC{T}
+    lower::R
+    upper::S
+    MixedBC(Qlower,Qupper) = new{Union{gettype(Qlower), gettype{Qupper}}, typeof(Qlower), typeof(Qupper)}(Qlower, Qupper)
 end
 
+function Base.:*(Q::MixedBC, u::AbstractVector)
+    lower = Q.lower*u
+    upper = Q.upper*u
+    return BoundaryPaddedVector(lower.l, u, upper.r)
+end
+#TODO Concretize MixedBC
 
 # The BC is applied stripwise and the boundary Arrays built from the l/r of the BoundaryPaddedVectors
-@inline function slicemul(A::SingleLayerBC, u::AbstractArray{T, 2}, dim::Integer) where T
+@inline function slicemul(A::Array{SingleLayerBC}, u::AbstractArray{T, 2}, dim::Integer) where T
+
     s = size(u)
     if dim == 1
         lower = zeros(T, s[2])
         upper = deepcopy(lower)
         for i in 1:s[2]
-            tmp = A*u[:,i]
+
+            tmp = A[i]*u[:,i]
+
             lower[i] = tmp.l
             upper[i] = tmp.r
         end
@@ -206,7 +198,9 @@ end
         lower = zeros(T, s[1])
         upper = deepcopy(lower)
         for i in 1:s[1]
-            tmp = A*u[i,:]
+
+            tmp = A[i]*u[i,:]
+
             lower[i] = tmp.l
             upper[i] = tmp.r
         end
@@ -218,14 +212,18 @@ end
     return lower, upper
 end
 
-@inline function slicemul(A::SingleLayerBC, u::AbstractArray{T, 3}, dim::Integer) where T
+
+@inline function slicemul(A::Array{SingleLayerBC}, u::AbstractArray{T, 3}, dim::Integer) where T
+
     s = Array(size(u))
     if dim == 1
         lower = zeros(T, s[2], s[3])
         upper = deepcopy(lower)
         for j in 1:s[3]
             for i in 1:s[2]
-                tmp = A*u[:,i,j]
+
+                tmp = A[i,j]*u[:,i,j]
+
                 lower[i,j] = tmp.l
                 upper[i,j] = tmp.r
             end
@@ -235,7 +233,9 @@ end
         upper = deepcopy(lower)
         for j in 1:s[3]
             for i in 1:s[1]
-                tmp = A*u[i,:,j]
+
+                tmp = A[i,j]*u[i,:,j]
+
                 lower[i,j] = tmp.l
                 upper[i,j] = tmp.r
             end
@@ -245,7 +245,9 @@ end
         upper = deepcopy(lower)
         for j in 1:s[2]
             for i in 1:s[1]
-                tmp = A*u[i,j,:]
+
+                tmp = A[i,j]*u[i,j,:]
+
                 lower[i,j] = tmp.l
                 upper[i,j] = tmp.r
             end
@@ -256,10 +258,18 @@ end
     return lower, upper
 end
 
+
+"""
+A multiple dimensional BC, supporting arbitrary BCs at each boundary point
+
+"""
+
 struct MultiDimensionalSingleLayerBC{T, N} <: MultiDimensionalBC{T, N}
-    BC::Vector{SingleLayerBC{T}} # I think this has to be an array of non concrete BCs to allow different BCs on different dims
-    MultiDimBC(BCs::AbstractBC{T}...) where T = new{T, length(BCs)}(Array(BCs))
-    MultiDimBC(BCs::AbstractVector{AbstractBC{T}}) where T = new{T, length(BCs)}(Array(BCs))
+    BCs::Vector{Array{SingleLayerBC{T}, N-1}} # I think this has to be an array of non concrete BCs to allow different BCs on different dims
+
+    MultiDimBC(BCs::Array{SingleLayerBC{T}}...) where T = new{T, length(BCs)}(Vector(BCs))
+    MultiDimBC(BCs::Vector{Array{SingleLayerBC{T}}}) where T = new{T, length(BCs)}(BCs)
+
 end
 
 
@@ -272,6 +282,34 @@ struct BoundaryPaddedArray{T, N, V <: AbstractArray{T}, B <: AbstractArray{T}} <
     upper::Vector{B}
     u::V
 end
+
+# The concretization of the BoundaryPaddedArray is going to be a nightmare
+
+LinearAlgebra.Array(Q::BoundaryPaddedArray{T,N,V,B}) where {T,N,V,B}
+    N = ndims(Q.u)
+    S = size(Q)
+    out = zeros(T, S...)
+    dimset = 1:dim
+    uview = out
+    for dim in dimset
+        ulowview = selectdim(out, dim, 1)
+        uhighview = selectdim(out, dim, S[dim])
+        uview = selectdim(uview, dim, 2:(S[dim]-1))
+        for otherdim in setdiff(dimset, dim)
+            ulowview = selectdim(ulowview, otherdim, 2:(S[otherdim]-1))
+            uhighview = selectdim(uhighview, otherdim, 2:(S[otherdim]-1))
+        end
+        ulowview .= Q.lower[dim]
+        uhighview .= Q.upper[dim]
+    end
+    uview .= Q.u
+    return out
+end
+
+BoundaryPaddedMatrix{T, V, B} = BoundaryPaddedArray{T, 2, V, B}
+BoundaryPadded3Tensor{T, V, B} = BoundaryPaddedArray{T, 3, V, B}
+
+
 Base.size(Q::BoundaryPaddedArray) = size(Q.u) .+ 2
 Base.length(Q::BoundaryPaddedArray) = mapreduce((*), size(Q))
 Base.lastindex(Q::BoundaryPaddedArray) = Base.length(Q)
@@ -282,10 +320,10 @@ If slicemul can be inlined, and the allocation for tmp.u avoided, this will be e
 """
 
 function Base.:*(Q::MultiDimensionalSingleLayerBC{T, N}, u::AbstractArray{T, N}) where {T, N}
-    usize = Array(size(u))
-    M = length(usize)
-    lower = Vector(Array{T, M-1})
-    upper = Vector(Array{T, M-1})
+
+    M = ndims(u)
+    lower = Vector(Array{T, M-1}, M)
+    upper = Vector(Array{T, M-1}, M)
 
     for n in 1:N
         lower[n], upper[n] = slicemul(Q, u, n)
