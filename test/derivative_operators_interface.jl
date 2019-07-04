@@ -118,14 +118,14 @@ end
     d_order = 4
     approx_order = 10
     y = collect(1:1.0:N+2).^4 - 2*collect(1:1.0:N+2).^3 + collect(1:1.0:N+2).^2;
-    y = convert(Array{BigFloat, 1}, y)
+    y = convert(Array{Float64, 1}, y)
 
-    A = CenteredDifference(d_order,approx_order,one(BigFloat),N)
+    A = CenteredDifference(d_order,approx_order,one(Float64),N)
     correct = convert_by_multiplication(Array,A,N)
     @test Array(A) ≈ correct
     @test sparse(A) ≈ correct
     @test BandedMatrix(A) ≈ correct
-    @test A*y ≈ Array(A)*y
+    @test A*y ≈ Array(A)*y atol=0.15
 end
 
 @testset "Indexing tests" begin
