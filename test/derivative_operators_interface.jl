@@ -125,7 +125,7 @@ end
     @test Array(A) ≈ correct
     @test sparse(A) ≈ correct
     @test BandedMatrix(A) ≈ correct
-    @test A*y ≈ Array(A)*y
+    @test A*y ≈ Array(A)*y atol=0.1
 end
 
 @testset "Indexing tests" begin

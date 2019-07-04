@@ -56,7 +56,7 @@ end
 
 ### Operator Implementation
 
-mutable struct JacVecOperator{T,F,T1,T2,uType,P,tType} <: DiffEqBase.AbstractDiffEqLinearOperator{T}
+mutable struct JacVecOperator{T,F,T1,T2,uType,P,tType,O} <: DiffEqBase.AbstractDiffEqLinearOperator{T}
     f::F
     cache1::T1
     cache2::T2
@@ -64,13 +64,15 @@ mutable struct JacVecOperator{T,F,T1,T2,uType,P,tType} <: DiffEqBase.AbstractDif
     p::P
     t::tType
     autodiff::Bool
+    ishermitian::Bool
+    opnorm::O
 
-    function JacVecOperator{T}(f,p=nothing,t::Union{Nothing,Number}=nothing;autodiff=true) where T
+    function JacVecOperator{T}(f,p=nothing,t::Union{Nothing,Number}=nothing;autodiff=true,ishermitian=false,opnorm=true) where T
         p===nothing ? P = Any : P = typeof(p)
         t===nothing ? tType = Any : tType = typeof(t)
-        new{T,typeof(f),Nothing,Nothing,Any,P,tType}(f,nothing,nothing,nothing,nothing,nothing,autodiff)
+        new{T,typeof(f),Nothing,Nothing,Any,P,tType,typeof(opnorm)}(f,nothing,nothing,nothing,nothing,nothing,autodiff,ishermitian)
     end
-    function JacVecOperator{T}(f,u::AbstractArray,p=nothing,t::Union{Nothing,Number}=nothing;autodiff=true) where T
+    function JacVecOperator{T}(f,u::AbstractArray,p=nothing,t::Union{Nothing,Number}=nothing;autodiff=true,ishermitian=false,opnorm=true) where T
         if autodiff
             cache1 = ForwardDiff.Dual{JacVecTag}.(u, u)
             cache2 = ForwardDiff.Dual{JacVecTag}.(u, u)
@@ -80,13 +82,15 @@ mutable struct JacVecOperator{T,F,T1,T2,uType,P,tType} <: DiffEqBase.AbstractDif
         end
         p===nothing ? P = Any : P = typeof(p)
         t===nothing ? tType = Any : tType = typeof(t)
-        new{T,typeof(f),typeof(cache1),typeof(cache2),typeof(u),P,tType}(f,cache1,cache2,u,p,t,autodiff)
+        new{T,typeof(f),typeof(cache1),typeof(cache2),typeof(u),P,tType,typeof(opnorm)}(f,cache1,cache2,u,p,t,autodiff,ishermitian,opnorm)
     end
     function JacVecOperator(f,u,args...;kwargs...)
         JacVecOperator{eltype(u)}(f,u,args...;kwargs...)
     end
-
 end
+
+LinearAlgebra.opnorm(L::JacVecOperator, p::Real=2) = L.opnorm
+LinearAlgebra.ishermitian(L::JacVecOperator) = L.ishermitian
 
 Base.size(L::JacVecOperator) = (length(L.cache1),length(L.cache1))
 Base.size(L::JacVecOperator,i::Int) = length(L.cache1)

@@ -52,12 +52,13 @@ function lorenz(du,u,p,t)
 end
 u0 = [1.0;0.0;0.0]
 tspan = (0.0,100.0)
-ff = ODEFunction(lorenz,jac_prototype=JacVecOperator{Float64}(lorenz,u0))
-prob = ODEProblem(ff,u0,tspan)
-@test_broken sol = solve(prob,Rosenbrock23())
-@test_broken sol = solve(prob,Rosenbrock23(linsolve=LinSolveGMRES(tol=1e-10)))
-
-ff = ODEFunction(lorenz,jac_prototype=JacVecOperator{Float64}(lorenz,u0,autodiff=false))
-prob = ODEProblem(ff,u0,tspan)
-@test_broken sol = solve(prob,Rosenbrock23())
-@test_broken sol = solve(prob,Rosenbrock23(linsolve=LinSolveGMRES(tol=1e-10)))
+ff1 = ODEFunction(lorenz,jac_prototype=JacVecOperator{Float64}(lorenz,u0))
+ff2 = ODEFunction(lorenz,jac_prototype=JacVecOperator{Float64}(lorenz,u0,autodiff=false))
+for ff in [ff1, ff2]
+  prob = ODEProblem(ff,u0,tspan)
+  @test solve(prob,TRBDF2()).retcode == :Success
+  @test solve(prob,TRBDF2(linsolve=LinSolveGMRES(tol=1e-10))).retcode == :Success
+  @test solve(prob,Exprb32()).retcode == :Success
+  @test_broken sol = solve(prob,Rosenbrock23())
+  @test_broken sol = solve(prob,Rosenbrock23(linsolve=LinSolveGMRES(tol=1e-10)))
+end
