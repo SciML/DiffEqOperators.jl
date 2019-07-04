@@ -1,4 +1,4 @@
-abstract type AbstractBC{T} <: AbstractDiffEqLinearOperator{T} end
+abstract type AbstractBC{T} end#<: AbstractDiffEqLinearOperator{T} end
 
 # Deepen type tree to support multi layered BCs in the future - a better version of PeriodicBC for example
 abstract type SingleLayerBC{T} <: AbstractBC{T} end
@@ -162,6 +162,7 @@ end
 # Multidimensional
 #######################################################################
 
+
 """
 Quick and dirty way to allow mixed boundary types on each end of an array - may need improvement later
 """
@@ -181,12 +182,15 @@ end
 
 # The BC is applied stripwise and the boundary Arrays built from the l/r of the BoundaryPaddedVectors
 @inline function slicemul(A::Array{SingleLayerBC}, u::AbstractArray{T, 2}, dim::Integer) where T
+
     s = size(u)
     if dim == 1
         lower = zeros(T, s[2])
         upper = deepcopy(lower)
         for i in 1:s[2]
+
             tmp = A[i]*u[:,i]
+
             lower[i] = tmp.l
             upper[i] = tmp.r
         end
@@ -194,7 +198,9 @@ end
         lower = zeros(T, s[1])
         upper = deepcopy(lower)
         for i in 1:s[1]
+
             tmp = A[i]*u[i,:]
+
             lower[i] = tmp.l
             upper[i] = tmp.r
         end
@@ -206,14 +212,18 @@ end
     return lower, upper
 end
 
+
 @inline function slicemul(A::Array{SingleLayerBC}, u::AbstractArray{T, 3}, dim::Integer) where T
+
     s = Array(size(u))
     if dim == 1
         lower = zeros(T, s[2], s[3])
         upper = deepcopy(lower)
         for j in 1:s[3]
             for i in 1:s[2]
+
                 tmp = A[i,j]*u[:,i,j]
+
                 lower[i,j] = tmp.l
                 upper[i,j] = tmp.r
             end
@@ -223,7 +233,9 @@ end
         upper = deepcopy(lower)
         for j in 1:s[3]
             for i in 1:s[1]
+
                 tmp = A[i,j]*u[i,:,j]
+
                 lower[i,j] = tmp.l
                 upper[i,j] = tmp.r
             end
@@ -233,7 +245,9 @@ end
         upper = deepcopy(lower)
         for j in 1:s[2]
             for i in 1:s[1]
+
                 tmp = A[i,j]*u[i,j,:]
+
                 lower[i,j] = tmp.l
                 upper[i,j] = tmp.r
             end
@@ -243,6 +257,7 @@ end
     end
     return lower, upper
 end
+
 
 """
 A multiple dimensional BC, supporting arbitrary BCs at each boundary point
@@ -254,11 +269,13 @@ struct MultiDimensionalSingleLayerBC{T, N} <: MultiDimensionalBC{T, N}
 
     MultiDimBC(BCs::Array{SingleLayerBC{T}}...) where T = new{T, length(BCs)}(Vector(BCs))
     MultiDimBC(BCs::Vector{Array{SingleLayerBC{T}}}) where T = new{T, length(BCs)}(BCs)
+
 end
 
 
 """
 Higher dimensional generalization of BoundaryPaddedVector, pads an array of dimension N with 2*N arrays of dimension N-1, stored in lower and upper.
+
 """
 struct BoundaryPaddedArray{T, N, V <: AbstractArray{T}, B <: AbstractArray{T}} <: AbstractBoundaryPaddedArray{T, N}
     lower::Vector{B}
@@ -292,6 +309,7 @@ end
 BoundaryPaddedMatrix{T, V, B} = BoundaryPaddedArray{T, 2, V, B}
 BoundaryPadded3Tensor{T, V, B} = BoundaryPaddedArray{T, 3, V, B}
 
+
 Base.size(Q::BoundaryPaddedArray) = size(Q.u) .+ 2
 Base.length(Q::BoundaryPaddedArray) = mapreduce((*), size(Q))
 Base.lastindex(Q::BoundaryPaddedArray) = Base.length(Q)
@@ -302,9 +320,11 @@ If slicemul can be inlined, and the allocation for tmp.u avoided, this will be e
 """
 
 function Base.:*(Q::MultiDimensionalSingleLayerBC{T, N}, u::AbstractArray{T, N}) where {T, N}
+
     M = ndims(u)
     lower = Vector(Array{T, M-1}, M)
     upper = Vector(Array{T, M-1}, M)
+
     for n in 1:N
         lower[n], upper[n] = slicemul(Q, u, n)
     end
