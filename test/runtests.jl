@@ -8,6 +8,8 @@ import Base: isapprox
 @time @safetestset "BC and Coefficient Compositions" begin include("bc_coeff_compositions.jl") end
 @time @safetestset "Derivative Operators Interface" begin include("derivative_operators_interface.jl") end
 @time @safetestset "Validate and Compare Generic Operators" begin include("generic_operator_validation.jl") end
+@time @safetestset "Validate Boundary Padded Array Concretization" begin include("boundary_padded_array.jl") end
+
 #@time @safetestset "2nd order check" begin include("2nd_order_check.jl") end
 #@time @safetestset "KdV" begin include("KdV.jl") end # KdV times out and all fails
 #@time @safetestset "Heat Equation" begin include("heat_eqn.jl") end

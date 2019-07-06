@@ -1,4 +1,4 @@
-abstract type AbstractBC{T} end#<: AbstractDiffEqLinearOperator{T} end
+abstract type AbstractBC{T} <: AbstractDiffEqLinearOperator{T} end
 
 # Deepen type tree to support multi layered BCs in the future - a better version of PeriodicBC for example
 abstract type SingleLayerBC{T} <: AbstractBC{T} end
@@ -12,7 +12,7 @@ abstract type AffineBC{T,V} <: SingleLayerBC{T} end
 struct PeriodicBC{T} <: SingleLayerBC{T}
 end
 
-struct MultiDimensionalPeriodicBC{T,N}
+struct MultiDimensionalPeriodicBC{T,N} <: MultiDimensionalBC{T,N}
 end
 """
   The variables in l are [αl, βl, γl], and correspond to a BC of the form al*u(0) + bl*u'(0) = cl
@@ -164,7 +164,7 @@ end
 
 
 """
-Quick and dirty way to allow mixed boundary types on each end of an array - may need improvement later
+Quick and dirty way to allow mixed boundary types on each end of an array - may be cleaner and more versatile to split up left and right boundaries going forward
 """
 
 struct MixedBC{T, R <: SingleLayerBC{T}, S <: SingleLayerBC{T}} <: SingleLayerBC{T}
@@ -264,12 +264,11 @@ A multiple dimensional BC, supporting arbitrary BCs at each boundary point
 
 """
 
-struct MultiDimensionalSingleLayerBC{T, N} <: MultiDimensionalBC{T, N}
-    BCs::Vector{Array{SingleLayerBC{T}, N-1}} # I think this has to be an array of non concrete BCs to allow different BCs on different dims
+struct MultiDimensionalSingleLayerBC{T<:Number, N, M} <: MultiDimensionalBC{T, N}
+    BCs::Vector{Array{SingleLayerBC{T}, M}} #The Vector has length N - one array of BCs for each dimension
 
-    MultiDimBC(BCs::Array{SingleLayerBC{T}}...) where T = new{T, length(BCs)}(Vector(BCs))
-    MultiDimBC(BCs::Vector{Array{SingleLayerBC{T}}}) where T = new{T, length(BCs)}(BCs)
-
+    MultiDimBC(BCs::Array{SingleLayerBC{T}}...) where T = new{T, length(BCs), length(BCs)-1}(Vector(BCs))
+    MultiDimBC(BCs::Vector{Array{SingleLayerBC{T}}}) where T = new{T, length(BCs), length(BCs)-1}(BCs)
 end
 
 
@@ -277,16 +276,13 @@ end
 Higher dimensional generalization of BoundaryPaddedVector, pads an array of dimension N with 2*N arrays of dimension N-1, stored in lower and upper.
 
 """
-struct BoundaryPaddedArray{T, N, V <: AbstractArray{T}, B <: AbstractArray{T}} <: AbstractBoundaryPaddedArray{T, N}
-    lower::Vector{B}
-    upper::Vector{B}
+struct BoundaryPaddedArray{T<:Number, N, M, V<:AbstractArray{T, N}, B<: AbstractArray{T, M}} <: AbstractBoundaryPaddedArray{T, N}
+    lower::Vector{B} #A vector of N Arrays, that are dimension M = N-1, used to extend the lower index boundaries
+    upper::Vector{B} #Ditto for the upper index boundaries
     u::V
 end
 
-# The concretization of the BoundaryPaddedArray is going to be a nightmare
-
-LinearAlgebra.Array(Q::BoundaryPaddedArray{T,N,V,B}) where {T,N,V,B}
-    N = ndims(Q.u)
+LinearAlgebra.Array(Q::BoundaryPaddedArray{T,N,M,V,B}) where {T,V,B}
     S = size(Q)
     out = zeros(T, S...)
     dimset = 1:dim
@@ -314,13 +310,34 @@ Base.size(Q::BoundaryPaddedArray) = size(Q.u) .+ 2
 Base.length(Q::BoundaryPaddedArray) = mapreduce((*), size(Q))
 Base.lastindex(Q::BoundaryPaddedArray) = Base.length(Q)
 
-# Get index is going to be relatively tough.
+function getindex(Q::BoundaryPaddedArray{T,N,M,V,B}, inds..) where {T,V,B}
+    S = size(Q.u)
+    for (dim, index) in enumerate(inds)
+        if index == 1
+            _inds = setdiff(inds, index)
+            if 1 ∈ _inds | mapreduce((|), S[setdiff(1:length(S), dim)].+1 .== _inds)
+                return zero(T)
+            elses
+                return Q.lower[dim][(_inds.+1)...]
+            end
+        elseif index == S[dim]+1
+            _inds = setdiff(inds, index)
+            if 1 ∈ _inds | mapreduce((|), S[setdiff(1:length(S), dim)].+1 .== _inds)
+                return zero(T)
+            else
+                return Q.upper[dim][(_inds.+1)...]
+            end
+        end
+    end
+    return Q.u[(inds.+1)...]
+end
+            
+
 """
 If slicemul can be inlined, and the allocation for tmp.u avoided, this will be equivalent to a convolution of the boundary stencil along the nessecary dimension at both boundaries for all dimensions
 """
 
-function Base.:*(Q::MultiDimensionalSingleLayerBC{T, N}, u::AbstractArray{T, N}) where {T, N}
-
+function Base.:*(Q::MultiDimensionalSingleLayerBC{T, N, M}, u::AbstractArray{T, N, M}) where {T}
     M = ndims(u)
     lower = Vector(Array{T, M-1}, M)
     upper = Vector(Array{T, M-1}, M)
@@ -328,5 +345,6 @@ function Base.:*(Q::MultiDimensionalSingleLayerBC{T, N}, u::AbstractArray{T, N})
     for n in 1:N
         lower[n], upper[n] = slicemul(Q, u, n)
     end
-    return BoundaryPaddedArray{T, M, typeof(u), typeof(lower[1])}(lower, upper, u)
+    return BoundaryPaddedArray{T, M, M-1, typeof(u), typeof(lower[1])}(lower, upper, u)
 end
+
