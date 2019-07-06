@@ -282,7 +282,7 @@ struct BoundaryPaddedArray{T<:Number, N, M, V<:AbstractArray{T, N}, B<: Abstract
     u::V
 end
 
-LinearAlgebra.Array(Q::BoundaryPaddedArray{T,N,M,V,B}) where {T,V,B}
+function LinearAlgebra.Array(Q::BoundaryPaddedArray{T,N,M,V,B}) where {T,N,M,V,B}
     S = size(Q)
     out = zeros(T, S...)
     dimset = 1:dim
@@ -310,7 +310,7 @@ Base.size(Q::BoundaryPaddedArray) = size(Q.u) .+ 2
 Base.length(Q::BoundaryPaddedArray) = mapreduce((*), size(Q))
 Base.lastindex(Q::BoundaryPaddedArray) = Base.length(Q)
 
-function getindex(Q::BoundaryPaddedArray{T,N,M,V,B}, inds..) where {T,V,B}
+function getindex(Q::BoundaryPaddedArray{T,N,M,V,B}, inds...) where {T,N,M,V,B}
     S = size(Q.u)
     for (dim, index) in enumerate(inds)
         if index == 1
@@ -337,7 +337,7 @@ end
 If slicemul can be inlined, and the allocation for tmp.u avoided, this will be equivalent to a convolution of the boundary stencil along the nessecary dimension at both boundaries for all dimensions
 """
 
-function Base.:*(Q::MultiDimensionalSingleLayerBC{T, N, M}, u::AbstractArray{T, N, M}) where {T}
+function Base.:*(Q::MultiDimensionalSingleLayerBC{T, N, K}, u::AbstractArray{T, N}) where {T, N, K}
     M = ndims(u)
     lower = Vector(Array{T, M-1}, M)
     upper = Vector(Array{T, M-1}, M)
@@ -347,4 +347,3 @@ function Base.:*(Q::MultiDimensionalSingleLayerBC{T, N, M}, u::AbstractArray{T, 
     end
     return BoundaryPaddedArray{T, M, M-1, typeof(u), typeof(lower[1])}(lower, upper, u)
 end
-
