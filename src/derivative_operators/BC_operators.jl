@@ -1,4 +1,4 @@
-abstract type AbstractBC{T} end#<: AbstractDiffEqLinearOperator{T} end
+abstract type AbstractBC{T} <: AbstractDiffEqLinearOperator{T} end
 
 # Deepen type tree to support multi layered BCs in the future - a better version of PeriodicBC for example
 abstract type SingleLayerBC{T} <: AbstractBC{T} end
