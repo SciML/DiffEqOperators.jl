@@ -95,7 +95,7 @@ end
 
 # Will eventually implement proper dispatch
 function LinearAlgebra.mul!(x_temp::AbstractArray{T,2}, A::AbstractDiffEqCompositeOperator, M::AbstractArray{T,2}) where {T}
-    
+
     ndimsM = ndims(M)
     Wdims = ones(Int64,ndimsM)
     pad = zeros(Int64, ndimsM)
@@ -174,49 +174,62 @@ function LinearAlgebra.mul!(x_temp::AbstractArray{T,2}, A::AbstractDiffEqComposi
             offset_y =1
         end
 
-    # convolve boundaries and unaccounted for interior
+    # convolve boundaries and unaccounted for interior in axis 1
+        if length(ops_1) > 0
+            for i in 1:size(x_temp)[2]
+                convolve_BC_left!(view(x_temp,:,i), view(M,:,i+offset_x), A.ops[ops_1_max_bpc_idx...])
+                convolve_BC_right!(view(x_temp,:,i), view(M,:,i+offset_x), A.ops[ops_1_max_bpc_idx...])
+                if i <= pad[2] || i > size(x_temp)[2]-pad[2]
+                    convolve_interior!(view(x_temp,:,i), view(M,:,i+offset_x), A.ops[ops_1_max_bpc_idx...])
+                end
+                #scale by dx
 
-        for i in 1:size(x_temp)[2]
-            convolve_BC_left!(view(x_temp,:,i), view(M,:,i+offset_x), A.ops[ops_1_max_bpc_idx...])
-            convolve_BC_right!(view(x_temp,:,i), view(M,:,i+offset_x), A.ops[ops_1_max_bpc_idx...])
-            if i <= pad[2] || i > size(x_temp)[2]-pad[2]
-                convolve_interior!(view(x_temp,:,i), view(M,:,i+offset_x), A.ops[ops_1_max_bpc_idx...])
-            end
-            #scale by dx
-
-            for Lidx in ops_1
-                if Lidx != ops_1_max_bpc_idx[1]
-                    convolve_BC_left_add!(view(x_temp,:,i), view(M,:,i+offset_x), A.ops[Lidx])
-                    convolve_BC_right_add!(view(x_temp,:,i), view(M,:,i+offset_x), A.ops[Lidx])
-                    if i <= pad[2] || i > size(x_temp)[2]-pad[2]
-                        convolve_interior_add!(view(x_temp,:,i), view(M,:,i+offset_x), A.ops[Lidx])
-                    elseif pad[1] - A.ops[Lidx].boundary_point_count > 0
-                        #convolve_BC_interior_add_range!
+                for Lidx in ops_1
+                    if Lidx != ops_1_max_bpc_idx[1]
+                        convolve_BC_left_add!(view(x_temp,:,i), view(M,:,i+offset_x), A.ops[Lidx])
+                        convolve_BC_right_add!(view(x_temp,:,i), view(M,:,i+offset_x), A.ops[Lidx])
+                        if i <= pad[2] || i > size(x_temp)[2]-pad[2]
+                            convolve_interior_add!(view(x_temp,:,i), view(M,:,i+offset_x), A.ops[Lidx])
+                        elseif pad[1] - A.ops[Lidx].boundary_point_count > 0
+                            #convolve_BC_interior_add_range!
+                        end
                     end
                 end
             end
         end
-        for i in 1:size(x_temp)[1]
-            convolve_BC_left_add!(view(x_temp,i,:), view(M,i+offset_y,:), A.ops[ops_2_max_bpc_idx...])
-            convolve_BC_right_add!(view(x_temp,i,:), view(M,i+offset_x,:), A.ops[ops_2_max_bpc_idx...])
-            if i <= pad[1] || i > size(x_temp)[1]-pad[1]
-                convolve_interior_add!(view(x_temp,i,:), view(M,i+offset_x,:), A.ops[ops_2_max_bpc_idx...])
-            end
-            #scale by dx
-            # fix here as well
-
-            for Lidx in ops_2
-                if Lidx != ops_2_max_bpc_idx[1]
-                    convolve_BC_left_add!(view(x_temp,i,:), view(M,i+offset_y,:), A.ops[Lidx])
-                    convolve_BC_right_add!(view(x_temp,i,:), view(M,i+offset_y,:), A.ops[Lidx])
-                    if i <= pad[2] || i > size(x_temp)[1]-pad[1]
-                        convolve_interior_add!(view(x_temp,i,:), view(M,i+offset_y,:), A.ops[Lidx])
-                    elseif pad[1] - A.ops[Lidx].boundary_point_count > 0
-                        #convolve_BC_interior_add_range!...
+        # convolve boundaries and unaccounted for interior in axis 2
+        if length(ops_2) > 0
+            for i in 1:size(x_temp)[1]
+                # in the case of no axis 1 operators, we need to over x_temp
+                if length(ops_1) == 0
+                    convolve_BC_left!(view(x_temp,i,:), view(M,i+offset_y,:), A.ops[ops_2_max_bpc_idx...])
+                    convolve_BC_right!(view(x_temp,i,:), view(M,i+offset_y,:), A.ops[ops_2_max_bpc_idx...])
+                    if i <= pad[1] || i > size(x_temp)[1]-pad[1]
+                        convolve_interior!(view(x_temp,i,:), view(M,i+offset_y,:), A.ops[ops_2_max_bpc_idx...])
+                    end
+                    #scale by dx
+                    # fix here as well
+                else
+                    convolve_BC_left_add!(view(x_temp,i,:), view(M,i+offset_y,:), A.ops[ops_2_max_bpc_idx...])
+                    convolve_BC_right_add!(view(x_temp,i,:), view(M,i+offset_y,:), A.ops[ops_2_max_bpc_idx...])
+                    if i <= pad[1] || i > size(x_temp)[1]-pad[1]
+                        convolve_interior_add!(view(x_temp,i,:), view(M,i+offset_y,:), A.ops[ops_2_max_bpc_idx...])
+                    end
+                    #scale by dx
+                    # fix here as well
+                end
+                for Lidx in ops_2
+                    if Lidx != ops_2_max_bpc_idx[1]
+                        convolve_BC_left_add!(view(x_temp,i,:), view(M,i+offset_y,:), A.ops[Lidx])
+                        convolve_BC_right_add!(view(x_temp,i,:), view(M,i+offset_y,:), A.ops[Lidx])
+                        if i <= pad[1] || i > size(x_temp)[1]-pad[1]
+                            convolve_interior_add!(view(x_temp,i,:), view(M,i+offset_y,:), A.ops[Lidx])
+                        elseif pad[2] - A.ops[Lidx].boundary_point_count > 0
+                            #convolve_BC_interior_add_range!...
+                        end
                     end
                 end
             end
-
         end
     end
 end

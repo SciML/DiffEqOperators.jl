@@ -68,7 +68,7 @@ end
     @test M_temp ≈ ((Lx*M)[1:N,2:N+1] +(Ly*M)[2:N+1,1:N] + (Lxx*M)[1:N,2:N+1] +(Lyy*M)[2:N+1,1:N])
 end
 
-@testset "2D Multiplication with boundary points and dx = 1.0" begin
+@testset "2D Multiplication with identical bpc and dx = 1.0" begin
 
     # Test (Lxxxx + Lyyyy)*M, dx = 1.0, no coefficient, two boundary points on each axis
     N = 100
@@ -88,5 +88,40 @@ end
     mul!(M_temp, A, M)
 
     @test M_temp ≈ ((Lx4*M)[1:N,2:N+1] +(Ly4*M)[2:N+1,1:N])
+
+    # Test a single axis, multiple operators: (Lxxx + Lxxxx)*M, dx = 1.0
+    Lx3 = CenteredDifference{1}(3,4,1.0,N)
+    A = Lx3 + Lx4
+
+    M_temp = zeros(100,102)
+    mul!(M_temp, A, M)
+
+    @test M_temp ≈ ((Lx3*M)+(Lx4*M))
+
+    # Test a single axis, multiple operators: (Lyyy + Lyyyy)*M, dx = 1.0, no coefficient
+    Ly3 = CenteredDifference{2}(3,4,1.0,N)
+    A = Ly3 + Ly4
+
+    M_temp = zeros(102,100)
+    mul!(M_temp, A, M)
+
+    @test M_temp ≈ ((Ly3*M)+(Ly4*M))
+
+    # Test multiple operators on both axis: (Lxxx + Lyyy + Lxxxx + Lyyyy)*M, no coefficient
+    A = Lx3 + Ly3 + Lx4 + Ly4
+    M_temp = zeros(100,100)
+    mul!(M_temp, A, M)
+
+    # Test is broken due to mul! overload having a bug for non symmetric stencils
+    @test_broken M_temp ≈ ((Lx3*M)[1:N,2:N+1] +(Ly3*M)[2:N+1,1:N] + (Lx4*M)[1:N,2:N+1] +(Ly4*M)[2:N+1,1:N])
+
+    # Test (Lxxx + Lyyy)*M, no coefficient
+    A = Lx3 + Ly3
+    M_temp = zeros(100,100)
+    mul!(M_temp, A, M)
+
+    # Test is broken due to mul! overload having a bug for non symmetric stencils
+    @test_broken M_temp ≈ ((Lx3*M)[1:N,2:N+1] +(Ly3*M)[2:N+1,1:N])
+
 
 end
