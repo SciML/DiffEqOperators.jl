@@ -100,13 +100,13 @@ Quick and dirty way to allow mixed boundary types on each end of an array - may 
 struct MixedBC{T, R <: SingleLayerBC{T}, S <: SingleLayerBC{T}} <: SingleLayerBC{T}
     lower::R
     upper::S
-    MixedBC(Qlower,Qupper) = new{Union{gettype(Qlower), gettype{Qupper}}, typeof(Qlower), typeof(Qupper)}(Qlower, Qupper)
+    MixedBC(Qlower,Qupper) = new{Union{gettype(Qlower), gettype(Qupper)}, typeof(Qlower), typeof(Qupper)}(Qlower, Qupper)
 end
 
 function Base.:*(Q::MixedBC, u::AbstractVector)
     lower = Q.lower*u
     upper = Q.upper*u
-    return BoundaryPaddedVector(lower.l, u, upper.r)
+    return BoundaryPaddedVector(lower.l, upper.r, u)
 end
 
 #implement Neumann and Dirichlet as special cases of RobinBC
@@ -222,7 +222,7 @@ end
 
 @inline function slicemul(A::UnionSingleLayerBCArray{T,2}, u::AbstractArray{T, 3}, dim::Integer) where {T}
 
-    s = Array(size(u))
+    s = size(u)
     if dim == 1
         lower = zeros(T, s[2], s[3])
         upper = deepcopy(lower)
@@ -268,14 +268,13 @@ end
 
 
 """
-A multiple dimensional BC, supporting arbitrary BCs at each boundary point
-
+A multiple dimensional BC, supporting arbitrary BCs at each boundary point. Important that the eltype of the arrays passed as the BCs to the constructor are all of the same abstract or concrete type.
+Easiest way is to make sure that all are of type Array{SingleLayerBC{T}, M}
 """
-
 struct MultiDimensionalSingleLayerBC{T<:Number, N, M} <: MultiDimensionalBC{T, N}
     BCs::Vector{UnionSingleLayerBCArray{T,M}} #The Vector has length N - one dimension M=N-1 array of BCs for each dimension
 end
-MultiDimBC(BCs::UnionSingleLayerBCArray{T,N}...) where {T,N} = MultiDimensionalSingleLayerBC{T, length(BCs), length(BCs)-1}([BCs...])
+MultiDimBC(BCs::UnionSingleLayerBCArray{T,N}...) where {T,N} = MultiDimensionalSingleLayerBC{T, length(BCs), length(BCs)-1}([BCs...]) #Need guidance on how to get this to dispatch correctly for all different BC types - at the moment will only work if they are all the same type
 MultiDimBC(BCs::Vector{UnionSingleLayerBCArray{T,N}}) where {T,N} = MultiDimensionalSingleLayerBC{T, length(BCs), length(BCs)-1}(BCs)
 
 """
@@ -333,7 +332,7 @@ function Base.getindex(Q::BoundaryPaddedArray, inds...) #as yet no support for r
             end
         elseif index == S[dim]
             _inds = inds[setdiff(1:N, dim)]
-            if (1 ∈ _inds) | reduce((|), S[setdiff(1:length(S), dim)]... .== _inds)
+            if (1 ∈ _inds) | reduce((|), S[setdiff(1:N, dim)] .== _inds)
                 return zero(T)
             else
                 return Q.upper[dim][(_inds.-1)...]
@@ -352,7 +351,6 @@ function Base.:*(Q::MultiDimensionalSingleLayerBC{T, N, K}, u::AbstractArray{T, 
     M = ndims(u)
     lower = []
     upper = []
-    @show M
     for n in 1:N
         low, up = slicemul(Q.BCs[n], u, n)
         push!(lower, low)
