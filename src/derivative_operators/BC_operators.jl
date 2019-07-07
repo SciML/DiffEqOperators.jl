@@ -12,8 +12,6 @@ abstract type AffineBC{T} <: SingleLayerBC{T} end
 struct PeriodicBC{T} <: SingleLayerBC{T}
 end
 
-
-
 struct MultiDimensionalPeriodicBC{T,N} <: MultiDimensionalBC{T,N}
 end
 """
@@ -349,12 +347,30 @@ If slicemul can be inlined, and the allocation for tmp.u avoided, this will be e
 
 function Base.:*(Q::MultiDimensionalSingleLayerBC{T, N, K}, u::AbstractArray{T, N}) where {T, N, K}
     M = ndims(u)
-    lower = []
-    upper = []
+    lower = Array{T,K}[]
+    upper = Array{T,K}[]
     for n in 1:N
         low, up = slicemul(Q.BCs[n], u, n)
         push!(lower, low)
         push!(upper, up)
     end
     return BoundaryPaddedArray{T, M, M-1, typeof(u), typeof(lower[1])}(lower, upper, u)
+end
+
+function Base.:*(Q::MultiDimensionalPeriodicBC{T,N}, u::AbstractArray{T,N}) where {T,N}
+    dimset = 1:N
+    S = size(u)
+    lower = Array{T,N-1}[]
+    upper = Array{T,N-1}[]
+    for dim in dimset
+        ulowview = selectdim(u, dim, 1)
+        uhighview = selectdim(u, dim, S[dim])
+        for (index, otherdim) in enumerate(setdiff(dimset, dim))
+            ulowview = selectdim(ulowview, index, 2:(S[otherdim]-1))
+            uhighview = selectdim(uhighview, index, 2:(S[otherdim]-1))
+        end
+        push!(lower, ulowview)
+        push!(upper, uhighview)
+    end
+    return BoundaryPaddedArray(lower, upper, u)
 end
