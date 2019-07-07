@@ -7,10 +7,12 @@ abstract type AbstractBoundaryPaddedArray{T, N} <: AbstractArray{T, N} end
 """
 Robin, General, and in general Neumann and Dirichlet BCs are all affine opeartors, meaning that they take the form Qx = Qax + Qb.
 """
-abstract type AffineBC{T,V} <: SingleLayerBC{T} end
+abstract type AffineBC{T} <: SingleLayerBC{T} end
 
 struct PeriodicBC{T} <: SingleLayerBC{T}
 end
+
+
 
 struct MultiDimensionalPeriodicBC{T,N} <: MultiDimensionalBC{T,N}
 end
@@ -24,12 +26,12 @@ end
   The non identity part of Qa is qa:= -b`₁/b0 = -β.*s[2:end]/(α+β*s[1]/Δx). The constant part is Qb = γ/(α+β*s[1]/Δx)
   do the same at the other boundary (amounts to a flip of s[2:end], with the other set of boundary coeffs)
 """
-struct RobinBC{T, V<:AbstractVector{T}} <: AffineBC{T,V}
-    a_l::V
+struct RobinBC{T} <: AffineBC{T}
+    a_l::Vector{T}
     b_l::T
-    a_r::V
+    a_r::Vector{T}
     b_r::T
-    function RobinBC(l::AbstractVector{T}, r::AbstractVector{T}, dx::AbstractVector{T}, order = one(T)) where {T}
+    function RobinBC(l::AbstractVector{T}, r::AbstractVector{T}, dx::AbstractVector{T}, order = 1) where {T}
         αl, βl, γl = l
         αr, βr, γr = r
         dx_l, dx_r = dx
@@ -42,7 +44,7 @@ struct RobinBC{T, V<:AbstractVector{T}} <: AffineBC{T,V}
         b_l = γl/(αl+βl*s[1]/dx_l)
         b_r = γr/(αr-βr*s[1]/dx_r)
 
-        return new{T, typeof(a_l)}(a_l, b_l, a_r, b_r)
+        return new{T}(a_l, b_l, a_r, b_r)
     end
 end
 
@@ -56,10 +58,10 @@ This time there are multiple stencils for multiple derivative orders - these can
 All components that multiply u(0) are factored out, turns out to only involve the first colum of S, s̄0. The rest of S is denoted S`. the coeff of u(0) is s̄0⋅ᾱ[3:end] + α[2].
 the remaining components turn out to be ᾱ[3:end]⋅(S`ū`) or equivalantly (transpose(ᾱ[3:end])*S`)⋅ū`. Rearranging, a stencil q_a to be dotted with ū` upon extension can readily be found, along with a constant component q_b
 """
-struct GeneralBC{T, V<:AbstractVector{T}} <:AffineBC{T,V}
-    a_l::V
+struct GeneralBC{T} <:AffineBC{T}
+    a_l::Vector{T}
     b_l::T
-    a_r::V
+    a_r::Vector{T}
     b_r::T
     function GeneralBC(αl::AbstractVector{T}, αr::AbstractVector{T}, dx::AbstractVector{T}, order = 1) where {T}
         dx_l, dx_r = dx
@@ -86,8 +88,25 @@ struct GeneralBC{T, V<:AbstractVector{T}} <:AffineBC{T,V}
 
         b_l = -αl[1]/denoml
         b_r = -αr[1]/denomr
-        new{T, typeof(a_l)}(a_l,b_l,reverse!(a_r),b_r)
+        new{T}(a_l,b_l,reverse!(a_r),b_r)
     end
+end
+
+
+"""
+Quick and dirty way to allow mixed boundary types on each end of an array - may be cleaner and more versatile to split up left and right boundaries going forward
+"""
+
+struct MixedBC{T, R <: SingleLayerBC{T}, S <: SingleLayerBC{T}} <: SingleLayerBC{T}
+    lower::R
+    upper::S
+    MixedBC(Qlower,Qupper) = new{Union{gettype(Qlower), gettype{Qupper}}, typeof(Qlower), typeof(Qupper)}(Qlower, Qupper)
+end
+
+function Base.:*(Q::MixedBC, u::AbstractVector)
+    lower = Q.lower*u
+    upper = Q.upper*u
+    return BoundaryPaddedVector(lower.l, u, upper.r)
 end
 
 #implement Neumann and Dirichlet as special cases of RobinBC
@@ -105,7 +124,7 @@ end
 
 
 Base.:*(Q::AffineBC, u::AbstractVector) = BoundaryPaddedVector(Q.a_l ⋅ u[1:length(Q.a_l)] + Q.b_l, Q.a_r ⋅ u[(end-length(Q.a_r)+1):end] + Q.b_r, u)
-
+Base.:*(Q::PeriodicBC, u::AbstractVector) = BoundaryPaddedVector(u[end], u[1], u)
 Base.size(Q::SingleLayerBC) = (Inf, Inf) #Is this nessecary?
 Base.length(Q::BoundaryPaddedVector) = length(Q.u) + 2
 Base.size(Q::BoundaryPaddedVector) = (length(Q),)
@@ -122,19 +141,19 @@ function Base.getindex(Q::BoundaryPaddedVector,i)
     end
 end
 
-function LinearAlgebra.Array(Q::AffineBC{T,V}, N::Int) where {T,V}
+function LinearAlgebra.Array(Q::AffineBC{T}, N::Int) where {T}
     Q_L = [transpose(Q.a_l) transpose(zeros(T, N-length(Q.a_l))); Diagonal(ones(T,N)); transpose(zeros(T, N-length(Q.a_r))) transpose(Q.a_r)]
     Q_b = [Q.b_l; zeros(T,N); Q.b_r]
     return (Array(Q_L), Q_b)
 end
 
-function SparseArrays.SparseMatrixCSC(Q::AffineBC{T,V}, N::Int) where {T,V}
+function SparseArrays.SparseMatrixCSC(Q::AffineBC{T}, N::Int) where {T}
     Q_L = [transpose(Q.a_l) transpose(zeros(T, N-length(Q.a_l))); Diagonal(ones(T,N)); transpose(zeros(T, N-length(Q.a_r))) transpose(Q.a_r)]
     Q_b = [Q.b_l; zeros(T,N); Q.b_r]
     return (Q_L, Q_b)
 end
 
-function SparseArrays.sparse(Q::AffineBC{T,V}, N::Int) where {T,V}
+function SparseArrays.sparse(Q::AffineBC{T}, N::Int) where {T}
     SparseMatrixCSC(Q,N)
 end
 
@@ -163,31 +182,19 @@ end
 #######################################################################
 
 
-"""
-Quick and dirty way to allow mixed boundary types on each end of an array - may be cleaner and more versatile to split up left and right boundaries going forward
-"""
 
-struct MixedBC{T, R <: SingleLayerBC{T}, S <: SingleLayerBC{T}} <: SingleLayerBC{T}
-    lower::R
-    upper::S
-    MixedBC(Qlower,Qupper) = new{Union{gettype(Qlower), gettype{Qupper}}, typeof(Qlower), typeof(Qupper)}(Qlower, Qupper)
-end
+# A union type to allow dispatch for MultiDimBC to work correctly
+UnionSingleLayerBCArray{T,N} = Union{vcat([Array{B,N} for B in subtypes(SingleLayerBC{T})], [Array{B,N} for B in subtypes(AffineBC{T})])..., Array{SingleLayerBC{T}, N}}
 
-function Base.:*(Q::MixedBC, u::AbstractVector)
-    lower = Q.lower*u
-    upper = Q.upper*u
-    return BoundaryPaddedVector(lower.l, u, upper.r)
-end
-#TODO Concretize MixedBC
 
 # The BC is applied stripwise and the boundary Arrays built from the l/r of the BoundaryPaddedVectors
-@inline function slicemul(A::Array{SingleLayerBC}, u::AbstractArray{T, 2}, dim::Integer) where T
+@inline function slicemul(A::UnionSingleLayerBCArray{T,1}, u::AbstractArray{T, 2}, dim::Integer) where T
 
     s = size(u)
     if dim == 1
         lower = zeros(T, s[2])
         upper = deepcopy(lower)
-        for i in 1:s[2]
+        for i in 1:(s[2])
 
             tmp = A[i]*u[:,i]
 
@@ -197,7 +204,7 @@ end
     elseif dim == 2
         lower = zeros(T, s[1])
         upper = deepcopy(lower)
-        for i in 1:s[1]
+        for i in 1:(s[1])
 
             tmp = A[i]*u[i,:]
 
@@ -213,7 +220,7 @@ end
 end
 
 
-@inline function slicemul(A::Array{SingleLayerBC}, u::AbstractArray{T, 3}, dim::Integer) where T
+@inline function slicemul(A::UnionSingleLayerBCArray{T,2}, u::AbstractArray{T, 3}, dim::Integer) where {T}
 
     s = Array(size(u))
     if dim == 1
@@ -259,18 +266,17 @@ end
 end
 
 
+
 """
 A multiple dimensional BC, supporting arbitrary BCs at each boundary point
 
 """
 
 struct MultiDimensionalSingleLayerBC{T<:Number, N, M} <: MultiDimensionalBC{T, N}
-    BCs::Vector{Array{SingleLayerBC{T}, M}} #The Vector has length N - one array of BCs for each dimension
-
-    MultiDimBC(BCs::Array{SingleLayerBC{T}}...) where T = new{T, length(BCs), length(BCs)-1}(Vector(BCs))
-    MultiDimBC(BCs::Vector{Array{SingleLayerBC{T}}}) where T = new{T, length(BCs), length(BCs)-1}(BCs)
+    BCs::Vector{UnionSingleLayerBCArray{T,M}} #The Vector has length N - one dimension M=N-1 array of BCs for each dimension
 end
-
+MultiDimBC(BCs::UnionSingleLayerBCArray{T,N}...) where {T,N} = MultiDimensionalSingleLayerBC{T, length(BCs), length(BCs)-1}([BCs...])
+MultiDimBC(BCs::Vector{UnionSingleLayerBCArray{T,N}}) where {T,N} = MultiDimensionalSingleLayerBC{T, length(BCs), length(BCs)-1}(BCs)
 
 """
 Higher dimensional generalization of BoundaryPaddedVector, pads an array of dimension N with 2*N arrays of dimension N-1, stored in lower and upper.
@@ -285,15 +291,15 @@ end
 function LinearAlgebra.Array(Q::BoundaryPaddedArray{T,N,M,V,B}) where {T,N,M,V,B}
     S = size(Q)
     out = zeros(T, S...)
-    dimset = 1:dim
+    dimset = 1:N
     uview = out
     for dim in dimset
         ulowview = selectdim(out, dim, 1)
         uhighview = selectdim(out, dim, S[dim])
         uview = selectdim(uview, dim, 2:(S[dim]-1))
-        for otherdim in setdiff(dimset, dim)
-            ulowview = selectdim(ulowview, otherdim, 2:(S[otherdim]-1))
-            uhighview = selectdim(uhighview, otherdim, 2:(S[otherdim]-1))
+        for (index, otherdim) in enumerate(setdiff(dimset, dim))
+            ulowview = selectdim(ulowview, index, 2:(S[otherdim]-1))
+            uhighview = selectdim(uhighview, index, 2:(S[otherdim]-1))
         end
         ulowview .= Q.lower[dim]
         uhighview .= Q.upper[dim]
@@ -302,36 +308,41 @@ function LinearAlgebra.Array(Q::BoundaryPaddedArray{T,N,M,V,B}) where {T,N,M,V,B
     return out
 end
 
-BoundaryPaddedMatrix{T, V, B} = BoundaryPaddedArray{T, 2, V, B}
-BoundaryPadded3Tensor{T, V, B} = BoundaryPaddedArray{T, 3, V, B}
+BoundaryPaddedMatrix{T, V, B} = BoundaryPaddedArray{T, 2, 1, V, B}
+BoundaryPadded3Tensor{T, V, B} = BoundaryPaddedArray{T, 3, 2, V, B}
 
 
 Base.size(Q::BoundaryPaddedArray) = size(Q.u) .+ 2
-Base.length(Q::BoundaryPaddedArray) = mapreduce((*), size(Q))
+Base.length(Q::BoundaryPaddedArray) = reduce((*), size(Q))
 Base.lastindex(Q::BoundaryPaddedArray) = Base.length(Q)
+gettype(Q::BoundaryPaddedArray{T,N,M,V,B}) where {T,N,M,V,B} = T
+Base.ndims(Q::BoundaryPaddedArray{T,N,M,V,B}) where {T,N,M,V,B} = N
 
-function getindex(Q::BoundaryPaddedArray{T,N,M,V,B}, inds...) where {T,N,M,V,B}
-    S = size(Q.u)
+function Base.getindex(Q::BoundaryPaddedArray, inds...) #as yet no support for range indexing or colon indexing
+    S = size(Q)
+    T = gettype(Q)
+    N = ndims(Q)
+    @assert mapreduce(x -> typeof(x)<:Integer, (&), inds)
     for (dim, index) in enumerate(inds)
         if index == 1
-            _inds = setdiff(inds, index)
-            if 1 ∈ _inds | mapreduce((|), S[setdiff(1:length(S), dim)].+1 .== _inds)
-                return zero(T)
-            elses
-                return Q.lower[dim][(_inds.+1)...]
-            end
-        elseif index == S[dim]+1
-            _inds = setdiff(inds, index)
-            if 1 ∈ _inds | mapreduce((|), S[setdiff(1:length(S), dim)].+1 .== _inds)
+            _inds = inds[setdiff(1:N, dim)]
+            if (1 ∈ _inds) | reduce((|), S[setdiff(1:N, dim)] .== _inds)
                 return zero(T)
             else
-                return Q.upper[dim][(_inds.+1)...]
+                return Q.lower[dim][(_inds.-1)...]
+            end
+        elseif index == S[dim]
+            _inds = inds[setdiff(1:N, dim)]
+            if (1 ∈ _inds) | reduce((|), S[setdiff(1:length(S), dim)]... .== _inds)
+                return zero(T)
+            else
+                return Q.upper[dim][(_inds.-1)...]
             end
         end
+
     end
-    return Q.u[(inds.+1)...]
+    return Q.u[(inds.-1)...]
 end
-            
 
 """
 If slicemul can be inlined, and the allocation for tmp.u avoided, this will be equivalent to a convolution of the boundary stencil along the nessecary dimension at both boundaries for all dimensions
@@ -339,11 +350,13 @@ If slicemul can be inlined, and the allocation for tmp.u avoided, this will be e
 
 function Base.:*(Q::MultiDimensionalSingleLayerBC{T, N, K}, u::AbstractArray{T, N}) where {T, N, K}
     M = ndims(u)
-    lower = Vector(Array{T, M-1}, M)
-    upper = Vector(Array{T, M-1}, M)
-
+    lower = []
+    upper = []
+    @show M
     for n in 1:N
-        lower[n], upper[n] = slicemul(Q, u, n)
+        low, up = slicemul(Q.BCs[n], u, n)
+        push!(lower, low)
+        push!(upper, up)
     end
     return BoundaryPaddedArray{T, M, M-1, typeof(u), typeof(lower[1])}(lower, upper, u)
 end
