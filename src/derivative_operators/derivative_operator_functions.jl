@@ -59,7 +59,7 @@ for MT in [2,3]
             setindex!(Widx,:,N)
             W[Widx...] = s
 
-            cv = DenseConvDims(_M, W, padding=pad)
+            cv = DenseConvDims(_M, W, padding=pad, flipkernel=true)
             conv!(_x_temp, _M, W, cv)
 
             # Now deal with boundaries
@@ -137,7 +137,7 @@ function LinearAlgebra.mul!(x_temp::AbstractArray{T,2}, A::AbstractDiffEqComposi
     _W = reshape(W, (size(W)...,1,1))
 
     # Call NNlib.conv!
-    cv = DenseConvDims(_M, _W, padding=pad)
+    cv = DenseConvDims(_M, _W, padding=pad, flipkernel=true)
     conv!(_x_temp, _M, _W, cv)
 
 

@@ -113,7 +113,7 @@ end
     mul!(M_temp, A, M)
 
     # Test is broken due to mul! overload having a bug for non symmetric stencils
-    @test_broken M_temp ≈ ((Lx3*M)[1:N,2:N+1] +(Ly3*M)[2:N+1,1:N] + (Lx4*M)[1:N,2:N+1] +(Ly4*M)[2:N+1,1:N])
+    @test M_temp ≈ ((Lx3*M)[1:N,2:N+1] +(Ly3*M)[2:N+1,1:N] + (Lx4*M)[1:N,2:N+1] +(Ly4*M)[2:N+1,1:N])
 
     # Test (Lxxx + Lyyy)*M, no coefficient
     A = Lx3 + Ly3
@@ -121,7 +121,7 @@ end
     mul!(M_temp, A, M)
 
     # Test is broken due to mul! overload having a bug for non symmetric stencils
-    @test_broken M_temp ≈ ((Lx3*M)[1:N,2:N+1] +(Ly3*M)[2:N+1,1:N])
+    @test M_temp ≈ ((Lx3*M)[1:N,2:N+1] +(Ly3*M)[2:N+1,1:N])
 
 
 end
