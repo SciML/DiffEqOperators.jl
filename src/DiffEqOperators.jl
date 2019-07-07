@@ -48,5 +48,5 @@ export DiffEqScalar, DiffEqArrayOperator, DiffEqIdentity, JacVecOperator, getops
 export AbstractDerivativeOperator, DerivativeOperator,
        CenteredDifference, UpwindDifference
 export RobinBC, GeneralBC
-export GhostDerivativeOperator, DiffEqOperatorCombination, AbstractDiffEqCompositeOperator
+export GhostDerivativeOperator
 end # module

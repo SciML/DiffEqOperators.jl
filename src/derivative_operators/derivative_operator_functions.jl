@@ -93,9 +93,9 @@ function *(A::DerivativeOperator{T,N},M::AbstractArray{T}) where {T<:Real,N}
     return x_temp
 end
 
-# Will eventually rename this to just mul! and will properly dispatch
+# Will eventually implement proper dispatch
 function LinearAlgebra.mul!(x_temp::AbstractArray{T,2}, A::AbstractDiffEqCompositeOperator, M::AbstractArray{T,2}) where {T}
-
+    println("we are in our dispatch")
     ndimsM = ndims(M)
     Wdims = ones(Int64,ndimsM)
     pad = zeros(Int64, ndimsM)
