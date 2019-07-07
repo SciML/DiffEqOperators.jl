@@ -94,7 +94,7 @@ function *(A::DerivativeOperator{T,N},M::AbstractArray{T}) where {T<:Real,N}
 end
 
 # Will eventually rename this to just mul! and will properly dispatch
-function comb_mul_two!(x_temp::AbstractArray{T,2}, A::DiffEqOperatorCombination, M::AbstractArray{T,2}) where T
+function LinearAlgebra.mul!(x_temp::AbstractArray{T,2}, A::AbstractDiffEqCompositeOperator, M::AbstractArray{T,2}) where {T}
 
     ndimsM = ndims(M)
     Wdims = ones(Int64,ndimsM)
@@ -143,38 +143,39 @@ function comb_mul_two!(x_temp::AbstractArray{T,2}, A::DiffEqOperatorCombination,
 
     # convolve boundary and interior points near boundary
     # partition operator indices along axis of differentiation
-    ops_1 = Int64[]
-    ops_1_max_bpc_idx = [0]
-    ops_2 = Int64[]
-    ops_2_max_bpc_idx = [0]
-    for i in 1:length(A.ops)
-        L = A.ops[i]
-        if typeof(L).parameters[2] == 1
-            push!(ops_1,i)
-            if L.boundary_point_count == pad[1]
-                ops_1_max_bpc_idx[1] = i
-            end
-        else
-            push!(ops_2,i)
-            if L.boundary_point_count == pad[2]
-                ops_2_max_bpc_idx[1]= i
+    if pad[1] > 0 || pad[2] > 0
+        ops_1 = Int64[]
+        ops_1_max_bpc_idx = [0]
+        ops_2 = Int64[]
+        ops_2_max_bpc_idx = [0]
+        for i in 1:length(A.ops)
+            L = A.ops[i]
+            if typeof(L).parameters[2] == 1
+                push!(ops_1,i)
+                if L.boundary_point_count == pad[1]
+                    ops_1_max_bpc_idx[1] = i
+                end
+            else
+                push!(ops_2,i)
+                if L.boundary_point_count == pad[2]
+                    ops_2_max_bpc_idx[1]= i
+                end
             end
         end
-    end
 
+        # need offsets since some axis may have ghost nodes and some may not
+        offset_x = 0
+        offset_y = 0
 
-    offset_x = 0
-    offset_y = 0
-
-    if length(ops_2) > 0
-        offset_x = 1
-    end
-    if length(ops_1) > 0
-        offset_y =1
-    end
+        if length(ops_2) > 0
+            offset_x = 1
+        end
+        if length(ops_1) > 0
+            offset_y =1
+        end
 
     # convolve boundaries and unaccounted for interior
-    if pad[1] > 0 || pad[2] > 0
+
         for i in 1:size(x_temp)[2]
             convolve_BC_left!(view(x_temp,:,i), view(M,:,i+offset_x), A.ops[ops_1_max_bpc_idx...])
             convolve_BC_right!(view(x_temp,:,i), view(M,:,i+offset_x), A.ops[ops_1_max_bpc_idx...])
