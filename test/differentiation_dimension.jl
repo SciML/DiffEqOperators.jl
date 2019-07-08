@@ -204,3 +204,98 @@ end
     # Test that * agrees will mul!
     @test M_temp == L*M
 end
+
+@testset "Differentiating with non-symmetric interior stencil" begin
+
+    # The following tests check that multiplication of an operator with a
+    # non-symmetric interior stencil is consistent with what we expect
+
+    N = 1
+    L = CenteredDifference{N}(3,4,0.1,30)
+    M = zeros(32,32)
+    for i in 1:32
+        for j in 1:32
+            M[i,j] = cos(0.1i)
+        end
+    end
+
+    M_temp = zeros(30,32)
+    mul!(M_temp, L, M)
+
+    @test M_temp ≈ Array(L)*M
+
+    N = 2
+    L = CenteredDifference{N}(3,4,0.1,30)
+    M = zeros(32,32)
+    for i in 1:32
+        for j in 1:32
+            M[i,j] = cos(0.1j)
+        end
+    end
+
+    M_temp = zeros(32,30)
+    mul!(M_temp, L, M)
+
+    @test M_temp ≈ transpose(Array(L)*transpose(M))
+
+    # Three dimensions
+
+    N = 1
+    L = CenteredDifference{N}(3,4,0.1,30)
+    M = zeros(32,32,32)
+    for i in 1:32
+        for j in 1:32
+            for k in 1:32
+                M[i,j,k] = cos(0.1i)
+            end
+        end
+    end
+
+    M_temp = zeros(30,32,32)
+    mul!(M_temp, L, M)
+    for i in 1:32
+        @test M_temp[:,:,i] ≈ Array(L)*M[:,:,i]
+    end
+
+    correct_row = L*M[:,1,1]
+
+    N = 2
+    L = CenteredDifference{N}(3,4,0.1,30)
+    M = zeros(32,32,32)
+    for i in 1:32
+        for j in 1:32
+            for k in 1:32
+                M[i,j,k] = cos(0.1j)
+            end
+        end
+    end
+
+    M_temp = zeros(32,30,32)
+    mul!(M_temp, L, M)
+
+    for i in 1:32
+        for j in 1:32
+            @test M_temp[i,:,j] ≈ correct_row
+        end
+    end
+
+    N = 3
+    L = CenteredDifference{N}(3,4,0.1,30)
+    M = zeros(32,32,32)
+    for i in 1:32
+        for j in 1:32
+            for k in 1:32
+                M[i,j,k] = cos(0.1k)
+            end
+        end
+    end
+
+    M_temp = zeros(32,32,30)
+    mul!(M_temp, L, M)
+
+    for i in 1:32
+        for j in 1:32
+            @test M_temp[i,j,:] ≈ correct_row
+        end
+    end
+end
