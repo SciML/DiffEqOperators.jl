@@ -2,6 +2,7 @@ abstract type AbstractBC{T} <: AbstractDiffEqLinearOperator{T} end
 
 # Deepen type tree to support multi layered BCs in the future - a better version of PeriodicBC for example
 abstract type SingleLayerBC{T} <: AbstractBC{T} end
+
 abstract type MultiDimensionalBC{T,D, N} <: AbstractBC{T} end
 abstract type AbstractBoundaryPaddedArray{T, D, N} <: AbstractArray{T, N} end
 """
@@ -268,7 +269,7 @@ A multiple dimensional BC, supporting arbitrary BCs at each boundary point. Impo
 Easiest way is to make sure that all are of type Array{SingleLayerBC{T}, M}
 """
 struct MultiDimensionalSingleLayerBC{T<:Number, D, N, M} <: MultiDimensionalBC{T, D, N}
-    BC::Array{SingleLayerBC{T},M} #The Vector has length N - one dimension M=N-1 array of BCs for each dimension
+    BC::Array{SingleLayerBC{T},M} #dimension M=N-1 array of BCs to extend dimension D
 end
 MultiDimBC(BC::Array{SingleLayerBC{T},N}, dim::Integer = 1) where {T,N} = MultiDimensionalSingleLayerBC{T, dim, N+1, N}(BC)
 #s should be size of the domain
@@ -277,13 +278,34 @@ MultiDimBC(BC::SingleLayerBC{T}, s, dim::Integer = 1) where {T} = MultiDimension
 
 MultiDimBC(BC::SingleLayerBC{T}, s) where T = Tuple([MultiDimensionalSingleLayerBC{T, dim, length(s), length(s)-1}(fill(BC, s[setdiff(1:length(s), dim)])) for dim in 1:length(s)])
 PeriodicBC{T}(s) where T = MultiDimBC(PeriodicBC{T}(), s)
+
+struct BridgeBC{T,I,N, upper<:Bool} <: SingleLayerBC{T} #upper determines if the BC is applied on the high end or low end, true => high end
+    from::SubArray{T,0,Array{T,N},NTuple{N,I},true}
+end
+function BridgeBC(u::AbstractArray{T,N}, upper, inds) where {T, N}
+    @assert length(inds) == N-1
+    @assert mapreduce(x -> typeof(x) <: Integer, (&), inds)
+    BridgeBC{T, N, eltype(inds), upper}(view(u, inds...))
+end
+
+function Base.:*(Q::BridgeBC{T, U}, u::AbstractVector{T}) where {T,U}
+    if U
+        l = zero(T)
+        r = Q.from
+    else
+        l = Q.from
+        r = zero(T)
+    end
+    return BoundaryPaddedVector{T, typeof(u)}(l, r, u)
+end
+
 """
 Higher dimensional generalization of BoundaryPaddedVector, pads an array of dimension N with 2 Arrays of dimension N-1, stored in lower and upper along the dimension D
 
 """
 struct BoundaryPaddedArray{T<:Number, D, N, M, V<:AbstractArray{T, N}, B<: AbstractArray{T, M}} <: AbstractBoundaryPaddedArray{T,D,N}
-    lower::B #A vector of N Arrays, that are dimension M = N-1, used to extend the lower index boundaries
-    upper::B #Ditto for the upper index boundaries
+    lower::B #an array of dimension M = N-1, used to extend the lower index boundary
+    upper::B #Ditto for the upper index boundary
     u::V
 end
 
