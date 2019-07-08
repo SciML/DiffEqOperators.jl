@@ -182,7 +182,7 @@ end
 
 
 # A union type to allow dispatch for MultiDimBC to work correctly
-UnionSingleLayerBCArray{T,N} = Union{vcat([Array{B,N} for B in subtypes(SingleLayerBC{T})], [Array{B,N} for B in subtypes(AffineBC{T})])..., Array{SingleLayerBC{T}, N}}
+UnionSingleLayerBCArray{T,N} = Union{vcat([Array{B,N} for B in InteractiveUtils.subtypes(SingleLayerBC{T})], [Array{B,N} for B in InteractiveUtils.subtypes(AffineBC{T})])..., Array{SingleLayerBC{T}, N}}
 
 
 # The BC is applied stripwise and the boundary Arrays built from the l/r of the BoundaryPaddedVectors
@@ -274,6 +274,8 @@ struct MultiDimensionalSingleLayerBC{T<:Number, N, M} <: MultiDimensionalBC{T, N
 end
 MultiDimBC(BCs::UnionSingleLayerBCArray{T,N}...) where {T,N} = MultiDimensionalSingleLayerBC{T, length(BCs), length(BCs)-1}([BCs...]) #Need guidance on how to get this to dispatch correctly for all different BC types - at the moment will only work if they are all the same type
 MultiDimBC(BCs::Vector{UnionSingleLayerBCArray{T,N}}) where {T,N} = MultiDimensionalSingleLayerBC{T, length(BCs), length(BCs)-1}(BCs)
+MultiDimBC(BCx::Array{X, 1}, BCy::Array{Y, 1}) where {T, X<:SingleLayerBC{T}, Y<:SingleLayerBC{T}} = MultiDimensionalSingleLayerBC{T, length(BCs), length(BCs)-1}([BCx, BCy])
+MultiDimBC(BCx::Array{X, 2}, BCy::Array{Y, 2}, BCz::Array{Z, 2}) where {T, X<:SingleLayerBC{T}, Y<:SingleLayerBC{T}, Z<:SingleLayerBC{T}} = MultiDimensionalSingleLayerBC{T, length(BCs), length(BCs)-1}([BCx, BCy, BCz])
 
 """
 Higher dimensional generalization of BoundaryPaddedVector, pads an array of dimension N with 2*N arrays of dimension N-1, stored in lower and upper.
