@@ -6,12 +6,12 @@ using LinearAlgebra, DiffEqOperators, Random, Test
 n = 100
 m = 120
 A = rand(n,m)
-A[1,1] = A[end,1] = A[1,end] = A[end,end] = 0.0
 
-lower = Vector[A[1,2:(end-1)], A[2:(end-1),1]]
-upper = Vector[A[end,2:(end-1)], A[2:(end-1),end]]
 
-Apad = BoundaryPaddedMatrix{Float64, typeof(A), typeof(lower[1])}(lower, upper, A[2:(end-1), 2:(end-1)])
+lower = A[1,:]
+upper = A[end,:]
+
+Apad = BoundaryPaddedMatrix{Float64,1, typeof(A), typeof(lower)}(lower, upper, A[2:(end-1), :])
 
 @test A == Array(Apad) #test Concretization of BoundaryPaddedMatrix
 
@@ -27,17 +27,40 @@ n = 100
 m = 120
 o = 78
 A = rand(n,m,o)
-A[1,1,:] = A[end,1, :] = A[1,end, :] = A[end,end, :] = 0.0
-A[1,:,1] = A[end, :, 1] = A[1,:,end] = A[end,:,end] = 0.0
-A[:,1,1] = A[:,end,1] = A[:,1,end] = A[:,end,end] = 0.0
+S = size(A)
+for dim in 1:3
+    lower = selectdim(A, dim, 1)
+    upper = selectdim(A, dim, size(A)[dim])
 
-lower = Matrix[A[1,2:(end-1), 2:(end-1)], A[2:(end-1),1, 2:(end-1)] A[2:(end-1), 2:(end-1), 1]]
-upper = Matrix[A[end, 2:(end-1), 2:(end-1)], A[2:(end-1), end, 2:(end-1)] A[2:(end-1), 2:(end-1), end]]
+    Apad = BoundaryPadded3Tensor{Float64, dim, typeof(A), typeof(lower)}(lower, upper, selectdim(A, dim, 2:(size(A)[dim]-1)))
 
-Apad = BoundaryPadded3Tensor{Float64, typeof(A), typeof(lower[1])}(lower, upper, A[2:(end-1), 2:(end-1), 2:(end-1)])
+    @test A == Array(Apad) #test Concretization of BoundaryPaddedMatrix
+    @test_broken A == Apad[:,:,:]
+    @test_broken A == Apad[1:S[1], 1:S[2], 1:S[3]]
+    for i in 1:n, j in 1:m, k in 1:o #test getindex for all indicies of Apad
+        @test A[i,j,k] == Apad[i,j,k]
+    end
+end
+################################################################################
+# Test BoundaryPaddedArray to 5D just for fun
+################################################################################
 
-@test A == Array(Apad) #test Concretization of BoundaryPaddedMatrix
 
-for i in 1:n, j in 1:m, k in 1:o #test getindex for all indicies of Apad
-    @test A[i,j,k] == Apad[i,j,k]
+n = 20
+m = 26
+o = 8
+p = 12
+q = 14
+A = rand(n,m,o,p,q)
+for dim in 1:5
+    lower = selectdim(A, dim, 1)
+    upper = selectdim(A, dim, size(A)[dim])
+
+    Apad = BoundaryPaddedArray{Float64, dim, 5, 4, typeof(A), typeof(lower)}(lower, upper, selectdim(A, dim, 2:(size(A)[dim]-1)))
+
+    @test A == Array(Apad) #test Concretization of BoundaryPaddedMatrix
+
+    for i in 1:n, j in 1:m, k in 1:o, l in 1:p, f in 1:q  #test getindex for all indicies of Apad
+        @test A[i,j,k,l,f] == Apad[i,j,k,l,f]
+    end
 end

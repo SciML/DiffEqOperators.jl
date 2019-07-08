@@ -15,14 +15,20 @@ q2 = PeriodicBC{Float64}()
 BCx = vcat(fill(q1, div(m,2)), fill(q2, div(m,2)))  #The size of BCx has to be all size components *except* for x
 BCy = vcat(fill(q1, div(n,2)), fill(q2, div(n,2)))
 
-Q = MultiDimBC(BCx, BCy)
+Qx = MultiDimBC(BCx, 1)
+Qy = MultiDimBC(BCy, 2)
 
-Aextended = Q*A
+Ax = Qx*A
+Ay = Qy*A
 
-@test size(Aextended) == size(A).+2
-for i in 2:(n-1), j in 2:(m-1)
-    @test [Aextended[i, k] for k in 1:(m+2)] == Array(BCy[i-1]*A[i-1,:])
-    @test [Aextended[k, j] for k in 1:(n+2)] == Array(BCx[j-1]*A[:, j-1])
+@test size(Ax)[1] == size(A)[1]+2
+@test size(Ay)[2] == size(A)[2]+2
+
+for j in 1:m
+    @test Ax[:, j]  == Array(BCx[j]*A[:, j])
+end
+for i in 1:n
+    @test Ay[i,:] == Array(BCy[i]*A[i,:])
 end
 
 
@@ -42,15 +48,24 @@ q2 = PeriodicBC{Float64}()
 
 BCx = vcat(fill(q1, (div(m,2), o)), fill(q2, (div(m,2), o)))  #The size of BCx has to be all size components *except* for x
 BCy = vcat(fill(q1, (div(n,2), o)), fill(q2, (div(n,2), o)))
-BCz = SingleLayerBC{Float64}[MixedBC(q1, q2) for N in 1:n, M in 1:m] #have to assert this supertype for dispatch to work for MultiDimBC
+BCz = fill(MixedBC(q1,q2), (n,m))
 
-Q = MultiDimBC(BCx, BCy, BCz)
+Qx = MultiDimBC(BCx, 1)
+Qy = MultiDimBC(BCy, 2)
+Qz = MultiDimBC(MixedBC(q1, q2), size(A), 3) #Test the other constructor
 
-Aextended = Q*A
-
-@test size(Aextended) == size(A).+2
-for i in 2:(n-1), j in 2:(m-1), k in 2:(o-1)
-    @test [Aextended[l, j, k] for l in 1:(n+2)] == Array(BCx[j-1, k-1]*A[:, j-1, k-1])
-    @test [Aextended[i, l, k] for l in 1:(m+2)] == Array(BCy[i-1, k-1]*A[i-1, :, k-1])
-    @test [Aextended[i, j, l] for l in 1:(o+2)] == Array(BCz[i-1, j-1]*A[i-1, j-1, :])
+Ax = Qx*A
+Ay = Qy*A
+Az = Qz*A
+@test size(Ax)[1] == size(A)[1]+2
+@test size(Ay)[2] == size(A)[2]+2
+@test size(Az)[3] == size(A)[3]+2
+for j in 1:m, k in 1:o
+    @test Ax[:, j, k] == Array(BCx[j, k]*A[:, j, k])
+end
+for i in 1:n, k in 1:o
+    @test Ay[i, :, k] == Array(BCy[i, k]*A[i, :, k])
+end
+for i in 1:n, j in 1:m
+    @test Az[i, j, :] == Array(BCz[i, j]*A[i, j, :])
 end

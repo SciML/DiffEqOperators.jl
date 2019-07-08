@@ -2,8 +2,8 @@ abstract type AbstractBC{T} <: AbstractDiffEqLinearOperator{T} end
 
 # Deepen type tree to support multi layered BCs in the future - a better version of PeriodicBC for example
 abstract type SingleLayerBC{T} <: AbstractBC{T} end
-abstract type MultiDimensionalBC{T, N} <: AbstractBC{T} end
-abstract type AbstractBoundaryPaddedArray{T, N} <: AbstractArray{T, N} end
+abstract type MultiDimensionalBC{T,D, N} <: AbstractBC{T} end
+abstract type AbstractBoundaryPaddedArray{T, D, N} <: AbstractArray{T, N} end
 """
 Robin, General, and in general Neumann and Dirichlet BCs are all affine opeartors, meaning that they take the form Qx = Qax + Qb.
 """
@@ -12,7 +12,7 @@ abstract type AffineBC{T} <: SingleLayerBC{T} end
 struct PeriodicBC{T} <: SingleLayerBC{T}
 end
 
-struct MultiDimensionalPeriodicBC{T,N} <: MultiDimensionalBC{T,N}
+struct MultiDimensionalPeriodicBC{T,D,N} <: MultiDimensionalBC{T,D,N}
 end
 """
   The variables in l are [αl, βl, γl], and correspond to a BC of the form al*u(0) + bl*u'(0) = cl
@@ -114,7 +114,7 @@ DirichletBC(α::AbstractVector{T}, dx::AbstractVector{T}, order = 1) where T = R
 RobinBC(al::T, bl::T, cl::T, dx_l::T, ar::T, br::T, cr::T, dx_r::T, order = 1) where T = RobinBC([al,bl, cl], [ar, br, cr], [dx_l, dx_r], order)
 
 # this  is 'boundary padded vector' as opposed to 'boundary padded array' to distinguish it from the n dimensional implementation that will eventually be neeeded
-struct BoundaryPaddedVector{T,T2 <: AbstractVector{T}} <: AbstractBoundaryPaddedArray{T, 1}
+struct BoundaryPaddedVector{T,T2 <: AbstractVector{T}} <: AbstractBoundaryPaddedArray{T,1, 1}
     l::T
     r::T
     u::T2
@@ -179,10 +179,10 @@ end
 # Multidimensional
 #######################################################################
 
-
+SingleLayerBCSubtypes = Union{vcat(InteractiveUtils.subtypes(SingleLayerBC{T}), InteractiveUtils.subtypes(AffineBC{T}))...} where T
 
 # A union type to allow dispatch for MultiDimBC to work correctly
-UnionSingleLayerBCArray{T,N} = Union{vcat([Array{B,N} for B in InteractiveUtils.subtypes(SingleLayerBC{T})], [Array{B,N} for B in InteractiveUtils.subtypes(AffineBC{T})])..., Array{SingleLayerBC{T}, N}}
+UnionSingleLayerBCArray{T,N} = Union{[Array{B,N} for B in InteractiveUtils.subtypes(SingleLayerBCSubtypes{T})]..., [Array{MixedBC{T, R, S}, N} for R in InteractiveUtils.subtypes(SingleLayerBCSubtypes{T}), S in InteractiveUtils.subtypes(SingleLayerBCSubtypes{T})]..., Array{SingleLayerBC{T}, N}}
 
 
 # The BC is applied stripwise and the boundary Arrays built from the l/r of the BoundaryPaddedVectors
@@ -263,116 +263,125 @@ end
     return lower, upper
 end
 
-
-
 """
 A multiple dimensional BC, supporting arbitrary BCs at each boundary point. Important that the eltype of the arrays passed as the BCs to the constructor are all of the same abstract or concrete type.
 Easiest way is to make sure that all are of type Array{SingleLayerBC{T}, M}
 """
-struct MultiDimensionalSingleLayerBC{T<:Number, N, M} <: MultiDimensionalBC{T, N}
-    BCs::Vector{UnionSingleLayerBCArray{T,M}} #The Vector has length N - one dimension M=N-1 array of BCs for each dimension
+struct MultiDimensionalSingleLayerBC{T<:Number, D, N, M} <: MultiDimensionalBC{T, D, N}
+    BC::UnionSingleLayerBCArray{T,M} #The Vector has length N - one dimension M=N-1 array of BCs for each dimension
 end
-MultiDimBC(BCs::UnionSingleLayerBCArray{T,N}...) where {T,N} = MultiDimensionalSingleLayerBC{T, length(BCs), length(BCs)-1}([BCs...]) #Need guidance on how to get this to dispatch correctly for all different BC types - at the moment will only work if they are all the same type
-MultiDimBC(BCs::Vector{UnionSingleLayerBCArray{T,N}}) where {T,N} = MultiDimensionalSingleLayerBC{T, length(BCs), length(BCs)-1}(BCs)
-MultiDimBC(BCx::Array{X, 1}, BCy::Array{Y, 1}) where {T, X<:SingleLayerBC{T}, Y<:SingleLayerBC{T}} = MultiDimensionalSingleLayerBC{T, length(BCs), length(BCs)-1}([BCx, BCy])
-MultiDimBC(BCx::Array{X, 2}, BCy::Array{Y, 2}, BCz::Array{Z, 2}) where {T, X<:SingleLayerBC{T}, Y<:SingleLayerBC{T}, Z<:SingleLayerBC{T}} = MultiDimensionalSingleLayerBC{T, length(BCs), length(BCs)-1}([BCx, BCy, BCz])
+MultiDimBC(BC::UnionSingleLayerBCArray{T,N}, dim = 1) where {T,N} = MultiDimensionalSingleLayerBC{T, dim, N+1, N}(BC)
+#s should be size of the domain
+MultiDimBC(BC::SingleLayerBC{T}, s, dim = 1) where {T} = MultiDimensionalSingleLayerBC{T, dim, length(s), length(s)-1}(fill(BC, s[setdiff(1:length(s), dim)]))
 
 """
-Higher dimensional generalization of BoundaryPaddedVector, pads an array of dimension N with 2*N arrays of dimension N-1, stored in lower and upper.
+Higher dimensional generalization of BoundaryPaddedVector, pads an array of dimension N with 2 Arrays of dimension N-1, stored in lower and upper along the dimension D
 
 """
-struct BoundaryPaddedArray{T<:Number, N, M, V<:AbstractArray{T, N}, B<: AbstractArray{T, M}} <: AbstractBoundaryPaddedArray{T, N}
-    lower::Vector{B} #A vector of N Arrays, that are dimension M = N-1, used to extend the lower index boundaries
-    upper::Vector{B} #Ditto for the upper index boundaries
+struct BoundaryPaddedArray{T<:Number, D, N, M, V<:AbstractArray{T, N}, B<: AbstractArray{T, M}} <: AbstractBoundaryPaddedArray{T,D,N}
+    lower::B #A vector of N Arrays, that are dimension M = N-1, used to extend the lower index boundaries
+    upper::B #Ditto for the upper index boundaries
     u::V
 end
 
-function LinearAlgebra.Array(Q::BoundaryPaddedArray{T,N,M,V,B}) where {T,N,M,V,B}
+function LinearAlgebra.Array(Q::BoundaryPaddedArray{T,D,N,M,V,B}) where {T,D,N,M,V,B}
     S = size(Q)
     out = zeros(T, S...)
+    dim = D
     dimset = 1:N
-    uview = out
-    for dim in dimset
-        ulowview = selectdim(out, dim, 1)
-        uhighview = selectdim(out, dim, S[dim])
-        uview = selectdim(uview, dim, 2:(S[dim]-1))
-        for (index, otherdim) in enumerate(setdiff(dimset, dim))
-            ulowview = selectdim(ulowview, index, 2:(S[otherdim]-1))
-            uhighview = selectdim(uhighview, index, 2:(S[otherdim]-1))
-        end
-        ulowview .= Q.lower[dim]
-        uhighview .= Q.upper[dim]
-    end
+    ulowview = selectdim(out, dim, 1)
+    uhighview = selectdim(out, dim, S[dim])
+    uview = selectdim(out, dim, 2:(S[dim]-1))
+    ulowview .= Q.lower
+    uhighview .= Q.upper
     uview .= Q.u
     return out
 end
 
-BoundaryPaddedMatrix{T, V, B} = BoundaryPaddedArray{T, 2, 1, V, B}
-BoundaryPadded3Tensor{T, V, B} = BoundaryPaddedArray{T, 3, 2, V, B}
+BoundaryPaddedMatrix{T, D, V, B} = BoundaryPaddedArray{T, D, 2, 1, V, B}
+BoundaryPadded3Tensor{T, D, V, B} = BoundaryPaddedArray{T, D, 3, 2, V, B}
 
 
-Base.size(Q::BoundaryPaddedArray) = size(Q.u) .+ 2
+function Base.size(Q::BoundaryPaddedArray)
+    S = [size(Q.u)...]
+    S[getaxis(Q)] += 2
+    return Tuple(S)
+end
+
 Base.length(Q::BoundaryPaddedArray) = reduce((*), size(Q))
 Base.lastindex(Q::BoundaryPaddedArray) = Base.length(Q)
-gettype(Q::BoundaryPaddedArray{T,N,M,V,B}) where {T,N,M,V,B} = T
-Base.ndims(Q::BoundaryPaddedArray{T,N,M,V,B}) where {T,N,M,V,B} = N
+gettype(Q::BoundaryPaddedArray{T,D,N,M,V,B}) where {T,D,N,M,V,B} = T
+Base.ndims(Q::BoundaryPaddedArray{T,D,N,M,V,B}) where {T,D,N,M,V,B} = N
+getaxis(Q::BoundaryPaddedArray{T,D,N,M,V,B}) where {T,D,N,M,V,B} = D
+getaxis(Q::MultiDimensionalSingleLayerBC{T, D, N, K}) where {T, D, N, K} = D
+add_dim(A::AbstractArray, i) = reshape(A, size(A)...,i)
+add_dim(i) = i
 
-function Base.getindex(Q::BoundaryPaddedArray, inds...) #as yet no support for range indexing or colon indexing
+function experms(N::Integer, dim) # A function to correctly permute the dimensions of the padding arrays so that they can be concatanated with the rest of u in getindex(::BoundaryPaddedArray)
+    if dim == N
+        return Vector(1:N)
+    elseif dim < N
+        P = experms(N, dim+1)
+        P[dim], P[dim+1] = P[dim+1], P[dim]
+        return P
+    else
+        throw("Dim is greater than N!")
+    end
+end
+
+function Base.getindex(Q::BoundaryPaddedArray{T,D,N,M,V,B}, _inds...) where {T,D,N,M,V,B} #supports range and colon indexing!
+    inds = [_inds...]
     S = size(Q)
-    T = gettype(Q)
-    N = ndims(Q)
-    @assert mapreduce(x -> typeof(x)<:Integer, (&), inds)
-    for (dim, index) in enumerate(inds)
-        if index == 1
-            _inds = inds[setdiff(1:N, dim)]
-            if (1 ∈ _inds) | reduce((|), S[setdiff(1:N, dim)] .== _inds)
-                return zero(T)
+    dim = D
+    otherinds = inds[setdiff(1:N, dim)]
+    @assert length(inds) == N
+    if inds[dim] == 1
+        return Q.lower[otherinds...]
+    elseif inds[dim] == S[dim]
+        return Q.upper[otherinds...]
+    elseif typeof(inds[dim]) <: Integer
+        inds[dim] = inds[dim] - 1
+        return Q.u[inds...]
+    elseif typeof(inds[dim]) == Colon
+        if mapreduce(x -> typeof(x) != Colon, (|), otherinds)
+            return vcat(Q.lower[otherinds...],  Q.u[inds...], Q.upper[otherinds...])
+        else
+            throw("A colon on the extended dim is as yet incompatible with additional colons")
+            #=lower = Q.lower[otherinds...]
+            upper = Q.upper[otherinds...]
+            extradimslower = N - ndims(lower)
+            extradimsupper = N - ndims(upper)
+            lower = permutedims(add_dim(lower, extradimslower), experms(N, dim)) #Adding dimensions and permuting so that cat doesn't get confused
+            upper = permutedims(add_dim(upper, extradimsupper), experms(N, dim))
+            return cat(lower, Q.u[inds...],  upper; dims=dim)
+            =#
+        end
+    elseif typeof(inds[dim]) <: AbstractArray
+        throw("Range indexing not yet supported!")
+        #=
+        @assert reduce((|), 1 .<= inds[dim] .<= S[dim])
+        inds[dim] = Array(inds[dim])
+        if (1 ∈ inds[dim]) | (S[dim] ∈ inds[dim])
+            inds[dim] .= inds[dim] .- 1
+            lower = permutedims(add_dim(Q.lower[otherinds...]), experms(N,dim)) #Adding dimensions and permuting so that cat doesn't get confused
+            upper = permutedims(add_dim(Q.upper[otherinds...]),  experms(N,dim))
+            if 1 ∉ inds[dim]
+                return cat(Q.u[inds...], upper; dims=dim)
+            elseif S[dim] ∉ inds[dim]
+                return cat(lower, Q.u[inds...]; dims=dim)
             else
-                return Q.lower[dim][(_inds.-1)...]
-            end
-        elseif index == S[dim]
-            _inds = inds[setdiff(1:N, dim)]
-            if (1 ∈ _inds) | reduce((|), S[setdiff(1:N, dim)] .== _inds)
-                return zero(T)
-            else
-                return Q.upper[dim][(_inds.-1)...]
+                return cat(lower, Q.u[inds...],  upper; dims=dim)
             end
         end
-
+        inds[dim] .= inds[dim] .- 1
+        return Q.u[inds...]
+        =#
     end
-    return Q.u[(inds.-1)...]
 end
 
-"""
-If slicemul can be inlined, and the allocation for tmp.u avoided, this will be equivalent to a convolution of the boundary stencil along the nessecary dimension at both boundaries for all dimensions
-"""
 
-function Base.:*(Q::MultiDimensionalSingleLayerBC{T, N, K}, u::AbstractArray{T, N}) where {T, N, K}
-    M = ndims(u)
-    lower = Array{T,K}[]
-    upper = Array{T,K}[]
-    for n in 1:N
-        low, up = slicemul(Q.BCs[n], u, n)
-        push!(lower, low)
-        push!(upper, up)
-    end
-    return BoundaryPaddedArray{T, M, M-1, typeof(u), typeof(lower[1])}(lower, upper, u)
-end
 
-function Base.:*(Q::MultiDimensionalPeriodicBC{T,N}, u::AbstractArray{T,N}) where {T,N}
-    dimset = 1:N
-    S = size(u)
-    lower = Array{T,N-1}[]
-    upper = Array{T,N-1}[]
-    for dim in dimset
-        ulowview = selectdim(u, dim, 1)
-        uhighview = selectdim(u, dim, S[dim])
-        for (index, otherdim) in enumerate(setdiff(dimset, dim))
-            ulowview = selectdim(ulowview, index, 2:(S[otherdim]-1))
-            uhighview = selectdim(uhighview, index, 2:(S[otherdim]-1))
-        end
-        push!(lower, ulowview)
-        push!(upper, uhighview)
-    end
-    return BoundaryPaddedArray(lower, upper, u)
+function Base.:*(Q::MultiDimensionalSingleLayerBC{T, D, N, K}, u::AbstractArray{T, N}) where {T, D, N, K}
+    lower, upper = slicemul(Q.BC, u, D)
+    return BoundaryPaddedArray{T, D, N, K, typeof(u), typeof(lower)}(lower, upper, u)
 end
