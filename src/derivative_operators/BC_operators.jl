@@ -95,6 +95,7 @@ end
 
 """
 Quick and dirty way to allow mixed boundary types on each end of an array - may be cleaner and more versatile to split up left and right boundaries going forward
+MixedBC(lowerBC, upperBC) is the interface.
 """
 
 struct MixedBC{T, R <: SingleLayerBC{T}, S <: SingleLayerBC{T}} <: SingleLayerBC{T}
@@ -112,13 +113,16 @@ end
 #implement Neumann and Dirichlet as special cases of RobinBC
 NeumannBC(α::AbstractVector{T}, dx::AbstractVector{T}, order = 1) where T = RobinBC([zero(T), one(T), α[1]], [zero(T), one(T), α[2]], dx, order)
 DirichletBC(α::AbstractVector{T}, dx::AbstractVector{T}, order = 1) where T = RobinBC([one(T), zero(T), α[1]], [one(T), zero(T), α[2]], dx, order)
+#specialized constructors for Neumann0 and Dirichlet0
 Dirichlet0BC(dx::AbstractVector{T}, order = 1) where T = DirichletBC([zero(T), zero(T)], dx, order = 1)
 Neumann0BC(dx::AbstractVector{T}, order = 1) where T = NeumannBC([zero(T), zero(T)], dx, order = 1)
 
 # other acceptable argument signatures
 RobinBC(al::T, bl::T, cl::T, dx_l::T, ar::T, br::T, cr::T, dx_r::T, order = 1) where T = RobinBC([al,bl, cl], [ar, br, cr], [dx_l, dx_r], order)
-
-struct BridgeBC{T,I,N} <: SingleLayerBC{T} #upper determines if the BC is applied on the high end or low end, true => high end
+"""
+Allows seperate domains governed by seperate equations to be bridged together, should be used as one end of a MixedBC as it will extend both boundaries with the same value
+"""
+struct BridgeBC{T,I,N} <: SingleLayerBC{T}
     from::SubArray{T,0,Array{T,N},NTuple{N,I},true}
 end
 function BridgeBC(u::AbstractArray{T,N}, inds) where {T, N}
@@ -129,8 +133,10 @@ end
 
 Base.:*(Q::BridgeBC{T,I,N}, u::AbstractVector{T}) where {T, I, N} = BoundaryPaddedVector{T, typeof(u)}(Q.from, Q.from, u)
 
+"""
+A vector type that extends a vector u with ghost points at either end
+"""
 
-# this  is 'boundary padded vector' as opposed to 'boundary padded array' to distinguish it from the n dimensional implementation that will eventually be neeeded
 struct BoundaryPaddedVector{T,T2 <: AbstractVector{T}} <: AbstractBoundaryPaddedArray{T,1, 1}
     l::T
     r::T
@@ -202,7 +208,9 @@ end
 #UnionSingleLayerBCArray{T,N} = Union{[Array{B,N} for B in InteractiveUtils.subtypes(SingleLayerBCSubtypes{T})]..., [Array{MixedBC{T, R, S}, N} for R in InteractiveUtils.subtypes(SingleLayerBCSubtypes{T}), S in InteractiveUtils.subtypes(SingleLayerBCSubtypes{T})]..., Array{SingleLayerBC{T}, N}}
 
 
-# The BC is applied stripwise and the boundary Arrays built from the l/r of the BoundaryPaddedVectors
+"""
+slicemul is the only limitation on the BCs here being used up to arbitrary dimension, an N dimensional implementation is sorely needed
+"""
 @inline function slicemul(A::Array{SingleLayerBC{T},1}, u::AbstractArray{T, 2}, dim::Integer) where T
 
     s = size(u)
@@ -281,19 +289,23 @@ end
 end
 
 """
-A multiple dimensional BC, supporting arbitrary BCs at each boundary point. Important that the eltype of the arrays passed as the BCs to the constructor are all of the same abstract or concrete type.
-Easiest way is to make sure that all are of type Array{SingleLayerBC{T}, M}
+A multiple dimensional BC, supporting arbitrary BCs at each boundary point.
+To construct an arbitrary BC, pass an Array of BCs with dimension one less than that of your domain u - denoted N,
+with a size of size(u)[setdiff(1:N, dim)], where dim is the dimension orthogonal to the boundary that you want to extend.
+It is also possible to call MultiDimBC(YourBC, size(u), dim) to use YourBC for the whole boundary orthogonal to that dimension.
+Further, it is possible to call Qx, Qy, Qz... = MultiDimBC(YourBC, size(u)) to use YourBC for the whole boundary for all dimensions.
 """
 struct MultiDimensionalSingleLayerBC{T<:Number, D, N, M} <: MultiDimensionalBC{T, D, N}
     BC::Array{SingleLayerBC{T},M} #dimension M=N-1 array of BCs to extend dimension D
 end
-MultiDimBC(BC::Array{SingleLayerBC{T},N}, dim::Integer) where {T,N} = MultiDimensionalSingleLayerBC{T, dim, N+1, N}(BC)
+MultiDimBC(BC::Array{SingleLayerBC{T},N}, dim::Integer = 1) where {T,N} = MultiDimensionalSingleLayerBC{T, dim, N+1, N}(BC)
 #s should be size of the domain
-MultiDimBC(BC::SingleLayerBC{T}, s, dim::Integer) where {T} = MultiDimensionalSingleLayerBC{T, dim, length(s), length(s)-1}(fill(BC, s[setdiff(1:length(s), dim)]))
+MultiDimBC(BC::SingleLayerBC{T}, s, dim::Integer = 1) where {T} = MultiDimensionalSingleLayerBC{T, dim, length(s), length(s)-1}(fill(BC, s[setdiff(1:length(s), dim)]))
 #Extra constructor to make a set of BC operators that extend an atomic BC Operator to the whole domain
 
 MultiDimBC(BC::SingleLayerBC{T}, s) where T = Tuple([MultiDimensionalSingleLayerBC{T, dim, length(s), length(s)-1}(fill(BC, s[setdiff(1:length(s), dim)])) for dim in 1:length(s)])
 PeriodicBC{T}(s) where T = MultiDimBC(PeriodicBC{T}(), s)
+
 
 """
 Higher dimensional generalization of BoundaryPaddedVector, pads an array of dimension N with 2 Arrays of dimension N-1, stored in lower and upper along the dimension D
