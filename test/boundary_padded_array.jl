@@ -11,7 +11,7 @@ A = rand(n,m)
 lower = A[1,:]
 upper = A[end,:]
 
-Apad = BoundaryPaddedMatrix{Float64,1, typeof(A), typeof(lower)}(lower, upper, A[2:(end-1), :])
+Apad = DiffEqOperators.BoundaryPaddedMatrix{Float64,1, typeof(A), typeof(lower)}(lower, upper, A[2:(end-1), :])
 
 @test A == Array(Apad) #test Concretization of BoundaryPaddedMatrix
 
@@ -32,7 +32,7 @@ for dim in 1:3
     lower = selectdim(A, dim, 1)
     upper = selectdim(A, dim, size(A)[dim])
 
-    Apad = BoundaryPadded3Tensor{Float64, dim, typeof(A), typeof(lower)}(lower, upper, selectdim(A, dim, 2:(size(A)[dim]-1)))
+    Apad = DiffEqOperators.BoundaryPadded3Tensor{Float64, dim, typeof(A), typeof(lower)}(lower, upper, selectdim(A, dim, 2:(size(A)[dim]-1)))
 
     @test A == Array(Apad) #test Concretization of BoundaryPaddedMatrix
     @test_broken A == Apad[:,:,:]
@@ -56,7 +56,7 @@ for dim in 1:5
     lower = selectdim(A, dim, 1)
     upper = selectdim(A, dim, size(A)[dim])
 
-    Apad = BoundaryPaddedArray{Float64, dim, 5, 4, typeof(A), typeof(lower)}(lower, upper, selectdim(A, dim, 2:(size(A)[dim]-1)))
+    Apad = DiffEqOperators.BoundaryPaddedArray{Float64, dim, 5, 4, typeof(A), typeof(lower)}(lower, upper, selectdim(A, dim, 2:(size(A)[dim]-1)))
 
     @test A == Array(Apad) #test Concretization of BoundaryPaddedMatrix
 

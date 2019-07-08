@@ -5,7 +5,7 @@ abstract type SingleLayerBC{T} <: AbstractBC{T} end
 abstract type MultiDimensionalBC{T,D, N} <: AbstractBC{T} end
 abstract type AbstractBoundaryPaddedArray{T, D, N} <: AbstractArray{T, N} end
 """
-Robin, General, and in general Neumann and Dirichlet BCs are all affine opeartors, meaning that they take the form Qx = Qax + Qb.
+Robin, General, and in general Neumann and Dirichlet BCs are all affine opeartors, meaning that they take the form Q*x = Qa*x + Qb.
 """
 abstract type AffineBC{T} <: SingleLayerBC{T} end
 
@@ -179,14 +179,14 @@ end
 # Multidimensional
 #######################################################################
 
-SingleLayerBCSubtypes = Union{vcat(InteractiveUtils.subtypes(SingleLayerBC{T}), InteractiveUtils.subtypes(AffineBC{T}))...} where T
+#SingleLayerBCSubtypes = Union{vcat(InteractiveUtils.subtypes(SingleLayerBC{T}), InteractiveUtils.subtypes(AffineBC{T}))...} where T
 
 # A union type to allow dispatch for MultiDimBC to work correctly
-UnionSingleLayerBCArray{T,N} = Union{[Array{B,N} for B in InteractiveUtils.subtypes(SingleLayerBCSubtypes{T})]..., [Array{MixedBC{T, R, S}, N} for R in InteractiveUtils.subtypes(SingleLayerBCSubtypes{T}), S in InteractiveUtils.subtypes(SingleLayerBCSubtypes{T})]..., Array{SingleLayerBC{T}, N}}
+#UnionSingleLayerBCArray{T,N} = Union{[Array{B,N} for B in InteractiveUtils.subtypes(SingleLayerBCSubtypes{T})]..., [Array{MixedBC{T, R, S}, N} for R in InteractiveUtils.subtypes(SingleLayerBCSubtypes{T}), S in InteractiveUtils.subtypes(SingleLayerBCSubtypes{T})]..., Array{SingleLayerBC{T}, N}}
 
 
 # The BC is applied stripwise and the boundary Arrays built from the l/r of the BoundaryPaddedVectors
-@inline function slicemul(A::UnionSingleLayerBCArray{T,1}, u::AbstractArray{T, 2}, dim::Integer) where T
+@inline function slicemul(A::Array{SingleLayerBC{T},1}, u::AbstractArray{T, 2}, dim::Integer) where T
 
     s = size(u)
     if dim == 1
@@ -218,7 +218,7 @@ UnionSingleLayerBCArray{T,N} = Union{[Array{B,N} for B in InteractiveUtils.subty
 end
 
 
-@inline function slicemul(A::UnionSingleLayerBCArray{T,2}, u::AbstractArray{T, 3}, dim::Integer) where {T}
+@inline function slicemul(A::Array{SingleLayerBC{T},2}, u::AbstractArray{T, 3}, dim::Integer) where {T}
 
     s = size(u)
     if dim == 1
@@ -268,9 +268,9 @@ A multiple dimensional BC, supporting arbitrary BCs at each boundary point. Impo
 Easiest way is to make sure that all are of type Array{SingleLayerBC{T}, M}
 """
 struct MultiDimensionalSingleLayerBC{T<:Number, D, N, M} <: MultiDimensionalBC{T, D, N}
-    BC::UnionSingleLayerBCArray{T,M} #The Vector has length N - one dimension M=N-1 array of BCs for each dimension
+    BC::Array{SingleLayerBC{T},M} #The Vector has length N - one dimension M=N-1 array of BCs for each dimension
 end
-MultiDimBC(BC::UnionSingleLayerBCArray{T,N}, dim = 1) where {T,N} = MultiDimensionalSingleLayerBC{T, dim, N+1, N}(BC)
+MultiDimBC(BC::Array{SingleLayerBC{T},N}, dim = 1) where {T,N} = MultiDimensionalSingleLayerBC{T, dim, N+1, N}(BC)
 #s should be size of the domain
 MultiDimBC(BC::SingleLayerBC{T}, s, dim = 1) where {T} = MultiDimensionalSingleLayerBC{T, dim, length(s), length(s)-1}(fill(BC, s[setdiff(1:length(s), dim)]))
 
@@ -380,8 +380,11 @@ function Base.getindex(Q::BoundaryPaddedArray{T,D,N,M,V,B}, _inds...) where {T,D
 end
 
 
-
 function Base.:*(Q::MultiDimensionalSingleLayerBC{T, D, N, K}, u::AbstractArray{T, N}) where {T, D, N, K}
     lower, upper = slicemul(Q.BC, u, D)
     return BoundaryPaddedArray{T, D, N, K, typeof(u), typeof(lower)}(lower, upper, u)
+end
+
+function LinearAlgebra.mul!(u_temp::AbstractArray{T,N}, Q::MultiDimensionalSingleLayerBC{T, D, N, K}, u::AbstractArray{T, N}) where {T,D,N,K}
+    u_temp = Array(Q*u)
 end

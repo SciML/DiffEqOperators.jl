@@ -1,4 +1,4 @@
-using LinearAlgebra,#= DiffEqOperators,=# Random, Test
+using LinearAlgebra, DiffEqOperators, Random, Test
 
 # Generate random parameters
 al = rand(5)
