@@ -5,7 +5,7 @@ abstract type AtomicBC{T} <: AbstractBC{T} end
 abstract type SingleLayerBC{T} <: AtomicBC{T} end
 
 abstract type MultiDimensionalBC{T,D, N} <: AbstractBC{T} end
-abstract type AbstractBoundaryPaddedArray{T, D, N} <: AbstractArray{T, N} end
+abstract type AbstractBoundaryPaddedArray{T, N} <: AbstractArray{T, N} end
 """
 Robin, General, and in general Neumann and Dirichlet BCs are all affine opeartors, meaning that they take the form Q*x = Qa*x + Qb.
 """
@@ -17,6 +17,10 @@ end
 struct MultiDimensionalPeriodicBC{T,D,N} <: MultiDimensionalBC{T,D,N}
 end
 """
+  RobinBC(left_coefficients, right_coefficients, [dx_left, dx_right], approximation_order)
+
+-------------------------------------------------------------------------------------
+
   The variables in l are [αl, βl, γl], and correspond to a BC of the form al*u(0) + bl*u'(0) = cl
   Implements a robin boundary condition operator Q that acts on a vector to give an extended vector as a result
   Referring to (https://github.com/JuliaDiffEq/DiffEqOperators.jl/files/3267835/ghost_node.pdf)
@@ -51,6 +55,10 @@ end
 
 
 """
+GeneralBC(α_leftboundary, α_rightboundary, [dx_left, dx_right], approximation_order)
+
+-------------------------------------------------------------------------------------
+
 Implements a generalization of the Robin boundary condition, where α is a vector of coefficients.
 Represents a condition of the form α[1] + α[2]u[0] + α[3]u'[0] + α[4]u''[0]+... = 0
 Implemented in a similar way to the RobinBC (see above).
@@ -137,7 +145,7 @@ Base.:*(Q::BridgeBC{T,I,N}, u::AbstractVector{T}) where {T, I, N} = BoundaryPadd
 A vector type that extends a vector u with ghost points at either end
 """
 
-struct BoundaryPaddedVector{T,T2 <: AbstractVector{T}} <: AbstractBoundaryPaddedArray{T,1, 1}
+struct BoundaryPaddedVector{T,T2 <: AbstractVector{T}} <: AbstractBoundaryPaddedArray{T, 1}
     l::T
     r::T
     u::T2
@@ -311,10 +319,55 @@ PeriodicBC{T}(s) where T = MultiDimBC(PeriodicBC{T}(), s)
 Higher dimensional generalization of BoundaryPaddedVector, pads an array of dimension N with 2 Arrays of dimension N-1, stored in lower and upper along the dimension D
 
 """
-struct BoundaryPaddedArray{T<:Number, D, N, M, V<:AbstractArray{T, N}, B<: AbstractArray{T, M}} <: AbstractBoundaryPaddedArray{T,D,N}
+struct BoundaryPaddedArray{T<:Number, D, N, M, V<:AbstractArray{T, N}, B<: AbstractArray{T, M}} <: AbstractBoundaryPaddedArray{T,N}
     lower::B #an array of dimension M = N-1, used to extend the lower index boundary
     upper::B #Ditto for the upper index boundary
     u::V
+end
+
+struct ComposedBoundaryPaddedArray{T<:Number, N, M, V<:AbstractArray{T, N}, B<: AbstractArray{T, M}} <: AbstractBoundaryPaddedArray{T, N}
+    lower::Vector{B}
+    upper::Vector{B}
+    u::V
+end
+function ComposedBoundaryPaddedArray(padded_arrays::BoundaryPaddedArray...) where
+    N = ndims(padded_arrays[1])
+    (length(padded_arrays) == N) || throw("The padded_arrays must cover every dimension - make sure that the number of padded_arrays is equal to ndims(u).")
+    @assert mapreduce(x -> x.u, (==), padded_arrays)
+    lower = [padded_array.lower for padded_array in padded_arrays]
+    upper = [padded_array.upper for padded_array in padded_arrays]
+
+    return CompositeBoundaryPaddedArray{gettype(padded_arrays[1]),N,N-1,typeof(padded_arrays.u),typeof(lower[1])}(lower, upper, padded_arrays[1].u)
+end
+
+struct ComposedMultiDimBC{T,N,M} <: MultiDimBC{T}
+    BCs::Vector{Array{SingleLayerBC{T}, M}} # The typing here is a nightmare
+end
+function ComposedMultiDimBC(BCs...)
+    T = gettype(BCs[1])
+    N = ndims(BCs[1])
+    (length(BCs) == N) || throw("There must be enough BCs to cover every dimension - check that the number of MultiDimBCs == N")
+    ComposedMultiDimBC{T,N,N-1}(BCs)
+end
+
+function LinearAlgebra.Array(Q::ComposedBoundaryPaddedArray{T,N,M,V,B}) where {T,N,M,V,B}
+    S = size(Q)
+    out = zeros(T, S...)
+    dimset = 1:N
+    uview = out
+    for dim in dimset
+        ulowview = selectdim(out, dim, 1)
+        uhighview = selectdim(out, dim, S[dim])
+        uview = selectdim(uview, dim, 2:(S[dim]-1))
+        for (index, otherdim) in enumerate(setdiff(dimset, dim))
+            ulowview = selectdim(ulowview, index, 2:(S[otherdim]-1))
+            uhighview = selectdim(uhighview, index, 2:(S[otherdim]-1))
+        end
+        ulowview .= Q.lower[dim]
+        uhighview .= Q.upper[dim]
+    end
+    uview .= Q.u
+    return out
 end
 
 function LinearAlgebra.Array(Q::BoundaryPaddedArray{T,D,N,M,V,B}) where {T,D,N,M,V,B}
@@ -347,6 +400,14 @@ gettype(Q::BoundaryPaddedArray{T,D,N,M,V,B}) where {T,D,N,M,V,B} = T
 Base.ndims(Q::BoundaryPaddedArray{T,D,N,M,V,B}) where {T,D,N,M,V,B} = N
 getaxis(Q::BoundaryPaddedArray{T,D,N,M,V,B}) where {T,D,N,M,V,B} = D
 getaxis(Q::MultiDimensionalSingleLayerBC{T, D, N, K}) where {T, D, N, K} = D
+
+Base.size(Q::ComposedBoundaryPaddedArray) = size(Q.u).+2
+Base.length(Q::ComposedBoundaryPaddedArray) = reduce((*), size(Q))
+Base.lastindex(Q::ComposedBoundaryPaddedArray) = Base.length(Q)
+gettype(Q::ComposedBoundaryPaddedArray{T,N,M,V,B}) where {T,D,N,M,V,B} = T
+Base.ndims(Q::ComposedBoundaryPaddedArray{T,N,M,V,B}) where {T,D,N,M,V,B} = N
+getaxis(Q::BoundaryPaddedArray{T,D,N,M,V,B}) where {T,D,N,M,V,B} = D
+
 add_dim(A::AbstractArray, i) = reshape(A, size(A)...,i)
 add_dim(i) = i
 
@@ -412,10 +473,47 @@ function Base.getindex(Q::BoundaryPaddedArray{T,D,N,M,V,B}, _inds...) where {T,D
     end
 end
 
+function Base.getindex(Q::ComposedBoundaryPaddedArray, inds...) #as yet no support for range indexing or colon indexing
+    S = size(Q)
+    T = gettype(Q)
+    N = ndims(Q)
+    @assert mapreduce(x -> typeof(x)<:Integer, (&), inds)
+    for (dim, index) in enumerate(inds)
+        if index == 1
+            _inds = inds[setdiff(1:N, dim)]
+            if (1 ∈ _inds) | reduce((|), S[setdiff(1:N, dim)] .== _inds)
+                return zero(T)
+            else
+                return Q.lower[dim][(_inds.-1)...]
+            end
+        elseif index == S[dim]
+            _inds = inds[setdiff(1:N, dim)]
+            if (1 ∈ _inds) | reduce((|), S[setdiff(1:N, dim)] .== _inds)
+                return zero(T)
+            else
+                return Q.upper[dim][(_inds.-1)...]
+            end
+        end
+     end
+    return Q.u[(inds.-1)...]
+end
+
 
 function Base.:*(Q::MultiDimensionalSingleLayerBC{T, D, N, K}, u::AbstractArray{T, N}) where {T, D, N, K}
     lower, upper = slicemul(Q.BC, u, D)
     return BoundaryPaddedArray{T, D, N, K, typeof(u), typeof(lower)}(lower, upper, u)
+end
+
+function Base.:*(Q::ComposedMultiDimBC{T, N, K}, u::AbstractArray{T, N}) where {T, N, K}
+    M = ndims(u)
+    lower = Array{T,K}[]
+    upper = Array{T,K}[]
+    for n in 1:N
+        low, up = slicemul(Q.BCs[n], u, n)
+        push!(lower, low)
+        push!(upper, up)
+    end
+    return ComposedBoundaryPaddedArray{T, M, M-1, typeof(u), typeof(lower[1])}(lower, upper, u)
 end
 
 function LinearAlgebra.mul!(u_temp::AbstractArray{T,N}, Q::MultiDimensionalSingleLayerBC{T, D, N, K}, u::AbstractArray{T, N}) where {T,D,N,K}
