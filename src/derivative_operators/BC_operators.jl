@@ -1,7 +1,8 @@
 abstract type AbstractBC{T} <: AbstractDiffEqLinearOperator{T} end
 
 # Deepen type tree to support multi layered BCs in the future - a better version of PeriodicBC for example
-abstract type SingleLayerBC{T} <: AbstractBC{T} end
+abstract type AtomicBC{T} <: AbstractBC{T}
+abstract type SingleLayerBC{T} <: AtomicBC{T} end
 
 abstract type MultiDimensionalBC{T,D, N} <: AbstractBC{T} end
 abstract type AbstractBoundaryPaddedArray{T, D, N} <: AbstractArray{T, N} end
@@ -111,8 +112,23 @@ end
 #implement Neumann and Dirichlet as special cases of RobinBC
 NeumannBC(α::AbstractVector{T}, dx::AbstractVector{T}, order = 1) where T = RobinBC([zero(T), one(T), α[1]], [zero(T), one(T), α[2]], dx, order)
 DirichletBC(α::AbstractVector{T}, dx::AbstractVector{T}, order = 1) where T = RobinBC([one(T), zero(T), α[1]], [one(T), zero(T), α[2]], dx, order)
+Dirichlet0BC(dx::AbstractVector{T}, order = 1) where T = DirichletBC([zero(T), zero(T)], dx, order = 1)
+Neumann0BC(dx::AbstractVector{T}, order = 1) where T = NeumannBC([zero(T), zero(T)], dx, order = 1)
+
 # other acceptable argument signatures
 RobinBC(al::T, bl::T, cl::T, dx_l::T, ar::T, br::T, cr::T, dx_r::T, order = 1) where T = RobinBC([al,bl, cl], [ar, br, cr], [dx_l, dx_r], order)
+
+struct BridgeBC{T,I,N} <: SingleLayerBC{T} #upper determines if the BC is applied on the high end or low end, true => high end
+    from::SubArray{T,0,Array{T,N},NTuple{N,I},true}
+end
+function BridgeBC(u::AbstractArray{T,N}, inds) where {T, N}
+    @assert length(inds) == N-1
+    @assert mapreduce(x -> typeof(x) <: Integer, (&), inds)
+    BridgeBC{T, N, eltype(inds)}(view(u, inds...))
+end
+
+Base.:*(Q::BridgeBC{T,I,N}, u::AbstractVector{T}) where {T, I, N} = BoundaryPaddedVector{T, typeof(u)}(Q.from, Q.from, u)
+
 
 # this  is 'boundary padded vector' as opposed to 'boundary padded array' to distinguish it from the n dimensional implementation that will eventually be neeeded
 struct BoundaryPaddedVector{T,T2 <: AbstractVector{T}} <: AbstractBoundaryPaddedArray{T,1, 1}
@@ -279,25 +295,10 @@ MultiDimBC(BC::SingleLayerBC{T}, s, dim::Integer = 1) where {T} = MultiDimension
 MultiDimBC(BC::SingleLayerBC{T}, s) where T = Tuple([MultiDimensionalSingleLayerBC{T, dim, length(s), length(s)-1}(fill(BC, s[setdiff(1:length(s), dim)])) for dim in 1:length(s)])
 PeriodicBC{T}(s) where T = MultiDimBC(PeriodicBC{T}(), s)
 
-struct BridgeBC{T,I,N, upper<:Bool} <: SingleLayerBC{T} #upper determines if the BC is applied on the high end or low end, true => high end
-    from::SubArray{T,0,Array{T,N},NTuple{N,I},true}
-end
-function BridgeBC(u::AbstractArray{T,N}, upper, inds) where {T, N}
-    @assert length(inds) == N-1
-    @assert mapreduce(x -> typeof(x) <: Integer, (&), inds)
-    BridgeBC{T, N, eltype(inds), upper}(view(u, inds...))
+struct ComposedBCOperator{T, N} <: AbstractBC{T}
+    Q::NTuple(N, MultiDimensionalBC)
 end
 
-function Base.:*(Q::BridgeBC{T, U}, u::AbstractVector{T}) where {T,U}
-    if U
-        l = zero(T)
-        r = Q.from
-    else
-        l = Q.from
-        r = zero(T)
-    end
-    return BoundaryPaddedVector{T, typeof(u)}(l, r, u)
-end
 
 """
 Higher dimensional generalization of BoundaryPaddedVector, pads an array of dimension N with 2 Arrays of dimension N-1, stored in lower and upper along the dimension D
