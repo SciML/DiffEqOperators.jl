@@ -330,19 +330,22 @@ struct ComposedBoundaryPaddedArray{T<:Number, N, M, V<:AbstractArray{T, N}, B<: 
     upper::Vector{B}
     u::V
 end
+
 function ComposedBoundaryPaddedArray(padded_arrays::BoundaryPaddedArray...)
+
     N = ndims(padded_arrays[1])
     (length(padded_arrays) == N) || throw("The padded_arrays must cover every dimension - make sure that the number of padded_arrays is equal to ndims(u).")
     @assert mapreduce(x -> x.u, (==), padded_arrays)
     lower = [padded_array.lower for padded_array in padded_arrays]
     upper = [padded_array.upper for padded_array in padded_arrays]
 
-    return ComposedBoundaryPaddedArray{gettype(padded_arrays[1]),N,N-1,typeof(padded_arrays.u),typeof(lower[1])}(lower, upper, padded_arrays[1].u)
+return CompositeBoundaryPaddedArray{gettype(padded_arrays[1]),N,N-1,typeof(padded_arrays.u),typeof(lower[1])}(lower, upper, padded_arrays[1].u)
 end
 
 struct ComposedMultiDimBC{T,N,M} <: MultiDimensionalBC{T, N}
     BCs::Vector{Array{SingleLayerBC{T}, M}} # The typing here is a nightmare
 end
+
 function ComposedMultiDimBC(BCs...)
     T = gettype(BCs[1])
     N = ndims(BCs[1])
@@ -406,6 +409,7 @@ Base.length(Q::ComposedBoundaryPaddedArray) = reduce((*), size(Q))
 Base.lastindex(Q::ComposedBoundaryPaddedArray) = Base.length(Q)
 gettype(Q::ComposedBoundaryPaddedArray{T,N,M,V,B}) where {T,D,N,M,V,B} = T
 Base.ndims(Q::ComposedBoundaryPaddedArray{T,N,M,V,B}) where {T,D,N,M,V,B} = N
+
 
 add_dim(A::AbstractArray, i) = reshape(A, size(A)...,i)
 add_dim(i) = i
