@@ -287,18 +287,13 @@ Easiest way is to make sure that all are of type Array{SingleLayerBC{T}, M}
 struct MultiDimensionalSingleLayerBC{T<:Number, D, N, M} <: MultiDimensionalBC{T, D, N}
     BC::Array{SingleLayerBC{T},M} #dimension M=N-1 array of BCs to extend dimension D
 end
-MultiDimBC(BC::Array{SingleLayerBC{T},N}, dim::Integer = 1) where {T,N} = MultiDimensionalSingleLayerBC{T, dim, N+1, N}(BC)
+MultiDimBC(BC::Array{SingleLayerBC{T},N}, dim::Integer) where {T,N} = MultiDimensionalSingleLayerBC{T, dim, N+1, N}(BC)
 #s should be size of the domain
-MultiDimBC(BC::SingleLayerBC{T}, s, dim::Integer = 1) where {T} = MultiDimensionalSingleLayerBC{T, dim, length(s), length(s)-1}(fill(BC, s[setdiff(1:length(s), dim)]))
+MultiDimBC(BC::SingleLayerBC{T}, s, dim::Integer) where {T} = MultiDimensionalSingleLayerBC{T, dim, length(s), length(s)-1}(fill(BC, s[setdiff(1:length(s), dim)]))
 #Extra constructor to make a set of BC operators that extend an atomic BC Operator to the whole domain
 
 MultiDimBC(BC::SingleLayerBC{T}, s) where T = Tuple([MultiDimensionalSingleLayerBC{T, dim, length(s), length(s)-1}(fill(BC, s[setdiff(1:length(s), dim)])) for dim in 1:length(s)])
 PeriodicBC{T}(s) where T = MultiDimBC(PeriodicBC{T}(), s)
-
-struct ComposedBCOperator{T, N} <: AbstractBC{T}
-    Q::NTuple(N, MultiDimensionalBC)
-end
-
 
 """
 Higher dimensional generalization of BoundaryPaddedVector, pads an array of dimension N with 2 Arrays of dimension N-1, stored in lower and upper along the dimension D
