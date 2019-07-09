@@ -128,7 +128,6 @@ end
     N = 100
     M = zeros(N+2,N+2)
     M_temp = zeros(N,N+2)
-
     for i in 1:N+2
         for j in 1:N+2
             M[i,j] = cos(0.1i)+sin(0.1j)
@@ -145,36 +144,37 @@ end
     # Test a single axis, multiple operators: (Lxx+Lxxxx)*M, dx = 1.0
     A = Lx2+Lx4
     mul!(M_temp, A, M)
-    @test_broken M_temp ≈ ((Lx2*M)[1:N,2:N+1] +(Lx4*M)[1:N,2:N+1])
+    @test M_temp ≈ ((Lx2*M) + (Lx4*M))
 
     # Test a single axis, multiple operators: (Lxx++Lxxx+Lxxxx)*M, dx = 1.0
     A += Lx3
     mul!(M_temp, A, M)
-    @test_broken M_temp ≈ ((Lx2*M)[1:N,2:N+1] + (Lx3*M)[1:N,2:N+1] + (Lx4*M)[1:N,2:N+1])
+    @test M_temp ≈ ((Lx2*M) + (Lx3*M) + (Lx4*M))
 
-    M_temp = zeros(N+2,N)
+
     # Ly2 has 0 boundary points
     Ly2 = CenteredDifference{2}(2,2,1.0,N)
     # Ly3 has 1 boundary point
     Ly3 = CenteredDifference{2}(3,3,1.0,N)
     # Ly4 has 2 boundary points
     Ly4 = CenteredDifference{2}(4,4,1.0,N)
+    M_temp = zeros(N+2,N)
 
     # Test a single axis, multiple operators: (Lyy+Lyyyy)*M, dx = 1.0
     A = Ly2+Ly4
     mul!(M_temp, A, M)
-    @test_broken M_temp ≈ ((Ly2*M)[2:N+1,1:N] +(Ly4*M)[2:N+1,1:N])
+    @test M_temp ≈ ((Ly2*M) + (Ly4*M))
 
     # Test a single axis, multiple operators: (Lyy++Lyyy+Lyyyy)*M, dx = 1.0
     A += Ly3
     mul!(M_temp, A, M)
-    @test_broken M_temp ≈ ((Ly2*M)[2:N+1,1:N] + (Ly3*M)[2:N+1,1:N] + (Ly4*M)[2:N+1,1:N])
+    @test M_temp ≈ ((Ly2*M) + (Ly3*M) + (Ly4*M))
 
-    M_temp = zeros(N,N)
+
     # Test multiple operators on both axis: (Lxx + Lyy + Lxxx + Lyyy + Lxxxx + Lyyyy)*M, no coefficient
     A = Lx2 + Ly2 + Lx3 + Ly3 + Lx4 + Ly4
     M_temp = zeros(100,100)
     mul!(M_temp, A, M)
 
-    @test_broken M_temp ≈ ((Lx2*M)[1:N,2:N+1]+(Ly2*M)[2:N+1,1:N]+(Lx3*M)[1:N,2:N+1] +(Ly3*M)[2:N+1,1:N] + (Lx4*M)[1:N,2:N+1] +(Ly4*M)[2:N+1,1:N])
+    @test M_temp ≈ ((Lx2*M)[1:N,2:N+1]+(Ly2*M)[2:N+1,1:N]+(Lx3*M)[1:N,2:N+1] +(Ly3*M)[2:N+1,1:N] + (Lx4*M)[1:N,2:N+1] +(Ly4*M)[2:N+1,1:N])
 end
