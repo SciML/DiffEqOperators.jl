@@ -59,11 +59,7 @@ for MT in [2,3]
             setindex!(Widx,:,N)
             W[Widx...] = s
 
-<<<<<<< HEAD
             cv = DenseConvDims(_M, W, padding=pad, flipkernel=true)
-=======
-            cv = DenseConvDims(_M, W, padding=pad,flipkernel=true)
->>>>>>> master
             conv!(_x_temp, _M, W, cv)
 
             # Now deal with boundaries
