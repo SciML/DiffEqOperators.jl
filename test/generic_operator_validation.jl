@@ -23,7 +23,7 @@ for dor in 1:6, aor in 1:8
     y_imprime1 = D1*y_im
 
     #test result
-    @test_broken y_imprime1 ≈ ((pi*im)^dor)*yim_ # test operator with known derivative of exp(jkx)
+    @test y_imprime1 ≈ ((pi*im)^dor)*yim_ # test operator with known derivative of exp(jkx)
 
 
     #TODO: implement specific tests for the left and right boundary regions, waiting until after update
