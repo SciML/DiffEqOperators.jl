@@ -121,7 +121,7 @@ function LinearAlgebra.mul!(x_temp::AbstractArray{T,2}, A::AbstractDiffEqComposi
         for i in offset+1:Wdims[axis]-offset
             idx[axis]=i
 
-            W[idx...] += (s[i-offset] / L.dx^L.derivative_order)
+            W[idx...] += s[i-offset] 
 
             idx[axis] = mid_Wdims[axis]
         end
