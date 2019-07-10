@@ -198,12 +198,12 @@ end
 
     # Test \ homogenous and inhomogenous BC
     dx = 0.01
-    x = 0.0001:dx:0.2
+    x = 0.01:dx:0.2
     N = length(x)
     u = sin.(x)
 
     L = CenteredDifference(4, 4, dx, N)
-    Q = RobinBC(1.0, 0.0, sin(0), dx, 1.0, 0.0, sin(0.2+dx), dx)
+    Q = RobinBC(1.0, 0.0, sin(0.0), dx, 1.0, 0.0, sin(0.2+dx), dx)
     A = L*Q
 
     analytic_L = fourth_deriv_approx_stencil(N) ./ dx^4
