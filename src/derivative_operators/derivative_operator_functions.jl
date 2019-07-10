@@ -80,7 +80,6 @@ for MT in [2,3]
                     convolve_BC_right!(view(x_temp, idx...), view(M, idx...), A)
                 end
             end
-            mul!(x_temp,x_temp,1/A.dx^A.derivative_order)
         end
     end
 end
