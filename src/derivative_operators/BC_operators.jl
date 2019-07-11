@@ -220,27 +220,20 @@ end
 slicemul is the only limitation on the BCs here being used up to arbitrary dimension, an N dimensional implementation is sorely needed
 """
 @inline function slicemul(A::Array{SingleLayerBC{T},1}, u::AbstractArray{T, 2}, dim::Integer) where T
-
     s = size(u)
     if dim == 1
         lower = zeros(T, s[2])
         upper = deepcopy(lower)
         for i in 1:(s[2])
-
             tmp = A[i]*u[:,i]
-
-            lower[i] = tmp.l
-            upper[i] = tmp.r
+            lower[i], upper[i] = (tmp.l, tmp.r)
         end
     elseif dim == 2
         lower = zeros(T, s[1])
         upper = deepcopy(lower)
         for i in 1:(s[1])
-
             tmp = A[i]*u[i,:]
-
-            lower[i] = tmp.l
-            upper[i] = tmp.r
+            lower[i], upper[i] = (tmp.l, tmp.r)
         end
     elseif dim == 3
         throw("The 3 dimensional Method should be being called, not this one. Check dispatch.")
@@ -252,18 +245,14 @@ end
 
 
 @inline function slicemul(A::Array{SingleLayerBC{T},2}, u::AbstractArray{T, 3}, dim::Integer) where {T}
-
     s = size(u)
     if dim == 1
         lower = zeros(T, s[2], s[3])
         upper = deepcopy(lower)
         for j in 1:s[3]
             for i in 1:s[2]
-
                 tmp = A[i,j]*u[:,i,j]
-
-                lower[i,j] = tmp.l
-                upper[i,j] = tmp.r
+                lower[i,j], upper[i,j] = (tmp.l, tmp.r)
             end
         end
     elseif dim == 2
@@ -271,11 +260,8 @@ end
         upper = deepcopy(lower)
         for j in 1:s[3]
             for i in 1:s[1]
-
                 tmp = A[i,j]*u[i,:,j]
-
-                lower[i,j] = tmp.l
-                upper[i,j] = tmp.r
+                lower[i,j], upper[i,j] = (tmp.l, tmp.r)
             end
         end
     elseif dim == 3
@@ -283,11 +269,8 @@ end
         upper = deepcopy(lower)
         for j in 1:s[2]
             for i in 1:s[1]
-
                 tmp = A[i,j]*u[i,j,:]
-
-                lower[i,j] = tmp.l
-                upper[i,j] = tmp.r
+                lower[i,j], upper[i,j] = (tmp.l, tmp.r)
             end
         end
     else
@@ -345,13 +328,12 @@ function compose(BCs...)
     for D in Ds
         length(setdiff(Ds, D)) == (N-1) || throw("There are multiple boundary conditions that extend along $D - make sure every dimension has a unique extension")
     end
-
     BCs = BCs[sortperm([Ds...])]
+
     ComposedMultiDimBC{T,N,N-1}([condition.BC for condition in BCs])
 end
 
 function compose(padded_arrays::BoundaryPaddedArray...)
-
     N = ndims(padded_arrays[1])
     Ds = getaxis.(padded_arrays)
     (length(padded_arrays) == N) || throw("The padded_arrays must cover every dimension - make sure that the number of padded_arrays is equal to ndims(u).")
@@ -422,6 +404,7 @@ gettype(Q::AbstractBoundaryPaddedArray{T,N}) where {T,N} = T
 Base.ndims(Q::AbstractBoundaryPaddedArray{T,N}) where {T,N} = N
 getaxis(Q::BoundaryPaddedArray{T,D,N,M,V,B}) where {T,D,N,M,V,B} = D
 getaxis(Q::MultiDimensionalSingleLayerBC{T, D, N, K}) where {T, D, N, K} = D
+perpsize(A::AbstractArray{T,N}, dim::Integer) where {T,N} = size(A)[setdiff(1:N, dim)] #the size of A perpendicular to dim
 
 Base.size(Q::ComposedBoundaryPaddedArray) = size(Q.u).+2
 
@@ -450,7 +433,7 @@ function Base.getindex(Q::BoundaryPaddedArray{T,D,N,M,V,B}, _inds...) where {T,D
     S = size(Q)
     dim = D
     otherinds = inds[setdiff(1:N, dim)]
-    @assert length(inds) == N
+    @assert length(S) == N
     if inds[dim] == 1
         return Q.lower[otherinds...]
     elseif inds[dim] == S[dim]
@@ -499,7 +482,7 @@ function Base.getindex(Q::ComposedBoundaryPaddedArray, inds...) #as yet no suppo
     S = size(Q)
     T = gettype(Q)
     N = ndims(Q)
-    @assert mapreduce(x -> typeof(x)<:Integer, (&), inds)
+    @assert reduce((&), inds .< S)
     for (dim, index) in enumerate(inds)
         if index == 1
             _inds = inds[setdiff(1:N, dim)]
@@ -527,14 +510,8 @@ function Base.:*(Q::MultiDimensionalSingleLayerBC{T, D, N, K}, u::AbstractArray{
 end
 
 function Base.:*(Q::ComposedMultiDimBC{T, N, K}, u::AbstractArray{T, N}) where {T, N, K}
-    lower = Array{T,K}[]
-    upper = Array{T,K}[]
-    for n in 1:N
-        low, up = slicemul(Q.BCs[n], u, n)
-        push!(lower, low)
-        push!(upper, up)
-    end
-    return ComposedBoundaryPaddedArray{T, N, K, typeof(u), typeof(lower[1])}(lower, upper, u)
+    lower, upper = slicemul.(Q.BCs, fill(u, N), 1:N)
+    return ComposedBoundaryPaddedArray{T, N, K, typeof(u), typeof(lower[1])}([lower...], [upper...], u)
 end
 
 function LinearAlgebra.mul!(u_temp::AbstractArray{T,N}, Q::MultiDimensionalSingleLayerBC{T, D, N, K}, u::AbstractArray{T, N}) where {T,D,N,K}
