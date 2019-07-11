@@ -59,20 +59,18 @@ Ax = Qx*A
 Ay = Qy*A
 Az = Qz*A
 # Test padded array compositions
-Aextended = compose(Ax,Ay,Az)
-Aflipextended = compose(Az,Ax,Ay)
+
+Aextended = compose(Az,Ax,Ay) #Arrays in wierd order to show that this still works
 @test_broken compose(Ax, Az, Az)
 
 #test BC compositions
-Q = compose(Qx,Qy,Qz)
+Q = compose(Qy, Qx,Qz)
 @test_broken compose(Qx, Qx, Qz)
-Qflip = compose(Qz, Qy, Qx)
+
 QA = Q*A
-QflipA = Qflip*A
+
 for i in 1:(n+2), j in 1:(m+2), k in 1:(o+2)
     @test Aextended[i,j,k] == QA[i,j,k]
-    @test Aextended[i,j,k] == QflipA[i,j,k]
-    @test Aextended[i,j,k] == Aflipextended[i,j,k]
 end
 
 @test size(Ax)[1] == size(A)[1]+2
