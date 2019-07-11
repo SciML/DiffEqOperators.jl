@@ -306,6 +306,11 @@ Further, it is possible to call Qx, Qy, Qz... = MultiDimBC(YourBC, size(u)) to u
 struct MultiDimensionalSingleLayerBC{T<:Number, D, N, M} <: MultiDimensionalBC{T, N}
     BC::Array{SingleLayerBC{T},M} #dimension M=N-1 array of BCs to extend dimension D
 end
+
+struct ComposedMultiDimBC{T,N,M} <: MultiDimensionalBC{T, N}
+    BCs::Vector{Array{SingleLayerBC{T}, M}} # The typing here is a nightmare
+end
+
 MultiDimBC(BC::Array{SingleLayerBC{T},N}, dim::Integer) where {T,N} = MultiDimensionalSingleLayerBC{T, dim, N+1, N}(BC)
 #s should be size of the domain
 MultiDimBC(BC::SingleLayerBC{T}, s, dim::Integer) where {T} = MultiDimensionalSingleLayerBC{T, dim, length(s), length(s)-1}(fill(BC, s[setdiff(1:length(s), dim)]))
@@ -331,26 +336,34 @@ struct ComposedBoundaryPaddedArray{T<:Number, N, M, V<:AbstractArray{T, N}, B<: 
     u::V
 end
 
-function ComposedBoundaryPaddedArray(padded_arrays::BoundaryPaddedArray...)
+
+function compose(BCs...)
+    T = gettype(BCs[1])
+    N = ndims(BCs[1])
+    Ds = getaxis.(BCs)
+    (length(BCs) == N) || throw("There must be enough BCs to cover every dimension - check that the number of MultiDimBCs == N")
+    for D in Ds
+        length(setdiff(Ds, D)) == (N-1) || throw("There are multiple boundary conditions that extend along $D - make sure every dimension has a unique extension")
+    end
+
+    BCs = BCs[sortperm([Ds...])]
+    ComposedMultiDimBC{T,N,N-1}([condition.BC for condition in BCs])
+end
+
+function compose(padded_arrays::BoundaryPaddedArray...)
 
     N = ndims(padded_arrays[1])
+    Ds = getaxis.(padded_arrays)
     (length(padded_arrays) == N) || throw("The padded_arrays must cover every dimension - make sure that the number of padded_arrays is equal to ndims(u).")
-    @assert mapreduce(x -> x.u, (==), padded_arrays)
+    for D in Ds
+        length(setdiff(Ds, D)) == (N-1) || throw("There are multiple Arrays that extend along $D - make sure every dimension has a unique extension")
+    end
+    reduce((|), fill(padded_arrays[1].u, (length(padded_arrays),)) .== getfield.(padded_arrays, :u)) || throw("The padded_arrays do not all extend the same u!")
+    padded_arrays = padded_arrays[sortperm([Ds...])]
     lower = [padded_array.lower for padded_array in padded_arrays]
     upper = [padded_array.upper for padded_array in padded_arrays]
 
-return CompositeBoundaryPaddedArray{gettype(padded_arrays[1]),N,N-1,typeof(padded_arrays.u),typeof(lower[1])}(lower, upper, padded_arrays[1].u)
-end
-
-struct ComposedMultiDimBC{T,N,M} <: MultiDimensionalBC{T, N}
-    BCs::Vector{Array{SingleLayerBC{T}, M}} # The typing here is a nightmare
-end
-
-function ComposedMultiDimBC(BCs...)
-    T = gettype(BCs[1])
-    N = ndims(BCs[1])
-    (length(BCs) == N) || throw("There must be enough BCs to cover every dimension - check that the number of MultiDimBCs == N")
-    ComposedMultiDimBC{T,N,N-1}(BCs)
+    ComposedBoundaryPaddedArray{gettype(padded_arrays[1]),N,N-1,typeof(padded_arrays[1].u),typeof(lower[1])}(lower, upper, padded_arrays[1].u)
 end
 
 function LinearAlgebra.Array(Q::ComposedBoundaryPaddedArray{T,N,M,V,B}) where {T,N,M,V,B}
@@ -387,8 +400,14 @@ function LinearAlgebra.Array(Q::BoundaryPaddedArray{T,D,N,M,V,B}) where {T,D,N,M
     return out
 end
 
+AbstractBoundaryPaddedMatrix{T} = AbstractBoundaryPaddedArray{T,2}
+AbstractBoundaryPadded3Tensor{T} = AbstractBoundaryPaddedArray{T,3}
+
 BoundaryPaddedMatrix{T, D, V, B} = BoundaryPaddedArray{T, D, 2, 1, V, B}
 BoundaryPadded3Tensor{T, D, V, B} = BoundaryPaddedArray{T, D, 3, 2, V, B}
+
+ComposedBoundaryPaddedMatrix{T,V,B} = ComposedBoundaryPaddedArray{T,2,1,V,B}
+ComposedBoundaryPadded3Tensor{T,V,B} = ComposedBoundaryPaddedArray{T,3,2,V,B}
 
 
 function Base.size(Q::BoundaryPaddedArray)
@@ -397,19 +416,19 @@ function Base.size(Q::BoundaryPaddedArray)
     return Tuple(S)
 end
 
-Base.length(Q::BoundaryPaddedArray) = reduce((*), size(Q))
-Base.lastindex(Q::BoundaryPaddedArray) = Base.length(Q)
-gettype(Q::BoundaryPaddedArray{T,D,N,M,V,B}) where {T,D,N,M,V,B} = T
-Base.ndims(Q::BoundaryPaddedArray{T,D,N,M,V,B}) where {T,D,N,M,V,B} = N
+Base.length(Q::AbstractBoundaryPaddedArray) = reduce((*), size(Q))
+Base.lastindex(Q::AbstractBoundaryPaddedArray) = Base.length(Q)
+gettype(Q::AbstractBoundaryPaddedArray{T,N}) where {T,N} = T
+Base.ndims(Q::AbstractBoundaryPaddedArray{T,N}) where {T,N} = N
 getaxis(Q::BoundaryPaddedArray{T,D,N,M,V,B}) where {T,D,N,M,V,B} = D
 getaxis(Q::MultiDimensionalSingleLayerBC{T, D, N, K}) where {T, D, N, K} = D
 
 Base.size(Q::ComposedBoundaryPaddedArray) = size(Q.u).+2
-Base.length(Q::ComposedBoundaryPaddedArray) = reduce((*), size(Q))
-Base.lastindex(Q::ComposedBoundaryPaddedArray) = Base.length(Q)
-gettype(Q::ComposedBoundaryPaddedArray{T,N,M,V,B}) where {T,D,N,M,V,B} = T
-Base.ndims(Q::ComposedBoundaryPaddedArray{T,N,M,V,B}) where {T,D,N,M,V,B} = N
 
+Base.ndims(Q::MultiDimensionalBC{T,N}) where {T,N} = N
+
+decompose(A::ComposedBoundaryPaddedArray) = Tuple([BoundaryPaddedArray{gettype(A), ndims(A), ndims(A)-1, typeof(lower[1])}(A.lower[i], A.upper[i], A.u) for i in 1:ndims(A)])
+decompose(Q::ComposedMultiDimBC{T,N,M}) where {T,N,M} = Tuple([MultiDimBC(Q.BC[i], i) for i in 1:N])
 
 add_dim(A::AbstractArray, i) = reshape(A, size(A)...,i)
 add_dim(i) = i
@@ -508,7 +527,6 @@ function Base.:*(Q::MultiDimensionalSingleLayerBC{T, D, N, K}, u::AbstractArray{
 end
 
 function Base.:*(Q::ComposedMultiDimBC{T, N, K}, u::AbstractArray{T, N}) where {T, N, K}
-    M = ndims(u)
     lower = Array{T,K}[]
     upper = Array{T,K}[]
     for n in 1:N
@@ -516,7 +534,7 @@ function Base.:*(Q::ComposedMultiDimBC{T, N, K}, u::AbstractArray{T, N}) where {
         push!(lower, low)
         push!(upper, up)
     end
-    return ComposedBoundaryPaddedArray{T, M, M-1, typeof(u), typeof(lower[1])}(lower, upper, u)
+    return ComposedBoundaryPaddedArray{T, N, K, typeof(u), typeof(lower[1])}(lower, upper, u)
 end
 
 function LinearAlgebra.mul!(u_temp::AbstractArray{T,N}, Q::MultiDimensionalSingleLayerBC{T, D, N, K}, u::AbstractArray{T, N}) where {T,D,N,K}
