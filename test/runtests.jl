@@ -14,3 +14,4 @@ import Base: isapprox
 @time @safetestset "Matrix-Free Operators" begin include("matrixfree.jl") end
 @time @safetestset "Convolutions" begin include("convolutions.jl") end
 @time @safetestset "Differentiation Dimension" begin include("differentiation_dimension.jl") end
+@time @safetestset "Higher Dimension Division" begin include("higher_dim_division.jl") end

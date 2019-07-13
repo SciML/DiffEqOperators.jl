@@ -96,7 +96,7 @@ function LinearAlgebra.ldiv!(M_temp::AbstractArray{T,MT}, A::DerivativeOperator{
 
     # The case where M is a vector or matrix and A is differentiating along the first dimension
     if N == 1 && MT <= 2
-        ldiv!(M_temp, Array(A), M)
+        ldiv!(M_temp, factorize(Array(A)), M)
 
     # The case where M is differentiating along an arbitrary dimension
     else
@@ -106,28 +106,28 @@ function LinearAlgebra.ldiv!(M_temp::AbstractArray{T,MT}, A::DerivativeOperator{
             # Compute the high dimensional concretization B of A
 
             B = Matrix(I, Mshape[1],Mshape[1])
-            for i in length(Mshape)-1:1
+            for i in length(Mshape)-1:-1:1
                 if N != length(Mshape) - i + 1
                     B = Kron(Matrix(I,Mshape[i],Mshape[i]),B)
                 else
-                    B = Kron(Array(L),B)
+                    B = Kron(Array(A),B)
                 end
             end
         else
-            B = Array(L)
+            B = Array(A)
             for i in len(Mshape)-1:1
                 B = Kron(Matrix(I,Mshape[i],Mshape[i]),B)
             end
         end
 
         # compute ldiv!
-        ldiv!(vec(M_temp), Array(B), vec(M))
+        ldiv!(vec(M_temp), factorize(Array(B)), vec(M))
     end
 end
 
 function \(A::DerivativeOperator{T,N}, M::AbstractArray{T,MT}) where {T<:Real, N,MT}
     M_temp_shape = [size(M)...]
-    M_temp_shape[N] -= 2
+    M_temp_shape[N] += 2
     M_temp = zeros(M_temp_shape...)
     ldiv!(M_temp, A, M)
     return M_temp
