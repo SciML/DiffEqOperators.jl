@@ -131,15 +131,24 @@ RobinBC(al::T, bl::T, cl::T, dx_l::T, ar::T, br::T, cr::T, dx_r::T, order = 1) w
 Allows seperate domains governed by seperate equations to be bridged together, should be used as one end of a MixedBC as it will extend both boundaries with the same value
 """
 struct BridgeBC{T,I,N} <: SingleLayerBC{T}
-    from::SubArray{T,0,Array{T,N},NTuple{N,I},true}
+    lower::SubArray{T,0,Array{T,N},NTuple{N,I},true}
+    upper::SubArray{T,0,Array{T,N},NTuple{N,I},true}
 end
 function BridgeBC(u::AbstractArray{T,N}, inds) where {T, N}
-    @assert length(inds) == N-1
+    @assert length(inds) == N
     @assert mapreduce(x -> typeof(x) <: Integer, (&), inds)
-    BridgeBC{T, N, eltype(inds)}(view(u, inds...))
+    BridgeBC{T, N, eltype(inds)}(view(u, inds...), view(u, inds...))
+end
+function BridgeBC(u_low::AbstractArray{T,N}, u_up::AbstractArray{T,N}, indslow, indsup) where {T, N}
+    @assert length(indslow) == N
+    @assert length(indsup) == N
+    @assert mapreduce(x -> typeof(x) <: Integer, (&), indslow)
+    @assert mapreduce(x -> typeof(x) <: Integer, (&), indsup)
+
+    BridgeBC{T, N, eltype(indslow)}(view(u_low, indslow), view(u, indsup))
 end
 
-Base.:*(Q::BridgeBC{T,I,N}, u::AbstractVector{T}) where {T, I, N} = BoundaryPaddedVector{T, typeof(u)}(Q.from, Q.from, u)
+Base.:*(Q::BridgeBC{T,I,N}, u::AbstractVector{T}) where {T, I, N} = BoundaryPaddedVector{T, typeof(u)}(Q.lower, Q.upper, u)
 
 """
 A vector type that extends a vector u with ghost points at either end
@@ -482,7 +491,6 @@ function Base.getindex(Q::ComposedBoundaryPaddedArray, inds...) #as yet no suppo
     S = size(Q)
     T = gettype(Q)
     N = ndims(Q)
-    @show inds
     @assert reduce((&), inds .<= S)
     for (dim, index) in enumerate(inds)
         if index == 1
