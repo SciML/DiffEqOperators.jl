@@ -4,7 +4,7 @@ import Base: +, -, *, /, \, size, getindex, setindex!, Matrix, convert
 using DiffEqBase, StaticArrays, LinearAlgebra
 import LinearAlgebra: mul!, ldiv!, lmul!, rmul!, axpy!, opnorm, factorize, I
 import DiffEqBase: AbstractDiffEqLinearOperator, update_coefficients!, is_constant
-using SparseArrays, ForwardDiff, BandedMatrices, NNlib
+using SparseArrays, ForwardDiff, BandedMatrices, NNlib, LazyArrays
 
 abstract type AbstractDerivativeOperator{T} <: AbstractDiffEqLinearOperator{T} end
 abstract type AbstractDiffEqCompositeOperator{T} <: AbstractDiffEqLinearOperator{T} end
