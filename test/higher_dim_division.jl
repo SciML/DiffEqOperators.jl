@@ -2,8 +2,8 @@ using SparseArrays, DiffEqOperators, LinearAlgebra, Random,
       Test, BandedMatrices, FillArrays, LazyArrays
 
 
-# The following test checks that left division in third dimensions is consistent
-# with applying left division ot each slice in the third dimension.
+# The following test checks that left division in the third dimension is consistent
+# with applying left division at each slice in the third dimension.
 @testset "Basic Third Dimension Division" begin
 
 
