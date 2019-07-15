@@ -130,14 +130,16 @@ RobinBC(al::T, bl::T, cl::T, dx_l::T, ar::T, br::T, cr::T, dx_r::T, order = 1) w
 """
 Allows seperate domains governed by seperate equations to be bridged together, should be used as one end of a MixedBC as it will extend both boundaries with the same value
 """
-struct BridgeBC{T,I,N} <: SingleLayerBC{T}
-    lower::SubArray{T,0,Array{T,N},NTuple{N,I},true}
-    upper::SubArray{T,0,Array{T,N},NTuple{N,I},true}
+struct BridgeBC{T,I,N} <: AffineBC{T}
+    a_l::Vector{T} #Dummy vectors so that AffineBC methods still work
+    b_l::SubArray{T,0,Array{T,N},NTuple{N,I},true}
+    a_r::Vector{T}
+    b_r::SubArray{T,0,Array{T,N},NTuple{N,I},true}
 end
 function BridgeBC(u::AbstractArray{T,N}, inds) where {T, N}
     @assert length(inds) == N
     @assert mapreduce(x -> typeof(x) <: Integer, (&), inds)
-    BridgeBC{T, N, eltype(inds)}(view(u, inds...), view(u, inds...))
+    BridgeBC{T, N, eltype(inds)}(zeros(T,1), view(u, inds...), zeros(T,1), view(u, inds...))
 end
 function BridgeBC(u_low::AbstractArray{T,N}, u_up::AbstractArray{T,N}, indslow, indsup) where {T, N}
     @assert length(indslow) == N
@@ -145,10 +147,10 @@ function BridgeBC(u_low::AbstractArray{T,N}, u_up::AbstractArray{T,N}, indslow, 
     @assert mapreduce(x -> typeof(x) <: Integer, (&), indslow)
     @assert mapreduce(x -> typeof(x) <: Integer, (&), indsup)
 
-    BridgeBC{T, N, eltype(indslow)}(view(u_low, indslow), view(u, indsup))
+    BridgeBC{T, N, eltype(indslow)}(zeros(T,1), view(u_low, indslow), zeros(T,1), view(u, indsup))
 end
 
-Base.:*(Q::BridgeBC{T,I,N}, u::AbstractVector{T}) where {T, I, N} = BoundaryPaddedVector{T, typeof(u)}(Q.lower, Q.upper, u)
+Base.:*(Q::BridgeBC{T,I,N}, u::AbstractVector{T}) where {T, I, N} = BoundaryPaddedVector{T, typeof(u)}(Q.b_l, Q.b_r, u)
 
 """
 A vector type that extends a vector u with ghost points at either end
@@ -195,6 +197,21 @@ function SparseArrays.sparse(Q::AffineBC{T}, N::Int) where {T}
     SparseMatrixCSC(Q,N)
 end
 
+function LinearAlgebra.Array(Q::MixedBC{T}, N::Int) where {T}
+    Alow = Array(Q.lower)
+    Ahigh = Array(Q.upper)
+    Q_L = [Alow[1][1,:]; Diagonal(ones(T,N)); Ahigh[1][end,:]]
+    Q_b = [Alow[2][1]; zeros(T,N); Ahigh[2][end]]
+    return (Array(Q_L), Q_b)
+end
+
+function SparseArrays.SparseMatrixCSC(Q::MixedBC{T}, N::Int) where {T}
+    Alow = Array(Q.lower)
+    Ahigh = Array(Q.upper)
+    Q_L = [Alow[1][1,:]; Diagonal(ones(T,N)); Ahigh[1][end,:]]
+    Q_b = [Alow[2][1]; zeros(T,N); Ahigh[2][end]]
+    return (Q_L, Q_b)
+end
 LinearAlgebra.Array(Q::PeriodicBC{T}, N::Int) where T = Array([transpose(zeros(T, N-1)) one(T); Diagonal(ones(T,N)); one(T) transpose(zeros(T, N-1))])
 SparseArrays.SparseMatrixCSC(Q::PeriodicBC{T}, N::Int) where T = [transpose(zeros(T, N-1)) one(T); Diagonal(ones(T,N)); one(T) transpose(zeros(T, N-1))]
 SparseArrays.sparse(Q::PeriodicBC{T}, N::Int) where T = SparseMatrixCSC(Q,N)
@@ -512,6 +529,31 @@ function Base.getindex(Q::ComposedBoundaryPaddedArray, inds...) #as yet no suppo
     return Q.u[(inds.-1)...]
 end
 
+function LinearAlgebra.Array(Q::MultiDimensionalSingleLayerBC{T, D, N, K}, M) where {T,D,N,K}
+    bc_tuples = Array.(Q.BC, M)
+    Q_L = [bc_tuple[1] for bc_tuple in bc_tuples]
+    Q_b = [add_dims(bc_tuple[2], N-1) for bc_tuple in bc_tuples]
+    inds = Array(1:N)
+    inds[1], inds[D] = inds[D], inds[1]
+
+    return (Q_L, permutedims(Q_b, inds), D)
+end
+
+function SparseArrays.SparseMatrixCSC(Q::MultiDimensionalSingleLayerBC{T, D, N, K}, M) where {T,D,N,K}
+    bc_tuples = sparse.(Q.BC, M)
+    Q_L = [bc_tuple[1] for bc_tuple in bc_tuples]
+    Q_b = [add_dims(bc_tuple[2], N-1) for bc_tuple in bc_tuples]
+    inds = Array(1:N)
+    inds[1], inds[D] = inds[D], inds[1]
+
+    return (Q_L, permutedims(Q_b, inds))
+end
+
+SparseArrays.sparse(Q::MultiDimensionalSingleLayerBC, N) = SparseMatrixCSC(Q, N)
+
+LinearAlgebra.Array(Q::ComposedMultiDimBC, Ns...) = Tuple(Array.(Q.BCs, Ns)...)
+SparseArrays.SparseMatrixCSC(Q::ComposedMultiDimBC, Ns...) = Tuple(sparse.(Q.BCs, Ns)...)
+SparseArrays.sparse(Q::MultiDimensionalSingleLayerBC, Ns...) = SparseMatrixCSC(Q, N...)
 
 function Base.:*(Q::MultiDimensionalSingleLayerBC{T, D, N, K}, u::AbstractArray{T, N}) where {T, D, N, K}
     lower, upper = slicemul(Q.BC, u, D)
