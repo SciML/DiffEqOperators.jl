@@ -27,8 +27,8 @@ end
 
 for MT in [2,3]
     @eval begin
-        function LinearAlgebra.mul!(x_temp::AbstractArray{T,$MT}, A::DerivativeOperator{T,N,false,T2,S1}, M::AbstractArray{T,$MT}) where {T<:Real,N,T2,SL,S1<:SArray{Tuple{SL},T,1,SL}}
-
+        function LinearAlgebra.mul!(x_temp::AbstractArray{T,$MT}, A::DerivativeOperator{T,N,false,T2,S1,S2,T3}, M::AbstractArray{T,$MT}) where
+                                                                                {T<:Real,N,T2,SL,S1<:SArray{Tuple{SL},T,1,SL},S2,T3<:Union{Nothing,Number}}
             # Check that x_temp has correct dimensions
             v = zeros(ndims(x_temp))
             v[N] = 2
@@ -57,6 +57,7 @@ for MT in [2,3]
             W = zeros(Wdims...)
             Widx = Any[Wdims...]
             setindex!(Widx,:,N)
+            coeff = A.coefficients === Nothing ? True : A.coefficients
             W[Widx...] = s
 
             cv = DenseConvDims(_M, W, padding=pad,flipkernel=true)
@@ -90,4 +91,18 @@ function *(A::DerivativeOperator{T,N},M::AbstractArray{T}) where {T<:Real,N}
     x_temp = zeros(promote_type(eltype(A),eltype(M)), size_x_temp...)
     LinearAlgebra.mul!(x_temp, A, M)
     return x_temp
+end
+
+function *(c::Number, A::DerivativeOperator{T,N,Wind}) where {T,N,Wind}
+    coefficients = A.coefficients === nothing ? one(T)*c : c*A.coefficients
+    DerivativeOperator{T,N,Wind,typeof(A.dx),typeof(A.stencil_coefs),
+                       typeof(A.low_boundary_coefs),typeof(coefficients),
+                       typeof(A.coeff_func)}(
+        A.derivative_order, A.approximation_order,
+        A.dx, A.len, A.stencil_length,
+        A.stencil_coefs,
+        A.boundary_stencil_length,
+        A.boundary_point_count,
+        A.low_boundary_coefs,
+        A.high_boundary_coefs,coefficients,A.coeff_func)
 end
