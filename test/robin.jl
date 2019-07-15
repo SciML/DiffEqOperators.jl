@@ -44,17 +44,17 @@ end
 
 #3rd order RobinBC, calculated with left stencil [-11/6 3 -3/2 1/3], right stencil [-1/3 3/2 -3 11/6] and [α,β,γ] = [1 6 10]
 u0 = -4/10
-uend = -210/17
+uend = 125/12
 u = Vector(1.0:10.0)
 Q = RobinBC([1.0, 6.0, 10.0], [1.0, 6.0, 10.0], [1.0,1.0], 3)
 urobinextended = Q*u
 @test urobinextended.l ≈ u0
-@test_broken urobinextended.r ≈ uend
+@test urobinextended.r ≈ uend
 # General BC should be equivalent
 G = GeneralBC([-10.0, 1.0, 6.0], [-10.0, 1.0, 6.0], [1.0,1.0], 3)
 ugeneralextended = G*u
 @test ugeneralextended.l ≈ u0
-@test_broken ugeneralextended.r ≈ uend
+@test ugeneralextended.r ≈ uend
 
 
 #TODO: Implement tests for BC's that are contingent on the sign of the coefficient on the operator near the boundary
