@@ -1,3 +1,5 @@
+
+# Fallback mul! implementation for a single DerivativeOperator operating on an AbstractArray
 function LinearAlgebra.mul!(x_temp::AbstractArray{T}, A::DerivativeOperator{T,N}, M::AbstractArray{T}) where {T<:Real,N}
 
     # Check that x_temp has correct dimensions
@@ -25,6 +27,8 @@ function LinearAlgebra.mul!(x_temp::AbstractArray{T}, A::DerivativeOperator{T,N}
     end
 end
 
+# A more efficient mul! implementation for a single, regular-grid, centered difference
+# DerivativeOperator operating on a 2D or 3D AbstractArray
 for MT in [2,3]
     @eval begin
         function LinearAlgebra.mul!(x_temp::AbstractArray{T,$MT}, A::DerivativeOperator{T,N,false,T2,S1}, M::AbstractArray{T,$MT}) where {T<:Real,N,T2,SL,S1<:SArray{Tuple{SL},T,1,SL}}
@@ -92,8 +96,16 @@ function *(A::DerivativeOperator{T,N},M::AbstractArray{T}) where {T<:Real,N}
     return x_temp
 end
 
-# Will eventually implement proper dispatch
+# A more efficient mul! implementation for a composition of regular-grid, centered difference
+# DerivativeOperator operating on a 2D or 3D AbstractArray
 function LinearAlgebra.mul!(x_temp::AbstractArray{T,2}, A::AbstractDiffEqCompositeOperator, M::AbstractArray{T,2}) where {T}
+
+    #Check that composite operator satisfies: regular-grid, centered difference:
+    #for L in A.ops
+    #    if L ... (does not satisfy conditions)
+    #        return (call fall back for multiplication of composite operators)
+    #    end
+    #end
 
     ndimsM = ndims(M)
     Wdims = ones(Int64,ndimsM)
@@ -121,7 +133,7 @@ function LinearAlgebra.mul!(x_temp::AbstractArray{T,2}, A::AbstractDiffEqComposi
         for i in offset+1:Wdims[axis]-offset
             idx[axis]=i
 
-            W[idx...] += s[i-offset] 
+            W[idx...] += s[i-offset]
 
             idx[axis] = mid_Wdims[axis]
         end

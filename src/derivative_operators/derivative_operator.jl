@@ -117,7 +117,7 @@ function UpwindDifference{N}(derivative_order::Int,
     low_boundary_coefs      = convert(SVector{boundary_point_count},_low_boundary_coefs)
     high_boundary_coefs     = convert(SVector{boundary_point_count},reverse(SVector{boundary_stencil_length, T}[reverse(low_boundary_coefs[i]) for i in 1:boundary_point_count]))
 
-    coefficients            = Vector{T}(undef,len)
+    coefficients            = nothing
 
     DerivativeOperator{T,N,true,T,typeof(stencil_coefs),
         typeof(low_boundary_coefs),Vector{T},
