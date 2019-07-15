@@ -57,7 +57,7 @@ for MT in [2,3]
             W = zeros(Wdims...)
             Widx = Any[Wdims...]
             setindex!(Widx,:,N)
-            coeff = A.coefficients === Nothing ? True : A.coefficients
+            coeff = A.coefficients === nothing ? True : A.coefficients
             W[Widx...] = s
 
             cv = DenseConvDims(_M, W, padding=pad,flipkernel=true)
