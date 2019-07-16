@@ -197,19 +197,19 @@ end
 @testset "Test Left Division L4 (fourth order)" begin
 
     # Test \ homogenous and inhomogenous BC
-    dx = 0.00001
-    x = 0.0001:dx:0.01
+    dx = 0.01
+    x = 0.01:dx:0.2
     N = length(x)
     u = sin.(x)
 
     L = CenteredDifference(4, 4, dx, N)
-    Q = RobinBC(1.0, 0.0, sin(0), dx, 1.0, 0.0, sin(0.01+dx), dx)
+    Q = RobinBC(1.0, 0.0, sin(0.0), dx, 1.0, 0.0, sin(0.2+dx), dx)
     A = L*Q
 
     analytic_L = fourth_deriv_approx_stencil(N) ./ dx^4
     analytic_QL = [transpose(zeros(N)); Diagonal(ones(N)); transpose(zeros(N))]
     analytic_AL = analytic_L*analytic_QL
-    analytic_Qb = [zeros(N+1); sin(0.01+dx)]
+    analytic_Qb = [zeros(N+1); sin(0.2+dx)]
     analytic_Ab = analytic_L*analytic_Qb
 
     analytic_u = analytic_AL \ (u - analytic_Ab)

@@ -3,7 +3,6 @@ function LinearAlgebra.mul!(x_temp::AbstractVector{T}, A::DerivativeOperator, x:
     convolve_BC_left!(x_temp, x, A)
     convolve_interior!(x_temp, x, A)
     convolve_BC_right!(x_temp, x, A)
-    rmul!(x_temp, @.(1/(A.dx^A.derivative_order)))
 end
 
 ################################################
