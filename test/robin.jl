@@ -46,12 +46,12 @@ end
 u0 = -4/10
 uend = 125/12
 u = Vector(1.0:10.0)
-Q = RobinBC([1.0, 6.0, 10.0], [1.0, 6.0, 10.0], [1.0,1.0], 3)
+Q = RobinBC([1.0, 6.0, 10.0], [1.0, 6.0, 10.0], (1.0,1.0), 3)
 urobinextended = Q*u
 @test urobinextended.l ≈ u0
 @test urobinextended.r ≈ uend
 # General BC should be equivalent
-G = GeneralBC([-10.0, 1.0, 6.0], [-10.0, 1.0, 6.0], [1.0,1.0], 3)
+G = GeneralBC([-10.0, 1.0, 6.0], [-10.0, 1.0, 6.0], (1.0,1.0), 3)
 ugeneralextended = G*u
 @test ugeneralextended.l ≈ u0
 @test ugeneralextended.r ≈ uend
