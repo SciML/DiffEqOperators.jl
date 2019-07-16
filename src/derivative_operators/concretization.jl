@@ -21,7 +21,7 @@ function LinearAlgebra.Array(A::DerivativeOperator{T}, N::Int=A.len) where T
         cur_stencil = use_winding(A) && cur_coeff < 0 ? reverse(A.high_boundary_coefs[i-N+bl]) : A.high_boundary_coefs[i-N+bl]
         L[i,N-bstl+3:N+2] = cur_coeff * cur_stencil
     end
-    return L / A.dx^A.derivative_order
+    return L
 end
 
 function SparseArrays.SparseMatrixCSC(A::DerivativeOperator{T}, N::Int=A.len) where T
@@ -47,7 +47,7 @@ function SparseArrays.SparseMatrixCSC(A::DerivativeOperator{T}, N::Int=A.len) wh
         cur_stencil = use_winding(A) && cur_coeff < 0 ? reverse(A.high_boundary_coefs[i-N+bl]) : A.high_boundary_coefs[i-N+bl]
         L[i,N-bstl+3:N+2] = cur_coeff * cur_stencil
     end
-    return L / A.dx^A.derivative_order
+    return L
 end
 
 function SparseArrays.sparse(A::AbstractDerivativeOperator{T}, N::Int=A.len) where T
@@ -77,7 +77,7 @@ function BandedMatrices.BandedMatrix(A::DerivativeOperator{T}, N::Int=A.len) whe
         cur_stencil = use_winding(A) && cur_coeff < 0 ? reverse(A.high_boundary_coefs[i-N+bl]) : A.high_boundary_coefs[i-N+bl]
         L[i,N-bstl+3:N+2] = cur_coeff * cur_stencil
     end
-    return L / A.dx^A.derivative_order
+    return L 
 end
 
 function Base.convert(::Type{Array},A::DerivativeOperator{T}) where T
