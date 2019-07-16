@@ -241,28 +241,55 @@ function SparseArrays.SparseMatrixCSC(Q::AffineBC{T}, N::Int) where {T}
     return (Q_L, Q_b)
 end
 
+function BandedMatrices.BandedMatrix(Q::AffineBC{T}, N::Int) where {T}
+    Q_l = BandedMatrix{T}(Eye(N), (length(Q.a_r)-1, length(Q.a_l)-1))
+    inbands_setindex!(Q_L, Q.a_l, 1, 1:length(Q.a_l))
+    inbands_setindex!(Q_L, Q.a_r, N, (N-length(Q.a_r)+1):N)
+    Q_b = [Q.b_l; zeros(T,N); Q.b_r]
+    return (Q_L, Q_b)
+end
+
 function SparseArrays.sparse(Q::AffineBC{T}, N::Int) where {T}
     SparseMatrixCSC(Q,N)
 end
 
 function LinearAlgebra.Array(Q::MixedBC{T}, N::Int) where {T}
-    Alow = Array(Q.lower)
-    Ahigh = Array(Q.upper)
+    Alow = Array(Q.lower, N)
+    Ahigh = Array(Q.upper, N)
     Q_L = [Alow[1][1,:]; Diagonal(ones(T,N)); Ahigh[1][end,:]]
     Q_b = [Alow[2][1]; zeros(T,N); Ahigh[2][end]]
     return (Array(Q_L), Q_b)
 end
 
 function SparseArrays.SparseMatrixCSC(Q::MixedBC{T}, N::Int) where {T}
-    Alow = Array(Q.lower)
-    Ahigh = Array(Q.upper)
+    Alow = Array(Q.lower, N)
+    Ahigh = Array(Q.upper, N)
     Q_L = [Alow[1][1,:]; Diagonal(ones(T,N)); Ahigh[1][end,:]]
+    Q_b = [Alow[2][1]; zeros(T,N); Ahigh[2][end]]
+    return (Q_L, Q_b)
+end
+
+function BandedMatrices.BandedMatrix(Q::MixedBC{T}, N::Int) where {T}
+    Alow = BandedMatrix(Q.lower, N)
+    Ahigh = BandedMatrix(Q.upper, N)
+    Q_L = BandedMatrix{T}(Eye(N), (bandwidth(Ahigh[1], 1), bandwidth(Alow[1], 2)))
+    Q_L[1,:] = Alow[1,:]
+    Q_L[end,:] = Ahigh[end, :]
     Q_b = [Alow[2][1]; zeros(T,N); Ahigh[2][end]]
     return (Q_L, Q_b)
 end
 LinearAlgebra.Array(Q::PeriodicBC{T}, N::Int) where T = (Array([transpose(zeros(T, N-1)) one(T); Diagonal(ones(T,N)); one(T) transpose(zeros(T, N-1))]), zeros(T, N))
 SparseArrays.SparseMatrixCSC(Q::PeriodicBC{T}, N::Int) where T = ([transpose(zeros(T, N-1)) one(T); Diagonal(ones(T,N)); one(T) transpose(zeros(T, N-1))], zeros(T, N))
 SparseArrays.sparse(Q::PeriodicBC{T}, N::Int) where T = SparseMatrixCSC(Q,N)
+function BandedMatrices.BandedMatrix(Q::PeriodicBC{T}, N::Int) where T #Not reccomended!
+    Q_array = BandedMatrix{T}(Eye(N), (N-1, N-1))
+    Q_array[1, end] = one(T)
+    Q_array[1, 1] = zero(T)
+    Q_array[end, 1] = one(T)
+    Q_array[end, end] = zero(T)
+
+    return (Q_array, zeros(T, N))
+end
 
 function LinearAlgebra.Array(Q::BoundaryPaddedVector)
     return [Q.l; Q.u; Q.r]
@@ -600,11 +627,11 @@ the second element is a simularly sized array of the affine parts.
 function LinearAlgebra.Array(Q::MultiDimensionalSingleLayerBC{T, D, N, K}, M) where {T,D,N,K}
     bc_tuples = Array.(Q.BC, M)
     Q_L = [bc_tuple[1] for bc_tuple in bc_tuples]
-    Q_b = [add_dims(bc_tuple[2], N-1) for bc_tuple in bc_tuples]
     inds = Array(1:N)
     inds[1], inds[D] = inds[D], inds[1]
+    Q_b = [permutedims(add_dims(bc_tuple[2], N-1), inds) for bc_tuple in bc_tuples]
 
-    return (Q_L, permutedims(Q_b, inds), D)
+    return (Q_L, Q_b)
 end
 
 """
@@ -616,21 +643,32 @@ the second element is a simularly sized array of the affine parts.
 function SparseArrays.SparseMatrixCSC(Q::MultiDimensionalSingleLayerBC{T, D, N, K}, M) where {T,D,N,K}
     bc_tuples = sparse.(Q.BC, M)
     Q_L = [bc_tuple[1] for bc_tuple in bc_tuples]
-    Q_b = [add_dims(bc_tuple[2], N-1) for bc_tuple in bc_tuples]
     inds = Array(1:N)
     inds[1], inds[D] = inds[D], inds[1]
+    Q_b = [permutedims(add_dims(bc_tuple[2], N-1), inds) for bc_tuple in bc_tuples]
 
-    return (Q_L, permutedims(Q_b, inds))
+    return (Q_L, Q_b)
 end
 
 SparseArrays.sparse(Q::MultiDimensionalSingleLayerBC, N) = SparseMatrixCSC(Q, N)
 
+function BandedMatrices.BandedMatrix(Q::MultiDimensionalSingleLayerBC{T, D, N, K}, M) where {T,D,N,K}
+    bc_tuples = BandedMatrix.(Q.BC, M)
+    Q_L = [bc_tuple[1] for bc_tuple in bc_tuples]
+    inds = Array(1:N)
+    inds[1], inds[D] = inds[D], inds[1]
+    Q_b = [permutedims(add_dims(bc_tuple[2], N-1),inds) for bc_tuple in bc_tuples]
+
+    return (Q_L, Q_b)
+end
+
 """
 Returns a Tuple of MultiDimensionalSingleLayerBC Array concretizations, one for each dimension
 """
-LinearAlgebra.Array(Q::ComposedMultiDimBC, Ns...) = Tuple(Array.(Q.BCs, Ns)...)
-SparseArrays.SparseMatrixCSC(Q::ComposedMultiDimBC, Ns...) = Tuple(sparse.(Q.BCs, Ns)...)
-SparseArrays.sparse(Q::MultiDimensionalSingleLayerBC, Ns...) = SparseMatrixCSC(Q, N...)
+LinearAlgebra.Array(Q::ComposedMultiDimBC, Ns) = Tuple(Array.(Q.BCs, Ns))
+SparseArrays.SparseMatrixCSC(Q::ComposedMultiDimBC, Ns...) = Tuple(sparse.(Q.BCs, Ns))
+SparseArrays.sparse(Q::ComposedMultiDimBC, Ns) = SparseMatrixCSC(Q, Ns)
+BandedMatrices.BandedMatrix(Q::ComposedMultiDimBC, Ns) = Tuple(BandedMatrix.(Q.BCs, Ns))
 
 function Base.:*(Q::MultiDimensionalSingleLayerBC{T, D, N, K}, u::AbstractArray{T, N}) where {T, D, N, K}
     lower, upper = slicemul(Q.BC, u, D)
