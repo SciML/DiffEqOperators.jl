@@ -55,15 +55,12 @@ tspan = (0.0,100.0)
 ff1 = ODEFunction(lorenz,jac_prototype=JacVecOperator{Float64}(lorenz,u0))
 ff2 = ODEFunction(lorenz,jac_prototype=JacVecOperator{Float64}(lorenz,u0,autodiff=false))
 
-#These tests are behaving strangely - hence commented out
 
-#=
 for ff in [ff1, ff2]
   prob = ODEProblem(ff,u0,tspan)
   @test solve(prob,TRBDF2()).retcode == :Success
-  @test solve(prob,TRBDF2(linsolve=LinSolveGMRES(tol=1e-10))).retcode == :Success #this one passes when marked broken, and fails when not
+  @test solve(prob,TRBDF2(linsolve=LinSolveGMRES())).retcode == :Success 
   @test solve(prob,Exprb32()).retcode == :Success
   @test_broken sol = solve(prob,Rosenbrock23())
   @test_broken sol = solve(prob,Rosenbrock23(linsolve=LinSolveGMRES(tol=1e-10)))
 end
-=#
