@@ -26,6 +26,36 @@ function LinearAlgebra.mul!(x_temp::AbstractArray{T}, A::DerivativeOperator{T,N}
     end
 end
 
+# Additive mul! that is used for handling compositions
+function mul_add!(x_temp::AbstractArray{T}, A::DerivativeOperator{T,N}, M::AbstractArray{T}) where {T,N}
+
+    # Check that x_temp has correct dimensions
+    v = zeros(ndims(x_temp))
+    v[N] = 2
+    @assert [size(x_temp)...]+v == [size(M)...]
+
+    # Check that axis of differentiation is in the dimensions of M and x_temp
+    ndimsM = ndims(M)
+    @assert N <= ndimsM
+
+    dimsM = [axes(M)...]
+    alldims = [1:ndims(M);]
+    otherdims = setdiff(alldims, N)
+
+    idx = Any[first(ind) for ind in axes(M)]
+    itershape = tuple(dimsM[otherdims]...)
+    nidx = length(otherdims)
+    indices = Iterators.drop(CartesianIndices(itershape), 0)
+
+    setindex!(idx, :, N)
+    for I in indices
+        Base.replace_tuples!(nidx, idx, idx, otherdims, I)
+        convolve_interior_add!(view(x_temp, idx...), view(M, idx...), A)
+        convolve_BC_right_add!(view(x_temp, idx...), view(M, idx...), A)
+        convolve_BC_left_add!(view(x_temp, idx...), view(M, idx...), A)
+    end
+end
+
 # A more efficient mul! implementation for a single, regular-grid, centered difference,
 # scalar coefficient DerivativeOperator operating on a 2D or 3D AbstractArray
 for MT in [2,3]
@@ -145,11 +175,10 @@ function LinearAlgebra.mul!(x_temp::AbstractArray{T,2}, A::AbstractDiffEqComposi
         sl = L.stencil_length
         axis = typeof(L).parameters[2]
         offset = convert(Int64,(Wdims[axis] - sl)/2)
+        coeff = L.coefficients isa Number ? L.coefficients : true
         for i in offset+1:Wdims[axis]-offset
             idx[axis]=i
-
-            W[idx...] += s[i-offset]
-
+            W[idx...] += coeff*s[i-offset]
             idx[axis] = mid_Wdims[axis]
         end
     end
@@ -271,7 +300,7 @@ function convolve_interior_add!(x_temp::AbstractVector{T}, x::AbstractVector{T},
     for i in (1+A.boundary_point_count) : (length(x_temp)-A.boundary_point_count)
         xtempi = zero(T)
         cur_stencil = eltype(stencil) <: AbstractVector ? stencil[i] : stencil
-        cur_coeff   = typeof(coeff)   <: AbstractVector ? coeff[i] : true
+        cur_coeff   = typeof(coeff)   <: AbstractVector ? coeff[i] : coeff isa Number ? coeff : true
         cur_stencil = use_winding(A) && cur_coeff < 0 ? reverse(cur_stencil) : cur_stencil
         for idx in 1:A.stencil_length
             xtempi += cur_coeff * cur_stencil[idx] * x[i - mid + idx]
@@ -288,7 +317,7 @@ function convolve_interior_add_range!(x_temp::AbstractVector{T}, x::AbstractVect
     for i in [(1+A.boundary_point_count):(A.boundary_point_count+offset); (length(x_temp)-A.boundary_point_count-offset+1):(length(x_temp)-A.boundary_point_count)]
         xtempi = zero(T)
         cur_stencil = eltype(stencil) <: AbstractVector ? stencil[i] : stencil
-        cur_coeff   = typeof(coeff)   <: AbstractVector ? coeff[i] : true
+        cur_coeff   = typeof(coeff)   <: AbstractVector ? coeff[i] : coeff isa Number ? coeff : true
         cur_stencil = use_winding(A) && cur_coeff < 0 ? reverse(cur_stencil) : cur_stencil
         for idx in 1:A.stencil_length
             xtempi += cur_coeff * cur_stencil[idx] * x[i - mid + idx]
@@ -301,10 +330,10 @@ function convolve_BC_left_add!(x_temp::AbstractVector{T}, x::AbstractVector{T}, 
     stencil = A.low_boundary_coefs
     coeff   = A.coefficients
     for i in 1 : A.boundary_point_count
-        xtempi = stencil[i][1]*x[1]
         cur_stencil = stencil[i]
-        cur_coeff   = typeof(coeff)   <: AbstractVector ? coeff[i] : true
+        cur_coeff   = typeof(coeff)   <: AbstractVector ? coeff[i] : coeff isa Number ? coeff : true
         cur_stencil = use_winding(A) && cur_coeff < 0 ? reverse(cur_stencil) : cur_stencil
+        xtempi = cur_coeff*stencil[i][1]*x[1]
         for idx in 2:A.boundary_stencil_length
             xtempi += cur_coeff * cur_stencil[idx] * x[idx]
         end
@@ -316,10 +345,10 @@ function convolve_BC_right_add!(x_temp::AbstractVector{T}, x::AbstractVector{T},
     stencil = A.high_boundary_coefs
     coeff   = A.coefficients
     for i in 1 : A.boundary_point_count
-        xtempi = stencil[i][end]*x[end]
         cur_stencil = stencil[i]
-        cur_coeff   = typeof(coeff)   <: AbstractVector ? coeff[i] : true
+        cur_coeff   = typeof(coeff)   <: AbstractVector ? coeff[i] : coeff isa Number ? coeff : true
         cur_stencil = use_winding(A) && cur_coeff < 0 ? reverse(cur_stencil) : cur_stencil
+        xtempi = cur_coeff*stencil[i][end]*x[end]
         for idx in (A.boundary_stencil_length-1):-1:1
             xtempi += cur_coeff * cur_stencil[end-idx] * x[end-idx]
         end
