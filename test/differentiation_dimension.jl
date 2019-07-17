@@ -299,3 +299,71 @@ end
         end
     end
 end
+
+@testset "Differentiating with coefficients" begin
+
+    # Three dimensions
+    N = 1
+    µ = 5.5
+    L = CenteredDifference{N}(3,4,0.1,30)
+
+    µL = µ*L
+    M = zeros(32,32,32)
+    for i in 1:32
+        for j in 1:32
+            for k in 1:32
+                M[i,j,k] = cos(0.1i)
+            end
+        end
+    end
+
+    correct_slice = 5.5*(L*M[:,1,1])
+    M_temp = zeros(30,32,32)
+    mul!(M_temp, µL, M)
+
+    for i in 1:32
+        for j in 1:32
+            @test M_temp[:,i,j] ≈ correct_slice
+        end
+    end
+
+    N = 2
+    µL = µ*CenteredDifference{N}(3,4,0.1,30)
+    M = zeros(32,32,32)
+    for i in 1:32
+        for j in 1:32
+            for k in 1:32
+                M[i,j,k] = cos(0.1j)
+            end
+        end
+    end
+
+    M_temp = zeros(32,30,32)
+    mul!(M_temp, µL, M)
+
+    for i in 1:32
+        for j in 1:32
+            @test M_temp[i,:,j] ≈ correct_slice
+        end
+    end
+
+    N = 3
+    µL = µ*CenteredDifference{N}(3,4,0.1,30)
+    M = zeros(32,32,32)
+    for i in 1:32
+        for j in 1:32
+            for k in 1:32
+                M[i,j,k] = cos(0.1k)
+            end
+        end
+    end
+
+    M_temp = zeros(32,32,30)
+    mul!(M_temp, µL, M)
+
+    for i in 1:32
+        for j in 1:32
+            @test M_temp[i,j,:] ≈ correct_slice
+        end
+    end
+end
