@@ -70,13 +70,15 @@ end
     x = 0:1/(N-1):1
     y = 2x.^2 .- 3x .+2
 
+    # y = x.^2
+
     # Dirichlet BC with fixed end points
     Q = RobinBC(1.0, 0.0, y[1], 1.0, 1.0, 0.0, y[end], 1.0)
     U = UpwindDifference(1,2, 1.0, N, t->1.0)
     A = CenteredDifference(1,2, 1.0, N)
     res1 = U*Q*y
     res2 = A*Q*y
-    @test res1[4:end-1] ≈ res2[2:end-3] atol=10.0^(-2) # shifted due to upwind operators
+    @test res1[3:end-3] ≈ res2[1:end-5] atol=10.0^(-2) # shifted due to upwind operators
 
     y = 3x.^3 .- 4x.^2 .+ 2x .+ 1
     Q = RobinBC(1.0, 0.0, y[1], 1.0, 1.0, 0.0, y[end], 1.0)
@@ -84,7 +86,7 @@ end
     A = CenteredDifference(1,2, 1.0, N)
     res1 = U*Q*y
     res2 = A*Q*y
-    @test res1[4:end-1] ≈ res2[2:end-3] atol=10.0^(-2) # shifted due to upwind operators
+    @test res1[3:end-3] ≈ res2[1:end-5] atol=10.0^(-2) # shifted due to upwind operators
 end
 
 # tests for full and sparse function.... BROKEN!
@@ -157,7 +159,7 @@ end
     approx_order = 2
 
     A = UpwindDifference(d_order,approx_order,1.0,N,t->1.0)
-    M = Array(A,1000)
+    M = Array(A,N)
     @test A[1,1] == M[1,1]
     @test A[1:4,1] == M[1:4,1]
     @test A[5,2:10] == M[5,2:10]
@@ -180,13 +182,13 @@ end
     B = UpwindDifference(d_order,approx_order,dy,length(yarr),t->1.0)
 
 
-    @testbroken A*F ≈ 2*ones(N-2,M) atol=1e-2
+    @test A*F ≈ 2*ones(N-2,M)
     F*B
     A*F*B
 
     G = [x^2+y^2 for x = xarr, y = yarr]
 
-    @testbroken A*G ≈ 2*ones(N-2,M) atol=1e-2
+    @test A*G ≈ 2*ones(N-2,M) atol=1e-2
     G*B
     A*G*B
 end

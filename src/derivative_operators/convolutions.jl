@@ -97,9 +97,10 @@ function convolve_BC_left!(x_temp::AbstractVector{T}, _x::BoundaryPaddedVector, 
     for i in 1 : A.boundary_point_count
         cur_stencil = stencil[i]
         cur_coeff   = typeof(coeff)   <: AbstractVector ? coeff[i] : true
+        cur_stencil = use_winding(A) && cur_coeff < 0 ? reverse(cur_stencil) : cur_stencil
+
         # need to account for x.l in first interior
         xtempi = cur_coeff*cur_stencil[1]*_x.l
-        cur_stencil = use_winding(A) && cur_coeff < 0 ? reverse(cur_stencil) : cur_stencil
         @inbounds for idx in 2:A.boundary_stencil_length
             xtempi += cur_coeff * cur_stencil[idx] * _x.u[idx-1]
         end

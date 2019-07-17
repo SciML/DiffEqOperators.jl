@@ -75,7 +75,11 @@ end
     elseif bpc > 0 && (N-bpc)<i<=N
          v[1:bsl]  .= A.high_boundary_coefs[i-(N-1)]
     else
-        v[i-bpc:i-bpc+slen-1] .= A.stencil_coefs
+        if use_winding(A)
+            v[i-bpc+slen-1:i-bpc+2*slen-2] .= A.stencil_coefs
+        else
+            v[i-bpc:i-bpc+slen-1] .= A.stencil_coefs
+        end
     end
     return v
 end

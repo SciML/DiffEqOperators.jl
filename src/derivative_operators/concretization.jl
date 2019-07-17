@@ -63,8 +63,13 @@ function BandedMatrices.BandedMatrix(A::DerivativeOperator{T}, N::Int=A.len) whe
     stl = A.stencil_length
     bstl = A.boundary_stencil_length
     coeff   = A.coefficients
-    stl_2 = div(stl,2)
+    if use_winding(A)
+        stl_2 = 1 + A.stencil_length%2
+    else
+        stl_2 = div(stl,2)
+    end
     L = BandedMatrix{T}(Zeros(N, N+2), (max(stl-3,0,bstl),max(stl-1,0,bstl)))
+
     for i in 1:A.boundary_point_count
         cur_coeff   = typeof(coeff)   <: AbstractVector ? coeff[i] : true
         cur_stencil = use_winding(A) && cur_coeff < 0 ? reverse(A.low_boundary_coefs[i]) : A.low_boundary_coefs[i]
@@ -74,7 +79,7 @@ function BandedMatrices.BandedMatrix(A::DerivativeOperator{T}, N::Int=A.len) whe
         cur_coeff   = typeof(coeff)   <: AbstractVector ? coeff[i] : true
         stencil     = eltype(A.stencil_coefs) <: AbstractVector ? A.stencil_coefs[i] : A.stencil_coefs
         cur_stencil = use_winding(A) && cur_coeff < 0 ? reverse(stencil) : stencil
-        L[i,i+1-stl_2:i+1+stl_2] = cur_coeff * cur_stencil
+        L[i,i+1-stl_2:i-stl_2+stl] = cur_coeff * cur_stencil
     end
     for i in N-bl+1:N
         cur_coeff   = typeof(coeff)   <: AbstractVector ? coeff[i] : true
