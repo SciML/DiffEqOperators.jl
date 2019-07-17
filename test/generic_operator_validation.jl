@@ -1,15 +1,15 @@
 using DiffEqOperators
 
-n = 100
+
 x=0.0:0.005:2π
 xprime = x[2:(end-1)]
-dx=diff(x)
+dx=x[2]-x[1]
 y = exp.(π*x)
 y_im = exp.(π*im*x)
 yim_ = y_im[2:(end-1)]
 y_ = y[2:(end-1)]
 
-@test_broken for dor in 1:6, aor in 1:6
+@test_broken for dor in 1:4, aor in 2:6
 
     D1 = CenteredDifference(dor,aor,dx,length(x))
 
@@ -24,7 +24,4 @@ y_ = y[2:(end-1)]
 
     #test result
     @test_broken y_imprime1 ≈ ((pi*im)^dor)*yim_ # test operator with known derivative of exp(jkx)
-
-
-    #TODO: implement specific tests for the left and right boundary regions, waiting until after update
 end
