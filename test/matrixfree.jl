@@ -7,7 +7,7 @@ using DiffEqOperators, OrdinaryDiffEq
     @. du = p*du
   end
   p = 1.
-  A = MatrixFreeOperator(f, (p,), size=(5,5), opnorm=(p)->5)
+  A = MatrixFreeOperator(f, (p,), size=(5,5), opnorm=5)
   b = rand(5)
   @test is_constant(A)
   prob = ODEProblem(A, b, (0,1.), p)
@@ -34,7 +34,7 @@ using DiffEqOperators, OrdinaryDiffEq
     mul!(df, A, f)
   end
   p = (A1,A2)
-  O = MatrixFreeOperator(Q!, (p, 0.), size=(2,2), opnorm=(p)->10)
+  O = MatrixFreeOperator(Q!, (p, 0.), size=(2,2))
   # solve DE numerically
   T = 2
   f_0 = [2.0; 1/2]

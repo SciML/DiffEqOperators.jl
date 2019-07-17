@@ -59,7 +59,7 @@ ff2 = ODEFunction(lorenz,jac_prototype=JacVecOperator{Float64}(lorenz,u0,autodif
 for ff in [ff1, ff2]
   prob = ODEProblem(ff,u0,tspan)
   @test solve(prob,TRBDF2()).retcode == :Success
-  @test solve(prob,TRBDF2(linsolve=LinSolveGMRES())).retcode == :Success 
+  @test solve(prob,TRBDF2(linsolve=LinSolveGMRES())).retcode == :Success
   @test solve(prob,Exprb32()).retcode == :Success
   @test_broken sol = solve(prob,Rosenbrock23())
   @test_broken sol = solve(prob,Rosenbrock23(linsolve=LinSolveGMRES(tol=1e-10)))
