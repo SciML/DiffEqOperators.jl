@@ -7,21 +7,33 @@ abstract type SingleLayerBC{T} <: AtomicBC{T} end
 abstract type MultiDimensionalBC{T, N} <: AbstractBC{T} end
 abstract type AbstractBoundaryPaddedArray{T, N} <: AbstractArray{T, N} end
 """
-Robin, General, and in general Neumann and Dirichlet BCs are all affine opeartors, meaning that they take the form Q*x = Qa*x + Qb.
+Robin, General, and in general Neumann, Dirichlet and Bridge BCs are all affine opeartors, meaning that they take the form Q*x = Qa*x + Qb.
 """
 abstract type AffineBC{T} <: SingleLayerBC{T} end
 
+"""
+q = PeriodicBC{T}()
+
+Qx, Qy, ... = PeriodicBC{T}(size(u)) #When all dimensions are to be extended with a periodic boundary condition.
+
+-------------------------------------------------------------------------------------
+Creates a periodic boundary condition, where the lower index end of some u is extended with the upper index end and vice versa.
+It is not reccomended to concretize this BC type in to a BandedMatrix, since the vast majority of bands will be all 0s. SpatseMatrix concretization is reccomended.
+"""
 struct PeriodicBC{T} <: SingleLayerBC{T}
 end
 
 struct MultiDimensionalPeriodicBC{T,D,N} <: MultiDimensionalBC{T,N}
 end
 """
-  RobinBC(left_coefficients, right_coefficients, [dx_left, dx_right], approximation_order)
+  q = RobinBC(left_coefficients, right_coefficients, dx::T, approximation_order) where T # When this BC extends a dimension with a uniform step size
+
+  q = RobinBC(left_coefficients, right_coefficients, dx::Vector{T}, approximation_order) where T # When this BC extends a dimension with a non uniform step size. dx should be the vector of step sizes for the whole dimension
 
 -------------------------------------------------------------------------------------
 
-  The variables in l are [αl, βl, γl], and correspond to a BC of the form al*u(0) + bl*u'(0) = cl
+  The variables in l are [αl, βl, γl], and correspond to a BC of the form αl*u(0) + βl*u'(0) = γl imposed on the lower index boundary.
+  The variables in r are [αl, βl, γl], and correspond to an analagous boundary on the higher index end.
   Implements a robin boundary condition operator Q that acts on a vector to give an extended vector as a result
   Referring to (https://github.com/JuliaDiffEq/DiffEqOperators.jl/files/3267835/ghost_node.pdf)
   Write vector b̄₁ as a vertical concatanation with b0 and the rest of the elements of b̄ ₁, denoted b̄`₁, the same with ū into u0 and ū`. b̄`₁ = b̄`_2 = fill(β/Δx, length(stencil)-1)
@@ -35,18 +47,17 @@ struct RobinBC{T} <: AffineBC{T}
     b_l::T
     a_r::Vector{T}
     b_r::T
-    function RobinBC(l::AbstractVector{T}, r::AbstractVector{T}, dx::NTuple{2,T}, order = 1) where {T}
+    function RobinBC(l::AbstractVector{T}, r::AbstractVector{T}, dx::T, order = 1) where {T}
         αl, βl, γl = l
         αr, βr, γr = r
-        dx_l, dx_r = dx
 
         s = calculate_weights(1, one(T), Array(one(T):convert(T,order+1))) #generate derivative coefficients about the boundary of required approximation order
 
-        a_l = -s[2:end]./(αl*dx_l/βl + s[1])
-        a_r = s[end:-1:2]./(αr*dx_r/βr - s[1]) # for other boundary stencil is flippedlr with *opposite sign*
+        a_l = -s[2:end]./(αl*dx/βl + s[1])
+        a_r = s[end:-1:2]./(αr*dx/βr - s[1]) # for other boundary stencil is flippedlr with *opposite sign*
 
-        b_l = γl/(αl+βl*s[1]/dx_l)
-        b_r = γr/(αr-βr*s[1]/dx_r)
+        b_l = γl/(αl+βl*s[1]/dx)
+        b_r = γr/(αr-βr*s[1]/dx)
 
         return new{T}(a_l, b_l, a_r, b_r)
     end
@@ -75,7 +86,7 @@ end
 
 
 """
-GeneralBC(α_leftboundary, α_rightboundary, [dx_left, dx_right], approximation_order)
+q = GeneralBC(α_leftboundary, α_rightboundary, dx::T, approximation_order)
 
 -------------------------------------------------------------------------------------
 
@@ -91,19 +102,18 @@ struct GeneralBC{T} <:AffineBC{T}
     b_l::T
     a_r::Vector{T}
     b_r::T
-    function GeneralBC(αl::AbstractVector{T}, αr::AbstractVector{T}, dx::NTuple{2,T}, order = 1) where {T}
-        dx_l, dx_r = dx
+    function GeneralBC(αl::AbstractVector{T}, αr::AbstractVector{T}, dx::T, order = 1) where {T}
         nl = length(αl)
         nr = length(αr)
         S_l = zeros(T, (nl-2, order+nl-2))
         S_r = zeros(T, (nr-2, order+nr-2))
 
         for i in 1:(nl-2)
-            S_l[i,:] = [transpose(calculate_weights(i, one(T), Array(one(T):convert(T, order+i)))) transpose(zeros(T, Int(nl-2-i)))]./(dx_l^i) #am unsure if the length of the dummy_x is correct here
+            S_l[i,:] = [transpose(calculate_weights(i, one(T), Array(one(T):convert(T, order+i)))) transpose(zeros(T, Int(nl-2-i)))]./(dx^i) #am unsure if the length of the dummy_x is correct here
         end
 
         for i in 1:(nr-2)
-            S_r[i,:] = [transpose(calculate_weights(i, convert(T, order+i), Array(one(T):convert(T, order+i)))) transpose(zeros(T, Int(nr-2-i)))]./(dx_r^i)
+            S_r[i,:] = [transpose(calculate_weights(i, convert(T, order+i), Array(one(T):convert(T, order+i)))) transpose(zeros(T, Int(nr-2-i)))]./(dx^i)
         end
         s0_l = S_l[:,1] ; Sl = S_l[:,2:end]
         s0_r = S_r[:,end] ; Sr = S_r[:,(end-1):-1:1]
@@ -167,16 +177,23 @@ function Base.:*(Q::MixedBC, u::AbstractVector)
 end
 
 #implement Neumann and Dirichlet as special cases of RobinBC
-NeumannBC(α::AbstractVector{T}, dx::Union{AbstractVector{T}, NTuple{2, T}}, order = 1) where T = RobinBC([zero(T), one(T), α[1]], [zero(T), one(T), α[2]], dx, order)
-DirichletBC(α::AbstractVector{T}, dx::Union{AbstractVector{T}, NTuple{2, T}}, order = 1) where T = RobinBC([one(T), zero(T), α[1]], [one(T), zero(T), α[2]], dx, order)
+NeumannBC(α::AbstractVector{T}, dx::Union{AbstractVector{T}, T}, order = 1) where T = RobinBC([zero(T), one(T), α[1]], [zero(T), one(T), α[2]], dx, order)
+DirichletBC(α::AbstractVector{T}, dx::Union{AbstractVector{T}, T}, order = 1) where T = RobinBC([one(T), zero(T), α[1]], [one(T), zero(T), α[2]], dx, order)
 #specialized constructors for Neumann0 and Dirichlet0
-Dirichlet0BC(dx::Union{AbstractVector{T}, NTuple{2, T}}, order = 1) where T = DirichletBC([zero(T), zero(T)], dx, order)
-Neumann0BC(dx::Union{AbstractVector{T}, NTuple{2, T}}, order = 1) where T = NeumannBC([zero(T), zero(T)], dx, order)
+Dirichlet0BC(dx::Union{AbstractVector{T}, T}, order = 1) where T = DirichletBC([zero(T), zero(T)], dx, order)
+Neumann0BC(dx::Union{AbstractVector{T}, T}, order = 1) where T = NeumannBC([zero(T), zero(T)], dx, order)
 
 # other acceptable argument signatures
-RobinBC(al::T, bl::T, cl::T, dx_l::T, ar::T, br::T, cr::T, dx_r::T, order = 1) where T = RobinBC([al,bl, cl], [ar, br, cr], (dx_l, dx_r), order)
+#RobinBC(al::T, bl::T, cl::T, dx_l::T, ar::T, br::T, cr::T, dx_r::T, order = 1) where T = RobinBC([al,bl, cl], [ar, br, cr], dx_l, order)
+
 """
-Allows seperate domains governed by seperate equations to be bridged together, should be used as one end of a MixedBC as it will extend both boundaries with the same value
+BridgeBC(u_low::AbstractArray{T,N}, u_up::AbstractArray{T,N}, indslow, indsup) # A different view in to 2 diffferent arrays on each end of the boundary, indslow is an iterable of indicies that index u_low, which extends the lower index end. Analogous for u_up and indsup with the upper boundary.
+
+BridgeBC(u::AbstractArray{T,N}, inds) # The same view in to some array u at the index inds extends the boundary
+
+-------------------------------------------------------------------------------------
+
+Allows seperate domains governed by seperate equations to be bridged together with a boundary condition.
 """
 struct BridgeBC{T,I,N} <: AffineBC{T}
     a_l::Vector{T} #Dummy vectors so that AffineBC methods still work
@@ -203,7 +220,6 @@ Base.:*(Q::BridgeBC{T,I,N}, u::AbstractVector{T}) where {T, I, N} = BoundaryPadd
 """
 A vector type that extends a vector u with ghost points at either end
 """
-
 struct BoundaryPaddedVector{T,T2 <: AbstractVector{T}} <: AbstractBoundaryPaddedArray{T, 1}
     l::T
     r::T
@@ -311,14 +327,8 @@ end
 # Multidimensional
 #######################################################################
 
-#SingleLayerBCSubtypes = Union{vcat(InteractiveUtils.subtypes(SingleLayerBC{T}), InteractiveUtils.subtypes(AffineBC{T}))...} where T
-
-# A union type to allow dispatch for MultiDimBC to work correctly
-#UnionSingleLayerBCArray{T,N} = Union{[Array{B,N} for B in InteractiveUtils.subtypes(SingleLayerBCSubtypes{T})]..., [Array{MixedBC{T, R, S}, N} for R in InteractiveUtils.subtypes(SingleLayerBCSubtypes{T}), S in InteractiveUtils.subtypes(SingleLayerBCSubtypes{T})]..., Array{SingleLayerBC{T}, N}}
-
-
 """
-slicemul is the only limitation on the BCs here being used up to arbitrary dimension, an N dimensional implementation is sorely needed
+slicemul is the only limitation on the BCs here being used up to arbitrary dimension, an N dimensional implementation is needed.
 """
 @inline function slicemul(A::Array{SingleLayerBC{T},1}, u::AbstractArray{T, 2}, dim::Integer) where T
     s = size(u)
@@ -380,25 +390,7 @@ end
     return lower, upper
 end
 
-"""
-A multiple dimensional BC, supporting arbitrary BCs at each boundary point.
-To construct an arbitrary BC, pass an Array of BCs with dimension one less than that of your domain u - denoted N,
-with a size of size(u)[setdiff(1:N, dim)], where dim is the dimension orthogonal to the boundary that you want to extend.
 
-It is also possible to call
-MultiDimBC(YourBC, size(u), dim)
-to use YourBC for the whole boundary orthogonal to that dimension.
-
-Further, it is possible to call
-Qx, Qy, Qz... = MultiDimBC(YourBC, size(u))
-to use YourBC for the whole boundary for all dimensions. Valid for any number of dimensions greater than 1.
-However this is only valid for Robin/General type BCs (including neummann/dirichlet) when the grid steps are equal in each dimension - including uniform grid case.
-
-In the case where you want to extend the same Robin/GeneralBC to the whole boundary with a non unifrom grid, please use
-RobinBC(l, r, (dx::Vector, dy::Vector, dz::Vector ...), approximation_order, size(u))
-or
-GeneralBC(αl, αr, (dx::Vector, dy::Vector, dz::Vector ...), approximation_order, size(u))
-"""
 struct MultiDimensionalSingleLayerBC{T<:Number, D, N, M} <: MultiDimensionalBC{T, N}
     BC::Array{SingleLayerBC{T},M} #dimension M=N-1 array of BCs to extend dimension D
 end
@@ -407,6 +399,27 @@ struct ComposedMultiDimBC{T,N,M} <: MultiDimensionalBC{T, N}
     BCs::Vector{Array{SingleLayerBC{T}, M}}
 end
 
+"""
+A multiple dimensional BC, supporting arbitrary BCs at each boundary point.
+To construct an arbitrary BC, pass an Array of BCs with dimension one less than that of your domain u - denoted N,
+with a size of size(u)[setdiff(1:N, dim)], where dim is the dimension orthogonal to the boundary that you want to extend.
+
+It is also possible to call
+Q_dim = MultiDimBC(YourBC, size(u), dim)
+to use YourBC for the whole boundary orthogonal to that dimension.
+
+Further, it is possible to call
+Qx, Qy, Qz... = MultiDimBC(YourBC, size(u))
+to use YourBC for the whole boundary for all dimensions. Valid for any number of dimensions greater than 1.
+However this is only valid for Robin/General type BCs (including neummann/dirichlet) when the grid steps are equal in each dimension - including uniform grid case.
+
+In the case where you want to extend the same Robin/GeneralBC to the whole boundary with a non unifrom grid, please use
+Qx, Qy, Qz... = RobinBC(l, r, (dx::Vector, dy::Vector, dz::Vector ...), approximation_order, size(u))
+or
+Qx, Qy, Qz... = GeneralBC(αl, αr, (dx::Vector, dy::Vector, dz::Vector ...), approximation_order, size(u))
+
+where dx, dy, and dz are vectors of grid steps.
+"""
 MultiDimBC(BC::Array{SingleLayerBC{T},N}, dim::Integer) where {T,N} = MultiDimensionalSingleLayerBC{T, dim, N+1, N}(BC)
 #s should be size of the domain
 MultiDimBC(BC::SingleLayerBC{T}, s, dim::Integer) where {T} = MultiDimensionalSingleLayerBC{T, dim, length(s), length(s)-1}(fill(BC, s[setdiff(1:length(s), dim)]))
@@ -420,7 +433,7 @@ RobinBC(l::AbstractVector{T}, r::AbstractVector{T}, dxyz, order, s) where T = Tu
 GeneralBC(αl::AbstractVector{T}, αr::AbstractVector{T}, dxyz, order, s) where T= Tuple([MultiDimensionalSingleLayerBC{T, dim, length(s), length(s)-1}(fill(GeneralBC(αl, αr, dxyz[dim], order), s[setdiff(1:length(s), dim)])) for dim in 1:length(s)])
 
 """
-Higher dimensional generalization of BoundaryPaddedVector, pads an array of dimension N with 2 Arrays of dimension N-1, stored in lower and upper along the dimension D
+Higher dimensional generalization of BoundaryPaddedVector, pads an array of dimension N along the dimension D with 2 Arrays of dimension N-1, stored in lower and upper
 
 """
 struct BoundaryPaddedArray{T<:Number, D, N, M, V<:AbstractArray{T, N}, B<: AbstractArray{T, M}} <: AbstractBoundaryPaddedArray{T,N}
@@ -435,7 +448,19 @@ struct ComposedBoundaryPaddedArray{T<:Number, N, M, V<:AbstractArray{T, N}, B<: 
     u::V
 end
 
+"""
+Q = compose(BCs...)
 
+-------------------------------------------------------------------------------------
+
+Example:
+Q = compose(Qx, Qy, Qz) # 3D domain
+Q = compose(Qx, Qy) # 2D Domain
+
+Creates a ComposedMultiDimBC operator, Q, that extends every boundary when applied to a `u` with compatible size and number of dimensions.
+
+Qx Qy and Qz can be passed in any order, as long as there is exactly one BC operator that extends each dimension.
+"""
 function compose(BCs...)
     T = gettype(BCs[1])
     N = ndims(BCs[1])
@@ -449,6 +474,19 @@ function compose(BCs...)
     ComposedMultiDimBC{T,N,N-1}([condition.BC for condition in BCs])
 end
 
+"""
+A = compose(padded_arrays::BoundaryPaddedArray...)
+
+-------------------------------------------------------------------------------------
+
+Example:
+A = compose(Ax, Ay, Az) # 3D domain
+A = compose(Ax, Ay) # 2D Domain
+
+Composes BoundaryPaddedArrays that extend the same u for each different dimension that u has in to a ComposedBoundaryPaddedArray
+
+Ax Ay and Az can be passed in any order, as long as there is exactly one BoundaryPaddedArray that extends each dimension.
+"""
 function compose(padded_arrays::BoundaryPaddedArray...)
     N = ndims(padded_arrays[1])
     Ds = getaxis.(padded_arrays)
@@ -463,6 +501,24 @@ function compose(padded_arrays::BoundaryPaddedArray...)
 
     ComposedBoundaryPaddedArray{gettype(padded_arrays[1]),N,N-1,typeof(padded_arrays[1].u),typeof(lower[1])}(lower, upper, padded_arrays[1].u)
 end
+"""
+Ax, Ay,... = decompose(A::ComposedBoundaryPaddedArray)
+
+-------------------------------------------------------------------------------------
+
+Decomposes a ComposedBoundaryPaddedArray in to components that extend along each dimension individually
+"""
+decompose(A::ComposedBoundaryPaddedArray) = Tuple([BoundaryPaddedArray{gettype(A), ndims(A), ndims(A)-1, typeof(lower[1])}(A.lower[i], A.upper[i], A.u) for i in 1:ndims(A)])
+
+"""
+Qx, Qy,... = decompose(Q::ComposedMultiDimBC{T,N,M})
+
+-------------------------------------------------------------------------------------
+
+Decomposes a ComposedMultiDimBC in to components that extend along each dimension individually
+"""
+decompose(Q::ComposedMultiDimBC{T,N,M}) where {T,N,M} = Tuple([MultiDimBC(Q.BC[i], i) for i in 1:N])
+
 
 function LinearAlgebra.Array(Q::ComposedBoundaryPaddedArray{T,N,M,V,B}) where {T,N,M,V,B}
     S = size(Q)
@@ -526,9 +582,6 @@ Base.size(Q::ComposedBoundaryPaddedArray) = size(Q.u).+2
 
 Base.ndims(Q::MultiDimensionalBC{T,N}) where {T,N} = N
 
-decompose(A::ComposedBoundaryPaddedArray) = Tuple([BoundaryPaddedArray{gettype(A), ndims(A), ndims(A)-1, typeof(lower[1])}(A.lower[i], A.upper[i], A.u) for i in 1:ndims(A)])
-decompose(Q::ComposedMultiDimBC{T,N,M}) where {T,N,M} = Tuple([MultiDimBC(Q.BC[i], i) for i in 1:N])
-
 add_dim(A::AbstractArray, i) = reshape(A, size(A)...,i)
 add_dim(i) = i
 
@@ -562,35 +615,9 @@ function Base.getindex(Q::BoundaryPaddedArray{T,D,N,M,V,B}, _inds...) where {T,D
             return vcat(Q.lower[otherinds...],  Q.u[inds...], Q.upper[otherinds...])
         else
             throw("A colon on the extended dim is as yet incompatible with additional colons")
-            #=lower = Q.lower[otherinds...]
-            upper = Q.upper[otherinds...]
-            extradimslower = N - ndims(lower)
-            extradimsupper = N - ndims(upper)
-            lower = permutedims(add_dim(lower, extradimslower), experms(N, dim)) #Adding dimensions and permuting so that cat doesn't get confused
-            upper = permutedims(add_dim(upper, extradimsupper), experms(N, dim))
-            return cat(lower, Q.u[inds...],  upper; dims=dim)
-            =#
         end
     elseif typeof(inds[dim]) <: AbstractArray
         throw("Range indexing not yet supported!")
-        #=
-        @assert reduce((|), 1 .<= inds[dim] .<= S[dim])
-        inds[dim] = Array(inds[dim])
-        if (1 ∈ inds[dim]) | (S[dim] ∈ inds[dim])
-            inds[dim] .= inds[dim] .- 1
-            lower = permutedims(add_dim(Q.lower[otherinds...]), experms(N,dim)) #Adding dimensions and permuting so that cat doesn't get confused
-            upper = permutedims(add_dim(Q.upper[otherinds...]),  experms(N,dim))
-            if 1 ∉ inds[dim]
-                return cat(Q.u[inds...], upper; dims=dim)
-            elseif S[dim] ∉ inds[dim]
-                return cat(lower, Q.u[inds...]; dims=dim)
-            else
-                return cat(lower, Q.u[inds...],  upper; dims=dim)
-            end
-        end
-        inds[dim] .= inds[dim] .- 1
-        return Q.u[inds...]
-        =#
     end
 end
 
@@ -639,7 +666,6 @@ Returns a tuple, the first element of which is a sparse array of the shape of th
 filled with the linear operator parts of the respective Atomic BCs.
 the second element is a simularly sized array of the affine parts.
 """
-
 function SparseArrays.SparseMatrixCSC(Q::MultiDimensionalSingleLayerBC{T, D, N, K}, M) where {T,D,N,K}
     bc_tuples = sparse.(Q.BC, M)
     Q_L = [bc_tuple[1] for bc_tuple in bc_tuples]
