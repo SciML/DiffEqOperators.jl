@@ -1,4 +1,4 @@
-function LinearAlgebra.mul!(x_temp::AbstractArray{T}, A::DerivativeOperator{T,N}, M::AbstractArray{T}) where {T<:Real,N}
+function LinearAlgebra.mul!(x_temp::AbstractArray{T}, A::DerivativeOperator{T,N}, M::AbstractArray{T}) where {T,N}
 
     # Check that x_temp has correct dimensions
     v = zeros(ndims(x_temp))
@@ -28,7 +28,7 @@ end
 for MT in [2,3]
     @eval begin
         function LinearAlgebra.mul!(x_temp::AbstractArray{T,$MT}, A::DerivativeOperator{T,N,false,T2,S1,S2,T3}, M::AbstractArray{T,$MT}) where
-                                                                            {T<:Real,N,T2,SL,S1<:SArray{Tuple{SL},T,1,SL},S2,T3<:Union{Nothing,Number}}
+                                                                            {T,N,T2,SL,S1<:SArray{Tuple{SL},T,1,SL},S2,T3<:Union{Nothing,Number}}
             # Check that x_temp has correct dimensions
             v = zeros(ndims(x_temp))
             v[N] = 2
