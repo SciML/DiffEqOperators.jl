@@ -28,7 +28,7 @@ end
 for MT in [2,3]
     @eval begin
         function LinearAlgebra.mul!(x_temp::AbstractArray{T,$MT}, A::DerivativeOperator{T,N,false,T2,S1,S2,T3}, M::AbstractArray{T,$MT}) where
-                                                                                {T<:Real,N,T2,SL,S1<:SArray{Tuple{SL},T,1,SL},S2,T3<:Union{Nothing,Number}}
+                                                                            {T<:Real,N,T2,SL,S1<:SArray{Tuple{SL},T,1,SL},S2,T3<:Union{Nothing,Number}}
             # Check that x_temp has correct dimensions
             v = zeros(ndims(x_temp))
             v[N] = 2
@@ -57,8 +57,8 @@ for MT in [2,3]
             W = zeros(Wdims...)
             Widx = Any[Wdims...]
             setindex!(Widx,:,N)
-            coeff = A.coefficients === nothing ? True : A.coefficients
-            W[Widx...] = s
+            coeff = A.coefficients === nothing ? true : A.coefficients
+            W[Widx...] = coeff*s
 
             cv = DenseConvDims(_M, W, padding=pad,flipkernel=true)
             conv!(_x_temp, _M, W, cv)
