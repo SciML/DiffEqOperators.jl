@@ -141,6 +141,8 @@ function *(c::Number, A::DerivativeOperator{T,N,Wind}) where {T,N,Wind}
 end
 
 
+#TODO fix syntax error here
+
 # A more efficient mul! implementation for a composition of regular-grid, centered difference
 # DerivativeOperator operating on a 2D or 3D AbstractArray
 function LinearAlgebra.mul!(x_temp::AbstractArray{T,2}, A::AbstractDiffEqCompositeOperator, M::AbstractArray{T,2}) where {T}
@@ -297,9 +299,9 @@ function LinearAlgebra.mul!(x_temp::AbstractArray{T,2}, A::AbstractDiffEqComposi
     else
         N = diff_axis(A.ops[1])
         if N == 1
-            mul!(view(x_temp,A.ops[1],M)
+            mul!(x_temp,A.ops[1],M)
         else
-            mul!(view(x_temp,A.ops[1],M)
+            mul!(x_temp,A.ops[1],M)
         end
         for L in A.ops[2:end]
             mul_add!(x_temp,L,M)
