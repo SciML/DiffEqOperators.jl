@@ -145,146 +145,164 @@ end
 # DerivativeOperator operating on a 2D or 3D AbstractArray
 function LinearAlgebra.mul!(x_temp::AbstractArray{T,2}, A::AbstractDiffEqCompositeOperator, M::AbstractArray{T,2}) where {T}
 
-    #Check that composite operator satisfies: regular-grid, centered difference:
-    #for L in A.ops
-    #    if L ... (does not satisfy conditions)
-    #        return (call fall back for multiplication of composite operators)
-    #    end
-    #end
-
-    ndimsM = ndims(M)
-    Wdims = ones(Int64,ndimsM)
-    pad = zeros(Int64, ndimsM)
-
-    # compute dimensions of interior kernel W
+    # opsA operators satisfy conditions for NNlib.conv! call, opsB operators do not
+    opsA = DerivativeOperator[]
+    opsB = DerivativeOperator[]
     for L in A.ops
-        axis = typeof(L).parameters[2]
-        @assert axis <= ndimsM
-        Wdims[axis] = max(Wdims[axis],L.stencil_length)
-        pad[axis] = max(pad[axis], L.boundary_point_count)
-    end
-
-    # create zero-valued kernel
-    W = zeros(T, Wdims...)
-    mid_Wdims = div.(Wdims,2).+1
-    idx = div.(Wdims,2).+1
-
-    # add to kernel each stencil
-    for L in A.ops
-        s = L.stencil_coefs
-        sl = L.stencil_length
-        axis = typeof(L).parameters[2]
-        offset = convert(Int64,(Wdims[axis] - sl)/2)
-        coeff = L.coefficients isa Number ? L.coefficients : true
-        for i in offset+1:Wdims[axis]-offset
-            idx[axis]=i
-            W[idx...] += coeff*s[i-offset]
-            idx[axis] = mid_Wdims[axis]
+        if (L.coefficients isa Number || L.coefficients === nothing) && use_winding(L) == false && L.dx isa Number
+            push!(opsA, L)
+        else
+            push!(opsB,L)
         end
     end
 
-    # Reshape x_temp for NNlib.conv!
-    _x_temp = reshape(x_temp, (size(x_temp)...,1,1))
+    # Check that we can make at least one NNlib.conv! call
+    if !isempty(opsA)
+        #TODO replace A.ops with opsA in here
+        ndimsM = ndims(M)
+        Wdims = ones(Int64,ndimsM)
+        pad = zeros(Int64, ndimsM)
 
-    # Reshape M for NNlib.conv!
-    _M = reshape(M, (size(M)...,1,1))
+        # compute dimensions of interior kernel W
+        for L in A.ops
+            axis = typeof(L).parameters[2]
+            @assert axis <= ndimsM
+            Wdims[axis] = max(Wdims[axis],L.stencil_length)
+            pad[axis] = max(pad[axis], L.boundary_point_count)
+        end
 
-    _W = reshape(W, (size(W)...,1,1))
+        # create zero-valued kernel
+        W = zeros(T, Wdims...)
+        mid_Wdims = div.(Wdims,2).+1
+        idx = div.(Wdims,2).+1
 
-    # Call NNlib.conv!
-    cv = DenseConvDims(_M, _W, padding=pad, flipkernel=true)
-    conv!(_x_temp, _M, _W, cv)
-
-
-    # convolve boundary and interior points near boundary
-    # partition operator indices along axis of differentiation
-    if pad[1] > 0 || pad[2] > 0
-        ops_1 = Int64[]
-        ops_1_max_bpc_idx = [0]
-        ops_2 = Int64[]
-        ops_2_max_bpc_idx = [0]
-        for i in 1:length(A.ops)
-            L = A.ops[i]
-            if typeof(L).parameters[2] == 1
-                push!(ops_1,i)
-                if L.boundary_point_count == pad[1]
-                    ops_1_max_bpc_idx[1] = i
-                end
-            else
-                push!(ops_2,i)
-                if L.boundary_point_count == pad[2]
-                    ops_2_max_bpc_idx[1]= i
-                end
+        # add to kernel each stencil
+        for L in A.ops
+            s = L.stencil_coefs
+            sl = L.stencil_length
+            axis = typeof(L).parameters[2]
+            offset = convert(Int64,(Wdims[axis] - sl)/2)
+            coeff = L.coefficients isa Number ? L.coefficients : true
+            for i in offset+1:Wdims[axis]-offset
+                idx[axis]=i
+                W[idx...] += coeff*s[i-offset]
+                idx[axis] = mid_Wdims[axis]
             end
         end
 
-        # need offsets since some axis may have ghost nodes and some may not
-        offset_x = 0
-        offset_y = 0
+        # Reshape x_temp for NNlib.conv!
+        _x_temp = reshape(x_temp, (size(x_temp)...,1,1))
 
-        if length(ops_2) > 0
-            offset_x = 1
-        end
-        if length(ops_1) > 0
-            offset_y =1
-        end
+        # Reshape M for NNlib.conv!
+        _M = reshape(M, (size(M)...,1,1))
 
-    # convolve boundaries and unaccounted for interior in axis 1
-        if length(ops_1) > 0
-            for i in 1:size(x_temp)[2]
-                convolve_BC_left!(view(x_temp,:,i), view(M,:,i+offset_x), A.ops[ops_1_max_bpc_idx...])
-                convolve_BC_right!(view(x_temp,:,i), view(M,:,i+offset_x), A.ops[ops_1_max_bpc_idx...])
-                if i <= pad[2] || i > size(x_temp)[2]-pad[2]
-                    convolve_interior!(view(x_temp,:,i), view(M,:,i+offset_x), A.ops[ops_1_max_bpc_idx...])
-                end
-                #scale by dx
+        _W = reshape(W, (size(W)...,1,1))
 
-                for Lidx in ops_1
-                    if Lidx != ops_1_max_bpc_idx[1]
-                        convolve_BC_left_add!(view(x_temp,:,i), view(M,:,i+offset_x), A.ops[Lidx])
-                        convolve_BC_right_add!(view(x_temp,:,i), view(M,:,i+offset_x), A.ops[Lidx])
-                        if i <= pad[2] || i > size(x_temp)[2]-pad[2]
-                            convolve_interior_add!(view(x_temp,:,i), view(M,:,i+offset_x), A.ops[Lidx])
-                        elseif pad[1] - A.ops[Lidx].boundary_point_count > 0
-                            convolve_interior_add_range!(view(x_temp,:,i), view(M,:,i+offset_x), A.ops[Lidx], pad[1] - A.ops[Lidx].boundary_point_count)
-                        end
+        # Call NNlib.conv!
+        cv = DenseConvDims(_M, _W, padding=pad, flipkernel=true)
+        conv!(_x_temp, _M, _W, cv)
+
+
+        # convolve boundary and interior points near boundary
+        # partition operator indices along axis of differentiation
+        if pad[1] > 0 || pad[2] > 0
+            ops_1 = Int64[]
+            ops_1_max_bpc_idx = [0]
+            ops_2 = Int64[]
+            ops_2_max_bpc_idx = [0]
+            for i in 1:length(A.ops)
+                L = A.ops[i]
+                if typeof(L).parameters[2] == 1
+                    push!(ops_1,i)
+                    if L.boundary_point_count == pad[1]
+                        ops_1_max_bpc_idx[1] = i
                     end
-                end
-            end
-        end
-        # convolve boundaries and unaccounted for interior in axis 2
-        if length(ops_2) > 0
-            for i in 1:size(x_temp)[1]
-                # in the case of no axis 1 operators, we need to over x_temp
-                if length(ops_1) == 0
-                    convolve_BC_left!(view(x_temp,i,:), view(M,i+offset_y,:), A.ops[ops_2_max_bpc_idx...])
-                    convolve_BC_right!(view(x_temp,i,:), view(M,i+offset_y,:), A.ops[ops_2_max_bpc_idx...])
-                    if i <= pad[1] || i > size(x_temp)[1]-pad[1]
-                        convolve_interior!(view(x_temp,i,:), view(M,i+offset_y,:), A.ops[ops_2_max_bpc_idx...])
-                    end
-                    #scale by dx
-                    # fix here as well
                 else
-                    convolve_BC_left_add!(view(x_temp,i,:), view(M,i+offset_y,:), A.ops[ops_2_max_bpc_idx...])
-                    convolve_BC_right_add!(view(x_temp,i,:), view(M,i+offset_y,:), A.ops[ops_2_max_bpc_idx...])
-                    if i <= pad[1] || i > size(x_temp)[1]-pad[1]
-                        convolve_interior_add!(view(x_temp,i,:), view(M,i+offset_y,:), A.ops[ops_2_max_bpc_idx...])
+                    push!(ops_2,i)
+                    if L.boundary_point_count == pad[2]
+                        ops_2_max_bpc_idx[1]= i
                     end
-                    #scale by dx
-                    # fix here as well
                 end
-                for Lidx in ops_2
-                    if Lidx != ops_2_max_bpc_idx[1]
-                        convolve_BC_left_add!(view(x_temp,i,:), view(M,i+offset_y,:), A.ops[Lidx])
-                        convolve_BC_right_add!(view(x_temp,i,:), view(M,i+offset_y,:), A.ops[Lidx])
-                        if i <= pad[1] || i > size(x_temp)[1]-pad[1]
-                            convolve_interior_add!(view(x_temp,i,:), view(M,i+offset_y,:), A.ops[Lidx])
-                        elseif pad[2] - A.ops[Lidx].boundary_point_count > 0
-                            convolve_interior_add_range!(view(x_temp,i,:), view(M,i+offset_y,:), A.ops[Lidx], pad[2] - A.ops[Lidx].boundary_point_count)
+            end
+
+            # need offsets since some axis may have ghost nodes and some may not
+            offset_x = 0
+            offset_y = 0
+
+            if length(ops_2) > 0
+                offset_x = 1
+            end
+            if length(ops_1) > 0
+                offset_y =1
+            end
+
+            # convolve boundaries and unaccounted for interior in axis 1
+            if length(ops_1) > 0
+                for i in 1:size(x_temp)[2]
+                    convolve_BC_left!(view(x_temp,:,i), view(M,:,i+offset_x), A.ops[ops_1_max_bpc_idx...])
+                    convolve_BC_right!(view(x_temp,:,i), view(M,:,i+offset_x), A.ops[ops_1_max_bpc_idx...])
+                    if i <= pad[2] || i > size(x_temp)[2]-pad[2]
+                        convolve_interior!(view(x_temp,:,i), view(M,:,i+offset_x), A.ops[ops_1_max_bpc_idx...])
+                    end
+
+                    for Lidx in ops_1
+                        if Lidx != ops_1_max_bpc_idx[1]
+                            convolve_BC_left_add!(view(x_temp,:,i), view(M,:,i+offset_x), A.ops[Lidx])
+                            convolve_BC_right_add!(view(x_temp,:,i), view(M,:,i+offset_x), A.ops[Lidx])
+                            if i <= pad[2] || i > size(x_temp)[2]-pad[2]
+                                convolve_interior_add!(view(x_temp,:,i), view(M,:,i+offset_x), A.ops[Lidx])
+                            elseif pad[1] - A.ops[Lidx].boundary_point_count > 0
+                                convolve_interior_add_range!(view(x_temp,:,i), view(M,:,i+offset_x), A.ops[Lidx], pad[1] - A.ops[Lidx].boundary_point_count)
+                            end
                         end
                     end
                 end
             end
+            # convolve boundaries and unaccounted for interior in axis 2
+            if length(ops_2) > 0
+                for i in 1:size(x_temp)[1]
+                    # in the case of no axis 1 operators, we need to over x_temp
+                    if length(ops_1) == 0
+                        convolve_BC_left!(view(x_temp,i,:), view(M,i+offset_y,:), A.ops[ops_2_max_bpc_idx...])
+                        convolve_BC_right!(view(x_temp,i,:), view(M,i+offset_y,:), A.ops[ops_2_max_bpc_idx...])
+                        if i <= pad[1] || i > size(x_temp)[1]-pad[1]
+                            convolve_interior!(view(x_temp,i,:), view(M,i+offset_y,:), A.ops[ops_2_max_bpc_idx...])
+                        end
+                        #scale by dx
+                        # fix here as well
+                    else
+                        convolve_BC_left_add!(view(x_temp,i,:), view(M,i+offset_y,:), A.ops[ops_2_max_bpc_idx...])
+                        convolve_BC_right_add!(view(x_temp,i,:), view(M,i+offset_y,:), A.ops[ops_2_max_bpc_idx...])
+                        if i <= pad[1] || i > size(x_temp)[1]-pad[1]
+                            convolve_interior_add!(view(x_temp,i,:), view(M,i+offset_y,:), A.ops[ops_2_max_bpc_idx...])
+                        end
+                        #scale by dx
+                        # fix here as well
+                    end
+                    for Lidx in ops_2
+                        if Lidx != ops_2_max_bpc_idx[1]
+                            convolve_BC_left_add!(view(x_temp,i,:), view(M,i+offset_y,:), A.ops[Lidx])
+                            convolve_BC_right_add!(view(x_temp,i,:), view(M,i+offset_y,:), A.ops[Lidx])
+                            if i <= pad[1] || i > size(x_temp)[1]-pad[1]
+                                convolve_interior_add!(view(x_temp,i,:), view(M,i+offset_y,:), A.ops[Lidx])
+                            elseif pad[2] - A.ops[Lidx].boundary_point_count > 0
+                                convolve_interior_add_range!(view(x_temp,i,:), view(M,i+offset_y,:), A.ops[Lidx], pad[2] - A.ops[Lidx].boundary_point_count)
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    # Call everything A.ops using fallback
+    else
+        N = diff_axis(A.ops[1])
+        if N == 1
+            mul!(view(x_temp,A.ops[1],M)
+        else
+            mul!(view(x_temp,A.ops[1],M)
+        end
+        for L in A.ops[2:end]
+            mul_add!(x_temp,L,M)
         end
     end
 end
@@ -299,7 +317,7 @@ function convolve_interior_add!(x_temp::AbstractVector{T}, x::AbstractVector{T},
     mid = div(A.stencil_length,2)
     for i in (1+A.boundary_point_count) : (length(x_temp)-A.boundary_point_count)
         xtempi = zero(T)
-        cur_stencil = eltype(stencil) <: AbstractVector ? stencil[i] : stencil
+        cur_stencil = eltype(stencil) <: AbstractVector ? stencil[i-A.boundary_point_count] : stencil
         cur_coeff   = typeof(coeff)   <: AbstractVector ? coeff[i] : coeff isa Number ? coeff : true
         cur_stencil = use_winding(A) && cur_coeff < 0 ? reverse(cur_stencil) : cur_stencil
         for idx in 1:A.stencil_length

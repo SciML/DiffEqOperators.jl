@@ -482,14 +482,14 @@ end
     # Test composition of all first-dimension operators
     A = Lx2+Lx3+Lx4
     M_temp = zeros(N,N+2)
-    @test_broken mul!(M_temp, A, M)
-    @test_broken M_temp ≈ (Lx2*M + Lx3*M + Lx4*M)
+    mul!(M_temp, A, M)
+    @test M_temp ≈ (Lx2*M + Lx3*M + Lx4*M)
 
     # Test composition of all second-dimension operators
     A = Ly2+Ly3+Ly4
     M_temp = zeros(N+2,N)
-    @test_broken mul!(M_temp, A, M)
-    @test_broken M_temp ≈ (Ly2*M + Ly3*M + Ly4*M)
+    mul!(M_temp, A, M)
+    @test M_temp ≈ (Ly2*M + Ly3*M + Ly4*M)
 
     # Test composition of all operators
     A = Lx2+Lx3+Lx4+Ly2+Ly3+Ly4

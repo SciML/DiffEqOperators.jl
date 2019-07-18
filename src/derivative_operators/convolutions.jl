@@ -15,7 +15,7 @@ function convolve_interior!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::
     mid = div(A.stencil_length,2)
     for i in (1+A.boundary_point_count) : (length(x_temp)-A.boundary_point_count)
         xtempi = zero(T)
-        cur_stencil = eltype(stencil) <: AbstractVector ? stencil[i] : stencil
+        cur_stencil = eltype(stencil) <: AbstractVector ? stencil[i-A.boundary_point_count] : stencil
         cur_coeff   = typeof(coeff)   <: AbstractVector ? coeff[i] : coeff isa Number ? coeff : true
         cur_stencil = use_winding(A) && cur_coeff < 0 ? reverse(cur_stencil) : cur_stencil
         for idx in 1:A.stencil_length
