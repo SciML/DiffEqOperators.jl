@@ -391,7 +391,7 @@ end
 
 # THis testset uses the last testset which has a several non-trivial cases,
 # and additionally tests coefficient handling. All operators are handled by the
-# fast 2D/3D dispatch
+# fast 2D/3D dispatch.
 @testset "2D coefficient handling" begin
 
     dx = 0.1
@@ -448,4 +448,53 @@ end
     mul!(M_temp, A, M)
 
     @test M_temp ≈ ((Lx2*M)[1:N,2:N+1]+(Ly2*M)[2:N+1,1:N]+(Lx3*M)[1:N,2:N+1] +(Ly3*M)[2:N+1,1:N] + (Lx4*M)[1:N,2:N+1] +(Ly4*M)[2:N+1,1:N])
+end
+
+@testset "x and y are both irregular grids" begin
+
+    N = 100
+    dx = cumsum(rand(N+2))
+    dy = cumsum(rand(N+2))
+    M = zeros(N+2,N+2)
+
+    for i in 1:N+2
+        for j in 1:N+2
+            M[i,j] = cos(dx[i])+sin(dy[j])
+        end
+    end
+
+    # Lx2 has 0 boundary points
+    Lx2 = CenteredDifference{1}(2,2,dx,N)
+    # Lx3 has 1 boundary point
+    Lx3 = 1.45*CenteredDifference{1}(3,3,dx,N)
+    # Lx4 has 2 boundary points
+    Lx4 = CenteredDifference{1}(4,4,dx,N)
+
+    # Ly2 has 0 boundary points
+    Ly2 = 8.14*CenteredDifference{2}(2,2,dy,N)
+    # Ly3 has 1 boundary point
+    Ly3 = CenteredDifference{2}(3,3,dy,N)
+    # Ly4 has 2 boundary points
+    Ly4 = 4.567*CenteredDifference{2}(4,4,dy,N)
+
+
+
+    # Test composition of all first-dimension operators
+    A = Lx2+Lx3+Lx4
+    M_temp = zeros(N,N+2)
+    @test_broken mul!(M_temp, A, M)
+    @test_broken M_temp ≈ (Lx2*M + Lx3*M + Lx4*M)
+
+    # Test composition of all second-dimension operators
+    A = Ly2+Ly3+Ly4
+    M_temp = zeros(N+2,N)
+    @test_broken mul!(M_temp, A, M)
+    @test_broken M_temp ≈ (Ly2*M + Ly3*M + Ly4*M)
+
+    # Test composition of all operators
+    A = Lx2+Lx3+Lx4+Ly2+Ly3+Ly4
+    M_temp = zeros(N,N)
+    @test_broken mul!(M_temp, A, M)
+    @test_broken M_temp = ((Lx2*M)[1:N,2:N+1]+(Lx3*M)[1:N,2:N+1]+(Lx4*M)[1:N,2:N+1]+(Ly2*M)[2:N+1,1:N]+(Ly3*M)[2:N+1,1:N]+(Ly4*M)[2:N+1,1:N])
+
 end
