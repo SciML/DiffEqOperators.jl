@@ -20,7 +20,7 @@ struct CenteredDifference{N} end
 function CenteredDifference{N}(derivative_order::Int,
                             approximation_order::Int, dx::T,
                             len::Int, coeff_func=nothing) where {T<:Real,N}
-
+    @assert approximation_order>1 "approximation_order must be greater than 1."
     stencil_length          = derivative_order + approximation_order - 1 + (derivative_order+approximation_order)%2
     boundary_stencil_length = derivative_order + approximation_order
     dummy_x                 = -div(stencil_length,2) : div(stencil_length,2)
