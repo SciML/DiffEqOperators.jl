@@ -297,14 +297,49 @@ function LinearAlgebra.mul!(x_temp::AbstractArray{T,2}, A::AbstractDiffEqComposi
         end
     # Call everything A.ops using fallback
     else
+        #operating_dims
+        operating_dims = zeros(Int64,2)
+        for L in A.ops
+            if diff_axis(L) == 1
+                operating_dims[1] = 1
+            else
+                operating_dims[2] = 1
+            end
+        end
+
+        x_temp_1, x_temp_2 = size(x_temp)
+
+        # Handle first case additively
         N = diff_axis(A.ops[1])
         if N == 1
-            mul!(x_temp,A.ops[1],M)
+            if operating_dims[2] == 1
+                mul!(x_temp,A.ops[1],view(M,1:x_temp_1+2,1:x_temp_2))
+            else
+                mul!(x_temp,A.ops[1],M)
+            end
         else
-            mul!(x_temp,A.ops[1],M)
+            if operating_dims[1] == 1
+                mul!(x_temp,A.ops[1],view(M,1:x_temp_1,1:x_temp_2+2))
+            else
+                mul!(x_temp,A.ops[1],M)
+            end
         end
+
         for L in A.ops[2:end]
-            mul_add!(x_temp,L,M)
+            N = diff_axis(L)
+            if N == 1
+                if operating_dims[2] == 1
+                    mul_add!(x_temp,L,view(M,1:x_temp_1+2,1:x_temp_2))
+                else
+                    mul_add!(x_temp,L,M)
+                end
+            else
+                if operating_dims[1] == 1
+                    mul_add!(x_temp,L,view(M,1:x_temp_1,1:x_temp_2+2))
+                else
+                    mul_add!(x_temp,L,M)
+                end
+            end
         end
     end
 end
