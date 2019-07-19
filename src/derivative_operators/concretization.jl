@@ -9,7 +9,7 @@ function LinearAlgebra.Array(A::DerivativeOperator{T}, N::Int=A.len) where T
     else
         stl_2 = div(stl,2)
     end
-    for i in 1:A.boundary_point_count
+    for i in 1:bl
         cur_coeff   = typeof(coeff)   <: AbstractVector ? coeff[i] : coeff isa Number ? coeff : true
         cur_stencil = use_winding(A) && cur_coeff < 0 ? reverse(A.low_boundary_coefs[i]) : A.low_boundary_coefs[i]
         L[i,1:bstl] = cur_coeff * cur_stencil

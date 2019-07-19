@@ -119,7 +119,7 @@ function UpwindDifference{N}(derivative_order::Int,
 
     _low_boundary_coefs     = SVector{boundary_stencil_length, T}[convert(SVector{boundary_stencil_length, T}, (1/dx^derivative_order) * calculate_weights(derivative_order, oneunit(T)*x0, boundary_x)) for x0 in boundary_deriv_spots]
     low_boundary_coefs      = convert(SVector{boundary_point_count},_low_boundary_coefs)
-    high_boundary_coefs     = convert(SVector{boundary_point_count},reverse(SVector{boundary_stencil_length, T}[reverse(low_boundary_coefs[i]) for i in 1:boundary_point_count]))
+    high_boundary_coefs     = convert(SVector{boundary_point_count},reverse(SVector{boundary_stencil_length, T}[-reverse(low_boundary_coefs[i]) for i in 1:boundary_point_count]))
 
     # _low_boundary_coefs     = SVector{boundary_stencil_length, T}[convert(SVector{boundary_stencil_length, T}, calculate_weights(derivative_order, oneunit(T)*x0, boundary_x)) for x0 in boundary_deriv_spots]
     # high_boundary_coefs     = convert(SVector{boundary_point_count},-_low_boundary_coefs)

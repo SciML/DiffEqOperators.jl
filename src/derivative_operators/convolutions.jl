@@ -78,7 +78,7 @@ function convolve_interior!(x_temp::AbstractVector{T}, _x::BoundaryPaddedVector,
     end
 
     # Just do the middle parts
-    for i in (2+A.boundary_point_count) : (length(x_temp)-A.boundary_point_count)-1
+    for i in (1+A.boundary_point_count) : (length(x_temp)-A.boundary_point_count)
         xtempi = zero(T)
         cur_stencil = eltype(stencil) <: AbstractVector ? stencil[i-A.boundary_point_count] : stencil
         cur_coeff   = typeof(coeff)   <: AbstractVector ? coeff[i-A.boundary_point_count] : coeff isa Number ? coeff : true
@@ -128,14 +128,15 @@ end
 function convolve_BC_right!(x_temp::AbstractVector{T}, _x::BoundaryPaddedVector, A::DerivativeOperator) where {T<:Real}
     stencil = A.high_boundary_coefs
     coeff   = A.coefficients
-    bc_start = length(_x.u) - A.boundary_point_count
+    N = length(_x.u)
+    bpc = A.boundary_point_count
     # need to account for _x.r in last interior convolution
 
-    for i in 1 : A.boundary_point_count
-        cur_stencil = stencil[i]
-        cur_coeff   = typeof(coeff)   <: AbstractVector ? coeff[bc_start + i] : coeff isa Number ? coeff : true
+    for i in N-bpc+1:N
+        cur_stencil = stencil[i-N+bpc]
+        cur_coeff   = typeof(coeff)   <: AbstractVector ? coeff[i] : coeff isa Number ? coeff : true
 
-    # DO WE REALLY NEED IT?
+    # # DO WE REALLY NEED IT?
     #     mid = div(A.stencil_length,2) + 1
     #     x = _x.u
     #     i = length(x_temp)-A.boundary_point_count
@@ -151,18 +152,14 @@ function convolve_BC_right!(x_temp::AbstractVector{T}, _x::BoundaryPaddedVector,
     #     for i in 1 : A.boundary_point_count
     #         cur_stencil = stencil[i]
     #         xtempi = cur_coeff*cur_stencil[end]*_x.r
-    #         cur_coeff   = typeof(coeff)   <: AbstractVector ? coeff[bc_start + i] : coeff isa Number ? coeff : true
+    #         cur_coeff   = typeof(coeff)   <: AbstractVector ? coeff[N + i] : coeff isa Number ? coeff : true
 
         cur_stencil = use_winding(A) && cur_coeff < 0 ? reverse(cur_stencil) : cur_stencil
-        # cur_stencil = reverse(cur_stencil)
         xtempi = cur_coeff*cur_stencil[end]*_x.r
-        # println("\n\n")
-        # @show _x.u[end-A.boundary_stencil_length+1:end]
-        # @show cur_stencil
-        @inbounds for idx in A.boundary_stencil_length:-1:1
+        @inbounds for idx in 1:A.boundary_stencil_length-1
             # @show idx, cur_stencil[end-idx+1], _x.u[end-idx+1], cur_coeff * cur_stencil[idx] * _x.u[end-idx+1]
-            xtempi += cur_coeff * cur_stencil[end-idx+1] * _x.u[end-idx+1]
+            xtempi += cur_coeff * cur_stencil[idx] * _x.u[end-A.boundary_stencil_length+idx+1]
         end
-        x_temp[bc_start + i] = xtempi
+        x_temp[i] = xtempi
     end
 end
