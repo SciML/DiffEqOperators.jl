@@ -133,9 +133,12 @@ function convolve_BC_right!(x_temp::AbstractVector{T}, _x::BoundaryPaddedVector,
         xtempi = cur_coeff*cur_stencil[end]*_x.r
         cur_stencil = use_winding(A) && cur_coeff < 0 ? reverse(cur_stencil) : cur_stencil
 
-        @inbounds for idx in 1:A.boundary_stencil_length-1
-            xtempi += cur_coeff * cur_stencil[idx] * _x.u[end-L+idx+1]
+        @inbounds for idx in A.stencil_length:-1:1
+            xtempi += cur_coeff * cur_stencil[end-idx] * _x.u[end-idx+1]
         end
+       # @inbounds for idx in 1:A.boundary_stencil_length-1
+        #     xtempi += cur_coeff * cur_stencil[idx] * _x.u[end-L+idx+1]
+        # end
 
         x_temp[bc_start + i] = xtempi
     end
