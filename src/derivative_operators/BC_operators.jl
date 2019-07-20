@@ -5,7 +5,7 @@ abstract type AtomicBC{T} <: AbstractBC{T} end
 abstract type SingleLayerBC{T} <: AtomicBC{T} end
 
 abstract type MultiDimensionalBC{T, N} <: AbstractBC{T} end
-abstract type AbstractBoundaryPaddedArray{T, N} <: AbstractArray{T, N} end
+
 """
 Robin, General, and in general Neumann, Dirichlet and Bridge BCs are all affine opeartors, meaning that they take the form Q*x = Qa*x + Qb.
 """
@@ -23,8 +23,6 @@ It is not reccomended to concretize this BC type in to a BandedMatrix, since the
 struct PeriodicBC{T} <: SingleLayerBC{T}
 end
 
-struct MultiDimensionalPeriodicBC{T,D,N} <: MultiDimensionalBC{T,N}
-end
 """
   q = RobinBC(left_coefficients, right_coefficients, dx::T, approximation_order) where T # When this BC extends a dimension with a uniform step size
 
@@ -178,9 +176,9 @@ end
 
 #implement Neumann and Dirichlet as special cases of RobinBC
 NeumannBC(α::AbstractVector{T}, dx::Union{AbstractVector{T}, T}, order = 1) where T = RobinBC([zero(T), one(T), α[1]], [zero(T), one(T), α[2]], dx, order)
-DirichletBC(α::AbstractVector{T}, dx::Union{AbstractVector{T}, T}, order = 1) where T = RobinBC([one(T), zero(T), α[1]], [one(T), zero(T), α[2]], dx, order)
+DirichletBC(αl, αr) where T = RobinBC([one(T), zero(T), αl], [one(T), zero(T), αr], 1.0, 2.0 )
 #specialized constructors for Neumann0 and Dirichlet0
-Dirichlet0BC(dx::Union{AbstractVector{T}, T}, order = 1) where T = DirichletBC([zero(T), zero(T)], dx, order)
+Dirichlet0BC() where T = DirichletBC([zero(T), zero(T)], 1.0, 2.0)
 Neumann0BC(dx::Union{AbstractVector{T}, T}, order = 1) where T = NeumannBC([zero(T), zero(T)], dx, order)
 
 # other acceptable argument signatures
@@ -206,7 +204,7 @@ function BridgeBC(u::AbstractArray{T,N}, inds) where {T, N}
     @assert mapreduce(x -> typeof(x) <: Integer, (&), inds)
     BridgeBC{T, N, eltype(inds)}(zeros(T,1), view(u, inds...), zeros(T,1), view(u, inds...))
 end
-function BridgeBC(u_low::AbstractArray{T,N}, u_up::AbstractArray{T,N}, indslow, indsup) where {T, N}
+function BridgeBC(u_low::AbstractArray{T,N}, indslow, u_up::AbstractArray{T,N},  indsup) where {T, N}
     @assert length(indslow) == N
     @assert length(indsup) == N
     @assert mapreduce(x -> typeof(x) <: Integer, (&), indslow)
@@ -215,113 +213,115 @@ function BridgeBC(u_low::AbstractArray{T,N}, u_up::AbstractArray{T,N}, indslow, 
     BridgeBC{T, N, eltype(indslow)}(zeros(T,1), view(u_low, indslow), zeros(T,1), view(u, indsup))
 end
 
-Base.:*(Q::BridgeBC{T,I,N}, u::AbstractVector{T}) where {T, I, N} = BoundaryPaddedVector{T, typeof(u)}(Q.b_l, Q.b_r, u)
+perpsize(A::AbstractArray{T,N}, dim::Integer) where {T,N} = size(A)[setdiff(1:N, dim)] #the size of A perpendicular to dim
 
 """
-A vector type that extends a vector u with ghost points at either end
+Q1, Q2 = BridgeBC(u1::AbstractArray{T,N}, dim1::Int, hilo1::String, bc1, u2::AbstractArray{T,N}, dim2::Int, hilo2::String, bc2) where {T,N}
+-------------------------------------------------------------------------------------
+Creates a BC operator that joins array u1 to u2 at the hilo1 end ("high" or "low" index end) of dimension dim1, and joins u2 to u1 with simalar settings given in hilo2 and dim2.
+The ends of u1 and u2 that are not connected will use the boundary conditions bc1 and bc2 respectively.
+
+Use Q1 to extend u1 and Q2 to extend u2
 """
-struct BoundaryPaddedVector{T,T2 <: AbstractVector{T}} <: AbstractBoundaryPaddedArray{T, 1}
-    l::T
-    r::T
-    u::T2
-end
-
-
-Base.:*(Q::AffineBC, u::AbstractVector) = BoundaryPaddedVector(Q.a_l ⋅ u[1:length(Q.a_l)] + Q.b_l, Q.a_r ⋅ u[(end-length(Q.a_r)+1):end] + Q.b_r, u)
-Base.:*(Q::PeriodicBC, u::AbstractVector) = BoundaryPaddedVector(u[end], u[1], u)
-Base.size(Q::SingleLayerBC) = (Inf, Inf) #Is this nessecary?
-Base.length(Q::BoundaryPaddedVector) = length(Q.u) + 2
-Base.size(Q::BoundaryPaddedVector) = (length(Q),)
-Base.lastindex(Q::BoundaryPaddedVector) = Base.length(Q)
-gettype(Q::AbstractBC{T}) where T = T
-
-function Base.getindex(Q::BoundaryPaddedVector,i)
-    if i == 1
-        return Q.l
-    elseif i == length(Q)
-        return Q.r
+function BridgeBC(u1::AbstractArray{T,N}, dim1::Int, hilo1::String, bc1, u2::AbstractArray{T,N}, dim2::Int, hilo2::String, bc2) where {T,N}
+    @assert dim1 <= N
+    @assert dim2 <= N
+    s1 = perpsize(u1, dim1) #
+    s2 = perpsize(u2, dim2)
+    @assert s1 == s2
+    BC1 = Array{BridgeBC{T}}(undef, s1...)
+    BC2 = Array{BridgeBC{T}}(undef, s2...)
+    if N == 2
+        if hilo1 == "low"
+            view1 = selectdim(u1, dim1, 1)
+            if hilo2 == "low"
+                view2 = selectdim(u2, dim2, 1)
+                for i in 1:s1[1]
+                    BC1[i] = MixedBC(BridgeBC{T, N, eltype(s1)}(zeros(T, 1), view(view2, i), zeros(T, 1), view(view2, i)), bc1)
+                    BC2[i] = MixedBC(BridgeBC{T, N, eltype(s1)}(zeros(T, 1), view(view1, i), zeros(T, 1), view(view1, i)), bc2)
+                end
+            elseif hilo2 == "high"
+                view2 = selectdim(u2, dim2, size(u2)[dim2])
+                for i in 1:s1[1]
+                    BC1[i] = MixedBC(BridgeBC{T, N, eltype(s1)}(zeros(T, 1), view(view2, i), zeros(T, 1), view(view2, i)), bc1)
+                    BC2[i] = MixedBC(bc2, BridgeBC{T, N, eltype(s1)}(zeros(T, 1), view(view1, i), zeros(T, 1), view(view1, i)))
+                end
+            else
+                throw("hilo2 not recognized, please use \"high\" to connect u1 to u2 along the upper index of dim2 of u2 or \"low\" to connect along the lower index end")
+            end
+        elseif hilo1 == "high"
+            view1 = selectdim(u1, dim1, size(u1)[dim1])
+            if hilo2 == "low"
+                view2 = selectdim(u2, dim2, 1)
+                for i in 1:s1[1]
+                    BC1[i] = MixedBC(bc1, BridgeBC{T, N, eltype(s1)}(zeros(T, 1), view(view2, i), zeros(T, 1), view(view2, i)))
+                    BC2[i] = MixedBC(BridgeBC{T, N, eltype(s1)}(zeros(T, 1), view(view1, i), zeros(T, 1), view(view1, i)), bc2)
+                end
+            elseif hilo2 == "high"
+                view2 = selectdim(u2, dim2, size(u2)[dim2])
+                for i in 1:s1[1]
+                    BC1[i] = MixedBC(bc1, BridgeBC{T, N, eltype(s1)}(zeros(T, 1), view(view2, i), zeros(T, 1), view(view2, i)))
+                    BC2[i] = MixedBC(bc2, BridgeBC{T, N, eltype(s1)}(zeros(T, 1), view(view1, i), zeros(T, 1), view(view1, i)))
+                end
+            else
+                throw("hilo2 not recognized, please use \"high\" to connect u1 to u2 along the upper index of dim2 of u2 or \"low\" to connect along the lower index end")
+            end
+        else
+            throw("hilo1 not recognized, please use \"high\" to connect u1 to u2 along the upper index of dim1 of u1 or \"low\" to connect along the lower index end")
+        end
+        return (BC1, BC2)
+    elseif N ==3
+        if hilo1 == "low"
+            view1 = selectdim(u1, dim1, 1)
+            if hilo2 == "low"
+                view2 = selectdim(u2, dim2, 1)
+                for j in 1:s1[2], i in 1:s1[1]
+                    BC1[i, j] = MixedBC(BridgeBC{T, N, eltype(s1)}(zeros(T, 1), view(view2, i, j), zeros(T, 1), view(view2, i, j)), bc1)
+                    BC2[i, j] = MixedBC(BridgeBC{T, N, eltype(s1)}(zeros(T, 1), view(view1, i, j), zeros(T, 1), view(view1, i, j)), bc2)
+                end
+            elseif hilo2 == "high"
+                view2 = selectdim(u2, dim2, size(u2)[dim2])
+                for j in 1:s1[2], i in 1:s1[1]
+                    BC1[i, j] = MixedBC(BridgeBC{T, N, eltype(s1)}(zeros(T, 1), view(view2, i, j), zeros(T, 1), view(view2, i, j)), bc1)
+                    BC2[i, j] = MixedBC(bc2, BridgeBC{T, N, eltype(s1)}(zeros(T, 1), view(view1, i, j), zeros(T, 1), view(view1, i, j)))
+                end
+            else
+                throw("hilo2 not recognized, please use \"high\" to connect u1 to u2 along the upper index of dim2 of u2 or \"low\" to connect along the lower index end")
+            end
+        elseif hilo1 == "high"
+            view1 = selectdim(u1, dim1, size(u1)[dim1])
+            if hilo2 == "low"
+                view2 = selectdim(u2, dim2, 1)
+                for j in 1:s1[2], i in 1:s1[1]
+                    BC1[i, j] = MixedBC(bc1, BridgeBC{T, N, eltype(s1)}(zeros(T, 1), view(view2, i, j), zeros(T, 1), view(view2, i, j)))
+                    BC2[i, j] = MixedBC(BridgeBC{T, N, eltype(s1)}(zeros(T, 1), view(view1, i, j), zeros(T, 1), view(view1, i, j)), bc2)
+                end
+            elseif hilo2 == "high"
+                view2 = selectdim(u2, dim2, size(u2)[dim2])
+                for j in 1:s1[2], i in 1:s1[1]
+                    BC1[i, j] = MixedBC(bc1, BridgeBC{T, N, eltype(s1)}(zeros(T, 1), view(view2, i, j), zeros(T, 1), view(view2, i, j)))
+                    BC2[i, j] = MixedBC(bc2, BridgeBC{T, N, eltype(s1)}(zeros(T, 1), view(view1, i, j), zeros(T, 1), view(view1, i, j)))
+                end
+            else
+                throw("hilo2 not recognized, please use \"high\" to connect u1 to u2 along the upper index of dim2 of u2 or \"low\" to connect along the lower index end")
+            end
+        else
+            throw("hilo1 not recognized, please use \"high\" to connect u1 to u2 along the upper index of dim1 of u1 or \"low\" to connect along the lower index end")
+        end
+        return (BC1, BC2)
     else
-        return Q.u[i-1]
+        throw("This value of N is not supported.")
     end
 end
 
-function LinearAlgebra.Array(Q::AffineBC{T}, N::Int) where {T}
-    Q_L = [transpose(Q.a_l) transpose(zeros(T, N-length(Q.a_l))); Diagonal(ones(T,N)); transpose(zeros(T, N-length(Q.a_r))) transpose(Q.a_r)]
-    Q_b = [Q.b_l; zeros(T,N); Q.b_r]
-    return (Array(Q_L), Q_b)
-end
+Base.:*(Q::BridgeBC{T,I,N}, u::AbstractVector{T}) where {T, I, N} = BoundaryPaddedVector{T, typeof(u)}(Q.b_l[1], Q.b_r[1], u)
+Base.:*(Q::AffineBC, u::AbstractVector) = BoundaryPaddedVector(Q.a_l ⋅ u[1:length(Q.a_l)] + Q.b_l, Q.a_r ⋅ u[(end-length(Q.a_r)+1):end] + Q.b_r, u)
+Base.:*(Q::PeriodicBC, u::AbstractVector) = BoundaryPaddedVector(u[end], u[1], u)
 
-function SparseArrays.SparseMatrixCSC(Q::AffineBC{T}, N::Int) where {T}
-    Q_L = [transpose(Q.a_l) transpose(zeros(T, N-length(Q.a_l))); Diagonal(ones(T,N)); transpose(zeros(T, N-length(Q.a_r))) transpose(Q.a_r)]
-    Q_b = [Q.b_l; zeros(T,N); Q.b_r]
-    return (Q_L, Q_b)
-end
+Base.size(Q::AtomicBC) = (Inf, Inf) #Is this nessecary?
 
-function BandedMatrices.BandedMatrix(Q::AffineBC{T}, N::Int) where {T}
-    Q_l = BandedMatrix{T}(Eye(N), (length(Q.a_r)-1, length(Q.a_l)-1))
-    inbands_setindex!(Q_L, Q.a_l, 1, 1:length(Q.a_l))
-    inbands_setindex!(Q_L, Q.a_r, N, (N-length(Q.a_r)+1):N)
-    Q_b = [Q.b_l; zeros(T,N); Q.b_r]
-    return (Q_L, Q_b)
-end
+gettype(Q::AbstractBC{T}) where T = T
 
-function SparseArrays.sparse(Q::AffineBC{T}, N::Int) where {T}
-    SparseMatrixCSC(Q,N)
-end
-
-function LinearAlgebra.Array(Q::MixedBC{T}, N::Int) where {T}
-    Alow = Array(Q.lower, N)
-    Ahigh = Array(Q.upper, N)
-    Q_L = [Alow[1][1,:]; Diagonal(ones(T,N)); Ahigh[1][end,:]]
-    Q_b = [Alow[2][1]; zeros(T,N); Ahigh[2][end]]
-    return (Array(Q_L), Q_b)
-end
-
-function SparseArrays.SparseMatrixCSC(Q::MixedBC{T}, N::Int) where {T}
-    Alow = Array(Q.lower, N)
-    Ahigh = Array(Q.upper, N)
-    Q_L = [Alow[1][1,:]; Diagonal(ones(T,N)); Ahigh[1][end,:]]
-    Q_b = [Alow[2][1]; zeros(T,N); Ahigh[2][end]]
-    return (Q_L, Q_b)
-end
-
-function BandedMatrices.BandedMatrix(Q::MixedBC{T}, N::Int) where {T}
-    Alow = BandedMatrix(Q.lower, N)
-    Ahigh = BandedMatrix(Q.upper, N)
-    Q_L = BandedMatrix{T}(Eye(N), (bandwidth(Ahigh[1], 1), bandwidth(Alow[1], 2)))
-    Q_L[1,:] = Alow[1,:]
-    Q_L[end,:] = Ahigh[end, :]
-    Q_b = [Alow[2][1]; zeros(T,N); Ahigh[2][end]]
-    return (Q_L, Q_b)
-end
-LinearAlgebra.Array(Q::PeriodicBC{T}, N::Int) where T = (Array([transpose(zeros(T, N-1)) one(T); Diagonal(ones(T,N)); one(T) transpose(zeros(T, N-1))]), zeros(T, N))
-SparseArrays.SparseMatrixCSC(Q::PeriodicBC{T}, N::Int) where T = ([transpose(zeros(T, N-1)) one(T); Diagonal(ones(T,N)); one(T) transpose(zeros(T, N-1))], zeros(T, N))
-SparseArrays.sparse(Q::PeriodicBC{T}, N::Int) where T = SparseMatrixCSC(Q,N)
-function BandedMatrices.BandedMatrix(Q::PeriodicBC{T}, N::Int) where T #Not reccomended!
-    Q_array = BandedMatrix{T}(Eye(N), (N-1, N-1))
-    Q_array[1, end] = one(T)
-    Q_array[1, 1] = zero(T)
-    Q_array[end, 1] = one(T)
-    Q_array[end, end] = zero(T)
-
-    return (Q_array, zeros(T, N))
-end
-
-function LinearAlgebra.Array(Q::BoundaryPaddedVector)
-    return [Q.l; Q.u; Q.r]
-end
-
-function Base.convert(::Type{Array},A::AbstractBC{T}) where T
-    Array(A)
-end
-
-function Base.convert(::Type{SparseMatrixCSC},A::AbstractBC{T}) where T
-    SparseMatrixCSC(A)
-end
-
-function Base.convert(::Type{AbstractMatrix},A::AbstractBC{T}) where T
-    SparseMatrixCSC(A)
-end
 
 #######################################################################
 # Multidimensional
@@ -432,21 +432,6 @@ PeriodicBC{T}(s) where T = MultiDimBC(PeriodicBC{T}(), s)
 RobinBC(l::AbstractVector{T}, r::AbstractVector{T}, dxyz, order, s) where T = Tuple([MultiDimensionalSingleLayerBC{T, dim, length(s), length(s)-1}(fill(RobinBC(l, r, dxyz[dim], order), s[setdiff(1:length(s), dim)])) for dim in 1:length(s)])
 GeneralBC(αl::AbstractVector{T}, αr::AbstractVector{T}, dxyz, order, s) where T= Tuple([MultiDimensionalSingleLayerBC{T, dim, length(s), length(s)-1}(fill(GeneralBC(αl, αr, dxyz[dim], order), s[setdiff(1:length(s), dim)])) for dim in 1:length(s)])
 
-"""
-Higher dimensional generalization of BoundaryPaddedVector, pads an array of dimension N along the dimension D with 2 Arrays of dimension N-1, stored in lower and upper
-
-"""
-struct BoundaryPaddedArray{T<:Number, D, N, M, V<:AbstractArray{T, N}, B<: AbstractArray{T, M}} <: AbstractBoundaryPaddedArray{T,N}
-    lower::B #an array of dimension M = N-1, used to extend the lower index boundary
-    upper::B #Ditto for the upper index boundary
-    u::V
-end
-
-struct ComposedBoundaryPaddedArray{T<:Number, N, M, V<:AbstractArray{T, N}, B<: AbstractArray{T, M}} <: AbstractBoundaryPaddedArray{T, N}
-    lower::Vector{B}
-    upper::Vector{B}
-    u::V
-end
 
 """
 Q = compose(BCs...)
@@ -475,42 +460,6 @@ function compose(BCs...)
 end
 
 """
-A = compose(padded_arrays::BoundaryPaddedArray...)
-
--------------------------------------------------------------------------------------
-
-Example:
-A = compose(Ax, Ay, Az) # 3D domain
-A = compose(Ax, Ay) # 2D Domain
-
-Composes BoundaryPaddedArrays that extend the same u for each different dimension that u has in to a ComposedBoundaryPaddedArray
-
-Ax Ay and Az can be passed in any order, as long as there is exactly one BoundaryPaddedArray that extends each dimension.
-"""
-function compose(padded_arrays::BoundaryPaddedArray...)
-    N = ndims(padded_arrays[1])
-    Ds = getaxis.(padded_arrays)
-    (length(padded_arrays) == N) || throw("The padded_arrays must cover every dimension - make sure that the number of padded_arrays is equal to ndims(u).")
-    for D in Ds
-        length(setdiff(Ds, D)) == (N-1) || throw("There are multiple Arrays that extend along $D - make sure every dimension has a unique extension")
-    end
-    reduce((|), fill(padded_arrays[1].u, (length(padded_arrays),)) .== getfield.(padded_arrays, :u)) || throw("The padded_arrays do not all extend the same u!")
-    padded_arrays = padded_arrays[sortperm([Ds...])]
-    lower = [padded_array.lower for padded_array in padded_arrays]
-    upper = [padded_array.upper for padded_array in padded_arrays]
-
-    ComposedBoundaryPaddedArray{gettype(padded_arrays[1]),N,N-1,typeof(padded_arrays[1].u),typeof(lower[1])}(lower, upper, padded_arrays[1].u)
-end
-"""
-Ax, Ay,... = decompose(A::ComposedBoundaryPaddedArray)
-
--------------------------------------------------------------------------------------
-
-Decomposes a ComposedBoundaryPaddedArray in to components that extend along each dimension individually
-"""
-decompose(A::ComposedBoundaryPaddedArray) = Tuple([BoundaryPaddedArray{gettype(A), ndims(A), ndims(A)-1, typeof(lower[1])}(A.lower[i], A.upper[i], A.u) for i in 1:ndims(A)])
-
-"""
 Qx, Qy,... = decompose(Q::ComposedMultiDimBC{T,N,M})
 
 -------------------------------------------------------------------------------------
@@ -519,182 +468,9 @@ Decomposes a ComposedMultiDimBC in to components that extend along each dimensio
 """
 decompose(Q::ComposedMultiDimBC{T,N,M}) where {T,N,M} = Tuple([MultiDimBC(Q.BC[i], i) for i in 1:N])
 
-
-function LinearAlgebra.Array(Q::ComposedBoundaryPaddedArray{T,N,M,V,B}) where {T,N,M,V,B}
-    S = size(Q)
-    out = zeros(T, S...)
-    dimset = 1:N
-    uview = out
-    for dim in dimset
-        ulowview = selectdim(out, dim, 1)
-        uhighview = selectdim(out, dim, S[dim])
-        uview = selectdim(uview, dim, 2:(S[dim]-1))
-        for (index, otherdim) in enumerate(setdiff(dimset, dim))
-            ulowview = selectdim(ulowview, index, 2:(S[otherdim]-1))
-            uhighview = selectdim(uhighview, index, 2:(S[otherdim]-1))
-        end
-        ulowview .= Q.lower[dim]
-        uhighview .= Q.upper[dim]
-    end
-    uview .= Q.u
-    return out
-end
-
-function LinearAlgebra.Array(Q::BoundaryPaddedArray{T,D,N,M,V,B}) where {T,D,N,M,V,B}
-    S = size(Q)
-    out = zeros(T, S...)
-    dim = D
-    dimset = 1:N
-    ulowview = selectdim(out, dim, 1)
-    uhighview = selectdim(out, dim, S[dim])
-    uview = selectdim(out, dim, 2:(S[dim]-1))
-    ulowview .= Q.lower
-    uhighview .= Q.upper
-    uview .= Q.u
-    return out
-end
-
-AbstractBoundaryPaddedMatrix{T} = AbstractBoundaryPaddedArray{T,2}
-AbstractBoundaryPadded3Tensor{T} = AbstractBoundaryPaddedArray{T,3}
-
-BoundaryPaddedMatrix{T, D, V, B} = BoundaryPaddedArray{T, D, 2, 1, V, B}
-BoundaryPadded3Tensor{T, D, V, B} = BoundaryPaddedArray{T, D, 3, 2, V, B}
-
-ComposedBoundaryPaddedMatrix{T,V,B} = ComposedBoundaryPaddedArray{T,2,1,V,B}
-ComposedBoundaryPadded3Tensor{T,V,B} = ComposedBoundaryPaddedArray{T,3,2,V,B}
-
-
-function Base.size(Q::BoundaryPaddedArray)
-    S = [size(Q.u)...]
-    S[getaxis(Q)] += 2
-    return Tuple(S)
-end
-
-Base.length(Q::AbstractBoundaryPaddedArray) = reduce((*), size(Q))
-Base.lastindex(Q::AbstractBoundaryPaddedArray) = Base.length(Q)
-gettype(Q::AbstractBoundaryPaddedArray{T,N}) where {T,N} = T
-Base.ndims(Q::AbstractBoundaryPaddedArray{T,N}) where {T,N} = N
-getaxis(Q::BoundaryPaddedArray{T,D,N,M,V,B}) where {T,D,N,M,V,B} = D
 getaxis(Q::MultiDimensionalSingleLayerBC{T, D, N, K}) where {T, D, N, K} = D
-perpsize(A::AbstractArray{T,N}, dim::Integer) where {T,N} = size(A)[setdiff(1:N, dim)] #the size of A perpendicular to dim
-
-Base.size(Q::ComposedBoundaryPaddedArray) = size(Q.u).+2
 
 Base.ndims(Q::MultiDimensionalBC{T,N}) where {T,N} = N
-
-add_dim(A::AbstractArray, i) = reshape(A, size(A)...,i)
-add_dim(i) = i
-
-function experms(N::Integer, dim) # A function to correctly permute the dimensions of the padding arrays so that they can be concatanated with the rest of u in getindex(::BoundaryPaddedArray)
-    if dim == N
-        return Vector(1:N)
-    elseif dim < N
-        P = experms(N, dim+1)
-        P[dim], P[dim+1] = P[dim+1], P[dim]
-        return P
-    else
-        throw("Dim is greater than N!")
-    end
-end
-
-function Base.getindex(Q::BoundaryPaddedArray{T,D,N,M,V,B}, _inds...) where {T,D,N,M,V,B} #supports range and colon indexing!
-    inds = [_inds...]
-    S = size(Q)
-    dim = D
-    otherinds = inds[setdiff(1:N, dim)]
-    @assert length(S) == N
-    if inds[dim] == 1
-        return Q.lower[otherinds...]
-    elseif inds[dim] == S[dim]
-        return Q.upper[otherinds...]
-    elseif typeof(inds[dim]) <: Integer
-        inds[dim] = inds[dim] - 1
-        return Q.u[inds...]
-    elseif typeof(inds[dim]) == Colon
-        if mapreduce(x -> typeof(x) != Colon, (|), otherinds)
-            return vcat(Q.lower[otherinds...],  Q.u[inds...], Q.upper[otherinds...])
-        else
-            throw("A colon on the extended dim is as yet incompatible with additional colons")
-        end
-    elseif typeof(inds[dim]) <: AbstractArray
-        throw("Range indexing not yet supported!")
-    end
-end
-
-function Base.getindex(Q::ComposedBoundaryPaddedArray, inds...) #as yet no support for range indexing or colon indexing
-    S = size(Q)
-    T = gettype(Q)
-    N = ndims(Q)
-    @assert reduce((&), inds .<= S)
-    for (dim, index) in enumerate(inds)
-        if index == 1
-            _inds = inds[setdiff(1:N, dim)]
-            if (1 ∈ _inds) | reduce((|), S[setdiff(1:N, dim)] .== _inds)
-                return zero(T)
-            else
-                return Q.lower[dim][(_inds.-1)...]
-            end
-        elseif index == S[dim]
-            _inds = inds[setdiff(1:N, dim)]
-            if (1 ∈ _inds) | reduce((|), S[setdiff(1:N, dim)] .== _inds)
-                return zero(T)
-            else
-                return Q.upper[dim][(_inds.-1)...]
-            end
-        end
-     end
-    return Q.u[(inds.-1)...]
-end
-
-"""
-Returns a tuple, the first element of which is an array of the shape of the boundary,
-filled with the linear operator parts of the respective Atomic BCs.
-the second element is a simularly sized array of the affine parts.
-"""
-function LinearAlgebra.Array(Q::MultiDimensionalSingleLayerBC{T, D, N, K}, M) where {T,D,N,K}
-    bc_tuples = Array.(Q.BC, M)
-    Q_L = [bc_tuple[1] for bc_tuple in bc_tuples]
-    inds = Array(1:N)
-    inds[1], inds[D] = inds[D], inds[1]
-    Q_b = [permutedims(add_dims(bc_tuple[2], N-1), inds) for bc_tuple in bc_tuples]
-
-    return (Q_L, Q_b)
-end
-
-"""
-Returns a tuple, the first element of which is a sparse array of the shape of the boundary,
-filled with the linear operator parts of the respective Atomic BCs.
-the second element is a simularly sized array of the affine parts.
-"""
-function SparseArrays.SparseMatrixCSC(Q::MultiDimensionalSingleLayerBC{T, D, N, K}, M) where {T,D,N,K}
-    bc_tuples = sparse.(Q.BC, M)
-    Q_L = [bc_tuple[1] for bc_tuple in bc_tuples]
-    inds = Array(1:N)
-    inds[1], inds[D] = inds[D], inds[1]
-    Q_b = [permutedims(add_dims(bc_tuple[2], N-1), inds) for bc_tuple in bc_tuples]
-
-    return (Q_L, Q_b)
-end
-
-SparseArrays.sparse(Q::MultiDimensionalSingleLayerBC, N) = SparseMatrixCSC(Q, N)
-
-function BandedMatrices.BandedMatrix(Q::MultiDimensionalSingleLayerBC{T, D, N, K}, M) where {T,D,N,K}
-    bc_tuples = BandedMatrix.(Q.BC, M)
-    Q_L = [bc_tuple[1] for bc_tuple in bc_tuples]
-    inds = Array(1:N)
-    inds[1], inds[D] = inds[D], inds[1]
-    Q_b = [permutedims(add_dims(bc_tuple[2], N-1),inds) for bc_tuple in bc_tuples]
-
-    return (Q_L, Q_b)
-end
-
-"""
-Returns a Tuple of MultiDimensionalSingleLayerBC Array concretizations, one for each dimension
-"""
-LinearAlgebra.Array(Q::ComposedMultiDimBC, Ns) = Tuple(Array.(Q.BCs, Ns))
-SparseArrays.SparseMatrixCSC(Q::ComposedMultiDimBC, Ns...) = Tuple(sparse.(Q.BCs, Ns))
-SparseArrays.sparse(Q::ComposedMultiDimBC, Ns) = SparseMatrixCSC(Q, Ns)
-BandedMatrices.BandedMatrix(Q::ComposedMultiDimBC, Ns) = Tuple(BandedMatrix.(Q.BCs, Ns))
 
 function Base.:*(Q::MultiDimensionalSingleLayerBC{T, D, N, K}, u::AbstractArray{T, N}) where {T, D, N, K}
     lower, upper = slicemul(Q.BC, u, D)
@@ -704,8 +480,4 @@ end
 function Base.:*(Q::ComposedMultiDimBC{T, N, K}, u::AbstractArray{T, N}) where {T, N, K}
     out = slicemul.(Q.BCs, fill(u, N), 1:N)
     return ComposedBoundaryPaddedArray{T, N, K, typeof(u), typeof(out[1][1])}([A[1] for A in out], [A[2] for A in out], u)
-end
-
-function LinearAlgebra.mul!(u_temp::AbstractArray{T,N}, Q::MultiDimensionalSingleLayerBC{T, D, N, K}, u::AbstractArray{T, N}) where {T,D,N,K}
-    u_temp = Array(Q*u)
 end
