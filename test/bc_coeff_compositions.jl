@@ -18,7 +18,7 @@ end
 function second_deriv_fourth_approx_stencil(N)
     A = zeros(N,N+2)
     A[1,1:6] = [5/6 -15/12 -1/3 7/6 -6/12 5/60]
-    A[N,N-3:end] = [1/12 -6/12 14/12 -4/12 -6/12 10/12]
+    A[N,N-3:end] = [1/12 -6/12 14/12 -4/12 -15/12 10/12]
     for i in 2:N-1
         A[i,i-1:i+3] = [-1/12 4/3 -5/2 4/3 -1/12]
     end
