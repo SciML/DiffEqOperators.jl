@@ -27,7 +27,7 @@ function CenteredDifference{N}(derivative_order::Int,
     left_boundary_x         = 0:(boundary_stencil_length-1)
     right_boundary_x        = reverse(-boundary_stencil_length+1:0)
 
-    boundary_point_count    = div(stencil_length,2) - 1 # -1 due to the ghost point
+    boundary_point_count    = max(1, div(stencil_length,2) - 1) # -1 due to the ghost point
     # Because it's a N x (N+2) operator, the last stencil on the sides are the [b,0,x,x,x,x] stencils, not the [0,x,x,x,x,x] stencils, since we're never solving for the derivative at the boundary point.
     deriv_spots             = (-div(stencil_length,2)+1) : -1
     L_boundary_deriv_spots  = left_boundary_x[2:div(stencil_length,2)]
@@ -60,7 +60,7 @@ function CenteredDifference{N}(derivative_order::Int,
     stencil_length          = derivative_order + approximation_order - 1 + (derivative_order+approximation_order)%2
     boundary_stencil_length = derivative_order + approximation_order
     stencil_x               = zeros(T, stencil_length)
-    boundary_point_count    = div(stencil_length,2) - 1 # -1 due to the ghost point
+    boundary_point_count    = max(1, div(stencil_length,2) - 1) # -1 due to the ghost point
 
     interior_x              = boundary_point_count+2:len+1-boundary_point_count
     dummy_x                 = -div(stencil_length,2) : div(stencil_length,2)-1
@@ -112,7 +112,7 @@ function UpwindDifference{N}(derivative_order::Int,
     boundary_stencil_length = derivative_order + approximation_order
     dummy_x                 = -div(stencil_length,2) : div(stencil_length,2)
     boundary_x              = -boundary_stencil_length+1:0
-    boundary_point_count    = div(stencil_length,2) - 1 # -1 due to the ghost point
+    boundary_point_count    = max(1, div(stencil_length,2) - 1) # -1 due to the ghost point
     # Because it's a N x (N+2) operator, the last stencil on the sides are the [b,0,x,x,x,x] stencils, not the [0,x,x,x,x,x] stencils, since we're never solving for the derivative at the boundary point.
     deriv_spots             = (-div(stencil_length,2)+1) : -1
     boundary_deriv_spots    = boundary_x[2:div(stencil_length,2)]
@@ -144,7 +144,7 @@ function UpwindDifference{N}(derivative_order::Int,
     boundary_stencil_length = derivative_order + approximation_order
     dummy_x                 = -div(stencil_length,2) : div(stencil_length,2)
     boundary_x              = -boundary_stencil_length+1:0
-    boundary_point_count    = div(stencil_length,2) - 1 # -1 due to the ghost point
+    boundary_point_count    = max(div(stencil_length,2) - 1) # -1 due to the ghost point
     # Because it's a N x (N+2) operator, the last stencil on the sides are the [b,0,x,x,x,x] stencils, not the [0,x,x,x,x,x] stencils, since we're never solving for the derivative at the boundary point.
     deriv_spots             = (-div(stencil_length,2)+1) : -1
     boundary_deriv_spots    = boundary_x[2:div(stencil_length,2)]
