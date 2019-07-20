@@ -43,14 +43,19 @@ end
 function convolve_BC_right!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::DerivativeOperator) where {T<:Real}
     stencil = A.high_boundary_coefs
     coeff   = A.coefficients
+    N       = length(x)
+    L       = length(stencil[1])
     for i in 1 : A.boundary_point_count
         cur_stencil = stencil[i]
         cur_coeff   = typeof(coeff)   <: AbstractVector ? coeff[i] : coeff isa Number ? coeff : true
         cur_stencil = use_winding(A) && cur_coeff < 0 ? reverse(cur_stencil) : cur_stencil
-        xtempi = cur_coeff*stencil[i][end]*x[end]
-        for idx in (A.boundary_stencil_length-1):-1:1
-            xtempi += cur_coeff * cur_stencil[end-idx] * x[end-idx]
+        # cs = cur_stencil*(A.dx^A.derivative_order)
+        xtempi = zero(T)
+        for idx in 1:(A.boundary_stencil_length)
+            # @show idx, N-L+idx, cs[idx], x[N-L+idx]
+            xtempi += cur_coeff * cur_stencil[idx] * x[N-L+idx]
         end
+        # @show xtempi*(1/(A.dx^A.derivative_order))
         x_temp[end-A.boundary_point_count+i] = xtempi
     end
 end
@@ -112,6 +117,7 @@ function convolve_BC_right!(x_temp::AbstractVector{T}, _x::BoundaryPaddedVector,
     mid = div(A.stencil_length,2) + 1
     x = _x.u
     i = length(x_temp)-A.boundary_point_count
+    L = A.boundary_stencil_length
     xtempi = zero(T)
     cur_stencil = eltype(A.stencil_coefs) <: AbstractVector ? A.stencil_coefs[i-A.boundary_point_count] : A.stencil_coefs
     cur_coeff   = typeof(coeff)   <: AbstractVector ? coeff[i-A.boundary_point_count] : coeff isa Number ? coeff : true
@@ -126,9 +132,11 @@ function convolve_BC_right!(x_temp::AbstractVector{T}, _x::BoundaryPaddedVector,
         cur_coeff   = typeof(coeff)   <: AbstractVector ? coeff[bc_start + i] : coeff isa Number ? coeff : true
         xtempi = cur_coeff*cur_stencil[end]*_x.r
         cur_stencil = use_winding(A) && cur_coeff < 0 ? reverse(cur_stencil) : cur_stencil
-        @inbounds for idx in A.stencil_length:-1:1
-            xtempi += cur_coeff * cur_stencil[end-idx] * _x.u[end-idx+1]
+
+        @inbounds for idx in 1:A.boundary_stencil_length-1
+            xtempi += cur_coeff * cur_stencil[idx] * _x.u[end-L+idx+1]
         end
+
         x_temp[bc_start + i] = xtempi
     end
 end
