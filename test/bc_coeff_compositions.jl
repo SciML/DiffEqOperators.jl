@@ -34,6 +34,7 @@ function second_derivative_stencil(N)
   A
 end
 
+
 @testset "Test Constructor, Multiplication, and Concretization" begin
     # Generate random parameters
     al = rand()
