@@ -38,21 +38,24 @@ function convolve_BC_left!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::D
 
     _bpc = A.boundary_point_count
 
-    if cur_stencil == []
+    if stencil == []
         _bpc = A.boundary_point_count + 1
     end
 
     for i in 1 : _bpc
         if _bpc == 1
             cur_stencil = A.stencil_coefs
+            slen = length(A.stencil_coefs)
         else
+            @show _bpc
             cur_stencil = stencil[i]
+            slen = length(cur_stencil)
         end
 
         cur_coeff   = typeof(coeff)   <: AbstractVector ? coeff[i] : coeff isa Number ? coeff : true
         cur_stencil = use_winding(A) && cur_coeff < 0 ? reverse(cur_stencil) : cur_stencil
-        xtempi = cur_coeff*stencil[i][1]*x[1]
-        for idx in 2:A.boundary_stencil_length
+        xtempi = cur_coeff*cur_stencil[1]*x[1]
+        for idx in 2:slen
             xtempi += cur_coeff * cur_stencil[idx] * x[idx]
         end
         x_temp[i] = xtempi
@@ -67,26 +70,30 @@ function convolve_BC_right!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::
 
     _bpc = A.boundary_point_count
 
-    if cur_stencil == []
+    if stencil == []
         _bpc = 1
     end
 
     for i in 1 : _bpc
         if _bpc == 1
             cur_stencil = A.stencil_coefs
+            slen = length(A.stencil_coefs)
+            L = A.stencil_length
         else
             cur_stencil = stencil[i]
+            slen = length(cur_stencil)
         end
 
         cur_coeff   = typeof(coeff)   <: AbstractVector ? coeff[i] : coeff isa Number ? coeff : true
         cur_stencil = use_winding(A) && cur_coeff < 0 ? reverse(cur_stencil) : cur_stencil
         # cs = cur_stencil*(A.dx^A.derivative_order)
         xtempi = zero(T)
-        for idx in 1:(A.boundary_stencil_length)
+        for idx in 1:slen
             # @show idx, N-L+idx, cs[idx], x[N-L+idx]
             xtempi += cur_coeff * cur_stencil[idx] * x[N-L+idx]
         end
         # @show xtempi*(1/(A.dx^A.derivative_order))
+        # @show N-_bpc+i
         x_temp[end-A.boundary_point_count+i] = xtempi
     end
 end
@@ -126,15 +133,17 @@ function convolve_BC_left!(x_temp::AbstractVector{T}, _x::BoundaryPaddedVector, 
 
     _bpc = A.boundary_point_count
 
-    if cur_stencil == []
+    if stencil == []
         _bpc = 1
     end
 
     for i in 1 : _bpc
         if _bpc == 1
             cur_stencil = A.stencil_coefs
+            slen = length(A.stencil_coefs)
         else
             cur_stencil = stencil[i]
+            slen = length(cur_stencil)
         end
 
         cur_coeff   = typeof(coeff)   <: AbstractVector ? coeff[i] : coeff isa Number ? coeff : true
@@ -142,7 +151,7 @@ function convolve_BC_left!(x_temp::AbstractVector{T}, _x::BoundaryPaddedVector, 
 
         # need to account for x.l in first interior
         xtempi = cur_coeff*cur_stencil[1]*_x.l
-        @inbounds for idx in 2:A.boundary_stencil_length
+        @inbounds for idx in 2:slen
             xtempi += cur_coeff * cur_stencil[idx] * _x.u[idx-1]
         end
         x_temp[i] = xtempi
@@ -176,26 +185,30 @@ function convolve_BC_right!(x_temp::AbstractVector{T}, _x::BoundaryPaddedVector,
     i = length(x_temp)-A.boundary_point_count
     L = A.boundary_stencil_length
 
-    bc_start = N - bpc + 1
 
     _bpc = A.boundary_point_count
 
-    if cur_stencil == []
+    if stencil == []
         _bpc = 1
+        L = A.stencil_length
     end
+    
+    bc_start = N - A.boundary_point_count + 1
 
     for i in 1 : _bpc
         if _bpc == 1
             cur_stencil = A.stencil_coefs
+            slen = length(A.stencil_coefs)
         else
             cur_stencil = stencil[i]
+            slen = length(cur_stencil)
         end
 
         cur_coeff   = typeof(coeff)   <: AbstractVector ? coeff[bc_start + i] : coeff isa Number ? coeff : true
         xtempi = cur_coeff*cur_stencil[end]*_x.r
         cur_stencil = use_winding(A) && cur_coeff < 0 ? reverse(cur_stencil) : cur_stencil
 
-        @inbounds for idx in A.stencil_length:-1:1
+        @inbounds for idx in slen-1:-1:1
             # @show idx, N-L+idx, cs[idx], x[N-L+idx]
             xtempi += cur_coeff * cur_stencil[end-idx] * _x.u[end-idx+1]
         end
