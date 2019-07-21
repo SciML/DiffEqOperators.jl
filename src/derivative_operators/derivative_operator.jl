@@ -60,7 +60,7 @@ function CenteredDifference{N}(derivative_order::Int,
     stencil_length          = derivative_order + approximation_order - 1 + (derivative_order+approximation_order)%2
     boundary_stencil_length = derivative_order + approximation_order
     stencil_x               = zeros(T, stencil_length)
-    boundary_point_count    = div(stencil_length,2) - 1 # -1 due to the ghost point
+    boundary_point_count    = div(stencil_length,2) - 1# -1 due to the ghost point
 
     interior_x              = boundary_point_count+2:len+1-boundary_point_count
     dummy_x                 = -div(stencil_length,2) : div(stencil_length,2)-1
