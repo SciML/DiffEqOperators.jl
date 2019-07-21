@@ -47,7 +47,6 @@ function convolve_BC_left!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::D
             cur_stencil = A.stencil_coefs
             slen = length(A.stencil_coefs)
         else
-            @show _bpc
             cur_stencil = stencil[i]
             slen = length(cur_stencil)
         end
@@ -93,8 +92,7 @@ function convolve_BC_right!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::
             xtempi += cur_coeff * cur_stencil[idx] * x[N-L+idx]
         end
         # @show xtempi*(1/(A.dx^A.derivative_order))
-        # @show N-_bpc+i
-        x_temp[end-A.boundary_point_count+i] = xtempi
+        x_temp[end-_bpc+i] = xtempi
     end
 end
 
@@ -193,7 +191,7 @@ function convolve_BC_right!(x_temp::AbstractVector{T}, _x::BoundaryPaddedVector,
         L = A.stencil_length
     end
     
-    bc_start = N - A.boundary_point_count + 1
+    bc_start = N - _bpc + 1
 
     for i in 1 : _bpc
         if _bpc == 1
