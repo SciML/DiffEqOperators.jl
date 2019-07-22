@@ -501,6 +501,7 @@ end
 
     N = 100
     dx = 0.25
+    dx_vec = 0.25:0.25:(N+2)*0.25
     dy = cumsum(rand(N+2))
     M = zeros(N+2,N+2)
 
@@ -542,12 +543,30 @@ end
     mul!(M_temp, A, M)
     @test M_temp ≈ ((Lx2*M)[1:N,2:N+1]+(Lx3*M)[1:N,2:N+1]+(Lx4*M)[1:N,2:N+1]+(Ly2*M)[2:N+1,1:N]+(Ly3*M)[2:N+1,1:N]+(Ly4*M)[2:N+1,1:N])
 
+    # Last case where we now have some `irregular-grid` operators operating on the
+    # regular-spaced axis x
+
+    # These operators are operating on the regular grid x, but are constructed as though
+    # they were irregular grid operators. Hence we test if we can seperate irregular and
+    # regular gird operators on the same axis
+    # Lx2 has 0 boundary points
+    _Lx2 = 4.532*CenteredDifference{1}(2,2,dx_vec,N)
+    # Lx3 has 1 boundary point
+    _Lx3 = 0.235*CenteredDifference{1}(3,3,dx_vec,N)
+    # Lx4 has 2 boundary points
+    _Lx4 = CenteredDifference{1}(4,4,dx_vec,N)
+
+    A += _Lx2 + _Lx3 + _Lx4
+    mul!(M_temp, A, M)
+    @test M_temp ≈ ((_Lx2*M)[1:N,2:N+1]+(_Lx3*M)[1:N,2:N+1]+(_Lx4*M)[1:N,2:N+1]+(Lx2*M)[1:N,2:N+1]+(Lx3*M)[1:N,2:N+1]+(Lx4*M)[1:N,2:N+1]+(Ly2*M)[2:N+1,1:N]+(Ly3*M)[2:N+1,1:N]+(Ly4*M)[2:N+1,1:N])
+
 end
 
 @testset "irregular x grid and regular y grid (dy = 0.25)" begin
 
     N = 100
     dy = 0.25
+    dy_vec = 0.25:0.25:(N+2)*0.25
     dx = cumsum(rand(N+2))
     M = zeros(N+2,N+2)
 
@@ -588,5 +607,22 @@ end
     M_temp = zeros(N,N)
     mul!(M_temp, A, M)
     @test M_temp ≈ ((Lx2*M)[1:N,2:N+1]+(Lx3*M)[1:N,2:N+1]+(Lx4*M)[1:N,2:N+1]+(Ly2*M)[2:N+1,1:N]+(Ly3*M)[2:N+1,1:N]+(Ly4*M)[2:N+1,1:N])
+
+    # Last case where we now have some `irregular-grid` operators operating on the
+    # regular-spaced axis y
+
+    # These operators are operating on the regular grid y, but are constructed as though
+    # they were irregular grid operators. Hence we test if we can seperate irregular and
+    # regular gird operators on the same axis
+    # Ly2 has 0 boundary points
+    _Ly2 = CenteredDifference{2}(2,2,dy_vec,N)
+    # Ly3 has 1 boundary point
+    _Ly3 = CenteredDifference{2}(3,3,dy_vec,N)
+    # Ly4 has 2 boundary points
+    _Ly4 = 12.1*CenteredDifference{2}(4,4,dy_vec,N)
+
+    A += _Ly2 + _Ly3 + _Ly4
+    mul!(M_temp, A, M)
+    @test M_temp ≈ ((Lx2*M)[1:N,2:N+1]+(Lx3*M)[1:N,2:N+1]+(Lx4*M)[1:N,2:N+1]+(Ly2*M)[2:N+1,1:N]+(Ly3*M)[2:N+1,1:N]+(Ly4*M)[2:N+1,1:N]+(_Ly2*M)[2:N+1,1:N]+(_Ly3*M)[2:N+1,1:N]+(_Ly4*M)[2:N+1,1:N])
 
 end
