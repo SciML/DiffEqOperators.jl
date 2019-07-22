@@ -166,6 +166,8 @@ function LinearAlgebra.mul!(x_temp::AbstractArray{T,2}, A::AbstractDiffEqComposi
         pad = zeros(Int64, ndimsM)
 
         # compute dimensions of interior kernel W
+        # Here we still use A.ops since the other dimensions may indicate that
+        # we have more padding to account for
         for L in A.ops
             axis = typeof(L).parameters[2]
             @assert axis <= ndimsM
@@ -179,7 +181,7 @@ function LinearAlgebra.mul!(x_temp::AbstractArray{T,2}, A::AbstractDiffEqComposi
         idx = div.(Wdims,2).+1
 
         # add to kernel each stencil
-        for L in A.ops
+        for L in opsA
             s = L.stencil_coefs
             sl = L.stencil_length
             axis = typeof(L).parameters[2]
@@ -212,8 +214,8 @@ function LinearAlgebra.mul!(x_temp::AbstractArray{T,2}, A::AbstractDiffEqComposi
             ops_1_max_bpc_idx = [0]
             ops_2 = Int64[]
             ops_2_max_bpc_idx = [0]
-            for i in 1:length(A.ops)
-                L = A.ops[i]
+            for i in 1:length(opsA)
+                L = opsA[i]
                 if typeof(L).parameters[2] == 1
                     push!(ops_1,i)
                     if L.boundary_point_count == pad[1]
@@ -241,20 +243,20 @@ function LinearAlgebra.mul!(x_temp::AbstractArray{T,2}, A::AbstractDiffEqComposi
             # convolve boundaries and unaccounted for interior in axis 1
             if length(ops_1) > 0
                 for i in 1:size(x_temp)[2]
-                    convolve_BC_left!(view(x_temp,:,i), view(M,:,i+offset_x), A.ops[ops_1_max_bpc_idx...])
-                    convolve_BC_right!(view(x_temp,:,i), view(M,:,i+offset_x), A.ops[ops_1_max_bpc_idx...])
+                    convolve_BC_left!(view(x_temp,:,i), view(M,:,i+offset_x), opsA[ops_1_max_bpc_idx...])
+                    convolve_BC_right!(view(x_temp,:,i), view(M,:,i+offset_x), opsA[ops_1_max_bpc_idx...])
                     if i <= pad[2] || i > size(x_temp)[2]-pad[2]
-                        convolve_interior!(view(x_temp,:,i), view(M,:,i+offset_x), A.ops[ops_1_max_bpc_idx...])
+                        convolve_interior!(view(x_temp,:,i), view(M,:,i+offset_x), opsA[ops_1_max_bpc_idx...])
                     end
 
                     for Lidx in ops_1
                         if Lidx != ops_1_max_bpc_idx[1]
-                            convolve_BC_left_add!(view(x_temp,:,i), view(M,:,i+offset_x), A.ops[Lidx])
-                            convolve_BC_right_add!(view(x_temp,:,i), view(M,:,i+offset_x), A.ops[Lidx])
+                            convolve_BC_left_add!(view(x_temp,:,i), view(M,:,i+offset_x), opsA[Lidx])
+                            convolve_BC_right_add!(view(x_temp,:,i), view(M,:,i+offset_x), opsA[Lidx])
                             if i <= pad[2] || i > size(x_temp)[2]-pad[2]
-                                convolve_interior_add!(view(x_temp,:,i), view(M,:,i+offset_x), A.ops[Lidx])
-                            elseif pad[1] - A.ops[Lidx].boundary_point_count > 0
-                                convolve_interior_add_range!(view(x_temp,:,i), view(M,:,i+offset_x), A.ops[Lidx], pad[1] - A.ops[Lidx].boundary_point_count)
+                                convolve_interior_add!(view(x_temp,:,i), view(M,:,i+offset_x), opsA[Lidx])
+                            elseif pad[1] - opsA[Lidx].boundary_point_count > 0
+                                convolve_interior_add_range!(view(x_temp,:,i), view(M,:,i+offset_x), opsA[Lidx], pad[1] - opsA[Lidx].boundary_point_count)
                             end
                         end
                     end
@@ -265,36 +267,67 @@ function LinearAlgebra.mul!(x_temp::AbstractArray{T,2}, A::AbstractDiffEqComposi
                 for i in 1:size(x_temp)[1]
                     # in the case of no axis 1 operators, we need to over x_temp
                     if length(ops_1) == 0
-                        convolve_BC_left!(view(x_temp,i,:), view(M,i+offset_y,:), A.ops[ops_2_max_bpc_idx...])
-                        convolve_BC_right!(view(x_temp,i,:), view(M,i+offset_y,:), A.ops[ops_2_max_bpc_idx...])
+                        convolve_BC_left!(view(x_temp,i,:), view(M,i+offset_y,:), opsA[ops_2_max_bpc_idx...])
+                        convolve_BC_right!(view(x_temp,i,:), view(M,i+offset_y,:), opsA[ops_2_max_bpc_idx...])
                         if i <= pad[1] || i > size(x_temp)[1]-pad[1]
-                            convolve_interior!(view(x_temp,i,:), view(M,i+offset_y,:), A.ops[ops_2_max_bpc_idx...])
+                            convolve_interior!(view(x_temp,i,:), view(M,i+offset_y,:), opsA[ops_2_max_bpc_idx...])
                         end
                         #scale by dx
                         # fix here as well
                     else
-                        convolve_BC_left_add!(view(x_temp,i,:), view(M,i+offset_y,:), A.ops[ops_2_max_bpc_idx...])
-                        convolve_BC_right_add!(view(x_temp,i,:), view(M,i+offset_y,:), A.ops[ops_2_max_bpc_idx...])
+                        convolve_BC_left_add!(view(x_temp,i,:), view(M,i+offset_y,:), opsA[ops_2_max_bpc_idx...])
+                        convolve_BC_right_add!(view(x_temp,i,:), view(M,i+offset_y,:), opsA[ops_2_max_bpc_idx...])
                         if i <= pad[1] || i > size(x_temp)[1]-pad[1]
-                            convolve_interior_add!(view(x_temp,i,:), view(M,i+offset_y,:), A.ops[ops_2_max_bpc_idx...])
+                            convolve_interior_add!(view(x_temp,i,:), view(M,i+offset_y,:), opsA[ops_2_max_bpc_idx...])
                         end
                         #scale by dx
                         # fix here as well
                     end
                     for Lidx in ops_2
                         if Lidx != ops_2_max_bpc_idx[1]
-                            convolve_BC_left_add!(view(x_temp,i,:), view(M,i+offset_y,:), A.ops[Lidx])
-                            convolve_BC_right_add!(view(x_temp,i,:), view(M,i+offset_y,:), A.ops[Lidx])
+                            convolve_BC_left_add!(view(x_temp,i,:), view(M,i+offset_y,:), opsA[Lidx])
+                            convolve_BC_right_add!(view(x_temp,i,:), view(M,i+offset_y,:), opsA[Lidx])
                             if i <= pad[1] || i > size(x_temp)[1]-pad[1]
-                                convolve_interior_add!(view(x_temp,i,:), view(M,i+offset_y,:), A.ops[Lidx])
-                            elseif pad[2] - A.ops[Lidx].boundary_point_count > 0
-                                convolve_interior_add_range!(view(x_temp,i,:), view(M,i+offset_y,:), A.ops[Lidx], pad[2] - A.ops[Lidx].boundary_point_count)
+                                convolve_interior_add!(view(x_temp,i,:), view(M,i+offset_y,:), opsA[Lidx])
+                            elseif pad[2] - opsA[Lidx].boundary_point_count > 0
+                                convolve_interior_add_range!(view(x_temp,i,:), view(M,i+offset_y,:), opsA[Lidx], pad[2] - opsA[Lidx].boundary_point_count)
                             end
                         end
                     end
                 end
             end
         end
+        #operating_dims
+        operating_dims = zeros(Int64,2)
+        # need to consider all dimensions and operators to determine the truncation
+        # of M to x_temp
+        for L in A.ops
+            if diff_axis(L) == 1
+                operating_dims[1] = 1
+            else
+                operating_dims[2] = 1
+            end
+        end
+
+        x_temp_1, x_temp_2 = size(x_temp)
+
+        for L in opsB
+            N = diff_axis(L)
+            if N == 1
+                if operating_dims[2] == 1
+                    mul_add!(x_temp,L,view(M,1:x_temp_1+2,1:x_temp_2))
+                else
+                    mul_add!(x_temp,L,M)
+                end
+            else
+                if operating_dims[1] == 1
+                    mul_add!(x_temp,L,view(M,1:x_temp_1,1:x_temp_2+2))
+                else
+                    mul_add!(x_temp,L,M)
+                end
+            end
+        end
+
     # Call everything A.ops using fallback
     else
         #operating_dims
@@ -309,7 +342,7 @@ function LinearAlgebra.mul!(x_temp::AbstractArray{T,2}, A::AbstractDiffEqComposi
 
         x_temp_1, x_temp_2 = size(x_temp)
 
-        # Handle first case additively
+        # Handle first case non-additively
         N = diff_axis(A.ops[1])
         if N == 1
             if operating_dims[2] == 1

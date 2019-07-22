@@ -539,8 +539,8 @@ end
     # Test that composition of both x and y operators works
     A = Lx2 + Ly2 + Lx3 + Ly3 + Ly4 + Lx4
     M_temp = zeros(N,N)
-    @test_broken mul!(M_temp, A, M)
-    @test_broken M_temp ≈ ((Lx2*M)[1:N,2:N+1]+(Lx3*M)[1:N,2:N+1]+(Lx4*M)[1:N,2:N+1]+(Ly2*M)[2:N+1,1:N]+(Ly3*M)[2:N+1,1:N]+(Ly4*M)[2:N+1,1:N])
+    mul!(M_temp, A, M)
+    @test M_temp ≈ ((Lx2*M)[1:N,2:N+1]+(Lx3*M)[1:N,2:N+1]+(Lx4*M)[1:N,2:N+1]+(Ly2*M)[2:N+1,1:N]+(Ly3*M)[2:N+1,1:N]+(Ly4*M)[2:N+1,1:N])
 
 end
 
@@ -586,7 +586,7 @@ end
     # Test that composition of both x and y operators works
     A = Lx2 + Ly2 + Lx3 + Ly3 + Ly4 + Lx4
     M_temp = zeros(N,N)
-    @test_broken mul!(M_temp, A, M)
-    @test_broken M_temp ≈ ((Lx2*M)[1:N,2:N+1]+(Lx3*M)[1:N,2:N+1]+(Lx4*M)[1:N,2:N+1]+(Ly2*M)[2:N+1,1:N]+(Ly3*M)[2:N+1,1:N]+(Ly4*M)[2:N+1,1:N])
+    mul!(M_temp, A, M)
+    @test M_temp ≈ ((Lx2*M)[1:N,2:N+1]+(Lx3*M)[1:N,2:N+1]+(Lx4*M)[1:N,2:N+1]+(Ly2*M)[2:N+1,1:N]+(Ly3*M)[2:N+1,1:N]+(Ly4*M)[2:N+1,1:N])
 
 end
