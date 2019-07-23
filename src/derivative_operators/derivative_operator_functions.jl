@@ -107,6 +107,7 @@ function *(c::Number, A::DerivativeOperator{T,N,Wind}) where {T,N,Wind}
         A.high_boundary_coefs,coefficients,A.coeff_func)
 end
 
+# Inplace left division
 function LinearAlgebra.ldiv!(M_temp::AbstractArray{T,MT}, A::DerivativeOperator{T,N}, M::AbstractArray{T,MT}) where {T<:Real, N, MT}
 
     # The case where M is a vector or matrix and A is differentiating along the first dimension
@@ -144,10 +145,41 @@ function LinearAlgebra.ldiv!(M_temp::AbstractArray{T,MT}, A::DerivativeOperator{
     end
 end
 
+# Non-inplace left division.
 function \(A::DerivativeOperator{T,N}, M::AbstractArray{T,MT}) where {T<:Real, N,MT}
-    M_temp_shape = [size(M)...]
-    M_temp_shape[N] += 2
-    M_temp = zeros(M_temp_shape...)
-    ldiv!(M_temp, A, M)
-    return M_temp
+    # The case where M is a vector or matrix and A is differentiating along the first dimension
+    if N == 1 && MT <= 2
+        sparse(A) \ M
+
+    # The case where M is differentiating along an arbitrary dimension
+    else
+        Mshape = size(M)
+
+        # Case where the first dimension is not being differentiated
+        if N != 1
+
+            # Compute the high dimensional concretization B of A
+
+            B = sparse(I, Mshape[1],Mshape[1])
+            for i in length(Mshape)-1:-1:1
+                if N != length(Mshape) - i + 1
+                    B = Kron(sparse(I,Mshape[i],Mshape[i]),B)
+                else
+                    B = Kron(sparse(A),B)
+                end
+            end
+
+        # Case where the first dimension is being differentiated
+        else
+            B = sparse(A)
+            for i in len(Mshape)-1:1
+                B = Kron(sparse(I,Mshape[i],Mshape[i]),B)
+            end
+        end
+
+        # compute ldiv!
+        new_shape = [size(M)...]
+        new_shape[N] += 2
+        return reshape(sparse(B)\vec(M), new_shape...)
+    end
 end
