@@ -40,7 +40,6 @@ function second_derivative_stencil(N)
   A
 end
 
-# Broken?
 function convert_by_multiplication(::Type{Array}, A::AbstractDerivativeOperator{T}, N::Int=A.dimension) where T
     @assert N >= A.stencil_length # stencil must be able to fit in the matrix
     mat = zeros(T, (N, N+2))
