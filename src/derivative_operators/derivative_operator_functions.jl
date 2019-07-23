@@ -1,4 +1,4 @@
-function LinearAlgebra.mul!(x_temp::AbstractArray{T}, A::DerivativeOperator{T,N}, M::AbstractArray{T}) where {T<:Real,N}
+function LinearAlgebra.mul!(x_temp::AbstractArray{T}, A::DerivativeOperator{T,N}, M::AbstractArray{T}) where {T,N}
 
     # Check that x_temp has correct dimensions
     v = zeros(ndims(x_temp))
@@ -27,8 +27,8 @@ end
 
 for MT in [2,3]
     @eval begin
-        function LinearAlgebra.mul!(x_temp::AbstractArray{T,$MT}, A::DerivativeOperator{T,N,false,T2,S1}, M::AbstractArray{T,$MT}) where {T<:Real,N,T2,SL,S1<:SArray{Tuple{SL},T,1,SL}}
-
+        function LinearAlgebra.mul!(x_temp::AbstractArray{T,$MT}, A::DerivativeOperator{T,N,false,T2,S1,S2,T3}, M::AbstractArray{T,$MT}) where
+                                                                            {T,N,T2,SL,S1<:SArray{Tuple{SL},T,1,SL},S2,T3<:Union{Nothing,Number}}
             # Check that x_temp has correct dimensions
             v = zeros(ndims(x_temp))
             v[N] = 2
@@ -57,7 +57,8 @@ for MT in [2,3]
             W = zeros(Wdims...)
             Widx = Any[Wdims...]
             setindex!(Widx,:,N)
-            W[Widx...] = s
+            coeff = A.coefficients === nothing ? true : A.coefficients
+            W[Widx...] = coeff*s
 
             cv = DenseConvDims(_M, W, padding=pad,flipkernel=true)
             conv!(_x_temp, _M, W, cv)
@@ -92,6 +93,20 @@ function *(A::DerivativeOperator{T,N},M::AbstractArray{T}) where {T<:Real,N}
     return x_temp
 end
 
+function *(c::Number, A::DerivativeOperator{T,N,Wind}) where {T,N,Wind}
+    coefficients = A.coefficients === nothing ? one(T)*c : c*A.coefficients
+    DerivativeOperator{T,N,Wind,typeof(A.dx),typeof(A.stencil_coefs),
+                       typeof(A.low_boundary_coefs),typeof(coefficients),
+                       typeof(A.coeff_func)}(
+        A.derivative_order, A.approximation_order,
+        A.dx, A.len, A.stencil_length,
+        A.stencil_coefs,
+        A.boundary_stencil_length,
+        A.boundary_point_count,
+        A.low_boundary_coefs,
+        A.high_boundary_coefs,coefficients,A.coeff_func)
+end
+
 function LinearAlgebra.ldiv!(M_temp::AbstractArray{T,MT}, A::DerivativeOperator{T,N}, M::AbstractArray{T,MT}) where {T<:Real, N, MT}
 
     # The case where M is a vector or matrix and A is differentiating along the first dimension
@@ -110,11 +125,11 @@ function LinearAlgebra.ldiv!(M_temp::AbstractArray{T,MT}, A::DerivativeOperator{
                 if N != length(Mshape) - i + 1
                     B = Kron(Matrix(I,Mshape[i],Mshape[i]),B)
                 else
-                    B = Kron(Array(A),B)
+                    B = Kron(sparse(A),B)
                 end
             end
         else
-            B = Array(A)
+            B = sparse(A)
             for i in len(Mshape)-1:1
                 B = Kron(Matrix(I,Mshape[i],Mshape[i]),B)
             end
