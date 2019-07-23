@@ -116,6 +116,8 @@ function LinearAlgebra.ldiv!(M_temp::AbstractArray{T,MT}, A::DerivativeOperator{
     # The case where M is differentiating along an arbitrary dimension
     else
         Mshape = size(M)
+
+        # Case where the first dimension is not being differentiated
         if N != 1
 
             # Compute the high dimensional concretization B of A
@@ -125,11 +127,13 @@ function LinearAlgebra.ldiv!(M_temp::AbstractArray{T,MT}, A::DerivativeOperator{
                 if N != length(Mshape) - i + 1
                     B = Kron(Matrix(I,Mshape[i],Mshape[i]),B)
                 else
-                    B = Kron(sparse(A),B)
+                    B = Kron(Array(A),B)
                 end
             end
+
+        # Case where the first dimension is being differentiated
         else
-            B = sparse(A)
+            B = Array(A)
             for i in len(Mshape)-1:1
                 B = Kron(Matrix(I,Mshape[i],Mshape[i]),B)
             end
