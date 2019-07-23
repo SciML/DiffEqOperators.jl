@@ -1,14 +1,6 @@
 using SparseArrays, DiffEqOperators, LinearAlgebra, Random,
       Test, BandedMatrices, FillArrays
 
-function second_derivative_stencil(N)
-  A = zeros(N,N+2)
-  for i in 1:N, j in 1:N+2
-      (j-i==0 || j-i==2) && (A[i,j]=1)
-      j-i==1 && (A[i,j]=-2)
-  end
-  A
-end
 
 # Analytic solutions to higher order operators.
 # Do not modify unless you are completely certain of the changes.
@@ -39,7 +31,16 @@ function second_deriv_fourth_approx_stencil(N)
     return A
 end
 
+function second_derivative_stencil(N)
+  A = zeros(N,N+2)
+  for i in 1:N, j in 1:N+2
+      (j-i==0 || j-i==2) && (A[i,j]=1)
+      j-i==1 && (A[i,j]=-2)
+  end
+  A
+end
 
+# Broken?
 function convert_by_multiplication(::Type{Array}, A::AbstractDerivativeOperator{T}, N::Int=A.dimension) where T
     @assert N >= A.stencil_length # stencil must be able to fit in the matrix
     mat = zeros(T, (N, N+2))
