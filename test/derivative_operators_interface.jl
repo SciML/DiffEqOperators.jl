@@ -1,14 +1,6 @@
 using SparseArrays, DiffEqOperators, LinearAlgebra, Random,
       Test, BandedMatrices, FillArrays
 
-function second_derivative_stencil(N)
-  A = zeros(N,N+2)
-  for i in 1:N, j in 1:N+2
-      (j-i==0 || j-i==2) && (A[i,j]=1)
-      j-i==1 && (A[i,j]=-2)
-  end
-  A
-end
 
 # Analytic solutions to higher order operators.
 # Do not modify unless you are completely certain of the changes.
@@ -19,8 +11,8 @@ function fourth_deriv_approx_stencil(N)
     A[1,1:8] = [3.5 -56/3 42.5 -54.0 251/6 -20.0 5.5 -2/3]
     A[2,1:8] = [2/3 -11/6 0.0 31/6 -22/3 4.5 -4/3 1/6]
 
-    A[N-1,N-5:end] = reverse([3.5 -56/3 42.5 -54.0 251/6 -20.0 5.5 -2/3], dims=2)
-    A[N,N-5:end] = reverse([2/3 -11/6 0.0 31/6 -22/3 4.5 -4/3 1/6], dims=2)
+    A[N-1,N-5:end] = reverse([2/3 -11/6 0.0 31/6 -22/3 4.5 -4/3 1/6], dims=2)
+    A[N,N-5:end] = reverse([3.5 -56/3 42.5 -54.0 251/6 -20.0 5.5 -2/3], dims=2)
 
     for i in 3:N-2
         A[i,i-2:i+4] = [-1/6 2.0 -13/2 28/3 -13/2 2.0 -1/6]
@@ -39,6 +31,14 @@ function second_deriv_fourth_approx_stencil(N)
     return A
 end
 
+function second_derivative_stencil(N)
+  A = zeros(N,N+2)
+  for i in 1:N, j in 1:N+2
+      (j-i==0 || j-i==2) && (A[i,j]=1)
+      j-i==1 && (A[i,j]=-2)
+  end
+  A
+end
 
 function convert_by_multiplication(::Type{Array}, A::AbstractDerivativeOperator{T}, N::Int=A.dimension) where T
     @assert N >= A.stencil_length # stencil must be able to fit in the matrix

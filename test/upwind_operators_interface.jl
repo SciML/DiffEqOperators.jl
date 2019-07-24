@@ -69,24 +69,30 @@ end
     N = 20
     x = 0:1/(N-1):1
     y = 2x.^2 .- 3x .+2
-
+    y_ = y[2:end-1]
     # y = x.^2
 
     # Dirichlet BC with fixed end points
     Q = RobinBC(1.0, 0.0, y[1], 1.0, 1.0, 0.0, y[end], 1.0)
-    U = UpwindDifference(1,2, 1.0, N, t->1.0)
-    A = CenteredDifference(1,2, 1.0, N)
-    res1 = U*Q*y
-    res2 = A*Q*y
-    @test res1[3:end-3] ≈ res2[1:end-5] atol=10.0^(-2) # shifted due to upwind operators
+    U = UpwindDifference(1,2, 1.0, N-2, t->1.0)
+    A = CenteredDifference(1,2, 1.0, N-2)
+    D1 = CenteredDifference(1,2, 1.0, N-2) # For testing whether the array is constant
+
+    res1 = U*Q*y_
+    res2 = A*Q*y_
+    @test res1[3:end-2] ≈ res2[3:end-2] atol=10.0^(-1) # shifted due to upwind operators
+    @test D1*(res1[3:end-2] - res2[3:end-2]) ≈ zeros(N-2-2*3) atol=10.0^(-6)
 
     y = 3x.^3 .- 4x.^2 .+ 2x .+ 1
+    y_ = y[2:end-1]
     Q = RobinBC(1.0, 0.0, y[1], 1.0, 1.0, 0.0, y[end], 1.0)
-    U = UpwindDifference(1,2, 1.0, N, t->1.0)
-    A = CenteredDifference(1,2, 1.0, N)
-    res1 = U*Q*y
-    res2 = A*Q*y
-    @test res1[3:end-3] ≈ res2[1:end-5] atol=10.0^(-2) # shifted due to upwind operators
+    U = UpwindDifference(2,2, 1.0, N-2, t->1.0)
+    A = CenteredDifference(2,2, 1.0, N-2)
+    res1 = U*Q*y_
+    res2 = A*Q*y_
+    @test res1 ≈ res2 atol=10.0^(-2) # shifted due to upwind operators
+
+    # CAN ADD MORE TESTS
 end
 
 # tests for full and sparse function.... BROKEN!
