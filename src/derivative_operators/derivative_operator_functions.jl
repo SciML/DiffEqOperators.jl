@@ -26,7 +26,7 @@ function LinearAlgebra.mul!(x_temp::AbstractArray{T}, A::DerivativeOperator{T,N}
     end
 end
 
-# Additive mul! that is used for handling compositions
+# Additive mul! fallback that is necessary for handling compositions
 function mul_add!(x_temp::AbstractArray{T}, A::DerivativeOperator{T,N}, M::AbstractArray{T}) where {T,N}
 
     # Check that x_temp has correct dimensions
@@ -57,7 +57,7 @@ function mul_add!(x_temp::AbstractArray{T}, A::DerivativeOperator{T,N}, M::Abstr
 end
 
 # A more efficient mul! implementation for a single, regular-grid, centered difference,
-# scalar coefficient DerivativeOperator operating on a 2D or 3D AbstractArray
+# scalar coefficient, non-winding, DerivativeOperator operating on a 2D or 3D AbstractArray
 for MT in [2,3]
     @eval begin
         function LinearAlgebra.mul!(x_temp::AbstractArray{T,$MT}, A::DerivativeOperator{T,N,false,T2,S1,S2,T3}, M::AbstractArray{T,$MT}) where
@@ -118,6 +118,8 @@ for MT in [2,3]
     end
 end
 
+###########################################
+
 function *(A::DerivativeOperator{T,N},M::AbstractArray{T}) where {T<:Real,N}
     size_x_temp = [size(M)...]
     size_x_temp[N] -= 2
@@ -141,10 +143,10 @@ function *(c::Number, A::DerivativeOperator{T,N,Wind}) where {T,N,Wind}
 end
 
 
-#TODO fix syntax error here
+###########################################
 
-# A more efficient mul! implementation for a composition of regular-grid, centered difference
-# DerivativeOperator operating on a 2D or 3D AbstractArray
+# A more efficient mul! implementation for compositions of operators which may include regular-grid, centered difference,
+# scalar coefficient, non-winding, DerivativeOperator, operating on a 2D or 3D AbstractArray
 function LinearAlgebra.mul!(x_temp::AbstractArray{T,2}, A::AbstractDiffEqCompositeOperator, M::AbstractArray{T,2}) where {T}
 
     # opsA operators satisfy conditions for NNlib.conv! call, opsB operators do not
@@ -160,13 +162,12 @@ function LinearAlgebra.mul!(x_temp::AbstractArray{T,2}, A::AbstractDiffEqComposi
 
     # Check that we can make at least one NNlib.conv! call
     if !isempty(opsA)
-        #TODO replace A.ops with opsA in here
         ndimsM = ndims(M)
         Wdims = ones(Int64,ndimsM)
         pad = zeros(Int64, ndimsM)
 
         # compute dimensions of interior kernel W
-        # Here we still use A.ops since the other dimensions may indicate that
+        # Here we still use A.ops since operators in opsB may indicate that
         # we have more padding to account for
         for L in A.ops
             axis = typeof(L).parameters[2]
@@ -237,7 +238,7 @@ function LinearAlgebra.mul!(x_temp::AbstractArray{T,2}, A::AbstractDiffEqComposi
                 offset_x = 1
             end
             if length(ops_1) > 0
-                offset_y =1
+                offset_y = 1
             end
 
             # convolve boundaries and unaccounted for interior in axis 1
@@ -265,23 +266,21 @@ function LinearAlgebra.mul!(x_temp::AbstractArray{T,2}, A::AbstractDiffEqComposi
             # convolve boundaries and unaccounted for interior in axis 2
             if length(ops_2) > 0
                 for i in 1:size(x_temp)[1]
-                    # in the case of no axis 1 operators, we need to over x_temp
+                    # in the case of no axis 1 operators, we need to overwrite x_temp
                     if length(ops_1) == 0
                         convolve_BC_left!(view(x_temp,i,:), view(M,i+offset_y,:), opsA[ops_2_max_bpc_idx...])
                         convolve_BC_right!(view(x_temp,i,:), view(M,i+offset_y,:), opsA[ops_2_max_bpc_idx...])
                         if i <= pad[1] || i > size(x_temp)[1]-pad[1]
                             convolve_interior!(view(x_temp,i,:), view(M,i+offset_y,:), opsA[ops_2_max_bpc_idx...])
                         end
-                        #scale by dx
-                        # fix here as well
+
                     else
                         convolve_BC_left_add!(view(x_temp,i,:), view(M,i+offset_y,:), opsA[ops_2_max_bpc_idx...])
                         convolve_BC_right_add!(view(x_temp,i,:), view(M,i+offset_y,:), opsA[ops_2_max_bpc_idx...])
                         if i <= pad[1] || i > size(x_temp)[1]-pad[1]
                             convolve_interior_add!(view(x_temp,i,:), view(M,i+offset_y,:), opsA[ops_2_max_bpc_idx...])
                         end
-                        #scale by dx
-                        # fix here as well
+
                     end
                     for Lidx in ops_2
                         if Lidx != ops_2_max_bpc_idx[1]
@@ -297,7 +296,9 @@ function LinearAlgebra.mul!(x_temp::AbstractArray{T,2}, A::AbstractDiffEqComposi
                 end
             end
         end
-        #operating_dims
+
+        # Here we compute mul! (additively) for every operator in opsB
+
         operating_dims = zeros(Int64,2)
         # need to consider all dimensions and operators to determine the truncation
         # of M to x_temp
@@ -328,7 +329,7 @@ function LinearAlgebra.mul!(x_temp::AbstractArray{T,2}, A::AbstractDiffEqComposi
             end
         end
 
-    # Call everything A.ops using fallback
+    # The case where we call everything in A.ops using the fallback mul!
     else
         #operating_dims
         operating_dims = zeros(Int64,2)
@@ -374,72 +375,5 @@ function LinearAlgebra.mul!(x_temp::AbstractArray{T,2}, A::AbstractDiffEqComposi
                 end
             end
         end
-    end
-end
-
-
-# Implementations of additive convolutions, need to remove redundancy later since we are
-# only making these calls when grids are regular, non-winding, and coefficients among indices are equivalent
-function convolve_interior_add!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::DerivativeOperator) where {T<:Real}
-    @assert length(x_temp)+2 == length(x)
-    stencil = A.stencil_coefs
-    coeff   = A.coefficients
-    mid = div(A.stencil_length,2)
-    for i in (1+A.boundary_point_count) : (length(x_temp)-A.boundary_point_count)
-        xtempi = zero(T)
-        cur_stencil = eltype(stencil) <: AbstractVector ? stencil[i-A.boundary_point_count] : stencil
-        cur_coeff   = typeof(coeff)   <: AbstractVector ? coeff[i] : coeff isa Number ? coeff : true
-        cur_stencil = use_winding(A) && cur_coeff < 0 ? reverse(cur_stencil) : cur_stencil
-        for idx in 1:A.stencil_length
-            xtempi += cur_coeff * cur_stencil[idx] * x[i - mid + idx]
-        end
-        x_temp[i] += xtempi
-    end
-end
-
-function convolve_interior_add_range!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::DerivativeOperator, offset::Int) where {T<:Real}
-    @assert length(x_temp)+2 == length(x)
-    stencil = A.stencil_coefs
-    coeff   = A.coefficients
-    mid = div(A.stencil_length,2)
-    for i in [(1+A.boundary_point_count):(A.boundary_point_count+offset); (length(x_temp)-A.boundary_point_count-offset+1):(length(x_temp)-A.boundary_point_count)]
-        xtempi = zero(T)
-        cur_stencil = eltype(stencil) <: AbstractVector ? stencil[i] : stencil
-        cur_coeff   = typeof(coeff)   <: AbstractVector ? coeff[i] : coeff isa Number ? coeff : true
-        cur_stencil = use_winding(A) && cur_coeff < 0 ? reverse(cur_stencil) : cur_stencil
-        for idx in 1:A.stencil_length
-            xtempi += cur_coeff * cur_stencil[idx] * x[i - mid + idx]
-        end
-        x_temp[i] += xtempi
-    end
-end
-
-function convolve_BC_left_add!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::DerivativeOperator) where {T<:Real}
-    stencil = A.low_boundary_coefs
-    coeff   = A.coefficients
-    for i in 1 : A.boundary_point_count
-        cur_stencil = stencil[i]
-        cur_coeff   = typeof(coeff)   <: AbstractVector ? coeff[i] : coeff isa Number ? coeff : true
-        cur_stencil = use_winding(A) && cur_coeff < 0 ? reverse(cur_stencil) : cur_stencil
-        xtempi = cur_coeff*stencil[i][1]*x[1]
-        for idx in 2:A.boundary_stencil_length
-            xtempi += cur_coeff * cur_stencil[idx] * x[idx]
-        end
-        x_temp[i] += xtempi
-    end
-end
-
-function convolve_BC_right_add!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::DerivativeOperator) where {T<:Real}
-    stencil = A.high_boundary_coefs
-    coeff   = A.coefficients
-    for i in 1 : A.boundary_point_count
-        cur_stencil = stencil[i]
-        cur_coeff   = typeof(coeff)   <: AbstractVector ? coeff[i] : coeff isa Number ? coeff : true
-        cur_stencil = use_winding(A) && cur_coeff < 0 ? reverse(cur_stencil) : cur_stencil
-        xtempi = cur_coeff*stencil[i][end]*x[end]
-        for idx in (A.boundary_stencil_length-1):-1:1
-            xtempi += cur_coeff * cur_stencil[end-idx] * x[end-idx]
-        end
-        x_temp[end-A.boundary_point_count+i] += xtempi
     end
 end
