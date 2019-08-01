@@ -1,15 +1,14 @@
 abstract type AbstractBC{T} <: AbstractDiffEqLinearOperator{T} end
 
-# Deepen type tree to support multi layered BCs in the future - a better version of PeriodicBC for example
+
 abstract type AtomicBC{T} <: AbstractBC{T} end
-abstract type SingleLayerBC{T} <: AtomicBC{T} end
 
 abstract type MultiDimensionalBC{T, N} <: AbstractBC{T} end
 
 """
 Robin, General, and in general Neumann, Dirichlet and Bridge BCs are all affine opeartors, meaning that they take the form Q*x = Qa*x + Qb.
 """
-abstract type AffineBC{T} <: SingleLayerBC{T} end
+abstract type AffineBC{T} <: AtomicBC{T} end
 
 """
 q = PeriodicBC{T}()
@@ -20,7 +19,7 @@ Qx, Qy, ... = PeriodicBC{T}(size(u)) #When all dimensions are to be extended wit
 Creates a periodic boundary condition, where the lower index end of some u is extended with the upper index end and vice versa.
 It is not reccomended to concretize this BC type in to a BandedMatrix, since the vast majority of bands will be all 0s. SpatseMatrix concretization is reccomended.
 """
-struct PeriodicBC{T} <: SingleLayerBC{T}
+struct PeriodicBC{T} <: AtomicBC{T}
 end
 
 """
@@ -64,15 +63,14 @@ struct RobinBC{T} <: AffineBC{T}
         αr, βr, γr = r
 
         s_index = Array(one(T):convert(T,order+1))
-        dx_l, dx_r = dx[1:length(s_index)], dx[(length(s_index)+1):end]
+        dx_l, dx_r = dx[1:length(s_index)], dx[(end-length(s_index)+1):end]
 
         s = calculate_weights(1, one(T), s_index) #generate derivative coefficients about the boundary of required approximation order
-
         denom_l = αl+βl*s[1]/dx_l[1]
         denom_r = αr-βr*s[1]/dx_r[end]
 
-        a_l = -(βl*s[2:end])./(denom_l*dx_l[2:end])
-        a_r = s[end:-1:2]./(denom_r*dx_r[1:(end-1)]) # for other boundary stencil is flippedlr with *opposite sign*
+        a_l = -βl.*s[2:end]./(denom_l*dx_l[2:end])
+        a_r = βr.*s[end:-1:2]./(denom_r*dx_r[1:(end-1)]) # for other boundary stencil is flippedlr with *opposite sign*
 
         b_l = γl/denom_l
         b_r = γr/denom_r
@@ -128,9 +126,10 @@ struct GeneralBC{T} <:AffineBC{T}
     end
 
     function GeneralBC(αl::AbstractVector{T}, αr::AbstractVector{T}, dx::AbstractVector{T}, order = 1) where {T}
-        dx_l, dx_r = (dx[1:(order+nl-2)], reverse(dx[(order+nr-1):end]))
+
         nl = length(αl)
         nr = length(αr)
+        dx_l, dx_r = (dx[1:(order+nl-2)], reverse(dx[(end-order-nr+3):end]))
         S_l = zeros(T, (nl-2, order+nl-2))
         S_r = zeros(T, (nr-2, order+nr-2))
 
@@ -157,15 +156,20 @@ struct GeneralBC{T} <:AffineBC{T}
 end
 
 
+
 """
 Quick and dirty way to allow mixed boundary types on each end of an array - may be cleaner and more versatile to split up left and right boundaries going forward
 MixedBC(lowerBC, upperBC) is the interface.
 """
 
-struct MixedBC{T, R <: SingleLayerBC{T}, S <: SingleLayerBC{T}} <: SingleLayerBC{T}
+struct MixedBC{T, R, S} <: AtomicBC{T}
     lower::R
     upper::S
-    MixedBC(Qlower,Qupper) = new{Union{gettype(Qlower), gettype(Qupper)}, typeof(Qlower), typeof(Qupper)}(Qlower, Qupper)
+    function MixedBC(Qlower,Qupper)
+        @assert Qlower isa AtomicBC
+        @assert Qupper isa AtomicBC
+         new{Union{gettype(Qlower), gettype(Qupper)}, typeof(Qlower), typeof(Qupper)}(Qlower, Qupper)
+     end
 end
 
 function Base.:*(Q::MixedBC, u::AbstractVector)
@@ -176,9 +180,9 @@ end
 
 #implement Neumann and Dirichlet as special cases of RobinBC
 NeumannBC(α::AbstractVector{T}, dx::Union{AbstractVector{T}, T}, order = 1) where T = RobinBC([zero(T), one(T), α[1]], [zero(T), one(T), α[2]], dx, order)
-DirichletBC(αl, αr) where T = RobinBC([one(T), zero(T), αl], [one(T), zero(T), αr], 1.0, 2.0 )
+DirichletBC(αl::T, αr::T) where T = RobinBC([one(T), zero(T), αl], [one(T), zero(T), αr], 1.0, 2.0 )
 #specialized constructors for Neumann0 and Dirichlet0
-Dirichlet0BC{T}() where T = DirichletBC([zero(T), zero(T)], 1.0, 2.0)
+Dirichlet0BC(T::Type) = DirichletBC(zero(T), zero(T))
 Neumann0BC(dx::Union{AbstractVector{T}, T}, order = 1) where T = NeumannBC([zero(T), zero(T)], dx, order)
 
 # other acceptable argument signatures
@@ -193,125 +197,80 @@ BridgeBC(u::AbstractArray{T,N}, inds) # The same view in to some array u at the 
 
 Allows seperate domains governed by seperate equations to be bridged together with a boundary condition.
 """
-struct BridgeBC{T,I,N} <: AffineBC{T}
+struct BridgeBC{T,N,I} <: AffineBC{T}
     a_l::Vector{T} #Dummy vectors so that AffineBC methods still work
     b_l::SubArray{T,0,Array{T,N},NTuple{N,I},true}
     a_r::Vector{T}
     b_r::SubArray{T,0,Array{T,N},NTuple{N,I},true}
 end
-function BridgeBC(u::AbstractArray{T,N}, inds) where {T, N}
-    @assert length(inds) == N
-    @assert mapreduce(x -> typeof(x) <: Integer, (&), inds)
-    BridgeBC{T, N, eltype(inds)}(zeros(T,1), view(u, inds...), zeros(T,1), view(u, inds...))
-end
+
+BridgeBC(u::AbstractArray, inds) = BridgeBC(u, inds, u, inds)
+
 function BridgeBC(u_low::AbstractArray{T,N}, indslow, u_up::AbstractArray{T,N},  indsup) where {T, N}
     @assert length(indslow) == N
     @assert length(indsup) == N
     @assert mapreduce(x -> typeof(x) <: Integer, (&), indslow)
     @assert mapreduce(x -> typeof(x) <: Integer, (&), indsup)
 
-    BridgeBC{T, N, eltype(indslow)}(zeros(T,1), view(u_low, indslow), zeros(T,1), view(u, indsup))
+    BridgeBC{T, length(indslow), eltype(indslow)}(zeros(T,1), view(u_low, indslow...), zeros(T,1), view(u_up, indsup...))
 end
 
 perpsize(A::AbstractArray{T,N}, dim::Integer) where {T,N} = size(A)[setdiff(1:N, dim)] #the size of A perpendicular to dim
 
 """
-Q1, Q2 = BridgeBC(u1::AbstractArray{T,N}, dim1::Int, hilo1::String, bc1, u2::AbstractArray{T,N}, dim2::Int, hilo2::String, bc2) where {T,N}
+    Q1, Q2 = BridgeBC(u1::AbstractVector{T}, hilo1::String, bc1::AtomicBC{T}, u2::AbstractVector{T}, hilo2::AbstractVector{T}, bc2::AtomicBC{T})
 -------------------------------------------------------------------------------------
-Creates a BC operator that joins array u1 to u2 at the hilo1 end ("high" or "low" index end) of dimension dim1, and joins u2 to u1 with simalar settings given in hilo2 and dim2.
-The ends of u1 and u2 that are not connected will use the boundary conditions bc1 and bc2 respectively.
+Creates two BC operators that join array `u1` to `u2` at the `hilo1` end ("high" or "low" index end), and joins `u2` to `u1` with simalar settings given in `hilo2`.
+The ends of `u1` and `u2` that are not connected will use the boundary conditions `bc1` and `bc2` respectively.
 
-Use Q1 to extend u1 and Q2 to extend u2
+Use `Q1` to extend `u1` and `Q2` to extend `u2`.
+
+When using these with a time/space stepping solve, please use elementwise equals on your u1 and u2 to avoid the need to create new BC operators each time, as follows:
+    u_t1 .= L*Q*u_t0
+-----------------------------------------------------------------------------------
+Connecting two multi dimensional Arrays:
+    Q1, Q2 = BridgeBC(u1::AbstractArray{T,N}, dim1::Int, hilo1::String, bc1, u2::AbstractArray{T,N}, dim2::Int, hilo2::String, bc2)
+-----------------------------------------------------------------------------------
+
+Creates two BC operators that join array `u1` to `u2` at the `hilo1` end ("high" or "low" index end) of dimension `dim1`, and joins `u2` to `u1` with simalar settings given in `hilo2` and `dim2`.
+The ends of `u1` and `u2` that are not connected will use the boundary conditions `bc1` and `bc2` respectively.
+
+Use `Q1` to extend `u1` and `Q2` to extend `u2`.
+
+When using these with a time/space stepping solve, please use elementwise equals on your u1 and u2 to avoid the need to create new BC operators each time, as follows:
+    u_t1 .= L*Q*u_t0
 """
-function BridgeBC(u1::AbstractArray{T,N}, dim1::Int, hilo1::String, bc1, u2::AbstractArray{T,N}, dim2::Int, hilo2::String, bc2) where {T,N}
-    @assert dim1 <= N
-    @assert dim2 <= N
-    s1 = perpsize(u1, dim1) #
-    s2 = perpsize(u2, dim2)
-    @assert s1 == s2
-    BC1 = Array{BridgeBC{T}}(undef, s1...)
-    BC2 = Array{BridgeBC{T}}(undef, s2...)
-    if N == 2
-        if hilo1 == "low"
-            view1 = selectdim(u1, dim1, 1)
-            if hilo2 == "low"
-                view2 = selectdim(u2, dim2, 1)
-                for i in 1:s1[1]
-                    BC1[i] = MixedBC(BridgeBC{T, N, eltype(s1)}(zeros(T, 1), view(view2, i), zeros(T, 1), view(view2, i)), bc1)
-                    BC2[i] = MixedBC(BridgeBC{T, N, eltype(s1)}(zeros(T, 1), view(view1, i), zeros(T, 1), view(view1, i)), bc2)
-                end
-            elseif hilo2 == "high"
-                view2 = selectdim(u2, dim2, size(u2)[dim2])
-                for i in 1:s1[1]
-                    BC1[i] = MixedBC(BridgeBC{T, N, eltype(s1)}(zeros(T, 1), view(view2, i), zeros(T, 1), view(view2, i)), bc1)
-                    BC2[i] = MixedBC(bc2, BridgeBC{T, N, eltype(s1)}(zeros(T, 1), view(view1, i), zeros(T, 1), view(view1, i)))
-                end
-            else
-                throw("hilo2 not recognized, please use \"high\" to connect u1 to u2 along the upper index of dim2 of u2 or \"low\" to connect along the lower index end")
-            end
-        elseif hilo1 == "high"
-            view1 = selectdim(u1, dim1, size(u1)[dim1])
-            if hilo2 == "low"
-                view2 = selectdim(u2, dim2, 1)
-                for i in 1:s1[1]
-                    BC1[i] = MixedBC(bc1, BridgeBC{T, N, eltype(s1)}(zeros(T, 1), view(view2, i), zeros(T, 1), view(view2, i)))
-                    BC2[i] = MixedBC(BridgeBC{T, N, eltype(s1)}(zeros(T, 1), view(view1, i), zeros(T, 1), view(view1, i)), bc2)
-                end
-            elseif hilo2 == "high"
-                view2 = selectdim(u2, dim2, size(u2)[dim2])
-                for i in 1:s1[1]
-                    BC1[i] = MixedBC(bc1, BridgeBC{T, N, eltype(s1)}(zeros(T, 1), view(view2, i), zeros(T, 1), view(view2, i)))
-                    BC2[i] = MixedBC(bc2, BridgeBC{T, N, eltype(s1)}(zeros(T, 1), view(view1, i), zeros(T, 1), view(view1, i)))
-                end
-            else
-                throw("hilo2 not recognized, please use \"high\" to connect u1 to u2 along the upper index of dim2 of u2 or \"low\" to connect along the lower index end")
-            end
+function BridgeBC(u1::AbstractVector{T}, hilo1::String, bc1::AtomicBC{T}, u2::AbstractVector{T}, hilo2::AbstractVector{T}, bc2::AtomicBC{T}) where T
+    if hilo1 == "low"
+        view1 = view(u1, 1)
+        if hilo2 == "low"
+            view2 = view(u2, 1)
+            BC1 = MixedBC(BridgeBC{T, 1, eltype(s1)}(zeros(T, 1), view2, zeros(T, 1), view2), bc1)
+            BC2 = MixedBC(BridgeBC{T, 1, eltype(s1)}(zeros(T, 1), view1, zeros(T, 1), view1), bc2)
+        elseif hilo2 == "high"
+            view2 = view(u2, length(u2))
+            BC1 = MixedBC(BridgeBC{T, 1, eltype(s1)}(zeros(T, 1), view2, zeros(T, 1), view2), bc1)
+            BC2 = MixedBC(bc2, BridgeBC{T, 1, eltype(s1)}(zeros(T, 1), view1, zeros(T, 1), view1))
         else
-            throw("hilo1 not recognized, please use \"high\" to connect u1 to u2 along the upper index of dim1 of u1 or \"low\" to connect along the lower index end")
+            throw("hilo2 not recognized, please use \"high\" to connect u1 to u2 along the upper index of dim2 of u2 or \"low\" to connect along the lower index end")
         end
-        return (BC1, BC2)
-    elseif N ==3
-        if hilo1 == "low"
-            view1 = selectdim(u1, dim1, 1)
-            if hilo2 == "low"
-                view2 = selectdim(u2, dim2, 1)
-                for j in 1:s1[2], i in 1:s1[1]
-                    BC1[i, j] = MixedBC(BridgeBC{T, N, eltype(s1)}(zeros(T, 1), view(view2, i, j), zeros(T, 1), view(view2, i, j)), bc1)
-                    BC2[i, j] = MixedBC(BridgeBC{T, N, eltype(s1)}(zeros(T, 1), view(view1, i, j), zeros(T, 1), view(view1, i, j)), bc2)
-                end
-            elseif hilo2 == "high"
-                view2 = selectdim(u2, dim2, size(u2)[dim2])
-                for j in 1:s1[2], i in 1:s1[1]
-                    BC1[i, j] = MixedBC(BridgeBC{T, N, eltype(s1)}(zeros(T, 1), view(view2, i, j), zeros(T, 1), view(view2, i, j)), bc1)
-                    BC2[i, j] = MixedBC(bc2, BridgeBC{T, N, eltype(s1)}(zeros(T, 1), view(view1, i, j), zeros(T, 1), view(view1, i, j)))
-                end
-            else
-                throw("hilo2 not recognized, please use \"high\" to connect u1 to u2 along the upper index of dim2 of u2 or \"low\" to connect along the lower index end")
-            end
-        elseif hilo1 == "high"
-            view1 = selectdim(u1, dim1, size(u1)[dim1])
-            if hilo2 == "low"
-                view2 = selectdim(u2, dim2, 1)
-                for j in 1:s1[2], i in 1:s1[1]
-                    BC1[i, j] = MixedBC(bc1, BridgeBC{T, N, eltype(s1)}(zeros(T, 1), view(view2, i, j), zeros(T, 1), view(view2, i, j)))
-                    BC2[i, j] = MixedBC(BridgeBC{T, N, eltype(s1)}(zeros(T, 1), view(view1, i, j), zeros(T, 1), view(view1, i, j)), bc2)
-                end
-            elseif hilo2 == "high"
-                view2 = selectdim(u2, dim2, size(u2)[dim2])
-                for j in 1:s1[2], i in 1:s1[1]
-                    BC1[i, j] = MixedBC(bc1, BridgeBC{T, N, eltype(s1)}(zeros(T, 1), view(view2, i, j), zeros(T, 1), view(view2, i, j)))
-                    BC2[i, j] = MixedBC(bc2, BridgeBC{T, N, eltype(s1)}(zeros(T, 1), view(view1, i, j), zeros(T, 1), view(view1, i, j)))
-                end
-            else
-                throw("hilo2 not recognized, please use \"high\" to connect u1 to u2 along the upper index of dim2 of u2 or \"low\" to connect along the lower index end")
-            end
+    elseif hilo1 == "high"
+        view1 = view(u1, length(u1))
+        if hilo2 == "low"
+            view2 = view(u2, 1)
+            BC1 = MixedBC(bc1, BridgeBC{T, 1, eltype(s1)}(zeros(T, 1), view2, zeros(T, 1), view2))
+            BC2 = MixedBC(BridgeBC{T, 1, eltype(s1)}(zeros(T, 1), view1, zeros(T, 1), view1), bc2)
+        elseif hilo2 == "high"
+            view2 = view(u2, length(u2))
+            BC1 = MixedBC(bc1, BridgeBC{T, 1, eltype(s1)}(zeros(T, 1), view2, zeros(T, 1), view2))
+            BC2 = MixedBC(bc2, BridgeBC{T, 1, eltype(s1)}(zeros(T, 1), view1, zeros(T, 1), view1))
         else
-            throw("hilo1 not recognized, please use \"high\" to connect u1 to u2 along the upper index of dim1 of u1 or \"low\" to connect along the lower index end")
+            throw("hilo2 not recognized, please use \"high\" to connect u1 to u2 along the upper index of dim2 of u2 or \"low\" to connect along the lower index end")
         end
-        return (MultiDimBC(BC1, dim1), MultiDimBC(BC2, dim2))
     else
-        throw("This value of N is not supported.")
+        throw("hilo1 not recognized, please use \"high\" to connect u1 to u2 along the upper index of dim1 of u1 or \"low\" to connect along the lower index end")
     end
+    return (BC1, BC2)
 end
 
 Base.:*(Q::BridgeBC{T,I,N}, u::AbstractVector{T}) where {T, I, N} = BoundaryPaddedVector{T, typeof(u)}(Q.b_l[1], Q.b_r[1], u)
@@ -330,7 +289,7 @@ gettype(Q::AbstractBC{T}) where T = T
 """
 slicemul is the only limitation on the BCs here being used up to arbitrary dimension, an N dimensional implementation is needed.
 """
-@inline function slicemul(A::Array{SingleLayerBC{T},1}, u::AbstractArray{T, 2}, dim::Integer) where T
+@inline function slicemul(A::Array{B,1}, u::AbstractArray{T, 2}, dim::Integer) where {T, B<:AtomicBC{T}}
     s = size(u)
     if dim == 1
         lower = zeros(T, s[2])
@@ -355,7 +314,7 @@ slicemul is the only limitation on the BCs here being used up to arbitrary dimen
 end
 
 
-@inline function slicemul(A::Array{SingleLayerBC{T},2}, u::AbstractArray{T, 3}, dim::Integer) where {T}
+@inline function slicemul(A::Array{B,2}, u::AbstractArray{T, 3}, dim::Integer) where {T, B<:AtomicBC{T}}
     s = size(u)
     if dim == 1
         lower = zeros(T, s[2], s[3])
@@ -391,12 +350,12 @@ end
 end
 
 
-struct MultiDimensionalSingleLayerBC{T<:Number, D, N, M} <: MultiDimensionalBC{T, N}
-    BC::Array{SingleLayerBC{T},M} #dimension M=N-1 array of BCs to extend dimension D
+struct MultiDimDirectionalBC{T<:Number, B<:AtomicBC{T}, D, N, M} <: MultiDimensionalBC{T, N}
+    BCs::Array{B,M} #dimension M=N-1 array of BCs to extend dimension D
 end
 
-struct ComposedMultiDimBC{T,N,M} <: MultiDimensionalBC{T, N}
-    BCs::Vector{Array{SingleLayerBC{T}, M}}
+struct ComposedMultiDimBC{T, B<:AtomicBC{T}, N,M} <: MultiDimensionalBC{T, N}
+    BCs::Vector{Array{B, M}}
 end
 
 """
@@ -420,19 +379,135 @@ Qx, Qy, Qz... = GeneralBC(αl, αr, (dx::Vector, dy::Vector, dz::Vector ...), ap
 
 where dx, dy, and dz are vectors of grid steps.
 """
-MultiDimBC(BC::Array{SingleLayerBC{T},N}, dim::Integer) where {T,N} = MultiDimensionalSingleLayerBC{T, dim, N+1, N}(BC)
+MultiDimBC(BC::Array{B,N}, dim::Integer) where {N, B} = MultiDimDirectionalBC{gettype(BC[1]), B, dim, N+1, N}(BC)
 #s should be size of the domain
-MultiDimBC(BC::SingleLayerBC{T}, s, dim::Integer) where {T} = MultiDimensionalSingleLayerBC{T, dim, length(s), length(s)-1}(fill(BC, s[setdiff(1:length(s), dim)]))
+MultiDimBC(BC::B, s, dim::Integer) where  {B} = MultiDimDirectionalBC{gettype(BC), B, dim, length(s), length(s)-1}(fill(BC, s[setdiff(1:length(s), dim)]))
 
 #Extra constructor to make a set of BC operators that extend an atomic BC Operator to the whole domain
 #Only valid in the uniform grid case!
-MultiDimBC(BC::SingleLayerBC{T}, s) where T = Tuple([MultiDimensionalSingleLayerBC{T, dim, length(s), length(s)-1}(fill(BC, s[setdiff(1:length(s), dim)])) for dim in 1:length(s)])
+MultiDimBC(BC::B, s) where {B} = Tuple([MultiDimDirectionalBC{gettype(BC), B, dim, length(s), length(s)-1}(fill(BC, s[setdiff(1:length(s), dim)])) for dim in 1:length(s)])
+
+# Additional constructors for cases when the BC is the same for all boundarties
 
 PeriodicBC{T}(s) where T = MultiDimBC(PeriodicBC{T}(), s)
-RobinBC(l::AbstractVector{T}, r::AbstractVector{T}, dxyz, order, s) where T = Tuple([MultiDimensionalSingleLayerBC{T, dim, length(s), length(s)-1}(fill(RobinBC(l, r, dxyz[dim], order), s[setdiff(1:length(s), dim)])) for dim in 1:length(s)])
-GeneralBC(αl::AbstractVector{T}, αr::AbstractVector{T}, dxyz, order, s) where T= Tuple([MultiDimensionalSingleLayerBC{T, dim, length(s), length(s)-1}(fill(GeneralBC(αl, αr, dxyz[dim], order), s[setdiff(1:length(s), dim)])) for dim in 1:length(s)])
 
+NeumannBC(α::AbstractVector{T}, dxyz, order, s) where T = RobinBC([zero(T), one(T), α[1]], [zero(T), one(T), α[2]], dxyz, order, s)
+DirichletBC(αl::T, αr::T, s) where T = RobinBC([one(T), zero(T), αl], [one(T), zero(T), αr], [ones(T, si) for si in s], 2.0, s)
 
+Dirichlet0BC(T::Type, s) = DirichletBC(zero(T), zero(T), s)
+Neumann0BC(T::Type, dxyz, order, s) = NeumannBC([zero(T), zero(T)], dxyz, order, s)
+
+RobinBC(l::AbstractVector{T}, r::AbstractVector{T}, dxyz, order, s) where {T} = Tuple([MultiDimDirectionalBC{T, RobinBC{T}, dim, length(s), length(s)-1}(fill(RobinBC(l, r, dxyz[dim], order), s[setdiff(1:length(s), dim)])) for dim in 1:length(s)])
+GeneralBC(αl::AbstractVector{T}, αr::AbstractVector{T}, dxyz, order, s) where {T} = Tuple([MultiDimDirectionalBC{T, GeneralBC{T}, dim, length(s), length(s)-1}(fill(GeneralBC(αl, αr, dxyz[dim], order), s[setdiff(1:length(s), dim)])) for dim in 1:length(s)])
+
+function BridgeBC(u1::AbstractArray{T,2}, dim1::Int, hilo1::String, bc1::MultiDimDirectionalBC, u2::AbstractArray{T,2}, dim2::Int, hilo2::String, bc2::MultiDimDirectionalBC) where {T}
+    @assert 1 ≤ dim1 ≤ 2 "dim1 must be 1≤dim1≤2, got dim1 = $dim1"
+    @assert 1 ≤ dim1 ≤ 2 "dim2 must be 1≤dim1≤2, got dim1 = $dim1"
+    s1 = perpsize(u1, dim1) #
+    s2 = perpsize(u2, dim2)
+    @assert s1 == s2 "Arrays must be same size along boundary to be joined, got boundary sizes u1 = $s1, u2 = $s2"
+    if hilo1 == "low"
+        view1 = selectdim(u1, dim1, 1)
+        if hilo2 == "low"
+            BC1 = Array{MixedBC{T, BridgeBC{T, 2, eltype(s1)}, getboundarytype(bc1)}}(undef, s1...)
+            BC2 = Array{MixedBC{T, BridgeBC{T, 2, eltype(s2)}, getboundarytype(bc2)}}(undef, s2...)
+            view2 = selectdim(u2, dim2, 1)
+            for i in 1:s1[1]
+                BC1[i] = MixedBC(BridgeBC{T, 2, eltype(s1)}(zeros(T, 1), view(view2, i), zeros(T, 1), view(view2, i)), bc1.BCs[i])
+                BC2[i] = MixedBC(BridgeBC{T, 2, eltype(s1)}(zeros(T, 1), view(view1, i), zeros(T, 1), view(view1, i)), bc2.BCs[i])
+            end
+        elseif hilo2 == "high"
+            BC1 = Array{MixedBC{T, BridgeBC{T, 2, eltype(s1)}, getboundarytype(bc1)}}(undef, s1...)
+            BC2 = Array{MixedBC{T, getboundarytype(bc2), BridgeBC{T, 2, eltype(s2)}}}(undef, s2...)
+            view2 = selectdim(u2, dim2, size(u2)[dim2])
+            for i in 1:s1[1]
+                BC1[i] = MixedBC(BridgeBC{T, 2, eltype(s1)}(zeros(T, 1), view(view2, i), zeros(T, 1), view(view2, i)), bc1.BCs[i])
+                BC2[i] = MixedBC(bc2.BCs[i], BridgeBC{T, 2, eltype(s1)}(zeros(T, 1), view(view1, i), zeros(T, 1), view(view1, i)))
+            end
+        else
+            throw("hilo2 not recognized, please use \"high\" to connect u1 to u2 along the upper index of dim2 of u2 or \"low\" to connect along the lower index end")
+        end
+    elseif hilo1 == "high"
+        view1 = selectdim(u1, dim1, size(u1)[dim1])
+        if hilo2 == "low"
+            BC1 = Array{MixedBC{T, getboundarytype(bc1), BridgeBC{T, 2, eltype(s1)}}}(undef, s1...)
+            BC2 = Array{MixedBC{T, BridgeBC{T, 2, eltype(s2)}, getboundarytype(bc2)}}(undef, s2...)
+            view2 = selectdim(u2, dim2, 1)
+            for i in 1:s1[1]
+                BC1[i] = MixedBC(bc1.BCs[i], BridgeBC{T, 2, eltype(s1)}(zeros(T, 1), view(view2, i), zeros(T, 1), view(view2, i)))
+                BC2[i] = MixedBC(BridgeBC{T, 2, eltype(s1)}(zeros(T, 1), view(view1, i), zeros(T, 1), view(view1, i)), bc2.BCs[i])
+            end
+        elseif hilo2 == "high"
+            BC1 = Array{MixedBC{T, getboundarytype(bc1), BridgeBC{T, 2, eltype(s1)}}}(undef, s1...)
+            BC2 = Array{MixedBC{T, getboundarytype(bc2), BridgeBC{T, 2, eltype(s2)}}}(undef, s2...)
+            view2 = selectdim(u2, dim2, size(u2)[dim2])
+            for i in 1:s1[1]
+                BC1[i] = MixedBC(bc1.BCs[i], BridgeBC{T, 2, eltype(s1)}(zeros(T, 1), view(view2, i), zeros(T, 1), view(view2, i)))
+                BC2[i] = MixedBC(bc2.BCs[i], BridgeBC{T, 2, eltype(s1)}(zeros(T, 1), view(view1, i), zeros(T, 1), view(view1, i)))
+            end
+        else
+            throw("hilo2 not recognized, please use \"high\" to connect u1 to u2 along the upper index of dim2 of u2 or \"low\" to connect along the lower index end")
+        end
+    else
+        throw("hilo1 not recognized, please use \"high\" to connect u1 to u2 along the upper index of dim1 of u1 or \"low\" to connect along the lower index end")
+    end
+    return (MultiDimBC(BC1, dim1), MultiDimBC(BC2, dim2))
+end
+
+function BridgeBC(u1::AbstractArray{T,3}, dim1::Int, hilo1::String, bc1::MultiDimDirectionalBC, u2::AbstractArray{T,3}, dim2::Int, hilo2::String, bc2::MultiDimDirectionalBC) where {T}
+    @assert 1 ≤ dim1 ≤ 3 "dim1 must be 1≤dim1≤3, got dim1 = $dim1"
+    @assert 1 ≤ dim1 ≤ 3 "dim2 must be 1≤dim1≤3, got dim1 = $dim1"
+    s1 = perpsize(u1, dim1) #
+    s2 = perpsize(u2, dim2)
+    @assert s1 == s2 "Arrays must be same size along boundary to be joined, got boundary sizes u1 = $s1, u2 = $s2"
+    if hilo1 == "low"
+        view1 = selectdim(u1, dim1, 1)
+        if hilo2 == "low"
+            BC1 = Array{MixedBC{T, BridgeBC{T, 3, eltype(s1)}, getboundarytype(bc1)}}(undef, s1...)
+            BC2 = Array{MixedBC{T, BridgeBC{T, 3, eltype(s2)}, getboundarytype(bc2)}}(undef, s2...)
+            view2 = selectdim(u2, dim2, 1)
+            for j in 1:s1[2], i in 1:s1[1]
+                BC1[i, j] = MixedBC(BridgeBC{T, N, eltype(s1)}(zeros(T, 1), view(view2, i, j), zeros(T, 1), view(view2, i, j)), bc1.BCs[i,j])
+                BC2[i, j] = MixedBC(BridgeBC{T, N, eltype(s1)}(zeros(T, 1), view(view1, i, j), zeros(T, 1), view(view1, i, j)), bc2.BCs[i,j])
+            end
+        elseif hilo2 == "high"
+            BC1 = Array{MixedBC{T, BridgeBC{T, 3, eltype(s1)}, getboundarytype(bc1)}}(undef, s1...)
+            BC2 = Array{MixedBC{T, getboundarytype(bc2), BridgeBC{T, 3, eltype(s2)}}}(undef, s2...)
+            view2 = selectdim(u2, dim2, size(u2)[dim2])
+            for j in 1:s1[2], i in 1:s1[1]
+                BC1[i, j] = MixedBC(BridgeBC{T, N, eltype(s1)}(zeros(T, 1), view(view2, i, j), zeros(T, 1), view(view2, i, j)), bc1.BCs[i,j])
+                BC2[i, j] = MixedBC(bc2.BCs[i,j], BridgeBC{T, N, eltype(s1)}(zeros(T, 1), view(view1, i, j), zeros(T, 1), view(view1, i, j)))
+            end
+        else
+            throw("hilo2 not recognized, please use \"high\" to connect u1 to u2 along the upper index of dim2 of u2 or \"low\" to connect along the lower index end")
+        end
+    elseif hilo1 == "high"
+        view1 = selectdim(u1, dim1, size(u1)[dim1])
+        if hilo2 == "low"
+            BC1 = Array{MixedBC{T, getboundarytype(bc1), BridgeBC{T, 3, eltype(s1)}}}(undef, s1...)
+            BC2 = Array{MixedBC{T, BridgeBC{T, 3, eltype(s2)}, getboundarytype(bc2)}}(undef, s2...)
+            view2 = selectdim(u2, dim2, 1)
+            view2 = selectdim(u2, dim2, 1)
+            for j in 1:s1[2], i in 1:s1[1]
+                BC1[i, j] = MixedBC(bc1.BCs[i,j], BridgeBC{T, N, eltype(s1)}(zeros(T, 1), view(view2, i, j), zeros(T, 1), view(view2, i, j)))
+                BC2[i, j] = MixedBC(BridgeBC{T, N, eltype(s1)}(zeros(T, 1), view(view1, i, j), zeros(T, 1), view(view1, i, j)), bc2.BCs[i,j])
+            end
+        elseif hilo2 == "high"
+            BC1 = Array{MixedBC{T, getboundarytype(bc1), BridgeBC{T, 3, eltype(s1)}}}(undef, s1...)
+            BC2 = Array{MixedBC{T, getboundarytype(bc2), BridgeBC{T, 3, eltype(s2)}}}(undef, s2...)
+            view2 = selectdim(u2, dim2, size(u2)[dim2])
+            for j in 1:s1[2], i in 1:s1[1]
+                BC1[i, j] = MixedBC(bc1.BCs[i,j], BridgeBC{T, N, eltype(s1)}(zeros(T, 1), view(view2, i, j), zeros(T, 1), view(view2, i, j)))
+                BC2[i, j] = MixedBC(bc2.BCs[i,j], BridgeBC{T, N, eltype(s1)}(zeros(T, 1), view(view1, i, j), zeros(T, 1), view(view1, i, j)))
+            end
+        else
+            throw("hilo2 not recognized, please use \"high\" to connect u1 to u2 along the upper index of dim2 of u2 or \"low\" to connect along the lower index end")
+        end
+    else
+        throw("hilo1 not recognized, please use \"high\" to connect u1 to u2 along the upper index of dim1 of u1 or \"low\" to connect along the lower index end")
+    end
+    return (MultiDimBC(BC1, dim1), MultiDimBC(BC2, dim2))
+end
 """
 Q = compose(BCs...)
 
@@ -456,7 +531,7 @@ function compose(BCs...)
     end
     BCs = BCs[sortperm([Ds...])]
 
-    ComposedMultiDimBC{T,N,N-1}([condition.BC for condition in BCs])
+    ComposedMultiDimBC{T, Union{eltype.(BCs)...}, N,N-1}([condition.BC for condition in BCs])
 end
 
 """
@@ -466,18 +541,19 @@ Qx, Qy,... = decompose(Q::ComposedMultiDimBC{T,N,M})
 
 Decomposes a ComposedMultiDimBC in to components that extend along each dimension individually
 """
-decompose(Q::ComposedMultiDimBC{T,N,M}) where {T,N,M} = Tuple([MultiDimBC(Q.BC[i], i) for i in 1:N])
+decompose(Q::ComposedMultiDimBC) = Tuple([MultiDimBC(Q.BC[i], i) for i in 1:ndims(Q)])
 
-getaxis(Q::MultiDimensionalSingleLayerBC{T, D, N, K}) where {T, D, N, K} = D
+getaxis(Q::MultiDimDirectionalBC{T, B, D, N, K}) where {T, B, D, N, K} = D
+getboundarytype(Q::MultiDimDirectionalBC{T, B, D, N, K}) where {T, B, D, N, K} = B
 
 Base.ndims(Q::MultiDimensionalBC{T,N}) where {T,N} = N
 
-function Base.:*(Q::MultiDimensionalSingleLayerBC{T, D, N, K}, u::AbstractArray{T, N}) where {T, D, N, K}
-    lower, upper = slicemul(Q.BC, u, D)
+function Base.:*(Q::MultiDimDirectionalBC{T, B, D, N, K}, u::AbstractArray{T, N}) where {T, B, D, N, K}
+    lower, upper = slicemul(Q.BCs, u, D)
     return BoundaryPaddedArray{T, D, N, K, typeof(u), typeof(lower)}(lower, upper, u)
 end
 
-function Base.:*(Q::ComposedMultiDimBC{T, N, K}, u::AbstractArray{T, N}) where {T, N, K}
+function Base.:*(Q::ComposedMultiDimBC{T, B, N, K}, u::AbstractArray{T, N}) where {T, B, N, K}
     out = slicemul.(Q.BCs, fill(u, N), 1:N)
     return ComposedBoundaryPaddedArray{T, N, K, typeof(u), typeof(out[1][1])}([A[1] for A in out], [A[2] for A in out], u)
 end

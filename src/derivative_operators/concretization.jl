@@ -177,7 +177,7 @@ end
 
 function SparseArrays.SparseMatrixCSC(Q::MixedBC{T}, N::Int) where {T}
     Alow = Array(Q.lower, N)
-    Ahigh = Array(Q.upper, N) 
+    Ahigh = Array(Q.upper, N)
     Q_L = [Alow[1][1,:]; Diagonal(ones(T,N)); Ahigh[1][end,:]]
     Q_b = [Alow[2][1]; zeros(T,N); Ahigh[2][end]]
     return (Q_L, Q_b)
@@ -228,7 +228,7 @@ Returns a tuple, the first element of which is an array of the shape of the boun
 filled with the linear operator parts of the respective Atomic BCs.
 the second element is a simularly sized array of the affine parts.
 """
-function LinearAlgebra.Array(Q::MultiDimensionalSingleLayerBC{T, D, N, K}, M) where {T,D,N,K}
+function LinearAlgebra.Array(Q::MultiDimDirectionalBC{T, B, D, N, K}, M) where {T, B, D,N,K}
     bc_tuples = Array.(Q.BC, M)
     Q_L = [bc_tuple[1] for bc_tuple in bc_tuples]
     inds = Array(1:N)
@@ -243,7 +243,7 @@ Returns a tuple, the first element of which is a sparse array of the shape of th
 filled with the linear operator parts of the respective Atomic BCs.
 the second element is a simularly sized array of the affine parts.
 """
-function SparseArrays.SparseMatrixCSC(Q::MultiDimensionalSingleLayerBC{T, D, N, K}, M) where {T,D,N,K}
+function SparseArrays.SparseMatrixCSC(Q::MultiDimDirectionalBC{T, B, D, N, K}, M) where {T, B, D,N,K}
     bc_tuples = sparse.(Q.BC, M)
     Q_L = [bc_tuple[1] for bc_tuple in bc_tuples]
     inds = Array(1:N)
@@ -253,9 +253,9 @@ function SparseArrays.SparseMatrixCSC(Q::MultiDimensionalSingleLayerBC{T, D, N, 
     return (Q_L, Q_b)
 end
 
-SparseArrays.sparse(Q::MultiDimensionalSingleLayerBC, N) = SparseMatrixCSC(Q, N)
+SparseArrays.sparse(Q::MultiDimDirectionalBC, N) = SparseMatrixCSC(Q, N)
 
-function BandedMatrices.BandedMatrix(Q::MultiDimensionalSingleLayerBC{T, D, N, K}, M) where {T,D,N,K}
+function BandedMatrices.BandedMatrix(Q::MultiDimDirectionalBC{T, B, D, N, K}, M) where {T, B, D,N,K}
     bc_tuples = BandedMatrix.(Q.BC, M)
     Q_L = [bc_tuple[1] for bc_tuple in bc_tuples]
     inds = Array(1:N)
@@ -266,7 +266,7 @@ function BandedMatrices.BandedMatrix(Q::MultiDimensionalSingleLayerBC{T, D, N, K
 end
 
 """
-Returns a Tuple of MultiDimensionalSingleLayerBC Array concretizations, one for each dimension
+Returns a Tuple of MultiDimDirectionalBC Array concretizations, one for each dimension
 """
 LinearAlgebra.Array(Q::ComposedMultiDimBC, Ns) = Tuple(Array.(Q.BCs, Ns))
 SparseArrays.SparseMatrixCSC(Q::ComposedMultiDimBC, Ns...) = Tuple(sparse.(Q.BCs, Ns))

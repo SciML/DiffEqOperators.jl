@@ -1,20 +1,21 @@
 using Test, DiffEqOperators
 
+#a = rand(10)
+#b = rand(10)
+
 a = rand(10)
 b = rand(10)
 
 q = BridgeBC(a, length(a), b, 1)
 dummy_u = zeros(10)
-q_test = PeriodicBC{Float64}()
 
-u_extended = q*dummy_u
-ab_extended = q_test*Array([a;b])
-@test u_extended[1] == ab_extended[1]
-@test u_extended[end] == ab_extended[end]
+ab_extended = q*dummy_u
+@test a[end] == ab_extended[1]
+@test b[1] == ab_extended[end]
 
 # Multi dimensional easy connection test
 
-@inline function _easy_bridge_test(a, b, a_extended, b_extended, dim1, dim2, dirichlet0)
+@inline function _easy_bridge_test(a, b, a_extended, b_extended, dim1, dim2, hilo1, hilo2, dirichlet0)
     if hilo1 == "low"
         if hilo2 == "low"
             @test a_extended.lower == selectdim(b, dim2, 1)
@@ -23,7 +24,7 @@ ab_extended = q_test*Array([a;b])
             @test a_extended.upper == dirichlet0
             @test b_extended.upper == dirichlet0
         elseif hilo2 == "high"
-            @test a_extended.lower == selectdim(b, dim2, 10)
+            @test a_extended.lower == selectdim(b, dim2, size(b,dim2))
             @test b_extended.upper == selectdim(a, dim1, 1)
 
             @test a_extended.upper == dirichlet0
@@ -32,13 +33,13 @@ ab_extended = q_test*Array([a;b])
     elseif hilo1 == "high"
         if hilo2 == "low"
             @test a_extended.upper == selectdim(b, dim2, 1)
-            @test b_extended.lower == selectdim(a, dim1, 10)
+            @test b_extended.lower == selectdim(a, dim1, size(a,dim1))
 
             @test a_extended.lower == dirichlet0
             @test b_extended.upper == dirichlet0
         elseif hilo2 == "high"
-            @test a_extended.upper == selectdim(b, dim2, 10)
-            @test b_extended.upper == selectdim(a, dim1, 10)
+            @test a_extended.upper == selectdim(b, dim2, size(b,dim2))
+            @test b_extended.upper == selectdim(a, dim1, size(a,dim1))
 
             @test a_extended.lower == dirichlet0
             @test b_extended.lower == dirichlet0
@@ -46,22 +47,24 @@ ab_extended = q_test*Array([a;b])
     end
 end
 
-a = rand(10,10)
-b = rand(10,10)
+
 dirichlet0 = zeros(10)
-@test for hilo1 in ["low", "high"], hilo2 in ["low", "high"]
+for hilo1 in ["low", "high"], hilo2 in ["low", "high"]
     for dim1 in 1:2, dim2 in 1:2
-        Qa, Qb = BridgeBC(a, dim1, hilo1, Dirichlet0BC{Float64}(), b, dim2, hilo2, Dirichlet0BC{Float64}())
+        a = repeat(transpose(Vector(11.0:20.0)), outer = (10, 1))
+        b = repeat(Vector(1.0:10.0), outer = (1,10))
+        Q1, Q2 = Dirichlet0BC(Float64, size(a)),  Dirichlet0BC(Float64, size(b))
+        Qa, Qb = BridgeBC(a, dim1, hilo1, Q2[dim1], b, dim2, hilo2, Q2[dim2])
         a_extended = Qa*a
         b_extended = Qb*b
 
-         _easy_bridge_test(a, b, a_extended, b_extended, dim1, dim2, dirichlet0)
+         _easy_bridge_test(a, b, a_extended, b_extended, dim1, dim2, hilo1, hilo2, dirichlet0)
 
-        a = a.*2 #Check that the operator still works even after the values in a and b have changed
-        b = b.*2
+        a .= a.*2 #Check that the operator still works even after the values in a and b have changed
+        b .= b.*2
         a_extended = Qa*a
         b_extended = Qb*b
 
-        _easy_bridge_test(a, b, a_extended, b_extended, dim1, dim2, dirichlet0)
+        _easy_bridge_test(a, b, a_extended, b_extended, dim1, dim2,hilo1, hilo2, dirichlet0)
     end
 end

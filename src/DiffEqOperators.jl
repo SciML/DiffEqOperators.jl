@@ -50,6 +50,6 @@ export MatrixFreeOperator
 export DiffEqScalar, DiffEqArrayOperator, DiffEqIdentity, JacVecOperator, getops
 export AbstractDerivativeOperator, DerivativeOperator,
        CenteredDifference, UpwindDifference
-export RobinBC, GeneralBC, MixedBC, MultiDimBC, PeriodicBC, BridgeBC, compose, decompose
+export DirichletBC, Dirichlet0BC, NeumannBC, Neumann0BC, RobinBC, GeneralBC, MixedBC, MultiDimBC, PeriodicBC, BridgeBC, compose, decompose
 export GhostDerivativeOperator
 end # module
