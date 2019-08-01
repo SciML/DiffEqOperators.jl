@@ -25,6 +25,7 @@ include("boundary_padded_arrays.jl")
 
 ### Boundary Operators
 include("derivative_operators/BC_operators.jl")
+include("derivative_operators/multi_dim_bc_operators.jl")
 
 ### Derivative Operators
 include("derivative_operators/fornberg.jl")
@@ -50,6 +51,9 @@ export MatrixFreeOperator
 export DiffEqScalar, DiffEqArrayOperator, DiffEqIdentity, JacVecOperator, getops
 export AbstractDerivativeOperator, DerivativeOperator,
        CenteredDifference, UpwindDifference
-export DirichletBC, Dirichlet0BC, NeumannBC, Neumann0BC, RobinBC, GeneralBC, MixedBC, MultiDimBC, PeriodicBC, BridgeBC, compose, decompose
+export DirichletBC, Dirichlet0BC, NeumannBC, Neumann0BC, RobinBC, GeneralBC, MixedBC, MultiDimBC, PeriodicBC, BridgeBC,
+       MultiDimDirectionalBC, ComposedMultiDimBC
+       compose, decompose, perpsize
+
 export GhostDerivativeOperator
 end # module
