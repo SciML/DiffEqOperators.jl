@@ -178,7 +178,7 @@ end
 NeumannBC(α::AbstractVector{T}, dx::Union{AbstractVector{T}, T}, order = 1) where T = RobinBC([zero(T), one(T), α[1]], [zero(T), one(T), α[2]], dx, order)
 DirichletBC(αl, αr) where T = RobinBC([one(T), zero(T), αl], [one(T), zero(T), αr], 1.0, 2.0 )
 #specialized constructors for Neumann0 and Dirichlet0
-Dirichlet0BC() where T = DirichletBC([zero(T), zero(T)], 1.0, 2.0)
+Dirichlet0BC{T}() where T = DirichletBC([zero(T), zero(T)], 1.0, 2.0)
 Neumann0BC(dx::Union{AbstractVector{T}, T}, order = 1) where T = NeumannBC([zero(T), zero(T)], dx, order)
 
 # other acceptable argument signatures
@@ -308,7 +308,7 @@ function BridgeBC(u1::AbstractArray{T,N}, dim1::Int, hilo1::String, bc1, u2::Abs
         else
             throw("hilo1 not recognized, please use \"high\" to connect u1 to u2 along the upper index of dim1 of u1 or \"low\" to connect along the lower index end")
         end
-        return (BC1, BC2)
+        return (MultiDimBC(BC1, dim1), MultiDimBC(BC2, dim2))
     else
         throw("This value of N is not supported.")
     end
