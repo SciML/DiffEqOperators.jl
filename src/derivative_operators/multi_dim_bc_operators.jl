@@ -118,6 +118,9 @@ Neumann0BC(T::Type, dxyz, order, s) = NeumannBC([zero(T), zero(T)], dxyz, order,
 RobinBC(l::AbstractVector{T}, r::AbstractVector{T}, dxyz, order, s) where {T} = Tuple([MultiDimDirectionalBC{T, RobinBC{T}, dim, length(s), length(s)-1}(fill(RobinBC(l, r, dxyz[dim], order), s[setdiff(1:length(s), dim)])) for dim in 1:length(s)])
 GeneralBC(αl::AbstractVector{T}, αr::AbstractVector{T}, dxyz, order, s) where {T} = Tuple([MultiDimDirectionalBC{T, GeneralBC{T}, dim, length(s), length(s)-1}(fill(GeneralBC(αl, αr, dxyz[dim], order), s[setdiff(1:length(s), dim)])) for dim in 1:length(s)])
 
+
+perpsize(A::AbstractArray{T,N}, dim::Integer) where {T,N} = size(A)[setdiff(1:N, dim)] #the size of A perpendicular to dim
+
 # Constructors for Bridge BC to make it easier to join domains together. See docs on BrigeBC in BC_operators.jl for info on usage
 function BridgeBC(u1::AbstractArray{T,2}, dim1::Int, hilo1::String, bc1::MultiDimDirectionalBC, u2::AbstractArray{T,2}, dim2::Int, hilo2::String, bc2::MultiDimDirectionalBC) where {T}
     @assert 1 ≤ dim1 ≤ 2 "dim1 must be 1≤dim1≤2, got dim1 = $dim1"

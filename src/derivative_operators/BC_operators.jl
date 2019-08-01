@@ -213,8 +213,6 @@ function BridgeBC(u_low::AbstractArray{T,N}, indslow, u_up::AbstractArray{T,N}, 
     BridgeBC{T, length(indslow), eltype(indslow)}(zeros(T,1), view(u_low, indslow...), zeros(T,1), view(u_up, indsup...))
 end
 
-perpsize(A::AbstractArray{T,N}, dim::Integer) where {T,N} = size(A)[setdiff(1:N, dim)] #the size of A perpendicular to dim
-
 """
     Q1, Q2 = BridgeBC(u1::AbstractVector{T}, hilo1::String, bc1::AtomicBC{T}, u2::AbstractVector{T}, hilo2::AbstractVector{T}, bc2::AtomicBC{T})
 -------------------------------------------------------------------------------------
