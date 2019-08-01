@@ -30,7 +30,8 @@ function LinearAlgebra.opnorm(M::MatrixFreeOperator, p::Real)
     argument. E.g. `(p::Real) -> p == Inf ? 100 : error("only Inf norm is
     defined")`
   """)
-  return M.opnorm(p)
+  opn = M.opnorm
+  return opn isa Number ? opn : M.opnorm(p)
 end
 
 # Interface
