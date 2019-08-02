@@ -27,7 +27,7 @@ end
 Higher dimensional generalization of BoundaryPaddedVector, pads an array of dimension N along the dimension D with 2 Arrays of dimension N-1, stored in lower and upper
 
 """
-struct BoundaryPaddedArray{T<:Number, D, N, M, V<:AbstractArray{T, N}, B<: AbstractArray{T, M}} <: AbstractBoundaryPaddedArray{T,N}
+struct BoundaryPaddedArray{T, D, N, M, V<:AbstractArray{T, N}, B<: AbstractArray{T, M}} <: AbstractBoundaryPaddedArray{T,N}
     lower::B #an array of dimension M = N-1, used to extend the lower index boundary
     upper::B #Ditto for the upper index boundary
     u::V
@@ -71,7 +71,7 @@ end
 
 # Composed BoundaryPaddedArray
 
-struct ComposedBoundaryPaddedArray{T<:Number, N, M, V<:AbstractArray{T, N}, B<: AbstractArray{T, M}} <: AbstractBoundaryPaddedArray{T, N}
+struct ComposedBoundaryPaddedArray{T, N, M, V<:AbstractArray{T, N}, B<: AbstractArray{T, M}} <: AbstractBoundaryPaddedArray{T, N}
     lower::Vector{B}
     upper::Vector{B}
     u::V
@@ -107,7 +107,7 @@ Base.ndims(Q::AbstractBoundaryPaddedArray{T,N}) where {T,N} = N
 add_dim(A::AbstractArray, i) = reshape(A, size(A)...,i)
 add_dim(i) = i
 
-function Base.getindex(Q::BoundaryPaddedArray{T,D,N,M,V,B}, _inds...) where {T,D,N,M,V,B} #supports range and colon indexing!
+function Base.getindex(Q::BoundaryPaddedArray{T,D,N,M,V,B}, _inds::NTuple{N,Int64}...) where {T,D,N,M,V,B} #supports range and colon indexing!
     inds = [_inds...]
     S = size(Q)
     dim = D
@@ -131,10 +131,8 @@ function Base.getindex(Q::BoundaryPaddedArray{T,D,N,M,V,B}, _inds...) where {T,D
     end
 end
 
-function Base.getindex(Q::ComposedBoundaryPaddedArray, inds...) #as yet no support for range indexing or colon indexing
+function Base.getindex(Q::ComposedBoundaryPaddedArray{T, N, M, V, B} , inds::NTuple{N, Int64}...) where {T, N, M, V, B} #as yet no support for range indexing or colon indexing
     S = size(Q)
-    T = gettype(Q)
-    N = ndims(Q)
     @assert reduce((&), inds .<= S)
     for (dim, index) in enumerate(inds)
         if index == 1
@@ -155,3 +153,5 @@ function Base.getindex(Q::ComposedBoundaryPaddedArray, inds...) #as yet no suppo
      end
     return Q.u[(inds.-1)...]
 end
+
+getindex(A::AbstractBoundaryPaddedArray{T,N}, I::CartesianIndex{N}) where {T,N} = A[Tuple(I)...]
