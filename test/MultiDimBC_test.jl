@@ -4,8 +4,8 @@ using LinearAlgebra, DiffEqOperators, Random, Test
 ################################################################################
 
 #Create Array
-n = 100
-m = 120
+n = 12
+m = 25
 A = rand(n,m)
 
 #Create atomic BC
@@ -38,9 +38,9 @@ end
 ################################################################################
 
 #Create Array
-n = 100
-m = 120
-o = 78
+n = 31
+m = 25
+o = 12
 A = rand(n,m, o)
 
 #Create atomic BC
@@ -60,18 +60,7 @@ Ay = Qy*A
 Az = Qz*A
 # Test padded array compositions
 
-Aextended = compose(Az,Ax,Ay) #Arrays in wierd order to show that this still works
-@test_broken compose(Ax, Az, Az) #these tests should not work, if they are broken then they are  passing
-
-#test BC compositions
-Q = compose(Qy, Qx,Qz)
-@test_broken compose(Qx, Qx, Qz) #these tests should not work, if they are broken then they are passing
-
 QA = Q*A
-
-for i in 1:(n+2), j in 1:(m+2), k in 1:(o+2)
-    @test Aextended[i,j,k] == QA[i,j,k]
-end
 
 @test size(Ax)[1] == size(A)[1]+2
 @test size(Ay)[2] == size(A)[2]+2
@@ -84,4 +73,19 @@ for i in 1:n, k in 1:o
 end
 for i in 1:n, j in 1:m
     @test Az[i, j, :] == Array(BCz[i, j]*A[i, j, :])
+end
+
+#test compositions to higher dimension
+for N in 2:7
+    sizes = rand(5:10)
+    A = rand(sizes...)
+
+    Q1_N = Neumann0BC(1.0, 3.0, size(A))
+
+    Q = compose(Q1_N...)
+
+    A1_N = Q1_N.*fill(A, N)
+
+    A_extended = Q*A
+    @test Array(A_extended) == Array(compose(A1_N...))
 end

@@ -51,10 +51,31 @@ end
 dirichlet0 = zeros(10)
 for hilo1 in ["low", "high"], hilo2 in ["low", "high"]
     for dim1 in 1:2, dim2 in 1:2
-        a = repeat(transpose(Vector(11.0:20.0)), outer = (10, 1))
-        b = repeat(Vector(1.0:10.0), outer = (1,10))
+        a = rand(10,10)
+        b = rand(10,10)
         Q1, Q2 = Dirichlet0BC(Float64, size(a)),  Dirichlet0BC(Float64, size(b))
-        Qa, Qb = BridgeBC(a, dim1, hilo1, Q2[dim1], b, dim2, hilo2, Q2[dim2])
+        Qa, Qb = BridgeBC(Q1[dim1], a, dim1, hilo1, dim2, hilo2, b, Q2[dim2])
+        a_extended = Qa*a
+        b_extended = Qb*b
+
+         _easy_bridge_test(a, b, a_extended, b_extended, dim1, dim2, hilo1, hilo2, dirichlet0)
+
+        a .= a.*2 #Check that the operator still works even after the values in a and b have changed
+        b .= b.*2
+        a_extended = Qa*a
+        b_extended = Qb*b
+
+        _easy_bridge_test(a, b, a_extended, b_extended, dim1, dim2,hilo1, hilo2, dirichlet0)
+    end
+end
+#validate 3d
+dirichlet0 = zeros(10,10)
+for hilo1 in ["low", "high"], hilo2 in ["low", "high"]
+    for dim1 in 1:3, dim2 in 1:3
+        a = rand(10,10,10)
+        b = rand(10,10,10)
+        Q1, Q2 = Dirichlet0BC(Float64, size(a)),  Dirichlet0BC(Float64, size(b))
+        Qa, Qb = BridgeBC(Q1[dim1], a, dim1, hilo1, dim2, hilo2, b, Q2[dim2])
         a_extended = Qa*a
         b_extended = Qb*b
 

@@ -214,7 +214,7 @@ function BridgeBC(u_low::AbstractArray{T,N}, indslow, u_up::AbstractArray{T,N}, 
 end
 
 """
-    Q1, Q2 = BridgeBC(u1::AbstractVector{T}, hilo1::String, bc1::AtomicBC{T}, u2::AbstractVector{T}, hilo2::AbstractVector{T}, bc2::AtomicBC{T})
+    Q1, Q2 = BridgeBC(bc1::AtomicBC, u1::AbstractArray{T,1}, hilo1::String, hilo2::String, u2::AbstractArray{T,1}, bc2::AtomicBC)
 -------------------------------------------------------------------------------------
 Creates two BC operators that join array `u1` to `u2` at the `hilo1` end ("high" or "low" index end), and joins `u2` to `u1` with simalar settings given in `hilo2`.
 The ends of `u1` and `u2` that are not connected will use the boundary conditions `bc1` and `bc2` respectively.
@@ -225,18 +225,20 @@ When using these with a time/space stepping solve, please use elementwise equals
     u_t1 .= L*Q*u_t0
 -----------------------------------------------------------------------------------
 Connecting two multi dimensional Arrays:
-    Q1, Q2 = BridgeBC(u1::AbstractArray{T,N}, dim1::Int, hilo1::String, bc1, u2::AbstractArray{T,N}, dim2::Int, hilo2::String, bc2)
+    Q1, Q2 = BridgeBC(bc1::MultiDimDirectionalBC, u1::AbstractArray{T,N}, dim1::Int, hilo1::String, dim2::Int, hilo2::String, u2::AbstractArray{T,N}, bc2::MultiDimDirectionalBC)
 -----------------------------------------------------------------------------------
 
 Creates two BC operators that join array `u1` to `u2` at the `hilo1` end ("high" or "low" index end) of dimension `dim1`, and joins `u2` to `u1` with simalar settings given in `hilo2` and `dim2`.
 The ends of `u1` and `u2` that are not connected will use the boundary conditions `bc1` and `bc2` respectively.
+
+Drop `dim1` and `dim2` when your `u1` and `u2` are vectors.
 
 Use `Q1` to extend `u1` and `Q2` to extend `u2`.
 
 When using these with a time/space stepping solve, please use elementwise equals on your u1 and u2 to avoid the need to create new BC operators each time, as follows:
     u_t1 .= L*Q*u_t0
 """
-function BridgeBC(u1::AbstractVector{T}, hilo1::String, bc1::AtomicBC{T}, u2::AbstractVector{T}, hilo2::AbstractVector{T}, bc2::AtomicBC{T}) where T
+function BridgeBCBridgeBC(bc1::AtomicBC, u1::AbstractArray{T,1}, hilo1::String, hilo2::String, u2::AbstractArray{T,1}, bc2::AtomicBC) where T
     if hilo1 == "low"
         view1 = view(u1, 1)
         if hilo2 == "low"
