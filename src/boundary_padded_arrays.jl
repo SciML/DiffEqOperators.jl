@@ -87,7 +87,6 @@ BoundaryPadded3Tensor{T, D, V, B} = BoundaryPaddedArray{T, D, 3, 2, V, B}
 ComposedBoundaryPaddedMatrix{T,V,B} = ComposedBoundaryPaddedArray{T,2,1,V,B}
 ComposedBoundaryPadded3Tensor{T,V,B} = ComposedBoundaryPaddedArray{T,3,2,V,B}
 
-
 Base.size(Q::ComposedBoundaryPaddedArray) = size(Q.u).+2
 
 """
@@ -107,18 +106,6 @@ Base.ndims(Q::AbstractBoundaryPaddedArray{T,N}) where {T,N} = N
 
 add_dim(A::AbstractArray, i) = reshape(A, size(A)...,i)
 add_dim(i) = i
-
-function experms(N::Integer, dim) # A function to correctly permute the dimensions of the padding arrays so that they can be concatanated with the rest of u in getindex(::BoundaryPaddedArray)
-    if dim == N
-        return Vector(1:N)
-    elseif dim < N
-        P = experms(N, dim+1)
-        P[dim], P[dim+1] = P[dim+1], P[dim]
-        return P
-    else
-        throw("Dim is greater than N!")
-    end
-end
 
 function Base.getindex(Q::BoundaryPaddedArray{T,D,N,M,V,B}, _inds...) where {T,D,N,M,V,B} #supports range and colon indexing!
     inds = [_inds...]
