@@ -54,7 +54,7 @@ Composes BoundaryPaddedArrays that extend the same u for each different dimensio
 
 Ax Ay and Az can be passed in any order, as long as there is exactly one BoundaryPaddedArray that extends each dimension.
 """
-function compose(padded_arrays::BoundaryPaddedArray...)
+function compose(padded_arrays::BoundaryPaddedArray ...)
     N = ndims(padded_arrays[1])
     Ds = getaxis.(padded_arrays)
     (length(padded_arrays) == N) || throw("The padded_arrays must cover every dimension - make sure that the number of padded_arrays is equal to ndims(u).")

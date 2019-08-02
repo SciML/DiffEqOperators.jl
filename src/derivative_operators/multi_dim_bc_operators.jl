@@ -1,69 +1,46 @@
 
 abstract type MultiDimensionalBC{T, N} <: AbstractBC{T} end
 
+
+@noinline function _slice_rmul!(u_temp::AbstractArray{T,N}, A::AbstractDiffEqLinearOperator, u::AbstractArray{T,N}, dim::Int, pre, post) where {T,N}
+    for J in CartesianIndices(post)
+        for I in CartesianIndices(pre)
+            u_temp[I, :, J] = A*u[I, :, J]
+        end
+    end
+    u_temp
+end
+
+function slice_rmul(A::AbstractDiffEqLinearOperator, u::AbstractArray{T,N}, dim::Int) where {T,N}
+    u_temp = similar(u)
+    pre = axes(u)[1:dim-1]
+    post = axes(u)[dim+1:end]
+    _slice_rmul!(u_temp, A, u, dim, pre, post)
+    return u_temp
+end
+
+@noinline function _slice_rmul!(lower::Array{T, M}, upper::Array{T, M}, A::AbstractArray{B,M}, u::AbstractArray{T,N}, dim::Int, pre, post) where {T,B,N,M}
+    for J in CartesianIndices(post)
+        for I in CartesianIndices(pre)
+            tmp = A[I,J]*u[I, :, J]
+            lower[I,J], upper[I,J] = tmp.l, tmp.r
+        end
+    end
+    return (lower, upper)
+end
+
+function slice_rmul(A::AbstractArray{B,M}, u::AbstractArray{T,N}, dim::Int) where {T, B, N,M}
+    lower = zeros(T,perpsize(u,dim))
+    upper = zeros(T,perpsize(u,dim))
+    pre = axes(u)[1:dim-1]
+    post = axes(u)[dim+1:end]
+    _slice_rmul!(lower, upper, A, u, dim, pre, post)
+    return (lower, upper)
+end
+
 """
 slicemul is the only limitation on the BCs here being used up to arbitrary dimension, an N dimensional implementation is needed.
 """
-@inline function slicemul(A::Array{B,1}, u::AbstractArray{T, 2}, dim::Integer) where {T, B<:AtomicBC{T}}
-    s = size(u)
-    if dim == 1
-        lower = zeros(T, s[2])
-        upper = deepcopy(lower)
-        for i in 1:(s[2])
-            tmp = A[i]*u[:,i]
-            lower[i], upper[i] = (tmp.l, tmp.r)
-        end
-    elseif dim == 2
-        lower = zeros(T, s[1])
-        upper = deepcopy(lower)
-        for i in 1:(s[1])
-            tmp = A[i]*u[i,:]
-            lower[i], upper[i] = (tmp.l, tmp.r)
-        end
-    elseif dim == 3
-        throw("The 3 dimensional Method should be being called, not this one. Check dispatch.")
-    else
-        throw("Dim greater than 3 not supported!")
-    end
-    return lower, upper
-end
-
-
-@inline function slicemul(A::Array{B,2}, u::AbstractArray{T, 3}, dim::Integer) where {T, B<:AtomicBC{T}}
-    s = size(u)
-    if dim == 1
-        lower = zeros(T, s[2], s[3])
-        upper = deepcopy(lower)
-        for j in 1:s[3]
-            for i in 1:s[2]
-                tmp = A[i,j]*u[:,i,j]
-                lower[i,j], upper[i,j] = (tmp.l, tmp.r)
-            end
-        end
-    elseif dim == 2
-        lower = zeros(T, s[1], s[3])
-        upper = deepcopy(lower)
-        for j in 1:s[3]
-            for i in 1:s[1]
-                tmp = A[i,j]*u[i,:,j]
-                lower[i,j], upper[i,j] = (tmp.l, tmp.r)
-            end
-        end
-    elseif dim == 3
-        lower = zeros(T, s[1], s[2])
-        upper = deepcopy(lower)
-        for j in 1:s[2]
-            for i in 1:s[1]
-                tmp = A[i,j]*u[i,j,:]
-                lower[i,j], upper[i,j] = (tmp.l, tmp.r)
-            end
-        end
-    else
-        throw("Dim greater than 3 not supported!")
-    end
-    return lower, upper
-end
-
 
 struct MultiDimDirectionalBC{T<:Number, B<:AtomicBC{T}, D, N, M} <: MultiDimensionalBC{T, N}
     BCs::Array{B,M} #dimension M=N-1 array of BCs to extend dimension D
@@ -97,13 +74,13 @@ The order is a required argument in this case.
 
 where dx, dy, and dz are vectors of grid steps.
 """
-MultiDimBC(BC::Array{B,N}, dim::Integer) where {N, B} = MultiDimDirectionalBC{gettype(BC[1]), B, dim, N+1, N}(BC)
+MultiDimBC(BC::Array{B,N}, dim::Integer) where {N, B<:AtomicBC} = MultiDimDirectionalBC{gettype(BC[1]), B, dim, N+1, N}(BC)
 #s should be size of the domain
-MultiDimBC(BC::B, s, dim::Integer) where  {B} = MultiDimDirectionalBC{gettype(BC), B, dim, length(s), length(s)-1}(fill(BC, s[setdiff(1:length(s), dim)]))
+MultiDimBC(BC::B, s, dim::Integer) where  {B<:AtomicBC} = MultiDimDirectionalBC{gettype(BC), B, dim, length(s), length(s)-1}(fill(BC, s[setdiff(1:length(s), dim)]))
 
 #Extra constructor to make a set of BC operators that extend an atomic BC Operator to the whole domain
 #Only valid in the uniform grid case!
-MultiDimBC(BC::B, s) where {B} = Tuple([MultiDimDirectionalBC{gettype(BC), B, dim, length(s), length(s)-1}(fill(BC, s[setdiff(1:length(s), dim)])) for dim in 1:length(s)])
+MultiDimBC(BC::B, s) where {B<:AtomicBC} = Tuple([MultiDimDirectionalBC{gettype(BC), B, dim, length(s), length(s)-1}(fill(BC, s[setdiff(1:length(s), dim)])) for dim in 1:length(s)])
 
 # Additional constructors for cases when the BC is the same for all boundarties
 
@@ -253,7 +230,7 @@ function compose(BCs...)
     end
     BCs = BCs[sortperm([Ds...])]
 
-    ComposedMultiDimBC{T, Union{eltype.(BCs)...}, N,N-1}([condition.BC for condition in BCs])
+    ComposedMultiDimBC{T, Union{eltype.(BC.BCs for BC in BCs)...}, N,N-1}([condition.BCs for condition in BCs])
 end
 
 """
@@ -271,11 +248,11 @@ getboundarytype(Q::MultiDimDirectionalBC{T, B, D, N, K}) where {T, B, D, N, K} =
 Base.ndims(Q::MultiDimensionalBC{T,N}) where {T,N} = N
 
 function Base.:*(Q::MultiDimDirectionalBC{T, B, D, N, K}, u::AbstractArray{T, N}) where {T, B, D, N, K}
-    lower, upper = slicemul(Q.BCs, u, D)
+    lower, upper = slice_rmul(Q.BCs, u, D)
     return BoundaryPaddedArray{T, D, N, K, typeof(u), typeof(lower)}(lower, upper, u)
 end
 
 function Base.:*(Q::ComposedMultiDimBC{T, B, N, K}, u::AbstractArray{T, N}) where {T, B, N, K}
-    out = slicemul.(Q.BCs, fill(u, N), 1:N)
+    out = slice_rmul.(Q.BCs, fill(u, N), 1:N)
     return ComposedBoundaryPaddedArray{T, N, K, typeof(u), typeof(out[1][1])}([A[1] for A in out], [A[2] for A in out], u)
 end
