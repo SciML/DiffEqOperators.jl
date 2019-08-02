@@ -142,7 +142,7 @@ end
 ################################################################################
 # Boundary Condition Operator concretizations
 ################################################################################
-add_dims(A::AbstractArray, n::int) = cat(ndims(a) + n, a)
+add_dims(A::AbstractArray, n::Int) = cat(ndims(a) + n, a)
 #Atomic BCs
 function LinearAlgebra.Array(Q::AffineBC{T}, N::Int) where {T}
     Q_L = [transpose(Q.a_l) transpose(zeros(T, N-length(Q.a_l))); Diagonal(ones(T,N)); transpose(zeros(T, N-length(Q.a_r))) transpose(Q.a_r)]
@@ -205,7 +205,7 @@ filled with the linear operator parts of the respective Atomic BCs.
 the second element is a simularly sized array of the affine parts.
 """
 function LinearAlgebra.Array(Q::MultiDimDirectionalBC{T, B, D, N, K}, M) where {T, B, D,N,K}
-    bc_tuples = Array.(Q.BCs, fill(M, size(Q.BCs))
+    bc_tuples = Array.(Q.BCs, fill(M, size(Q.BCs)))
     Q_L = [bc_tuple[1] for bc_tuple in bc_tuples]
     inds = Array(1:N)
     inds[1], inds[D] = inds[D], inds[1]
@@ -220,7 +220,7 @@ filled with the linear operator parts of the respective Atomic BCs.
 the second element is a simularly sized array of the affine parts.
 """
 function SparseArrays.SparseMatrixCSC(Q::MultiDimDirectionalBC{T, B, D, N, K}, M) where {T, B, D,N,K}
-    bc_tuples = sparse.(Q.BCs, fill(M, size(Q.BCs))
+    bc_tuples = sparse.(Q.BCs, fill(M, size(Q.BCs)))
     Q_L = [bc_tuple[1] for bc_tuple in bc_tuples]
     inds = Array(1:N)
     inds[1], inds[D] = inds[D], inds[1]
@@ -232,7 +232,7 @@ end
 SparseArrays.sparse(Q::MultiDimDirectionalBC, N) = SparseMatrixCSC(Q, N)
 
 function BandedMatrices.BandedMatrix(Q::MultiDimDirectionalBC{T, B, D, N, K}, M) where {T, B, D,N,K}
-    bc_tuples = BandedMatrix.(Q.BCs, fill(M, size(Q.BCs))
+    bc_tuples = BandedMatrix.(Q.BCs, fill(M, size(Q.BCs)))
     Q_L = [bc_tuple[1] for bc_tuple in bc_tuples]
     inds = Array(1:N)
     inds[1], inds[D] = inds[D], inds[1]

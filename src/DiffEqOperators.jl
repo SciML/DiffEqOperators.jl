@@ -51,7 +51,7 @@ export MatrixFreeOperator
 export DiffEqScalar, DiffEqArrayOperator, DiffEqIdentity, JacVecOperator, getops
 export AbstractDerivativeOperator, DerivativeOperator,
        CenteredDifference, UpwindDifference
-export DirichletBC, Dirichlet0BC, NeumannBC, Neumann0BC, RobinBC, GeneralBC, MixedBC, MultiDimBC, PeriodicBC,
+export DirichletBC, Dirichlet0BC, NeumannBC, Neumann0BC, RobinBC, GeneralBC, MultiDimBC, PeriodicBC,
        MultiDimDirectionalBC, ComposedMultiDimBC,
        compose, decompose, perpsize
 
