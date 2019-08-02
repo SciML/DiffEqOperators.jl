@@ -3,8 +3,8 @@ using LinearAlgebra, DiffEqOperators, Random, Test
 # Test BoundaryPaddedMatrix
 ################################################################################
 
-n = 100
-m = 120
+n = 44
+m = 31
 A = rand(n,m)
 
 
@@ -23,9 +23,9 @@ end
 # Test BoundaryPaddedTensor{3}
 ################################################################################
 
-n = 100
-m = 120
-o = 78
+n = 31
+m = 44
+o = 34
 A = rand(n,m,o)
 S = size(A)
 for dim in 1:3
