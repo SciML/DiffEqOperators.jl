@@ -195,11 +195,12 @@ BridgeBC(u::AbstractArray{T,N}, inds) # The same view in to some array u at the 
 
 Allows seperate domains governed by seperate equations to be bridged together with a boundary condition.
 """
-struct BridgeBC{T,N,I} <: AffineBC{T}
+struct BridgeBC{T,N,I, L} <: AffineBC{T}
     a_l::Vector{T} #Dummy vectors so that AffineBC methods still work
-    b_l::SubArray{T,0,Array{T,N},NTuple{N,I},true}
+    b_l::SubArray{T,0,Array{T,N},NTuple{N,I},L}
     a_r::Vector{T}
-    b_r::SubArray{T,0,Array{T,N},NTuple{N,I},true}
+    b_r::SubArray{T,0,Array{T,N},NTuple{N,I},L}
+    function BridgeBC{T,N,L}(a_l, b_l::Subarray{T,0,Array{T,N},NTuple{N,I}, L}, a_r, b_l::Subarray{T,0,Array{T,N},NTuple{N,I}, L}) where {T, N, L, I} = new{T,N,L,I}(a_l,b_l,a_r,b_r)
 end
 
 BridgeBC(u::AbstractArray, inds) = BridgeBC(u, inds, u, inds)
@@ -209,7 +210,6 @@ function BridgeBC(u_low::AbstractArray{T,N}, indslow, u_up::AbstractArray{T,N}, 
     @assert length(indsup) == N
     @assert mapreduce(x -> typeof(x) <: Integer, (&), indslow)
     @assert mapreduce(x -> typeof(x) <: Integer, (&), indsup)
-
     BridgeBC{T, length(indslow), eltype(indslow)}(zeros(T,1), view(u_low, indslow...), zeros(T,1), view(u_up, indsup...))
 end
 
