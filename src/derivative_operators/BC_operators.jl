@@ -153,8 +153,6 @@ struct GeneralBC{T} <:AffineBC{T}
     end
 end
 
-
-
 """
 Quick and dirty way to allow mixed boundary types on each end of an array - may be cleaner and more versatile to split up left and right boundaries going forward
 MixedBC(lowerBC, upperBC) is the interface.
@@ -170,12 +168,6 @@ struct MixedBC{T, R, S} <: AtomicBC{T}
      end
 end
 
-function Base.:*(Q::MixedBC, u::AbstractVector)
-    lower = Q.lower*u
-    upper = Q.upper*u
-    return BoundaryPaddedVector(lower.l, upper.r, u)
-end
-
 #implement Neumann and Dirichlet as special cases of RobinBC
 NeumannBC(α::AbstractVector{T}, dx::Union{AbstractVector{T}, T}, order = 1) where T = RobinBC([zero(T), one(T), α[1]], [zero(T), one(T), α[2]], dx, order)
 DirichletBC(αl::T, αr::T) where T = RobinBC([one(T), zero(T), αl], [one(T), zero(T), αr], 1.0, 2.0 )
@@ -186,92 +178,7 @@ Neumann0BC(dx::Union{AbstractVector{T}, T}, order = 1) where T = NeumannBC([zero
 # other acceptable argument signatures
 #RobinBC(al::T, bl::T, cl::T, dx_l::T, ar::T, br::T, cr::T, dx_r::T, order = 1) where T = RobinBC([al,bl, cl], [ar, br, cr], dx_l, order)
 
-"""
-BridgeBC(u_low::AbstractArray{T,N}, u_up::AbstractArray{T,N}, indslow, indsup) # A different view in to 2 diffferent arrays on each end of the boundary, indslow is an iterable of indicies that index u_low, which extends the lower index end. Analogous for u_up and indsup with the upper boundary.
-
-BridgeBC(u::AbstractArray{T,N}, inds) # The same view in to some array u at the index inds extends the boundary
-
--------------------------------------------------------------------------------------
-
-Allows seperate domains governed by seperate equations to be bridged together with a boundary condition.
-"""
-struct BridgeBC{T,N,I} <: AffineBC{T}
-    a_l::Vector{T} #Dummy vectors so that AffineBC methods still work
-    b_l::SubArray{T,0,Array{T,N},NTuple{N,I},true}
-    a_r::Vector{T}
-    b_r::SubArray{T,0,Array{T,N},NTuple{N,I},true}
-end
-
-BridgeBC(u::AbstractArray, inds) = BridgeBC(u, inds, u, inds)
-
-function BridgeBC(u_low::AbstractArray{T,N}, indslow, u_up::AbstractArray{T,N},  indsup) where {T, N}
-    @assert length(indslow) == N
-    @assert length(indsup) == N
-    @assert mapreduce(x -> typeof(x) <: Integer, (&), indslow)
-    @assert mapreduce(x -> typeof(x) <: Integer, (&), indsup)
-
-    BridgeBC{T, length(indslow), eltype(indslow)}(zeros(T,1), view(u_low, indslow...), zeros(T,1), view(u_up, indsup...))
-end
-
-"""
-    Q1, Q2 = BridgeBC(bc1::AtomicBC, u1::AbstractArray{T,1}, hilo1::String, hilo2::String, u2::AbstractArray{T,1}, bc2::AtomicBC)
--------------------------------------------------------------------------------------
-Creates two BC operators that join array `u1` to `u2` at the `hilo1` end ("high" or "low" index end), and joins `u2` to `u1` with simalar settings given in `hilo2`.
-The ends of `u1` and `u2` that are not connected will use the boundary conditions `bc1` and `bc2` respectively.
-
-Use `Q1` to extend `u1` and `Q2` to extend `u2`.
-
-When using these with a time/space stepping solve, please use elementwise equals on your u1 and u2 to avoid the need to create new BC operators each time, as follows:
-    u_t1 .= L*Q*u_t0
------------------------------------------------------------------------------------
-Connecting two multi dimensional Arrays:
-    Q1, Q2 = BridgeBC(bc1::MultiDimDirectionalBC, u1::AbstractArray{T,N}, dim1::Int, hilo1::String, dim2::Int, hilo2::String, u2::AbstractArray{T,N}, bc2::MultiDimDirectionalBC)
------------------------------------------------------------------------------------
-
-Creates two BC operators that join array `u1` to `u2` at the `hilo1` end ("high" or "low" index end) of dimension `dim1`, and joins `u2` to `u1` with simalar settings given in `hilo2` and `dim2`.
-The ends of `u1` and `u2` that are not connected will use the boundary conditions `bc1` and `bc2` respectively.
-
-Drop `dim1` and `dim2` when your `u1` and `u2` are vectors.
-
-Use `Q1` to extend `u1` and `Q2` to extend `u2`.
-
-When using these with a time/space stepping solve, please use elementwise equals on your u1 and u2 to avoid the need to create new BC operators each time, as follows:
-    u_t1 .= L*Q*u_t0
-"""
-function BridgeBCBridgeBC(bc1::AtomicBC, u1::AbstractArray{T,1}, hilo1::String, hilo2::String, u2::AbstractArray{T,1}, bc2::AtomicBC) where T
-    if hilo1 == "low"
-        view1 = view(u1, 1)
-        if hilo2 == "low"
-            view2 = view(u2, 1)
-            BC1 = MixedBC(BridgeBC{T, 1, eltype(s1)}(zeros(T, 1), view2, zeros(T, 1), view2), bc1)
-            BC2 = MixedBC(BridgeBC{T, 1, eltype(s1)}(zeros(T, 1), view1, zeros(T, 1), view1), bc2)
-        elseif hilo2 == "high"
-            view2 = view(u2, length(u2))
-            BC1 = MixedBC(BridgeBC{T, 1, eltype(s1)}(zeros(T, 1), view2, zeros(T, 1), view2), bc1)
-            BC2 = MixedBC(bc2, BridgeBC{T, 1, eltype(s1)}(zeros(T, 1), view1, zeros(T, 1), view1))
-        else
-            throw("hilo2 not recognized, please use \"high\" to connect u1 to u2 along the upper index of dim2 of u2 or \"low\" to connect along the lower index end")
-        end
-    elseif hilo1 == "high"
-        view1 = view(u1, length(u1))
-        if hilo2 == "low"
-            view2 = view(u2, 1)
-            BC1 = MixedBC(bc1, BridgeBC{T, 1, eltype(s1)}(zeros(T, 1), view2, zeros(T, 1), view2))
-            BC2 = MixedBC(BridgeBC{T, 1, eltype(s1)}(zeros(T, 1), view1, zeros(T, 1), view1), bc2)
-        elseif hilo2 == "high"
-            view2 = view(u2, length(u2))
-            BC1 = MixedBC(bc1, BridgeBC{T, 1, eltype(s1)}(zeros(T, 1), view2, zeros(T, 1), view2))
-            BC2 = MixedBC(bc2, BridgeBC{T, 1, eltype(s1)}(zeros(T, 1), view1, zeros(T, 1), view1))
-        else
-            throw("hilo2 not recognized, please use \"high\" to connect u1 to u2 along the upper index of dim2 of u2 or \"low\" to connect along the lower index end")
-        end
-    else
-        throw("hilo1 not recognized, please use \"high\" to connect u1 to u2 along the upper index of dim1 of u1 or \"low\" to connect along the lower index end")
-    end
-    return (BC1, BC2)
-end
-
-Base.:*(Q::BridgeBC{T,I,N}, u::AbstractVector{T}) where {T, I, N} = BoundaryPaddedVector{T, typeof(u)}(Q.b_l[1], Q.b_r[1], u)
+Base.:*(Q::MixedBC, u::AbstractVector) =  BoundaryPaddedVector((Q.lower*u).l, (Q.upper*u).r, u)
 Base.:*(Q::AffineBC, u::AbstractVector) = BoundaryPaddedVector(Q.a_l ⋅ u[1:length(Q.a_l)] + Q.b_l, Q.a_r ⋅ u[(end-length(Q.a_r)+1):end] + Q.b_r, u)
 Base.:*(Q::PeriodicBC, u::AbstractVector) = BoundaryPaddedVector(u[end], u[1], u)
 

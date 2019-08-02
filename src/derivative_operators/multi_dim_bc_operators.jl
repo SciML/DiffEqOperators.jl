@@ -14,13 +14,11 @@ end
 function slice_rmul(A::AbstractDiffEqLinearOperator, u::AbstractArray{T,N}, dim::Int) where {T,N}
     @assert N != 1
     u_temp = similar(u)
-    pre = axes(u)[1:dim-1]
-    post = axes(u)[dim+1:end]
-    _slice_rmul!(u_temp, A, u, dim, pre, post)
+    _slice_rmul!(u_temp, A, u, dim, axes(u)[1:dim-1], axes(u)[dim+1:end])
     return u_temp
 end
 
-@noinline function _slice_rmul!(lower::Array{T, M}, upper::Array{T, M}, A::AbstractArray{B,M}, u::AbstractArray{T,N}, dim::Int, pre, post) where {T,B,N,M}
+@noinline function _slice_rmul!(lower::AbstractArray, upper::AbstractArray, A::AbstractArray{B,M}, u::AbstractArray{T,N}, dim::Int, pre, post) where {T,B,N,M}
     for J in CartesianIndices(post)
         for I in CartesianIndices(pre)
             tmp = A[I,J]*u[I, :, J]
@@ -32,11 +30,10 @@ end
 
 function slice_rmul(A::AbstractArray{B,M}, u::AbstractArray{T,N}, dim::Int) where {T, B, N,M}
     @assert N != 1
+    @assert M == N-1
     lower = zeros(T,perpsize(u,dim))
     upper = zeros(T,perpsize(u,dim))
-    pre = axes(u)[1:dim-1]
-    post = axes(u)[dim+1:end]
-    _slice_rmul!(lower, upper, A, u, dim, pre, post)
+    _slice_rmul!(lower, upper, A, u, dim, axes(u)[1:dim-1], axes(u)[dim+1:end])
     return (lower, upper)
 end
 
@@ -99,73 +96,6 @@ GeneralBC(αl::AbstractVector{T}, αr::AbstractVector{T}, dxyz, order, s) where 
 
 
 perpsize(A::AbstractArray{T,N}, dim::Integer) where {T,N} = size(A)[setdiff(1:N, dim)] #the size of A perpendicular to dim
-
-# Constructors for Bridge BC to make it easier to join domains together. See docs on BrigeBC in BC_operators.jl for info on usage
-function BridgeBC(bc1::MultiDimDirectionalBC, u1::AbstractArray{T,N}, dim1::Int, hilo1::String, dim2::Int, hilo2::String, u2::AbstractArray{T,N}, bc2::MultiDimDirectionalBC) where {T, N}
-    @assert 1 ≤ dim1 ≤ N "dim1 must be 1≤dim1≤N, got dim1 = $dim1"
-    @assert 1 ≤ dim1 ≤ N "dim2 must be 1≤dim1≤N, got dim1 = $dim1"
-    s1 = perpsize(u1, dim1) #
-    s2 = perpsize(u2, dim2)
-    @assert s1 == s2 "Arrays must be same size along boundary to be joined, got boundary sizes u1 = $s1, u2 = $s2"
-    if hilo1 == "low"
-        view1 = selectdim(u1, dim1, 1)
-        if hilo2 == "low"
-            BC1 = Array{MixedBC{T, BridgeBC{T, N, eltype(s1)}, getboundarytype(bc1)}}(undef, s1...)
-            BC2 = Array{MixedBC{T, BridgeBC{T, N, eltype(s2)}, getboundarytype(bc2)}}(undef, s2...)
-            view2 = selectdim(u2, dim2, 1)
-            R = CartesianIndices(BC1)
-            for I in R
-                BC1[I] = MixedBC(BridgeBC{T, N, eltype(s1)}(zeros(T, 1), view(view2, I), zeros(T, 1), view(view2, I)), bc1.BCs[I])
-                BC2[I] = MixedBC(BridgeBC{T, N, eltype(s1)}(zeros(T, 1), view(view1, I), zeros(T, 1), view(view1, I)), bc2.BCs[I])
-            end
-        elseif hilo2 == "high"
-            BC1 = Array{MixedBC{T, BridgeBC{T, N, eltype(s1)}, getboundarytype(bc1)}}(undef, s1...)
-            BC2 = Array{MixedBC{T, getboundarytype(bc2), BridgeBC{T, N, eltype(s2)}}}(undef, s2...)
-            view2 = selectdim(u2, dim2, size(u2)[dim2])
-            R = CartesianIndices(BC1)
-            for I in R
-                BC1[I] = MixedBC(BridgeBC{T, N, eltype(s1)}(zeros(T, 1), view(view2, I), zeros(T, 1), view(view2, I)), bc1.BCs[I])
-                BC2[I] = MixedBC(bc2.BCs[I], BridgeBC{T, N, eltype(s1)}(zeros(T, 1), view(view1, I), zeros(T, 1), view(view1, I)))
-            end
-        else
-            throw(ArgumentError("hilo2 not recognized, please use \"high\" to connect u1 to u2 along the upper index of dim2 of u2 or \"low\" to connect along the lower index end"))
-        end
-    elseif hilo1 == "high"
-        view1 = selectdim(u1, dim1, size(u1)[dim1])
-        if hilo2 == "low"
-            BC1 = Array{MixedBC{T, getboundarytype(bc1), BridgeBC{T, N, eltype(s1)}}}(undef, s1...)
-            BC2 = Array{MixedBC{T, BridgeBC{T, N, eltype(s2)}, getboundarytype(bc2)}}(undef, s2...)
-            view2 = selectdim(u2, dim2, 1)
-            R = CartesianIndices(BC1)
-            for I in R
-                BC1[I] = MixedBC(bc1.BCs[I], BridgeBC{T, N, eltype(s1)}(zeros(T, 1), view(view2, I), zeros(T, 1), view(view2, I)))
-                BC2[I] = MixedBC(BridgeBC{T, N, eltype(s1)}(zeros(T, 1), view(view1, I), zeros(T, 1), view(view1, I)), bc2.BCs[I])
-            end
-        elseif hilo2 == "high"
-            BC1 = Array{MixedBC{T, getboundarytype(bc1), BridgeBC{T, N, eltype(s1)}}}(undef, s1...)
-            BC2 = Array{MixedBC{T, getboundarytype(bc2), BridgeBC{T, N, eltype(s2)}}}(undef, s2...)
-            view2 = selectdim(u2, dim2, size(u2)[dim2])
-            R = CartesianIndices(BC1)
-            for I in R
-                BC1[I] = MixedBC(bc1.BCs[I], BridgeBC{T, N, eltype(s1)}(zeros(T, 1), view(view2, I), zeros(T, 1), view(view2, I)))
-                BC2[I] = MixedBC(bc2.BCs[I], BridgeBC{T, N, eltype(s1)}(zeros(T, 1), view(view1, I), zeros(T, 1), view(view1, I)))
-            end
-        else
-            throw(ArgumentError("hilo2 not recognized, please use \"high\" to connect u1 to u2 along the upper index of dim2 of u2 or \"low\" to connect along the lower index end"))
-        end
-    else
-        throw("hilo1 not recognized, please use \"high\" to connect u1 to u2 along the upper index of dim1 of u1 or \"low\" to connect along the lower index end")
-    end
-    return (MultiDimBC(BC1, dim1), MultiDimBC(BC2, dim2))
-end
-
-"""
-    Q1, Q2 = BridgeBC(bc1::MultiDimDirectionalBC, u1::AbstractArray, dim1::Int, dim2::Int, u2::AbstractArray, bc2::MultiDimDirectionalBC)
-Create BC operators that connect `u1` to `u2`, at the high index end of `dim1` for `u1`, and the low index end of `dim2` for `u2`.
-`bc1` and `bc2` are then the boundary conditions at the unconnected ends of `u1` and `u2` respectively.
-"""
-BridgeBC(bc1::MultiDimDirectionalBC, u1::AbstractArray, dim1::Int, dim2::Int, u2::AbstractArray, bc2::MultiDimDirectionalBC) = BridgeBC(u1, dim1, "high", bc1, u2, dim2, "low", bc2)
-
 
 """
 Q = compose(BCs...)
