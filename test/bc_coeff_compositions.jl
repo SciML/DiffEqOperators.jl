@@ -220,21 +220,21 @@ end
     ghost_u = A \ u
 
     # Check that A\u.(x) is consistent with analytic_AL \ u.(x)
-    @test_broken analytic_u ≈ ghost_u
+    @test analytic_u ≈ ghost_u
 
     # Check ldiv!
     u_temp = zeros(N)
     ldiv!(u_temp, A, u)
-    @test_broken u_temp ≈ ghost_u ≈ analytic_u
+    @test u_temp ≈ ghost_u ≈ analytic_u
 
     # Check \ for Matrix
     M2 = [u 2.0*u 10.0*u]
     analytic_M = analytic_AL \ (M2 .- analytic_Ab)
     ghost_M = A \ M2
-    @test_broken analytic_M ≈ ghost_M
+    @test analytic_M ≈ ghost_M
 
     # Check ldiv! for Matrix
     M_temp = zeros(N,3)
     ldiv!(M_temp, A, M2)
-    @test_broken M_temp ≈ ghost_M ≈ analytic_M
+    @test M_temp ≈ ghost_M ≈ analytic_M
 end
