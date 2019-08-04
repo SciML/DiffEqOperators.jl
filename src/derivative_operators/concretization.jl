@@ -105,7 +105,6 @@ function LinearAlgebra.Array(Q::BoundaryPaddedArray{T,D,N,M,V,B}) where {T,D,N,M
     S = size(Q)
     out = zeros(T, S...)
     dim = D
-    dimset = 1:N
     ulowview = selectdim(out, dim, 1)
     uhighview = selectdim(out, dim, S[dim])
     uview = selectdim(out, dim, 2:(S[dim]-1))
@@ -142,7 +141,7 @@ end
 ################################################################################
 # Boundary Condition Operator concretizations
 ################################################################################
-add_dims(A::AbstractArray, n::Int) = cat(ndims(a) + n, a)
+
 #Atomic BCs
 function LinearAlgebra.Array(Q::AffineBC{T}, N::Int) where {T}
     Q_L = [transpose(Q.a_l) transpose(zeros(T, N-length(Q.a_l))); Diagonal(ones(T,N)); transpose(zeros(T, N-length(Q.a_r))) transpose(Q.a_r)]
