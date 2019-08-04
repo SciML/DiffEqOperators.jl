@@ -100,14 +100,16 @@ decompose(A::ComposedBoundaryPaddedArray) = Tuple([BoundaryPaddedArray{gettype(A
 
 
 Base.length(Q::AbstractBoundaryPaddedArray) = reduce((*), size(Q))
-Base.lastindex(Q::AbstractBoundaryPaddedArray) = Base.length(Q)
+Base.firstindex(Q::AbstractBoundaryPaddedArray, d::Int) = 1
+Base.lastindex(Q::AbstractBoundaryPaddedArray) = length(Q)
+Base.lastindex(Q::AbstractBoundaryPaddedArray, d::Int) = size(Q)[d]
 gettype(Q::AbstractBoundaryPaddedArray{T,N}) where {T,N} = T
 Base.ndims(Q::AbstractBoundaryPaddedArray{T,N}) where {T,N} = N
 
 add_dim(A::AbstractArray, i) = reshape(A, size(A)...,i)
 add_dim(i) = i
 
-function Base.getindex(Q::BoundaryPaddedArray{T,D,N,M,V,B}, _inds::NTuple{N,Int64}...) where {T,D,N,M,V,B} #supports range and colon indexing!
+function Base.getindex(Q::BoundaryPaddedArray{T,D,N,M,V,B}, _inds::Vararg{Int,N}) where {T,D,N,M,V,B} #supports range and colon indexing!
     inds = [_inds...]
     S = size(Q)
     dim = D
@@ -131,7 +133,7 @@ function Base.getindex(Q::BoundaryPaddedArray{T,D,N,M,V,B}, _inds::NTuple{N,Int6
     end
 end
 
-function Base.getindex(Q::ComposedBoundaryPaddedArray{T, N, M, V, B} , inds::NTuple{N, Int64}...) where {T, N, M, V, B} #as yet no support for range indexing or colon indexing
+function Base.getindex(Q::ComposedBoundaryPaddedArray{T, N, M, V, B} , inds::Vararg{Int, N}) where {T, N, M, V, B} #as yet no support for range indexing or colon indexing
     S = size(Q)
     @assert reduce((&), inds .<= S)
     for (dim, index) in enumerate(inds)
@@ -153,5 +155,3 @@ function Base.getindex(Q::ComposedBoundaryPaddedArray{T, N, M, V, B} , inds::NTu
      end
     return Q.u[(inds.-1)...]
 end
-
-getindex(A::AbstractBoundaryPaddedArray{T,N}, I::CartesianIndex{N}) where {T,N} = A[Tuple(I)...]

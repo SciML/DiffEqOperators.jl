@@ -3,8 +3,8 @@ abstract type MultiDimensionalBC{T, N} <: AbstractBC{T} end
 
 
 @noinline function _slice_rmul!(u_temp::AbstractArray{T,N}, A::AbstractDiffEqLinearOperator, u::AbstractArray{T,N}, dim::Int, pre, post) where {T,N}
-    for J in CartesianIndices(post)
-        for I in CartesianIndices(pre)
+    for J in post
+        for I in pre
             u_temp[I, :, J] = A*u[I, :, J]
         end
     end
@@ -14,13 +14,13 @@ end
 function slice_rmul(A::AbstractDiffEqLinearOperator, u::AbstractArray{T,N}, dim::Int) where {T,N}
     @assert N != 1
     u_temp = similar(u)
-    _slice_rmul!(u_temp, A, u, dim, axes(u)[1:dim-1], axes(u)[dim+1:end])
+    _slice_rmul!(u_temp, A, u, dim, CartesianIndices(axes(u)[1:dim-1]), CartesianIndices(axes(u)[(dim+1):end]))
     return u_temp
 end
 
 @noinline function _slice_rmul!(lower::AbstractArray, upper::AbstractArray, A::AbstractArray{B,M}, u::AbstractArray{T,N}, dim::Int, pre, post) where {T,B,N,M}
-    for J in CartesianIndices(post)
-        for I in CartesianIndices(pre)
+    for J in post
+        for I in pre
             tmp = A[I,J]*u[I, :, J]
             lower[I,J], upper[I,J] = tmp.l, tmp.r
         end
@@ -33,7 +33,7 @@ function slice_rmul(A::AbstractArray{B,M}, u::AbstractArray{T,N}, dim::Int) wher
     @assert M == N-1
     lower = zeros(T,perpsize(u,dim))
     upper = zeros(T,perpsize(u,dim))
-    _slice_rmul!(lower, upper, A, u, dim, axes(u)[1:dim-1], axes(u)[dim+1:end])
+    _slice_rmul!(lower, upper, A, u, dim, CartesianIndices(axes(u)[1:dim-1]), CartesianIndices(axes(u)[(dim+1):end]))
     return (lower, upper)
 end
 
@@ -68,10 +68,14 @@ In the case where you want to extend the same Robin/GeneralBC to the whole bound
 or
     Qx, Qy, Qz... = GeneralBC(αl, αr, (dx::Vector, dy::Vector, dz::Vector ...), approximation_order, size(u))
 
-There are also constructors for NeumannBC, DirichletBC, Neumann0BC and Dirichlet0BC. Simply replace `dx` in the call with the tuple dxyz... as above, and append `size(u)`` to the argument signature.
+There are also constructors for NeumannBC, DirichletBC and Dirichlet0BC. Simply replace `dx` in the call with the tuple dxyz... as above, and append `size(u)`` to the argument signature.
 The order is a required argument in this case.
 
 where dx, dy, and dz are vectors of grid steps.
+
+For Neumann0BC, please use
+    Qx, Qy, Qz... = Neumann0BC(T::Type, (dx::Vector, dy::Vector, dz::Vector ...), approximation_order, size(u))
+where T is the element type of the domain to be extended
 """
 MultiDimBC(BC::Array{B,N}, dim::Integer) where {N, B<:AtomicBC} = MultiDimDirectionalBC{gettype(BC[1]), B, dim, N+1, N}(BC)
 #s should be size of the domain
@@ -138,11 +142,15 @@ getboundarytype(Q::MultiDimDirectionalBC{T, B, D, N, K}) where {T, B, D, N, K} =
 Base.ndims(Q::MultiDimensionalBC{T,N}) where {T,N} = N
 
 function Base.:*(Q::MultiDimDirectionalBC{T, B, D, N, K}, u::AbstractArray{T, N}) where {T, B, D, N, K}
+    @assert perpsize(u, D) == size(Q.BCs) "Size of the BCs array in the MultiDimBC is incorrect, needs to be $(perpsize(u,D)) to extend dimension $D, got $(size(Q.BCs))"
     lower, upper = slice_rmul(Q.BCs, u, D)
     return BoundaryPaddedArray{T, D, N, K, typeof(u), typeof(lower)}(lower, upper, u)
 end
 
 function Base.:*(Q::ComposedMultiDimBC{T, B, N, K}, u::AbstractArray{T, N}) where {T, B, N, K}
+    for dim in 1:N
+        @assert perpsize(u, dim) == size(Q.BCs[dim]) "Size of the BCs array for dimension $dim in the MultiDimBC is incorrect, needs to be $(perpsize(u,dim)), got $(size(Q.BCs[dim]))"
+    end
     out = slice_rmul.(Q.BCs, fill(u, N), 1:N)
     return ComposedBoundaryPaddedArray{T, N, K, typeof(u), typeof(out[1][1])}([A[1] for A in out], [A[2] for A in out], u)
 end

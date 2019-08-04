@@ -5,10 +5,10 @@ using LinearAlgebra, DiffEqOperators, Random, Test
 
 for dimensionality in 2:5
     for dim in 1:dimensionality
-        sizes = rand(10:20, dimensionality)
+        sizes = rand(4:10, dimensionality)
         A = rand(sizes...)
-        lower = selectdim(A, dim, 1)
-        upper = selectdim(A, dim, size(A)[dim])
+        lower = Array(selectdim(A, dim, 1))
+        upper = Array(selectdim(A, dim, size(A)[dim]))
 
         Apad = DiffEqOperators.BoundaryPaddedArray{Float64, dim, dimensionality, dimensionality-1, typeof(A), typeof(lower)}(lower, upper, selectdim(A, dim, 2:(size(A)[dim]-1)))
 
@@ -24,15 +24,15 @@ end
 # Test ComposedBoundaryPaddedMatrix
 ################################################################################
 
-n = 10
-m = 21
+n = 5
+m = 7
 A = rand(n,m)
 A[1,1] = A[end,1] = A[1,end] = A[end,end] = 0.0
 
 lower = Vector[A[1,2:(end-1)], A[2:(end-1),1]]
 upper = Vector[A[end,2:(end-1)], A[2:(end-1),end]]
 
-Apad = ComposedBoundaryPaddedMatrix{Float64, typeof(A), typeof(lower[1])}(lower, upper, A[2:(end-1), 2:(end-1)])
+Apad = DiffEqOperators.ComposedBoundaryPaddedMatrix{Float64, typeof(A), typeof(lower[1])}(lower, upper, A[2:(end-1), 2:(end-1)])
 
 @test A == Array(Apad) #test Concretization of BoundaryPaddedMatrix
 
@@ -44,18 +44,18 @@ end
 # Test ComposedBoundaryPaddedTensor{3}
 ################################################################################
 
-n = 10
-m = 12
+n = 4
+m = 5
 o = 7
 A = rand(n,m,o)
-A[1,1,:] = A[end,1, :] = A[1,end, :] = A[end,end, :] = 0.0
-A[1,:,1] = A[end, :, 1] = A[1,:,end] = A[end,:,end] = 0.0
-A[:,1,1] = A[:,end,1] = A[:,1,end] = A[:,end,end] = 0.0
+A[1,1,:] = A[end,1, :] = A[1,end, :] = A[end,end, :] = zeros(o)
+A[1,:,1] = A[end, :, 1] = A[1,:,end] = A[end,:,end] = zeros(m)
+A[:,1,1] = A[:,end,1] = A[:,1,end] = A[:,end,end] = zeros(n)
 
-lower = Matrix[A[1,2:(end-1), 2:(end-1)], A[2:(end-1),1, 2:(end-1)] A[2:(end-1), 2:(end-1), 1]]
-upper = Matrix[A[end, 2:(end-1), 2:(end-1)], A[2:(end-1), end, 2:(end-1)] A[2:(end-1), 2:(end-1), end]]
+lower = Matrix[A[1,2:(end-1), 2:(end-1)], A[2:(end-1),1, 2:(end-1)], A[2:(end-1), 2:(end-1), 1]]
+upper = Matrix[A[end, 2:(end-1), 2:(end-1)], A[2:(end-1), end, 2:(end-1)], A[2:(end-1), 2:(end-1), end]]
 
-Apad = BoundaryPadded3Tensor{Float64, typeof(A), typeof(lower[1])}(lower, upper, A[2:(end-1), 2:(end-1), 2:(end-1)])
+Apad = DiffEqOperators.ComposedBoundaryPadded3Tensor{Float64, typeof(A), typeof(lower[1])}(lower, upper, A[2:(end-1), 2:(end-1), 2:(end-1)])
 
 @test A == Array(Apad) #test Concretization of BoundaryPaddedMatrix
 
