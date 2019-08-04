@@ -14,13 +14,16 @@ end
 function slice_rmul(A::AbstractDiffEqLinearOperator, u::AbstractArray{T,N}, dim::Int) where {T,N}
     @assert N != 1
     u_temp = similar(u)
+
     _slice_rmul!(u_temp, A, u, dim, CartesianIndices(axes(u)[1:dim-1]), CartesianIndices(axes(u)[(dim+1):end]))
+
     return u_temp
 end
 
 @noinline function _slice_rmul!(lower::AbstractArray, upper::AbstractArray, A::AbstractArray{B,M}, u::AbstractArray{T,N}, dim::Int, pre, post) where {T,B,N,M}
     for J in post
         for I in pre
+
             tmp = A[I,J]*u[I, :, J]
             lower[I,J], upper[I,J] = tmp.l, tmp.r
         end
@@ -33,7 +36,9 @@ function slice_rmul(A::AbstractArray{B,M}, u::AbstractArray{T,N}, dim::Int) wher
     @assert M == N-1
     lower = zeros(T,perpsize(u,dim))
     upper = zeros(T,perpsize(u,dim))
+
     _slice_rmul!(lower, upper, A, u, dim, CartesianIndices(axes(u)[1:dim-1]), CartesianIndices(axes(u)[(dim+1):end]))
+
     return (lower, upper)
 end
 
