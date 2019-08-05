@@ -99,8 +99,8 @@ end
 
     # Test that concretization works with multiplication
     u = rand(20)
-    @testbroken Array(A)[1]*u + Array(A)[2] ≈ L*(Q*u) ≈ A*u
-    @testbroken sparse(A)[1]*u + sparse(A)[2] ≈ L*(Q*u) ≈ A*u
+    @test Array(A)[1]*u + Array(A)[2] ≈ L*(Q*u) ≈ A*u
+    @test sparse(A)[1]*u + sparse(A)[2] ≈ L*(Q*u) ≈ A*u
 end
 
 @testset "Test Left Division L2 (second order)" begin
