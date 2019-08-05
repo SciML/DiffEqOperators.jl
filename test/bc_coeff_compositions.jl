@@ -222,21 +222,65 @@ end
     ghost_u = A \ u
 
     # Check that A\u.(x) is consistent with analytic_AL \ u.(x)
-    @test_broken analytic_u ≈ ghost_u
+    @test analytic_u ≈ ghost_u
 
     # Check ldiv!
     u_temp = zeros(N)
     ldiv!(u_temp, A, u)
-    @test_broken u_temp ≈ ghost_u ≈ analytic_u
+    @test u_temp ≈ ghost_u ≈ analytic_u
 
     # Check \ for Matrix
     M2 = [u 2.0*u 10.0*u]
     analytic_M = analytic_AL \ (M2 .- analytic_Ab)
     ghost_M = A \ M2
-    @test_broken analytic_M ≈ ghost_M
+    @test analytic_M ≈ ghost_M
 
     # Check ldiv! for Matrix
     M_temp = zeros(N,3)
     ldiv!(M_temp, A, M2)
-    @test_broken M_temp ≈ ghost_M ≈ analytic_M
+    @test M_temp ≈ ghost_M ≈ analytic_M
+end
+
+
+@testset "Test Left Division L4 (fourth order) BigFloat" begin
+    # Test \ homogenous and inhomogenous BC
+    dx = big"0.01"
+    x = 0.01:dx:0.2
+    N = length(x)
+    u = sin.(x)
+
+    b0 = big"0.0"
+    b1 = big"1.0"
+
+    L = CenteredDifference(4, 4, dx, N)
+    Q = RobinBC(b1, b0, sin(b0), dx, b1, b0, sin(0.2*b0+dx), dx)
+    A = L*Q
+
+    analytic_L = fourth_deriv_approx_stencil(N) ./ dx^4
+    analytic_QL = [transpose(zeros(N)); Diagonal(ones(N)); transpose(zeros(N))]
+    analytic_AL = analytic_L*analytic_QL
+    analytic_Qb = [zeros(N+1); sin(0.2+dx)]
+    analytic_Ab = analytic_L*analytic_Qb
+
+    analytic_u = analytic_AL \ (u - analytic_Ab)
+    ghost_u = A \ u
+
+    # Check that A\u.(x) is consistent with analytic_AL \ u.(x)
+    @test analytic_u ≈ ghost_u
+
+    # Check ldiv!
+    u_temp = zeros(N)
+    ldiv!(u_temp, A, u)
+    @test u_temp ≈ ghost_u ≈ analytic_u
+
+    # Check \ for Matrix
+    M2 = [u 2.0*u 10.0*u]
+    analytic_M = analytic_AL \ (M2 .- analytic_Ab)
+    ghost_M = A \ M2
+    @test analytic_M ≈ ghost_M
+
+    # Check ldiv! for Matrix
+    M_temp = zeros(N,3)
+    ldiv!(M_temp, A, M2)
+    @test M_temp ≈ ghost_M ≈ analytic_M
 end
