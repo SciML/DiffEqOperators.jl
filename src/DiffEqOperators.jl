@@ -10,12 +10,6 @@ abstract type AbstractDerivativeOperator{T} <: AbstractDiffEqLinearOperator{T} e
 abstract type AbstractDiffEqCompositeOperator{T} <: AbstractDiffEqLinearOperator{T} end
 abstract type AbstractMatrixFreeOperator{T} <: AbstractDiffEqLinearOperator{T} end
 
-### Common default methods for the operators
-include("common_defaults.jl")
-
-### Basic Operators
-include("basic_operators.jl")
-
 ### Matrix-free Operators
 include("matrixfree_operators.jl")
 include("jacvec_operators.jl")
@@ -37,14 +31,13 @@ include("derivative_operators/derivative_operator_functions.jl")
 include("composite_operators.jl")
 
 # The (u,p,t) and (du,u,p,t) interface
-for T in [DiffEqScalar, DiffEqArrayOperator, FactorizedDiffEqArrayOperator, DiffEqIdentity,
-  DiffEqScaledOperator, DiffEqOperatorCombination, DiffEqOperatorComposition]
+for T in [DiffEqScaledOperator, DiffEqOperatorCombination, DiffEqOperatorComposition]
   (L::T)(u,p,t) = (update_coefficients!(L,u,p,t); L * u)
   (L::T)(du,u,p,t) = (update_coefficients!(L,u,p,t); mul!(du,L,u))
 end
 
 export MatrixFreeOperator
-export DiffEqScalar, DiffEqArrayOperator, DiffEqIdentity, JacVecOperator, getops
+export JacVecOperator, getops
 export AbstractDerivativeOperator, DerivativeOperator,
        CenteredDifference, UpwindDifference
 export RobinBC, GeneralBC
