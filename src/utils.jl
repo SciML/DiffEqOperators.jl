@@ -41,13 +41,13 @@ function and(B::NTuple{N, Bool}) where N
 end
 
 """
-A function to generate the correct permutation to flip an array of dimension `N` to be orthogonal to `dim`
+A function to generate the correct permutation to flip an array of dimension `N` to be orthogonal to `dim`, when the Nth dimension is a singleton
 """
 function orth_perm(N::Int, dim::Int)
     if dim == N
         return Vector(1:N)
     elseif dim < N
-        P = experms(N, dim+1)
+        P = orth_perm(N, dim+1)
         P[dim], P[dim+1] = P[dim+1], P[dim]
         return P
     else
