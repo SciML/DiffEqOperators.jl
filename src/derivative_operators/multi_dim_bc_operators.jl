@@ -11,6 +11,9 @@ abstract type MultiDimensionalBC{T, N} <: AbstractBC{T} end
     u_temp
 end
 
+"""
+slice_rmul lets you multiply each vector like strip of an array `u` with a linear operator `A`, sliced along dimension `dim`
+"""
 function slice_rmul(A::AbstractDiffEqLinearOperator, u::AbstractArray{T,N}, dim::Int) where {T,N}
     @assert N != 1
     u_temp = similar(u)
@@ -42,9 +45,6 @@ function slice_rmul(A::AbstractArray{B,M}, u::AbstractArray{T,N}, dim::Int) wher
     return (lower, upper)
 end
 
-"""
-slicemul is the only limitation on the BCs here being used up to arbitrary dimension, an N dimensional implementation is needed.
-"""
 
 struct MultiDimDirectionalBC{T<:Number, B<:AtomicBC{T}, D, N, M} <: MultiDimensionalBC{T, N}
     BCs::Array{B,M} #dimension M=N-1 array of BCs to extend dimension D
@@ -94,17 +94,16 @@ MultiDimBC(BC::B, s) where {B<:AtomicBC} = Tuple([MultiDimDirectionalBC{gettype(
 
 PeriodicBC{T}(s) where T = MultiDimBC(PeriodicBC{T}(), s)
 
-NeumannBC(α::AbstractVector{T}, dxyz, order, s) where T = RobinBC([zero(T), one(T), α[1]], [zero(T), one(T), α[2]], dxyz, order, s)
-DirichletBC(αl::T, αr::T, s) where T = RobinBC([one(T), zero(T), αl], [one(T), zero(T), αr], [ones(T, si) for si in s], 2.0, s)
+NeumannBC(α::NTuple{2,T}, dxyz, order, s) where T = RobinBC((zero(T), one(T), α[1]), (zero(T), one(T), α[2]), dxyz, order, s)
+DirichletBC(αl::T, αr::T, s) where T = RobinBC((one(T), zero(T), αl), (one(T), zero(T), αr), [ones(T, si) for si in s], 2.0, s)
 
 Dirichlet0BC(T::Type, s) = DirichletBC(zero(T), zero(T), s)
-Neumann0BC(T::Type, dxyz, order, s) = NeumannBC([zero(T), zero(T)], dxyz, order, s)
+Neumann0BC(T::Type, dxyz, order, s) = NeumannBC((zero(T), zero(T)), dxyz, order, s)
 
-RobinBC(l::AbstractVector{T}, r::AbstractVector{T}, dxyz, order, s) where {T} = Tuple([MultiDimDirectionalBC{T, RobinBC{T}, dim, length(s), length(s)-1}(fill(RobinBC(l, r, dxyz[dim], order), s[setdiff(1:length(s), dim)])) for dim in 1:length(s)])
-GeneralBC(αl::AbstractVector{T}, αr::AbstractVector{T}, dxyz, order, s) where {T} = Tuple([MultiDimDirectionalBC{T, GeneralBC{T}, dim, length(s), length(s)-1}(fill(GeneralBC(αl, αr, dxyz[dim], order), s[setdiff(1:length(s), dim)])) for dim in 1:length(s)])
+RobinBC(l::NTuple{3,T}, r::NTuple{3,T}, dxyz, order, s) where {T} = Tuple([MultiDimDirectionalBC{T, RobinBC{T}, dim, length(s), length(s)-1}(fill(RobinBC(l, r, dxyz[dim], order), perpindex(s,dim))) for dim in 1:length(s)])
+GeneralBC(αl::AbstractVector{T}, αr::AbstractVector{T}, dxyz, order, s) where {T} = Tuple([MultiDimDirectionalBC{T, GeneralBC{T}, dim, length(s), length(s)-1}(fill(GeneralBC(αl, αr, dxyz[dim], order),perpindex(s,dim))) for dim in 1:length(s)])
 
 
-perpsize(A::AbstractArray{T,N}, dim::Integer) where {T,N} = size(A)[setdiff(1:N, dim)] #the size of A perpendicular to dim
 
 """
 Q = compose(BCs...)

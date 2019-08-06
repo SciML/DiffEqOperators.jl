@@ -20,6 +20,9 @@ include("basic_operators.jl")
 include("matrixfree_operators.jl")
 include("jacvec_operators.jl")
 
+### Utilities
+include("utils.jl") 
+
 ### Boundary Padded Arrays
 include("boundary_padded_arrays.jl")
 

@@ -37,24 +37,24 @@ end
   The non identity part of Qa is qa:= -b`₁/b0 = -β.*s[2:end]/(α+β*s[1]/Δx). The constant part is Qb = γ/(α+β*s[1]/Δx)
   do the same at the other boundary (amounts to a flip of s[2:end], with the other set of boundary coeffs)
 """
-struct RobinBC{T} <: AffineBC{T}
-    a_l::Vector{T}
+struct RobinBC{T, V<:AbstractVector{T}} <: AffineBC{T}
+    a_l::V
     b_l::T
-    a_r::Vector{T}
+    a_r::V
     b_r::T
-    function RobinBC(l::AbstractVector{T}, r::AbstractVector{T}, dx::T, order = 1) where {T}
+    function RobinBC(l::NTuple{3,T}, r::NTuple{3,T}, dx::T, order = 1) where {T}
         αl, βl, γl = l
         αr, βr, γr = r
 
         s = calculate_weights(1, one(T), Array(one(T):convert(T,order+1))) #generate derivative coefficients about the boundary of required approximation order
 
-        a_l = -s[2:end]./(αl*dx/βl + s[1])
-        a_r = s[end:-1:2]./(αr*dx/βr - s[1]) # for other boundary stencil is flippedlr with *opposite sign*
+        a_l = SVector{length(s)-1}(-s[2:end]./(αl*dx/βl + s[1]))
+        a_r = SVector{length(s)-1}(s[end:-1:2]./(αr*dx/βr - s[1])) # for other boundary stencil is flippedlr with *opposite sign*
 
         b_l = γl/(αl+βl*s[1]/dx)
         b_r = γr/(αr-βr*s[1]/dx)
 
-        return new{T}(a_l, b_l, a_r, b_r)
+        return new{T, typeof(a_l)}(a_l, b_l, a_r, b_r)
     end
     function RobinBC(l::AbstractVector{T}, r::AbstractVector{T}, dx::AbstractVector{T}, order = 1) where {T}
         αl, βl, γl = l
@@ -67,13 +67,13 @@ struct RobinBC{T} <: AffineBC{T}
         denom_l = αl+βl*s[1]/dx_l[1]
         denom_r = αr-βr*s[1]/dx_r[end]
 
-        a_l = -βl.*s[2:end]./(denom_l*dx_l[2:end])
-        a_r = βr.*s[end:-1:2]./(denom_r*dx_r[1:(end-1)]) # for other boundary stencil is flippedlr with *opposite sign*
+        a_l = SVector{length(s)-1}(-βl.*s[2:end]./(denom_l*dx_l[2:end]))
+        a_r = SVector{length(s)-1}(βr.*s[end:-1:2]./(denom_r*dx_r[1:(end-1)])) # for other boundary stencil is flippedlr with *opposite sign*
 
         b_l = γl/denom_l
         b_r = γr/denom_r
 
-        return new{T}(a_l, b_l, a_r, b_r)
+        return new{T, typeof(a_l)}(a_l, b_l, a_r, b_r)
     end
 end
 
@@ -91,10 +91,10 @@ This time there are multiple stencils for multiple derivative orders - these can
 All components that multiply u(0) are factored out, turns out to only involve the first colum of S, s̄0. The rest of S is denoted S`. the coeff of u(0) is s̄0⋅ᾱ[3:end] + α[2].
 the remaining components turn out to be ᾱ[3:end]⋅(S`ū`) or equivalantly (transpose(ᾱ[3:end])*S`)⋅ū`. Rearranging, a stencil q_a to be dotted with ū` upon extension can readily be found, along with a constant component q_b
 """
-struct GeneralBC{T} <:AffineBC{T}
-    a_l::Vector{T}
+struct GeneralBC{T, L<:AbstractVector{T}, R<:AbstractVector{T}} <:AffineBC{T}
+    a_l::L
     b_l::T
-    a_r::Vector{T}
+    a_r::R
     b_r::T
     function GeneralBC(αl::AbstractVector{T}, αr::AbstractVector{T}, dx::T, order = 1) where {T}
         nl = length(αl)
@@ -115,12 +115,12 @@ struct GeneralBC{T} <:AffineBC{T}
         denoml = αl[2] .+ αl[3:end] ⋅ s0_l
         denomr = αr[2] .+ αr[3:end] ⋅ s0_r
 
-        a_l = -transpose(transpose(αl[3:end]) * Sl) ./denoml
-        a_r = -transpose(transpose(αr[3:end]) * Sr) ./denomr
+        a_l = SVector{order+nl-3}(-transpose(transpose(αl[3:end]) * Sl) ./denoml)
+        a_r = SVector{order+nr-3}(reverse(-transpose(transpose(αr[3:end]) * Sr) ./denomr))
 
         b_l = -αl[1]/denoml
         b_r = -αr[1]/denomr
-        new{T}(a_l,b_l,reverse!(a_r),b_r)
+        new{T, typeof(a_l), typeof(a_r)}(a_l,b_l,a_r,b_r)
     end
 
     function GeneralBC(αl::AbstractVector{T}, αr::AbstractVector{T}, dx::AbstractVector{T}, order = 1) where {T}
@@ -144,23 +144,23 @@ struct GeneralBC{T} <:AffineBC{T}
         denoml = αl[2] .+ αl[3:end] ⋅ s0_l
         denomr = αr[2] .+ αr[3:end] ⋅ s0_r
 
-        a_l = -transpose(transpose(αl[3:end]) * Sl) ./denoml
-        a_r = -transpose(transpose(αr[3:end]) * Sr) ./denomr
+        a_l = SVector{order+nl-3}(-transpose(transpose(αl[3:end]) * Sl) ./denoml)
+        a_r = SVector{order+nr-3}(reverse(-transpose(transpose(αr[3:end]) * Sr) ./denomr))
 
         b_l = -αl[1]/denoml
         b_r = -αr[1]/denomr
-        new{T}(a_l,b_l,reverse!(a_r),b_r)
+        new{T,  typeof(a_l), typeof(a_r)}(a_l,b_l,a_r,b_r)
     end
 end
 
 
 
 #implement Neumann and Dirichlet as special cases of RobinBC
-NeumannBC(α::AbstractVector{T}, dx::Union{AbstractVector{T}, T}, order = 1) where T = RobinBC([zero(T), one(T), α[1]], [zero(T), one(T), α[2]], dx, order)
-DirichletBC(αl::T, αr::T) where T = RobinBC([one(T), zero(T), αl], [one(T), zero(T), αr], 1.0, 2.0 )
+NeumannBC(α::NTuple{2,T}, dx::Union{AbstractVector{T}, T}, order = 1) where T = RobinBC((zero(T), one(T), α[1]), (zero(T), one(T), α[2]), dx, order)
+DirichletBC(αl::T, αr::T) where T = RobinBC((one(T), zero(T), αl), (one(T), zero(T), αr), 1.0, 2.0 )
 #specialized constructors for Neumann0 and Dirichlet0
 Dirichlet0BC(T::Type) = DirichletBC(zero(T), zero(T))
-Neumann0BC(dx::Union{AbstractVector{T}, T}, order = 1) where T = NeumannBC([zero(T), zero(T)], dx, order)
+Neumann0BC(dx::Union{AbstractVector{T}, T}, order = 1) where T = NeumannBC((zero(T), zero(T)), dx, order)
 
 # other acceptable argument signatures
 #RobinBC(al::T, bl::T, cl::T, dx_l::T, ar::T, br::T, cr::T, dx_r::T, order = 1) where T = RobinBC([al,bl, cl], [ar, br, cr], dx_l, order)
