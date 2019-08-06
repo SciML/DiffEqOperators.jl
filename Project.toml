@@ -1,7 +1,7 @@
 name = "DiffEqOperators"
 uuid = "9fdde737-9c7f-55bf-ade8-46b3f136cc48"
 authors = ["Chris Rackauckas <accounts@chrisrackauckas.com>"]
-version = "v3.5.0"
+version = "v4.0.0"
 
 [deps]
 DiffEqBase = "2b5f629d-d688-5b77-993f-72d75c75574e"
@@ -16,4 +16,4 @@ NNlib = "872c559c-99b0-510c-b3b7-b6c96a88d5cd"
 
 [compat]
 julia = "1"
-DiffEqBase = ">= 1.19.0"
+DiffEqBase = ">= 5.20.0"
