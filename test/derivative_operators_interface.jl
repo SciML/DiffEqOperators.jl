@@ -131,7 +131,7 @@ end
     @test Array(A) ≈ correct
     @test sparse(A) ≈ correct
     @test BandedMatrix(A) ≈ correct
-    @test A*y ≈ Array(A)*y atol=0.1
+    @test A*y ≈ Array(A)*y
 end
 
 @testset "Indexing tests" begin
@@ -177,13 +177,13 @@ end
     B = CenteredDifference(d_order,approx_order,dy,length(yarr))
 
 
-    @test A*F ≈ 2*ones(N-2,M) atol=1e-2
+    @test A*F ≈ 2*ones(N-2,M)
     F*B
     A*F*B
 
     G = [x^2+y^2 for x = xarr, y = yarr]
 
-    @test A*G ≈ 2*ones(N-2,M) atol=1e-2
+    @test A*G ≈ 2*ones(N-2,M)
     G*B
     A*G*B
 end

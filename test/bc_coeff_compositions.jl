@@ -81,7 +81,7 @@ end
         mul!(view(LQM,:,i), L, Q*M[:,i])
     end
     ghost_LQM = A*M
-    @test ghost_LQM ≈ LQM atol=0.25 # unacceptable level of tolerance
+    @test ghost_LQM ≈ LQM
 
     u = rand(22)
     @test (L + L2) * u ≈ convert(AbstractMatrix,L + L2) * u ≈ (BandedMatrix(L) + BandedMatrix(L2)) * u
