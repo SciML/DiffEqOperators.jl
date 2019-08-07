@@ -166,3 +166,4 @@ end
 CenteredDifference(args...) = CenteredDifference{1}(args...)
 UpwindDifference(args...) = UpwindDifference{1}(args...)
 use_winding(A::DerivativeOperator{T,N,Wind}) where {T,N,Wind} = Wind
+diff_axis(A::DerivativeOperator{T,N}) where {T,N} = N
