@@ -21,7 +21,7 @@ function convolve_interior!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::
         for idx in 1:A.stencil_length
             xtempi += cur_coeff * cur_stencil[idx] * x[i - mid + idx]
         end
-        x_temp[i] = xtempi + !:($overwrite)*x_temp[i]
+        x_temp[i] = xtempi + !overwrite*x_temp[i]
     end
 end
 
@@ -36,7 +36,7 @@ function convolve_BC_left!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::D
         for idx in 2:A.boundary_stencil_length
             xtempi += cur_coeff * cur_stencil[idx] * x[idx]
         end
-        x_temp[i] = xtempi + !:($overwrite)*x_temp[i]
+        x_temp[i] = xtempi + !overwrite*x_temp[i]
     end
 end
 
@@ -51,7 +51,7 @@ function convolve_BC_right!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::
         for idx in (A.boundary_stencil_length-1):-1:1
             xtempi += cur_coeff * cur_stencil[end-idx] * x[end-idx]
         end
-        x_temp[end-A.boundary_point_count+i] = xtempi + !:($overwrite)*x_temp[end-A.boundary_point_count+i]
+        x_temp[end-A.boundary_point_count+i] = xtempi + !overwrite*x_temp[end-A.boundary_point_count+i]
     end
 end
 
@@ -72,7 +72,7 @@ function convolve_interior!(x_temp::AbstractVector{T}, _x::BoundaryPaddedVector,
         @inbounds for idx in 1:A.stencil_length
             xtempi += cur_coeff * cur_stencil[idx] * x[(i-1) - (mid-idx) + 1]
         end
-        x_temp[i] = xtempi + !:($overwrite)*x_temp[i]
+        x_temp[i] = xtempi + !overwrite*x_temp[i]
     end
 end
 
@@ -87,7 +87,7 @@ function convolve_BC_left!(x_temp::AbstractVector{T}, _x::BoundaryPaddedVector, 
         @inbounds for idx in 2:A.boundary_stencil_length
             xtempi += cur_coeff * cur_stencil[idx] * _x.u[idx-1]
         end
-        x_temp[i] = xtempi + !:($overwrite)*x_temp[i]
+        x_temp[i] = xtempi + !overwrite*x_temp[i]
     end
     # need to account for x.l in first interior
     mid = div(A.stencil_length,2) + 1
@@ -101,7 +101,7 @@ function convolve_BC_left!(x_temp::AbstractVector{T}, _x::BoundaryPaddedVector, 
     @inbounds for idx in 2:A.stencil_length
         xtempi += cur_coeff * cur_stencil[idx] * x[(i-1) - (mid-idx) + 1]
     end
-    x_temp[i] = xtempi + !:($overwrite)*x_temp[i]
+    x_temp[i] = xtempi + !overwrite*x_temp[i]
 end
 
 function convolve_BC_right!(x_temp::AbstractVector{T}, _x::BoundaryPaddedVector, A::DerivativeOperator; overwrite = true) where {T<:Real}
@@ -120,7 +120,7 @@ function convolve_BC_right!(x_temp::AbstractVector{T}, _x::BoundaryPaddedVector,
     @inbounds for idx in 1:A.stencil_length-1
         xtempi += cur_coeff * cur_stencil[idx] * x[(i-1) - (mid-idx) + 1]
     end
-    x_temp[i] = xtempi + !:($overwrite)*x_temp[i]
+    x_temp[i] = xtempi + !overwrite*x_temp[i]
     for i in 1 : A.boundary_point_count
         cur_stencil = stencil[i]
         cur_coeff   = typeof(coeff)   <: AbstractVector ? coeff[bc_start + i] : coeff isa Number ? coeff : true
@@ -129,7 +129,7 @@ function convolve_BC_right!(x_temp::AbstractVector{T}, _x::BoundaryPaddedVector,
         @inbounds for idx in A.stencil_length:-1:1
             xtempi += cur_coeff * cur_stencil[end-idx] * _x.u[end-idx+1]
         end
-        x_temp[bc_start + i] = xtempi + !:($overwrite)*x_temp[bc_start + i]
+        x_temp[bc_start + i] = xtempi + !overwrite*x_temp[bc_start + i]
     end
 end
 
