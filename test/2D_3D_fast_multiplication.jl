@@ -712,3 +712,75 @@ end
     @test M_temp ≈ ((Lx*M)[1:N,2:N+1,2:N+1] +(Ly*M)[2:N+1,1:N,2:N+1] + (Lxx*M)[1:N,2:N+1,2:N+1] +(Lyy*M)[2:N+1,1:N,2:N+1] + (Lz*M)[2:N+1,2:N+1,1:N] +(Lzz*M)[2:N+1,2:N+1,1:N])
 
 end
+
+@testset "3D Multiplication with identical bpc and dx = dy = dz = 1.0" begin
+
+    N = 100
+    M = zeros(N+2,N+2,N+2)
+    for i in 1:N+2
+        for j in 1:N+2
+            for k in 1:N+2
+                M[i,j,k] = cos(0.1i)+sin(0.1j) + exp(0.01k)
+            end
+        end
+    end
+
+    # Test a single axis, multiple operators: (Lxxx + Lxxxx)*M, dx = dy = dz = 1.0
+    # Lx3 and Lx4 have the same number of boundary points
+    Lx3 = CenteredDifference{1}(3,4,1.0,N)
+    Lx4 = CenteredDifference{1}(4,4,1.0,N)
+    A = Lx3 + Lx4
+
+    M_temp = zeros(N,N+2,N+2)
+    mul!(M_temp, A, M)
+
+    @test M_temp ≈ ((Lx3*M)+(Lx4*M))
+
+    # Test a single axis, multiple operators: (Lyyy + Lyyyy)*M, dx = dy = dz = 1.0, no coefficient
+    # Ly3 and Ly4 have the same number of boundary points
+    Ly3 = CenteredDifference{2}(3,4,1.0,N)
+    Ly4 = CenteredDifference{2}(4,4,1.0,N)
+    A = Ly3 + Ly4
+
+    M_temp = zeros(N+2,N,N+2)
+    mul!(M_temp, A, M)
+
+    @test M_temp ≈ ((Ly3*M)+(Ly4*M))
+
+    # Test a single axis, multiple operators: (Lzzz + Lzzzz)*M, dx = dy = dz = 1.0, no coefficient
+    # Lz3 and Lz4 have the same number of boundary points
+    Lz3 = CenteredDifference{3}(3,4,1.0,N)
+    Lz4 = CenteredDifference{3}(4,4,1.0,N)
+    A = Lz3 + Lz4
+
+    M_temp = zeros(N+2,N+2,N)
+    @test_broken mul!(M_temp, A, M)
+
+    @test_broken M_temp ≈ ((Lz3*M)+(Lz4*M))
+
+    # Test (Lxxxx + Lyyyy)*M, dx = 1.0, no coefficient, two boundary points on each axis
+
+    M_temp = zeros(N,N,N+2)
+    A = Lx4 + Ly4
+    mul!(M_temp, A, M)
+
+    @test M_temp ≈ ((Lx4*M)[1:N,2:N+1,:] +(Ly4*M)[2:N+1,1:N,:])
+
+    # Test (Lxxx + Lyyy)*M, no coefficient. These operators have non-symmetric interior stencils
+    A = Lx3 + Ly3
+    M_temp = zeros(N,N,N+2)
+    mul!(M_temp, A, M)
+
+    @test M_temp ≈ ((Lx3*M)[1:N,2:N+1,:] +(Ly3*M)[2:N+1,1:N,:])
+
+    # Test multiple operators on both axis: (Lxxx + Lyyy + Lxxxx + Lyyyy)*M, no coefficient
+    A = Lx3 + Ly3 + Lx4 + Ly4
+    M_temp = zeros(N,N,N+2)
+    mul!(M_temp, A, M)
+
+    @test M_temp ≈ ((Lx3*M)[1:N,2:N+1,:] +(Ly3*M)[2:N+1,1:N,:] + (Lx4*M)[1:N,2:N+1,:] +(Ly4*M)[2:N+1,1:N,:])
+
+    # TODO implement/test all combinations of x-z and y-z compositions.
+    # TODO implement/test combinations of x-y-z compositions
+
+end
