@@ -1,5 +1,5 @@
 # Fallback mul! implementation for a single DerivativeOperator operating on an AbstractArray
-function LinearAlgebra.mul!(x_temp::AbstractArray{T}, A::DerivativeOperator{T,N}, M::AbstractArray{T}) where {T,N}
+function LinearAlgebra.mul!(x_temp::AbstractArray{T}, A::DerivativeOperator{T,N}, M::AbstractArray{T}; overwrite = true) where {T,N}
 
     # Check that x_temp has correct dimensions
     v = zeros(ndims(x_temp))
@@ -22,37 +22,7 @@ function LinearAlgebra.mul!(x_temp::AbstractArray{T}, A::DerivativeOperator{T,N}
     setindex!(idx, :, N)
     for I in indices
         Base.replace_tuples!(nidx, idx, idx, otherdims, I)
-        mul!(view(x_temp, idx...), A, view(M, idx...))
-    end
-end
-
-# Additive mul! fallback that is necessary for handling compositions
-function mul_add!(x_temp::AbstractArray{T}, A::DerivativeOperator{T,N}, M::AbstractArray{T}) where {T,N}
-
-    # Check that x_temp has correct dimensions
-    v = zeros(ndims(x_temp))
-    v[N] = 2
-    @assert [size(x_temp)...]+v == [size(M)...]
-
-    # Check that axis of differentiation is in the dimensions of M and x_temp
-    ndimsM = ndims(M)
-    @assert N <= ndimsM
-
-    dimsM = [axes(M)...]
-    alldims = [1:ndims(M);]
-    otherdims = setdiff(alldims, N)
-
-    idx = Any[first(ind) for ind in axes(M)]
-    itershape = tuple(dimsM[otherdims]...)
-    nidx = length(otherdims)
-    indices = Iterators.drop(CartesianIndices(itershape), 0)
-
-    setindex!(idx, :, N)
-    for I in indices
-        Base.replace_tuples!(nidx, idx, idx, otherdims, I)
-        convolve_interior_add!(view(x_temp, idx...), view(M, idx...), A)
-        convolve_BC_right_add!(view(x_temp, idx...), view(M, idx...), A)
-        convolve_BC_left_add!(view(x_temp, idx...), view(M, idx...), A)
+        mul!(view(x_temp, idx...), A, view(M, idx...), overwrite = overwrite)
     end
 end
 
@@ -252,10 +222,10 @@ function LinearAlgebra.mul!(x_temp::AbstractArray{T,2}, A::AbstractDiffEqComposi
 
                     for Lidx in ops_1
                         if Lidx != ops_1_max_bpc_idx[1]
-                            convolve_BC_left_add!(view(x_temp,:,i), view(M,:,i+offset_x), opsA[Lidx])
-                            convolve_BC_right_add!(view(x_temp,:,i), view(M,:,i+offset_x), opsA[Lidx])
+                            convolve_BC_left!(view(x_temp,:,i), view(M,:,i+offset_x), opsA[Lidx], overwrite = false)
+                            convolve_BC_right!(view(x_temp,:,i), view(M,:,i+offset_x), opsA[Lidx], overwrite = false)
                             if i <= pad[2] || i > size(x_temp)[2]-pad[2]
-                                convolve_interior_add!(view(x_temp,:,i), view(M,:,i+offset_x), opsA[Lidx])
+                                convolve_interior!(view(x_temp,:,i), view(M,:,i+offset_x), opsA[Lidx], overwrite = false)
                             elseif pad[1] - opsA[Lidx].boundary_point_count > 0
                                 convolve_interior_add_range!(view(x_temp,:,i), view(M,:,i+offset_x), opsA[Lidx], pad[1] - opsA[Lidx].boundary_point_count)
                             end
@@ -275,19 +245,19 @@ function LinearAlgebra.mul!(x_temp::AbstractArray{T,2}, A::AbstractDiffEqComposi
                         end
 
                     else
-                        convolve_BC_left_add!(view(x_temp,i,:), view(M,i+offset_y,:), opsA[ops_2_max_bpc_idx...])
-                        convolve_BC_right_add!(view(x_temp,i,:), view(M,i+offset_y,:), opsA[ops_2_max_bpc_idx...])
+                        convolve_BC_left!(view(x_temp,i,:), view(M,i+offset_y,:), opsA[ops_2_max_bpc_idx...], overwrite = false)
+                        convolve_BC_right!(view(x_temp,i,:), view(M,i+offset_y,:), opsA[ops_2_max_bpc_idx...], overwrite = false)
                         if i <= pad[1] || i > size(x_temp)[1]-pad[1]
-                            convolve_interior_add!(view(x_temp,i,:), view(M,i+offset_y,:), opsA[ops_2_max_bpc_idx...])
+                            convolve_interior!(view(x_temp,i,:), view(M,i+offset_y,:), opsA[ops_2_max_bpc_idx...], overwrite = false)
                         end
 
                     end
                     for Lidx in ops_2
                         if Lidx != ops_2_max_bpc_idx[1]
-                            convolve_BC_left_add!(view(x_temp,i,:), view(M,i+offset_y,:), opsA[Lidx])
-                            convolve_BC_right_add!(view(x_temp,i,:), view(M,i+offset_y,:), opsA[Lidx])
+                            convolve_BC_left!(view(x_temp,i,:), view(M,i+offset_y,:), opsA[Lidx], overwrite = false)
+                            convolve_BC_right!(view(x_temp,i,:), view(M,i+offset_y,:), opsA[Lidx], overwrite = false)
                             if i <= pad[1] || i > size(x_temp)[1]-pad[1]
-                                convolve_interior_add!(view(x_temp,i,:), view(M,i+offset_y,:), opsA[Lidx])
+                                convolve_interior!(view(x_temp,i,:), view(M,i+offset_y,:), opsA[Lidx], overwrite = false)
                             elseif pad[2] - opsA[Lidx].boundary_point_count > 0
                                 convolve_interior_add_range!(view(x_temp,i,:), view(M,i+offset_y,:), opsA[Lidx], pad[2] - opsA[Lidx].boundary_point_count)
                             end
@@ -316,15 +286,15 @@ function LinearAlgebra.mul!(x_temp::AbstractArray{T,2}, A::AbstractDiffEqComposi
             N = diff_axis(L)
             if N == 1
                 if operating_dims[2] == 1
-                    mul_add!(x_temp,L,view(M,1:x_temp_1+2,1:x_temp_2))
+                    mul!(x_temp,L,view(M,1:x_temp_1+2,1:x_temp_2), overwrite = false)
                 else
-                    mul_add!(x_temp,L,M)
+                    mul!(x_temp,L,M, overwrite = false)
                 end
             else
                 if operating_dims[1] == 1
-                    mul_add!(x_temp,L,view(M,1:x_temp_1,1:x_temp_2+2))
+                    mul!(x_temp,L,view(M,1:x_temp_1,1:x_temp_2+2), overwrite = false)
                 else
-                    mul_add!(x_temp,L,M)
+                    mul!(x_temp,L,M, overwrite = false)
                 end
             end
         end
@@ -363,15 +333,15 @@ function LinearAlgebra.mul!(x_temp::AbstractArray{T,2}, A::AbstractDiffEqComposi
             N = diff_axis(L)
             if N == 1
                 if operating_dims[2] == 1
-                    mul_add!(x_temp,L,view(M,1:x_temp_1+2,1:x_temp_2))
+                    mul!(x_temp,L,view(M,1:x_temp_1+2,1:x_temp_2), overwrite = false)
                 else
-                    mul_add!(x_temp,L,M)
+                    mul!(x_temp,L,M, overwrite = false)
                 end
             else
                 if operating_dims[1] == 1
-                    mul_add!(x_temp,L,view(M,1:x_temp_1,1:x_temp_2+2))
+                    mul!(x_temp,L,view(M,1:x_temp_1,1:x_temp_2+2), overwrite = false)
                 else
-                    mul_add!(x_temp,L,M)
+                    mul!(x_temp,L,M, overwrite = false)
                 end
             end
         end
