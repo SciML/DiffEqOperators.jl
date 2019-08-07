@@ -253,7 +253,7 @@ end
     b1 = big"1.0"
 
     L = CenteredDifference(4, 4, dx, N)
-    Q = RobinBC(b1, b0, sin(b0), dx, b1, b0, sin(0.2*b0+dx), dx)
+    Q = RobinBC([b1, b0, sin(b0)], [b1, b0, sin(0.2*b0+dx)], dx)
     A = L*Q
 
     analytic_L = fourth_deriv_approx_stencil(N) ./ dx^4
@@ -268,19 +268,9 @@ end
     # Check that A\u.(x) is consistent with analytic_AL \ u.(x)
     @test_broken analytic_u ≈ ghost_u
 
-    # Check ldiv!
-    u_temp = zeros(N)
-    ldiv!(u_temp, A, u)
-    @test_broken u_temp ≈ ghost_u ≈ analytic_u
-
     # Check \ for Matrix
     M2 = [u 2.0*u 10.0*u]
     analytic_M = analytic_AL \ (M2 .- analytic_Ab)
     ghost_M = A \ M2
     @test_broken analytic_M ≈ ghost_M
-
-    # Check ldiv! for Matrix
-    M_temp = zeros(N,3)
-    ldiv!(M_temp, A, M2)
-    @test_broken M_temp ≈ ghost_M ≈ analytic_M
 end
