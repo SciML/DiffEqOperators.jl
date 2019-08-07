@@ -48,8 +48,8 @@ struct RobinBC{T, V<:AbstractVector{T}} <: AffineBC{T}
 
         s = calculate_weights(1, one(T), Array(one(T):convert(T,order+1))) #generate derivative coefficients about the boundary of required approximation order
 
-        a_l = SVector{length(s)-1}(-s[2:end]./(αl*dx/βl + s[1]))
-        a_r = SVector{length(s)-1}(s[end:-1:2]./(αr*dx/βr - s[1])) # for other boundary stencil is flippedlr with *opposite sign*
+        a_l = -s[2:end]./(αl*dx/βl + s[1])
+        a_r = s[end:-1:2]./(αr*dx/βr - s[1]) # for other boundary stencil is flippedlr with *opposite sign*
 
         b_l = γl/(αl+βl*s[1]/dx)
         b_r = γr/(αr-βr*s[1]/dx)
@@ -67,8 +67,8 @@ struct RobinBC{T, V<:AbstractVector{T}} <: AffineBC{T}
         denom_l = αl+βl*s[1]/dx_l[1]
         denom_r = αr-βr*s[1]/dx_r[end]
 
-        a_l = SVector{length(s)-1}(-βl.*s[2:end]./(denom_l*dx_l[2:end]))
-        a_r = SVector{length(s)-1}(βr.*s[end:-1:2]./(denom_r*dx_r[1:(end-1)])) # for other boundary stencil is flippedlr with *opposite sign*
+        a_l = -βl.*s[2:end]./(denom_l*dx_l[2:end])
+        a_r = βr.*s[end:-1:2]./(denom_r*dx_r[1:(end-1)]) # for other boundary stencil is flippedlr with *opposite sign*
 
         b_l = γl/denom_l
         b_r = γr/denom_r
@@ -115,8 +115,8 @@ struct GeneralBC{T, L<:AbstractVector{T}, R<:AbstractVector{T}} <:AffineBC{T}
         denoml = αl[2] .+ αl[3:end] ⋅ s0_l
         denomr = αr[2] .+ αr[3:end] ⋅ s0_r
 
-        a_l = SVector{order+nl-3}(-transpose(transpose(αl[3:end]) * Sl) ./denoml)
-        a_r = SVector{order+nr-3}(reverse(-transpose(transpose(αr[3:end]) * Sr) ./denomr))
+        a_l = -transpose(transpose(αl[3:end]) * Sl) ./denoml
+        a_r = reverse(-transpose(transpose(αr[3:end]) * Sr) ./denomr)
 
         b_l = -αl[1]/denoml
         b_r = -αr[1]/denomr
@@ -144,8 +144,8 @@ struct GeneralBC{T, L<:AbstractVector{T}, R<:AbstractVector{T}} <:AffineBC{T}
         denoml = αl[2] .+ αl[3:end] ⋅ s0_l
         denomr = αr[2] .+ αr[3:end] ⋅ s0_r
 
-        a_l = SVector{order+nl-3}(-transpose(transpose(αl[3:end]) * Sl) ./denoml)
-        a_r = SVector{order+nr-3}(reverse(-transpose(transpose(αr[3:end]) * Sr) ./denomr))
+        a_l = -transpose(transpose(αl[3:end]) * Sl) ./denoml
+        a_r = reverse(-transpose(transpose(αr[3:end]) * Sr) ./denomr)
 
         b_l = -αl[1]/denoml
         b_r = -αr[1]/denomr
