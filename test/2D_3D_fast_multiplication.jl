@@ -840,6 +840,6 @@ end
     M_temp = zeros(N,N,N)
     mul!(M_temp, A, M)
 
-    @test M_temp ≈ ((Lx3*M)[1:N,2:Ns+1,2:N+1] + (Ly3*M)[2:N+1,1:N,2:N+1] +(Lz3*M)[2:N+1,2:N+1,1:N] + (Lx4*M)[1:N,2:N+1,2:N+1] + (Ly4*M)[2:N+1,1:N,2:N+1] +(Lz4*M)[2:N+1,2:N+1,1:N])
+    @test M_temp ≈ ((Lx3*M)[1:N,2:N+1,2:N+1] + (Ly3*M)[2:N+1,1:N,2:N+1] +(Lz3*M)[2:N+1,2:N+1,1:N] + (Lx4*M)[1:N,2:N+1,2:N+1] + (Ly4*M)[2:N+1,1:N,2:N+1] +(Lz4*M)[2:N+1,2:N+1,1:N])
 
 end
