@@ -70,7 +70,7 @@ end
     L1 = UpwindDifference(1,3, 1.0, N, t->1.0)
     correct = [-2/6, -3/6, 6/6, -1/6]
     @test L1.stencil_coefs ≈ correct
-enda
+end
 
 @testset "Taking derivatives" begin
     N = 20
