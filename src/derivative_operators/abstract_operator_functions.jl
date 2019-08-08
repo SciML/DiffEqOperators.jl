@@ -76,7 +76,7 @@ end
          v[1:bsl]  .= A.high_boundary_coefs[i-(N-1)]
     else
         if use_winding(A)
-            v[i-bpc+slen-1:i-bpc+2*slen-2] .= A.stencil_coefs
+            v[i-bpc+slen:i-bpc+2*slen-1] .= A.stencil_coefs
         else
             v[i-bpc:i-bpc+slen-1] .= A.stencil_coefs
         end

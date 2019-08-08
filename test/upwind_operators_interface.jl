@@ -80,24 +80,25 @@ enda
     # y = x.^2
 
     # Dirichlet BC with fixed end points
-    Q = RobinBC(1.0, 0.0, y[1], 1.0, 1.0, 0.0, y[end], 1.0)
+    Q = RobinBC([1.0, 0.0, y[1]], [1.0, 0.0, y[end]], 1.0)
     U = UpwindDifference(1,2, 1.0, N-2, t->1.0)
     A = CenteredDifference(1,2, 1.0, N-2)
-    D1 = CenteredDifference(1,2, 1.0, N-2) # For testing whether the array is constant
+    D1 = CenteredDifference(1,2, 1.0, N-4) # For testing whether the array is constant
 
     res1 = U*Q*y_
     res2 = A*Q*y_
-    @test res1[3:end-2] ≈ res2[3:end-2] atol=10.0^(-1) # shifted due to upwind operators
-    @test D1*(res1[3:end-2] - res2[3:end-2]) ≈ zeros(N-2-2*3) atol=10.0^(-6)
+    @test res1[3:end-2] ≈ res2[1:end-4] # shifted due to upwind operators
+    # It is shifted by a constant value so its first derivative has to be 0
+    @test D1*(res1[3:end-2] - res2[3:end-2]) ≈ zeros(12) atol=10.0^(-6)
 
     y = 3x.^3 .- 4x.^2 .+ 2x .+ 1
     y_ = y[2:end-1]
-    Q = RobinBC(1.0, 0.0, y[1], 1.0, 1.0, 0.0, y[end], 1.0)
+    Q = RobinBC([1.0, 0.0, y[1]], [1.0, 0.0, y[end]], 1.0)
     U = UpwindDifference(2,2, 1.0, N-2, t->1.0)
     A = CenteredDifference(2,2, 1.0, N-2)
     res1 = U*Q*y_
     res2 = A*Q*y_
-    @test res1 ≈ res2 atol=10.0^(-2) # shifted due to upwind operators
+    @test res1 ≈ res2 # shifted due to upwind operators
 
     # CAN ADD MORE TESTS
 end
@@ -177,6 +178,17 @@ end
     @test A[1:4,1] == M[1:4,1]
     @test A[5,2:10] == M[5,2:10]
     @test A[60:100,500:600] == M[60:100,500:600]
+
+    d_order = 4
+    approx_order = 10
+
+    A = UpwindDifference(d_order,approx_order,1.0,N,t->1.0)
+    M = Array(A,N)
+    @test A[1,1] == M[1,1]
+    @test A[1:4,1] == M[1:4,1]
+    @test A[5,2:10] == M[5,2:10]
+    @test A[524,:] == M[524,:]
+    @test A[60:100,500:600] == M[60:100,500:600]
 end
 
 @testset begin "Operations on matrices"
@@ -204,23 +216,4 @@ end
     @test A*G ≈ 2*ones(N-2,M) atol=1e-2
     G*B
     A*G*B
-end
-
-@testset "Linear combinations of operators" begin
-    N = 10
-    Random.seed!(0); LA = DiffEqArrayOperator(rand(N,N+2))
-    LD = UpwindDifference(2,2,1.0,N,t->1.0)
-    L = 1.1*LA - 2.2*LD + 3.3*Eye(N,N+2)
-    # Builds convert(L) the brute-force way
-    fullL = zeros(N,N+2)
-    v = zeros(N+2)
-    for i = 1:N+2
-        v[i] = 1.0
-        fullL[:,i] = L*v
-        v[i] = 0.0
-    end
-    @test convert(AbstractMatrix,L) ≈ fullL
-    for p in [1,2,Inf]
-        @test_broken opnorm(L,p) ≈ opnorm(fullL,p) atol=0.1
-    end
 end
