@@ -488,8 +488,8 @@ function LinearAlgebra.mul!(x_temp::AbstractArray{T,3}, A::AbstractDiffEqComposi
                         if length(ops_1) == 0
                             convolve_BC_left!(view(x_temp,i,:,j), view(M,i+offset_x,:,j+offset_z), opsA[ops_2_max_bpc_idx...])
                             convolve_BC_right!(view(x_temp,i,:,j), view(M,i+offset_x,:,j+offset_z), opsA[ops_2_max_bpc_idx...])
-                            if i <= pad[1] || i > size(x_temp)[1]-pad[1] #TODO 491-493
-                                convolve_interior!(view(x_temp,i,:), view(M,i+offset_y,:), opsA[ops_2_max_bpc_idx...])
+                            if i <= pad[1] || i > size(x_temp)[1]-pad[1] || j <= pad[3] || j > size(x_temp)[3]-pad[3]
+                                convolve_interior!(view(x_temp,i,:,j), view(M,i+offset_x,:,j+offset_z), opsA[ops_2_max_bpc_idx...])
                             end
 
                         else
@@ -507,6 +507,40 @@ function LinearAlgebra.mul!(x_temp::AbstractArray{T,3}, A::AbstractDiffEqComposi
                                 if i <= pad[1] || i > size(x_temp)[1]-pad[1] || j <= pad[3] || j > size(x_temp)[3]-pad[3]
                                     convolve_interior!(view(x_temp,i,:,j), view(M,i+offset_x,:,j+offset_z), opsA[Lidx], overwrite = false)
                                 elseif pad[2] - opsA[Lidx].boundary_point_count > 0 #TODO 509-511
+                                    convolve_interior_add_range!(view(x_temp,i,:), view(M,i+offset_y,:), opsA[Lidx], pad[2] - opsA[Lidx].boundary_point_count)
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+            # convolve boundaries and unaccounted for interior in axis 3
+            if length(ops_3) > 0
+                for i in 1:size(x_temp)[1]
+                    for j in 1:size(x_temp)[2]
+                        # in the case of no axis 1 and 2 operators, we need to overwrite x_temp
+                        if length(ops_1) == 0 && length(ops_2) == 0
+                            convolve_BC_left!(view(x_temp,i,j,:), view(M,i+offset_x,j+offset_y,:), opsA[ops_3_max_bpc_idx...])
+                            convolve_BC_right!(view(x_temp,i,j,:), view(M,i+offset_x,j+offset_y,:), opsA[ops_3_max_bpc_idx...])
+                            if i <= pad[1] || i > size(x_temp)[1]-pad[1] #TODO 525-527
+                                convolve_interior!(view(x_temp,i,:), view(M,i+offset_y,:), opsA[ops_3_max_bpc_idx...])
+                            end
+
+                        else
+                            convolve_BC_left!(view(x_temp,i,j,:), view(M,i+offset_x,j+offset_y,:), opsA[ops_3_max_bpc_idx...], overwrite = false)
+                            convolve_BC_right!(view(x_temp,i,j,:), view(M,i+offset_x,j+offset_y,:), opsA[ops_3_max_bpc_idx...], overwrite = false)
+                            if i <= pad[1] || i > size(x_temp)[1]-pad[1] || j <= pad[2] || j > size(x_temp)[2]-pad[2]
+                                convolve_interior!(view(x_temp,i,j,:), view(M,i+offset_x,j+offset_y,:), opsA[ops_3_max_bpc_idx...], overwrite = false)
+                            end
+
+                        end
+                        for Lidx in ops_3
+                            if Lidx != ops_3_max_bpc_idx[1]
+                                convolve_BC_left!(view(x_temp,i,j,:), view(M,i+offset_x,j+offset_y,:), opsA[Lidx], overwrite = false)
+                                convolve_BC_right!(view(x_temp,i,j,:), view(M,i+offset_x,j+offset_y,:), opsA[Lidx], overwrite = false)
+                                if i <= pad[1] || i > size(x_temp)[1]-pad[1] || j <= pad[2] || j > size(x_temp)[2]-pad[2]
+                                    convolve_interior!(view(x_temp,i,j,:), view(M,i+offset_x,j+offset_y,:), opsA[Lidx], overwrite = false)
+                                elseif pad[3] - opsA[Lidx].boundary_point_count > 0 #TODO 543-545
                                     convolve_interior_add_range!(view(x_temp,i,:), view(M,i+offset_y,:), opsA[Lidx], pad[2] - opsA[Lidx].boundary_point_count)
                                 end
                             end

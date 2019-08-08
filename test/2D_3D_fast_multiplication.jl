@@ -754,12 +754,11 @@ end
     A = Lz3 + Lz4
 
     M_temp = zeros(N+2,N+2,N)
-    @test_broken mul!(M_temp, A, M)
+    mul!(M_temp, A, M)
 
-    @test_broken M_temp ≈ ((Lz3*M)+(Lz4*M))
+    @test M_temp ≈ ((Lz3*M)+(Lz4*M))
 
     # Test (Lxxxx + Lyyyy)*M, dx = 1.0, no coefficient, two boundary points on each axis
-
     M_temp = zeros(N,N,N+2)
     A = Lx4 + Ly4
     mul!(M_temp, A, M)
@@ -780,7 +779,67 @@ end
 
     @test M_temp ≈ ((Lx3*M)[1:N,2:N+1,:] +(Ly3*M)[2:N+1,1:N,:] + (Lx4*M)[1:N,2:N+1,:] +(Ly4*M)[2:N+1,1:N,:])
 
-    # TODO implement/test all combinations of x-z and y-z compositions.
-    # TODO implement/test combinations of x-y-z compositions
+    # Test (Lxxxx + Lzzzz)*M, dx = 1.0, no coefficient, two boundary points on each axis
+    M_temp = zeros(N,N+2,N)
+    A = Lx4 + Lz4
+    mul!(M_temp, A, M)
+
+    @test M_temp ≈ ((Lx4*M)[1:N,:,2:N+1] +(Lz4*M)[2:N+1,:,1:N])
+
+    # Test (Lxxx + Lzzz)*M, no coefficient. These operators have non-symmetric interior stencils
+    A = Lx3 + Lz3
+    M_temp = zeros(N,N+2,N)
+    mul!(M_temp, A, M)
+
+    @test M_temp ≈ ((Lx3*M)[1:N,:,2:N+1] +(Lz3*M)[2:N+1,:,1:N])
+
+    # Test multiple operators on both axis: (Lxxx + Lzzz + Lxxxx + Lzzzz)*M, no coefficient
+    A = Lx3 + Lz3 + Lx4 + Lz4
+    M_temp = zeros(N,N+2,N)
+    mul!(M_temp, A, M)
+
+    @test M_temp ≈ ((Lx3*M)[1:N,:,2:N+1] +(Lz3*M)[2:N+1,:,1:N] + (Lx4*M)[1:N,:,2:N+1] +(Lz4*M)[2:N+1,:,1:N])
+
+    # Test (Lyyyy + Lzzzz)*M, dx = 1.0, no coefficient, two boundary points on each axis
+    M_temp = zeros(N+2,N,N)
+    A = Ly4 + Lz4
+    mul!(M_temp, A, M)
+
+    @test M_temp ≈ ((Ly4*M)[:,1:N,2:N+1] +(Lz4*M)[:,2:N+1,1:N])
+
+    # Test (Lyyy + Lzzz)*M, no coefficient. These operators have non-symmetric interior stencils
+    A = Ly3 + Lz3
+    M_temp = zeros(N+2,N,N)
+    mul!(M_temp, A, M)
+
+    @test M_temp ≈ ((Ly3*M)[:,1:N,2:N+1] +(Lz3*M)[:,2:N+1,1:N])
+
+    # Test multiple operators on both axis: (Lyyy + Lzzz + Lyyyy + Lzzzz)*M, no coefficient
+    A = Ly3 + Lz3 + Ly4 + Lz4
+    M_temp = zeros(N+2,N,N)
+    mul!(M_temp, A, M)
+
+    @test M_temp ≈ ((Ly3*M)[:,1:N,2:N+1] +(Lz3*M)[:,2:N+1,1:N] + (Ly4*M)[:,1:N,2:N+1] +(Lz4*M)[:,2:N+1,1:N])
+
+    # Test a single operator on each axis: (Lx3 + Ly3 + Lz3)*M, no coefficient
+    A = Lx3 + Ly3 + Lz3
+    M_temp = zeros(N,N,N)
+    mul!(M_temp, A, M)
+
+    @test M_temp ≈ ((Lx3*M)[1:N,2:N+1,2:N+1] + (Ly3*M)[2:N+1,1:N,2:N+1] +(Lz3*M)[2:N+1,2:N+1,1:N])
+
+    # Test a single operator on each axis: (Lx4 + Ly4 + Lz4)*M, no coefficient
+    A = Lx4 + Ly4 + Lz4
+    M_temp = zeros(N,N,N)
+    mul!(M_temp, A, M)
+
+    @test M_temp ≈ ((Lx4*M)[1:N,2:N+1,2:N+1] + (Ly4*M)[2:N+1,1:N,2:N+1] +(Lz4*M)[2:N+1,2:N+1,1:N])
+
+    # Test multiple operators on each axis: (Lx3 + Ly3 + Lz3 + Lx4 + Ly4 + Lz4)*M, no coefficient
+    A = Lx3 + Ly3 + Lz3 + Lx4 + Ly4 + Lz4
+    M_temp = zeros(N,N,N)
+    mul!(M_temp, A, M)
+
+    @test M_temp ≈ ((Lx3*M)[1:N,2:Ns+1,2:N+1] + (Ly3*M)[2:N+1,1:N,2:N+1] +(Lz3*M)[2:N+1,2:N+1,1:N] + (Lx4*M)[1:N,2:N+1,2:N+1] + (Ly4*M)[2:N+1,1:N,2:N+1] +(Lz4*M)[2:N+1,2:N+1,1:N])
 
 end
