@@ -1,11 +1,12 @@
 name = "DiffEqOperators"
 uuid = "9fdde737-9c7f-55bf-ade8-46b3f136cc48"
 authors = ["Chris Rackauckas <accounts@chrisrackauckas.com>"]
-version = "4.0.0"
+version = "4.1.0"
 
 [deps]
 BandedMatrices = "aae01518-5342-5314-be14-df237901396f"
 DiffEqBase = "2b5f629d-d688-5b77-993f-72d75c75574e"
+ForwardDiff = "f6369f11-7733-5829-9624-2563aa707210"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 NNlib = "872c559c-99b0-510c-b3b7-b6c96a88d5cd"
 SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
@@ -18,11 +19,10 @@ julia = "1"
 
 [extras]
 FillArrays = "1a297f60-69ca-5386-bcde-b61e274b549b"
-ForwardDiff = "f6369f11-7733-5829-9624-2563aa707210"
 OrdinaryDiffEq = "1dea7af3-3e70-54e6-95c3-0bf5283fa5ed"
 SafeTestsets = "1bc83da4-3b8d-516f-aca4-4fe02f6d838f"
 SpecialFunctions = "276daf66-3868-5448-9aa4-cd146d93841b"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
-test = ["FillArrays", "ForwardDiff", "OrdinaryDiffEq", "SafeTestsets", "SpecialFunctions", "Test"]
+test = ["FillArrays", "OrdinaryDiffEq", "SafeTestsets", "SpecialFunctions", "Test"]
