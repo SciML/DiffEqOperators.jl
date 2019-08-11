@@ -137,21 +137,6 @@ function convolve_interior!(x_temp::AbstractVector{T}, _x::BoundaryPaddedVector,
 
     mid = div(A.stencil_length,2)
     x = _x.u
-    i = 1 + A.boundary_point_count
-    idx = 1
-    xtempi = zero(T)
-    cur_stencil = eltype(stencil) <: AbstractVector ? stencil[i-A.boundary_point_count] : stencil
-    cur_coeff   = typeof(coeff)   <: AbstractVector ? coeff[i-A.boundary_point_count] : coeff isa Number ? coeff : true
-    cur_stencil = use_winding(A) && cur_coeff < 0 ? reverse(cur_stencil) : cur_stencil
-    # @show cur_stencil
-    x_idx = _x.l
-    xtempi += cur_coeff * cur_stencil[idx] * x_idx
-    @inbounds for idx in 2:A.stencil_length
-        x_idx = use_winding(A) && cur_coeff < 0 ? x[i + mid - idx - 1] : x[i - mid + idx - 1]
-        xtempi += cur_coeff * cur_stencil[idx] * x_idx
-    end
-    x_temp[i] = xtempi
-
 
     # Just do the middle parts
     for i in (2+A.boundary_point_count) : (length(x_temp)-A.boundary_point_count-1)
@@ -165,22 +150,6 @@ function convolve_interior!(x_temp::AbstractVector{T}, _x::BoundaryPaddedVector,
         end
         x_temp[i] = xtempi
     end
-
-    # The right boundary part
-    i = length(x_temp)-A.boundary_point_count
-    xtempi = zero(T)
-    cur_stencil = eltype(stencil) <: AbstractVector ? stencil[i-A.boundary_point_count] : stencil
-    cur_coeff   = typeof(coeff)   <: AbstractVector ? coeff[i-A.boundary_point_count] : coeff isa Number ? coeff : true
-    cur_stencil = use_winding(A) && cur_coeff < 0 ? reverse(cur_stencil) : cur_stencil
-    @inbounds for idx in 1:A.stencil_length-1
-        x_idx = use_winding(A) && cur_coeff < 0 ? x[i + mid - idx - 1] : x[i - mid + idx - 1]
-        xtempi += cur_coeff * cur_stencil[idx] * x_idx
-    end
-    x_idx = _x.r
-    idx = A.stencil_length
-    xtempi += cur_coeff * cur_stencil[idx] * x_idx
-
-    x_temp[i] = xtempi
 end
 
 
