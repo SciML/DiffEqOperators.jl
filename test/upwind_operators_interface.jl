@@ -70,7 +70,7 @@ end
     L1 = UpwindDifference(1,3, 1.0, N, t->1.0)
     correct = [-2/6, -3/6, 6/6, -1/6]
     @test L1.stencil_coefs ≈ correct
-enda
+end
 
 @testset "Taking derivatives" begin
     N = 20
@@ -205,7 +205,6 @@ end
 
     A = UpwindDifference(d_order,approx_order,dx,length(xarr)-2,t->1.0)
     B = UpwindDifference(d_order,approx_order,dy,length(yarr),t->1.0)
-
 
     @test A*F ≈ 2*ones(N-2,M)
     F*B
