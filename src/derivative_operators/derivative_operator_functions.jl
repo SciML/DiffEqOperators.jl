@@ -594,35 +594,26 @@ function LinearAlgebra.mul!(x_temp::AbstractArray{T,3}, A::AbstractDiffEqComposi
 
         # Handle first case non-additively
         N = diff_axis(A.ops[1])
+
         if N == 1
-            if operating_dims[2] == 1
-                mul!(x_temp,A.ops[1],view(M,1:x_temp_1+2,1:x_temp_2))
-            else
-                mul!(x_temp,A.ops[1],M)
-            end
+            mul!(x_temp, A.ops[1], view(M,1:x_temp_1+2,1:x_temp_2,1:x_temp_3))
+        elseif N == 2
+             mul!(x_temp, A.ops[1], view(M,1:x_temp_1,1:x_temp_2+2,1:x_temp_3))
         else
-            if operating_dims[1] == 1
-                mul!(x_temp,A.ops[1],view(M,1:x_temp_1,1:x_temp_2+2))
-            else
-                mul!(x_temp,A.ops[1],M)
-            end
+            mul!(x_temp, A.ops[1], view(M,1:x_temp_1,1:x_temp_2,1:x_temp_3+2))
         end
 
         for L in A.ops[2:end]
             N = diff_axis(L)
+
             if N == 1
-                if operating_dims[2] == 1
-                    mul!(x_temp,L,view(M,1:x_temp_1+2,1:x_temp_2), overwrite = false)
-                else
-                    mul!(x_temp,L,M, overwrite = false)
-                end
+                mul!(x_temp, L, view(M,1:x_temp_1+2,1:x_temp_2,1:x_temp_3), overwrite = false)
+            elseif N == 2
+                 mul!(x_temp, L, view(M,1:x_temp_1,1:x_temp_2+2,1:x_temp_3), overwrite = false)
             else
-                if operating_dims[1] == 1
-                    mul!(x_temp,L,view(M,1:x_temp_1,1:x_temp_2+2), overwrite = false)
-                else
-                    mul!(x_temp,L,M, overwrite = false)
-                end
+                mul!(x_temp, L, view(M,1:x_temp_1,1:x_temp_2,1:x_temp_3+2), overwrite = false)
             end
+            
         end
     end
 end
