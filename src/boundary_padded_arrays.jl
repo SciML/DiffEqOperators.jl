@@ -63,7 +63,7 @@ function compose(padded_arrays::BoundaryPaddedArray...)
     for D in Ds
         length(setdiff(Ds, D)) < N || throw(ArgumentError("There are multiple Arrays that extend along dimension $D - make sure every dimension has a unique extension"))
     end
-    or(fill(padded_arrays[1].u, (length(padded_arrays),)) .== getfield.(padded_arrays, :u)) || throw(ArgumentError("The padded_arrays do not all extend the same u!"))
+    any(fill(padded_arrays[1].u, (length(padded_arrays),)) .== getfield.(padded_arrays, :u)) || throw(ArgumentError("The padded_arrays do not all extend the same u!"))
     padded_arrays = padded_arrays[sortperm([Ds...])]
     lower = [padded_array.lower for padded_array in padded_arrays]
     upper = [padded_array.upper for padded_array in padded_arrays]
@@ -137,14 +137,14 @@ function Base.getindex(Q::ComposedBoundaryPaddedArray{T, N, M, V, B} , inds::Var
     for (dim, index) in enumerate(inds)
         if index == 1
             _inds = inds[setdiff(1:N, dim)]
-            if (1 ∈ _inds) | or(S[setdiff(1:N, dim)] .== _inds)
+            if (1 ∈ _inds) | any(S[setdiff(1:N, dim)] .== _inds)
                 return zero(T)
             else
                 return Q.lower[dim][(_inds.-1)...]
             end
         elseif index == S[dim]
             _inds = inds[setdiff(1:N, dim)]
-            if (1 ∈ _inds) | or(S[setdiff(1:N, dim)] .== _inds)
+            if (1 ∈ _inds) | any(S[setdiff(1:N, dim)] .== _inds)
                 return zero(T)
             else
                 return Q.upper[dim][(_inds.-1)...]
