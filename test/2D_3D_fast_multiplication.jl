@@ -991,11 +991,32 @@ end
     mul!(M_temp, A, M)
     @test M_temp ≈ (Ly2*M + Ly3*M + Ly4*M)
 
-    # Test composition of all second-dimension operators
+    # Test composition of all third-dimension operators
     A = Lz2+Lz3+Lz4
     M_temp = zeros(N+2,N+2,N)
     mul!(M_temp, A, M)
     @test M_temp ≈ (Lz2*M + Lz3*M + Lz4*M)
+
+    # Test multiple operators on two axis: (Lxx + Lyy + Lxxx + Lyyy + Lxxxx + Lyyyy)*M, no coefficient
+    A = Lx2 + Ly2 + Lx3 + Ly3 + Lx4 + Ly4
+    M_temp = zeros(N,N,N+2)
+    mul!(M_temp, A, M)
+
+    @test_broken M_temp ≈ ((Lx2*M)[1:N,2:N+1,:]+(Ly2*M)[2:N+1,1:N,:]+(Lx3*M)[1:N,2:N+1,:] +(Ly3*M)[2:N+1,1:N,:] + (Lx4*M)[1:N,2:N+1,:] +(Ly4*M)[2:N+1,1:N,:])
+
+    # Test multiple operators on two axis: (Lxx + Lzz + Lxxx + Lzzz + Lxxxx + Lzzzz)*M, no coefficient
+    A = Lx2 + Lz2 + Lx3 + Lz3 + Lx4 + Lz4
+    M_temp = zeros(N,N+2,N)
+    mul!(M_temp, A, M)
+
+    @test M_temp ≈ ((Lx2*M)[1:N,:,2:N+1]+(Lz2*M)[2:N+1,:,1:N]+(Lx3*M)[1:N,:,2:N+1] +(Lz3*M)[2:N+1,:,1:N] + (Lx4*M)[1:N,:,2:N+1] +(Lz4*M)[2:N+1,:,1:N])
+
+    # Test multiple operators on two axis: (Lxx + Lzz + Lxxx + Lzzz + Lxxxx + Lzzzz)*M, no coefficient
+    A = Ly2 + Lz2 + Ly3 + Lz3 + Ly4 + Lz4
+    M_temp = zeros(N+2,N,N)
+    mul!(M_temp, A, M)
+
+    @test M_temp ≈ ((Ly2*M)[:,1:N,2:N+1]+(Lz2*M)[:,2:N+1,1:N]+(Ly3*M)[:,1:N,2:N+1] +(Lz3*M)[:,2:N+1,1:N] + (Ly4*M)[:,1:N,2:N+1] +(Lz4*M)[:,2:N+1,1:N])
 
     # Test composition of all operators
     A = Lx2+Lx3+Lx4+Ly2+Ly3+Ly4+Lz2+Lz3+Lz4
