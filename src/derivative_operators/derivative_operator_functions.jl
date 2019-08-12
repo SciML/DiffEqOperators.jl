@@ -472,8 +472,8 @@ function LinearAlgebra.mul!(x_temp::AbstractArray{T,3}, A::AbstractDiffEqComposi
                                 convolve_BC_right!(view(x_temp,:,i,j), view(M,:,i+offset_y,j+offset_z), opsA[Lidx], overwrite = false)
                                 if i <= pad[2] || i > size(x_temp)[2]-pad[2] || j <= pad[3] || j > size(x_temp)[3]-pad[3]
                                     convolve_interior!(view(x_temp,:,i,j), view(M,:,i+offset_y,j+offset_z), opsA[Lidx], overwrite = false)
-                                elseif pad[1] - opsA[Lidx].boundary_point_count > 0 # TODO 475-477
-                                    convolve_interior_add_range!(view(x_temp,:,i), view(M,:,i+offset_x), opsA[Lidx], pad[1] - opsA[Lidx].boundary_point_count)
+                                elseif pad[1] - opsA[Lidx].boundary_point_count > 0
+                                    convolve_interior_add_range!(view(x_temp,:,i,j), view(M,:,i+offset_y,j+offset_z), opsA[Lidx], pad[1] - opsA[Lidx].boundary_point_count)
                                 end
                             end
                         end
@@ -506,8 +506,8 @@ function LinearAlgebra.mul!(x_temp::AbstractArray{T,3}, A::AbstractDiffEqComposi
                                 convolve_BC_right!(view(x_temp,i,:,j), view(M,i+offset_x,:,j+offset_z), opsA[Lidx], overwrite = false)
                                 if i <= pad[1] || i > size(x_temp)[1]-pad[1] || j <= pad[3] || j > size(x_temp)[3]-pad[3]
                                     convolve_interior!(view(x_temp,i,:,j), view(M,i+offset_x,:,j+offset_z), opsA[Lidx], overwrite = false)
-                                elseif pad[2] - opsA[Lidx].boundary_point_count > 0 #TODO 509-511
-                                    convolve_interior_add_range!(view(x_temp,i,:), view(M,i+offset_y,:), opsA[Lidx], pad[2] - opsA[Lidx].boundary_point_count)
+                                elseif pad[2] - opsA[Lidx].boundary_point_count > 0
+                                    convolve_interior_add_range!(view(x_temp,i,:,j), view(M,i+offset_x,:,j+offset_z), opsA[Lidx], pad[2] - opsA[Lidx].boundary_point_count)
                                 end
                             end
                         end
@@ -523,7 +523,7 @@ function LinearAlgebra.mul!(x_temp::AbstractArray{T,3}, A::AbstractDiffEqComposi
                             convolve_BC_left!(view(x_temp,i,j,:), view(M,i+offset_x,j+offset_y,:), opsA[ops_3_max_bpc_idx...])
                             convolve_BC_right!(view(x_temp,i,j,:), view(M,i+offset_x,j+offset_y,:), opsA[ops_3_max_bpc_idx...])
                             if i <= pad[1] || i > size(x_temp)[1]-pad[1] #TODO 525-527
-                                convolve_interior!(view(x_temp,i,:), view(M,i+offset_y,:), opsA[ops_3_max_bpc_idx...])
+                                convolve_interior!(view(x_temp,i,j,:), view(M,i+offset_x,j+offset_y,:), opsA[ops_3_max_bpc_idx...])
                             end
 
                         else
@@ -540,8 +540,8 @@ function LinearAlgebra.mul!(x_temp::AbstractArray{T,3}, A::AbstractDiffEqComposi
                                 convolve_BC_right!(view(x_temp,i,j,:), view(M,i+offset_x,j+offset_y,:), opsA[Lidx], overwrite = false)
                                 if i <= pad[1] || i > size(x_temp)[1]-pad[1] || j <= pad[2] || j > size(x_temp)[2]-pad[2]
                                     convolve_interior!(view(x_temp,i,j,:), view(M,i+offset_x,j+offset_y,:), opsA[Lidx], overwrite = false)
-                                elseif pad[3] - opsA[Lidx].boundary_point_count > 0 #TODO 543-545
-                                    convolve_interior_add_range!(view(x_temp,i,:), view(M,i+offset_y,:), opsA[Lidx], pad[2] - opsA[Lidx].boundary_point_count)
+                                elseif pad[3] - opsA[Lidx].boundary_point_count > 0
+                                    convolve_interior_add_range!(view(x_temp,i,j,:), view(M,i+offset_x,j+offset_y,:), opsA[Lidx], pad[3] - opsA[Lidx].boundary_point_count)
                                 end
                             end
                         end
