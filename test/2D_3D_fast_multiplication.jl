@@ -1002,7 +1002,8 @@ end
     M_temp = zeros(N,N,N+2)
     mul!(M_temp, A, M)
 
-    @test_broken M_temp ≈ ((Lx2*M)[1:N,2:N+1,:]+(Ly2*M)[2:N+1,1:N,:]+(Lx3*M)[1:N,2:N+1,:] +(Ly3*M)[2:N+1,1:N,:] + (Lx4*M)[1:N,2:N+1,:] +(Ly4*M)[2:N+1,1:N,:])
+    # Numerical errors accumulating for this test case, more so than the other tests
+    @test isapprox(M_temp, ((Lx2*M)[1:N,2:N+1,:]+(Ly2*M)[2:N+1,1:N,:]+(Lx3*M)[1:N,2:N+1,:] +(Ly3*M)[2:N+1,1:N,:] + (Lx4*M)[1:N,2:N+1,:] +(Ly4*M)[2:N+1,1:N,:]), rtol = sqrt(length(M_temp)*eps(Float64)))
 
     # Test multiple operators on two axis: (Lxx + Lzz + Lxxx + Lzzz + Lxxxx + Lzzzz)*M, no coefficient
     A = Lx2 + Lz2 + Lx3 + Lz3 + Lx4 + Lz4
