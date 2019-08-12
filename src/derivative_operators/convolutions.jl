@@ -104,7 +104,7 @@ function convolve_interior!(x_temp::AbstractVector{T}, _x::BoundaryPaddedVector,
     @assert length(x_temp) == length(_x.u)
     stencil = A.stencil_coefs
     coeff   = A.coefficients
-    len = length(x_temp) + 2
+    x_len = length(x_temp) + 2
     # Upwind operators have a non-centred stencil
     mid = 1 + A.stencil_length%2
     x = _x.u
@@ -116,9 +116,9 @@ function convolve_interior!(x_temp::AbstractVector{T}, _x::BoundaryPaddedVector,
         cur_stencil = use_winding(A) && cur_coeff < 0 ? reverse(cur_stencil) : cur_stencil
         @inbounds for idx in 1:A.stencil_length
             # @show i, idx, cur_stencil[idx], i-mid+idx, x[i-mid+idx]
-            if i-mid+idx == 1 || i+mid-idx == 1
+            if i-mid+idx == 1
                 x_idx = _x.l
-            elseif i-mid+idx == N || i+mid-idx == N
+            elseif i-mid+idx == x_len
                 x_idx = _x.r
             else
                 x_idx = use_winding(A) && cur_coeff < 0 ? x[i + mid - idx - 1] : x[i - mid + idx - 1]
@@ -133,19 +133,25 @@ function convolve_interior!(x_temp::AbstractVector{T}, _x::BoundaryPaddedVector,
     @assert length(x_temp) == length(_x.u)
     stencil = A.stencil_coefs
     coeff   = A.coefficients
-    len = length(x_temp) + 2
+    x_len = length(x_temp) + 2
 
     mid = div(A.stencil_length,2)
     x = _x.u
 
     # Just do the middle parts
-    for i in (2+A.boundary_point_count) : (length(x_temp)-A.boundary_point_count-1)
+    for i in (1+A.boundary_point_count) : (length(x_temp)-A.boundary_point_count)
         xtempi = zero(T)
         cur_stencil = eltype(stencil) <: AbstractVector ? stencil[i-A.boundary_point_count] : stencil
         cur_coeff   = typeof(coeff)   <: AbstractVector ? coeff[i-A.boundary_point_count] : coeff isa Number ? coeff : true
         cur_stencil = use_winding(A) && cur_coeff < 0 ? reverse(cur_stencil) : cur_stencil
         @inbounds for idx in 1:A.stencil_length
-            x_idx = use_winding(A) && cur_coeff < 0 ? x[i + mid - idx - 1] : x[i - mid + idx - 1]
+            if i-mid+idx == 1
+                x_idx = _x.l
+            elseif i-mid+idx == x_len
+                x_idx = _x.r
+            else
+                x_idx = use_winding(A) && cur_coeff < 0 ? x[i + mid - idx - 1] : x[i - mid + idx - 1]
+            end
             xtempi += cur_coeff * cur_stencil[idx] * x_idx
         end
         x_temp[i] = xtempi
@@ -193,9 +199,7 @@ function convolve_BC_right!(x_temp::AbstractVector{T}, _x::BoundaryPaddedVector,
     bpc = A.boundary_point_count
 
     # need to account for _x.r in last interior convolution
-    mid = div(A.stencil_length,2) + 1
     x = _x.u
-    i = length(x_temp)-A.boundary_point_count
     L = A.boundary_stencil_length
 
 

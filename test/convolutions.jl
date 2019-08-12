@@ -62,7 +62,7 @@ end
 
     # Test for correctness of DerivativeOperator*AbstractVector
     @test second_derivative_stencil(N)*arrayQu ≈ L*arrayQu
-    
+
     # Test for correctness of DerivativeOperator*BoundaryPaddedVector
     @test second_derivative_stencil(N)*arrayQu ≈ L*Qu
 end
