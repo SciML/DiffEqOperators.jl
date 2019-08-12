@@ -843,3 +843,101 @@ end
     @test M_temp ≈ ((Lx3*M)[1:N,2:N+1,2:N+1] + (Ly3*M)[2:N+1,1:N,2:N+1] +(Lz3*M)[2:N+1,2:N+1,1:N] + (Lx4*M)[1:N,2:N+1,2:N+1] + (Ly4*M)[2:N+1,1:N,2:N+1] +(Lz4*M)[2:N+1,2:N+1,1:N])
 
 end
+
+@testset "3D Multiplication with differing bpc and dx = dy = dz = 1.0" begin
+
+    N = 100
+    M = zeros(N+2,N+2,N+2)
+    for i in 1:N+2
+        for j in 1:N+2
+            for k in 1:N+2
+                M[i,j,k] = cos(0.1i)+sin(0.1j) + exp(0.01k)
+            end
+        end
+    end
+
+    # Lx2 has 0 boundary points
+    Lx2 = CenteredDifference{1}(2,2,1.0,N)
+    # Lx3 has 1 boundary point
+    Lx3 = CenteredDifference{1}(3,3,1.0,N)
+    # Lx4 has 2 boundary points
+    Lx4 = CenteredDifference{1}(4,4,1.0,N)
+
+    # Test a single axis, multiple operators: (Lxx+Lxxxx)*M, dx = 1.0
+    A = Lx2+Lx4
+    M_temp = zeros(N,N+2,N+2)
+    mul!(M_temp, A, M)
+    @test M_temp ≈ ((Lx2*M) + (Lx4*M))
+
+    # Test a single axis, multiple operators: (Lxx++Lxxx+Lxxxx)*M, dx = 1.0
+    A += Lx3
+    mul!(M_temp, A, M)
+    @test M_temp ≈ ((Lx2*M) + (Lx3*M) + (Lx4*M))
+
+
+    # Ly2 has 0 boundary points
+    Ly2 = CenteredDifference{2}(2,2,1.0,N)
+    # Ly3 has 1 boundary point
+    Ly3 = CenteredDifference{2}(3,3,1.0,N)
+    # Ly4 has 2 boundary points
+    Ly4 = CenteredDifference{2}(4,4,1.0,N)
+
+    # Test a single axis, multiple operators: (Lyy+Lyyyy)*M, dx = 1.0
+    A = Ly2+Ly4
+    M_temp = zeros(N+2,N,N+2)
+    mul!(M_temp, A, M)
+    @test M_temp ≈ ((Ly2*M) + (Ly4*M))
+
+    # Test a single axis, multiple operators: (Lyy++Lyyy+Lyyyy)*M, dx = 1.0
+    A += Ly3
+    mul!(M_temp, A, M)
+    @test M_temp ≈ ((Ly2*M) + (Ly3*M) + (Ly4*M))
+
+
+    # Lz2 has 0 boundary points
+    Lz2 = CenteredDifference{3}(2,2,1.0,N)
+    # Lz3 has 1 boundary point
+    Lz3 = CenteredDifference{3}(3,3,1.0,N)
+    # Lz4 has 2 boundary points
+    Lz4 = CenteredDifference{3}(4,4,1.0,N)
+
+    # Test a single axis, multiple operators: (Lzy+Lzzzz)*M, dz = 1.0
+    A = Lz2+Lz4
+    M_temp = zeros(N+2,N+2,N)
+    mul!(M_temp, A, M)
+    @test M_temp ≈ ((Lz2*M) + (Lz4*M))
+
+    # Test a single axis, multiple operators: (Lzz++Lzzz+Lzzzz)*M, dz = 1.0
+    A += Lz3
+    mul!(M_temp, A, M)
+    @test M_temp ≈ ((Lz2*M) + (Lz3*M) + (Lz4*M))
+
+    # Test multiple operators on two axis: (Lxx + Lyy + Lxxx + Lyyy + Lxxxx + Lyyyy)*M, no coefficient
+    A = Lx2 + Ly2 + Lx3 + Ly3 + Lx4 + Ly4
+    M_temp = zeros(N,N,N+2)
+    mul!(M_temp, A, M)
+
+    @test M_temp ≈ ((Lx2*M)[1:N,2:N+1,:]+(Ly2*M)[2:N+1,1:N,:]+(Lx3*M)[1:N,2:N+1,:] +(Ly3*M)[2:N+1,1:N,:] + (Lx4*M)[1:N,2:N+1,:] +(Ly4*M)[2:N+1,1:N,:])
+
+    # Test multiple operators on two axis: (Lxx + Lzz + Lxxx + Lzzz + Lxxxx + Lzzzz)*M, no coefficient
+    A = Lx2 + Lz2 + Lx3 + Lz3 + Lx4 + Lz4
+    M_temp = zeros(N,N+2,N)
+    mul!(M_temp, A, M)
+
+    @test M_temp ≈ ((Lx2*M)[1:N,:,2:N+1]+(Lz2*M)[2:N+1,:,1:N]+(Lx3*M)[1:N,:,2:N+1] +(Lz3*M)[2:N+1,:,1:N] + (Lx4*M)[1:N,:,2:N+1] +(Lz4*M)[2:N+1,:,1:N])
+
+    # Test multiple operators on two axis: (Lxx + Lzz + Lxxx + Lzzz + Lxxxx + Lzzzz)*M, no coefficient
+    A = Ly2 + Lz2 + Ly3 + Lz3 + Ly4 + Lz4
+    M_temp = zeros(N+2,N,N)
+    mul!(M_temp, A, M)
+
+    @test M_temp ≈ ((Ly2*M)[:,1:N,2:N+1]+(Lz2*M)[:,2:N+1,1:N]+(Ly3*M)[:,1:N,2:N+1] +(Lz3*M)[:,2:N+1,1:N] + (Ly4*M)[:,1:N,2:N+1] +(Lz4*M)[:,2:N+1,1:N])
+
+    # Test operators on all three axis (Lxx + Lyy + Lzz + Lxxx + Lyyy + Lzzz + Lxxxx + Lyyyy + Lzzzz)*M, no coefficient
+    A = Lx2 + Ly2 + Lz2 + Lx3 + Ly3 + Lz3 + Lx4 + Ly4 + Lz4
+    M_temp = zeros(N,N,N)
+    mul!(M_temp, A, M)
+    @test M_temp ≈ ((Lx2*M)[1:N,2:N+1,2:N+1]+(Ly2*M)[2:N+1,1:N,2:N+1]+(Lz2*M)[2:N+1,2:N+1,1:N]+(Lx3*M)[1:N,2:N+1,2:N+1] +(Ly3*M)[2:N+1,1:N,2:N+1]
+     + (Lz3*M)[2:N+1,2:N+1,1:N] + (Lx4*M)[1:N,2:N+1,2:N+1] +(Ly4*M)[2:N+1,1:N,2:N+1])+(Lz4*M)[2:N+1,2:N+1,1:N]
+
+end
