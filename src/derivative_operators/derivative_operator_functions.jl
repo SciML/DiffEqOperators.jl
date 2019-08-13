@@ -559,7 +559,7 @@ function LinearAlgebra.mul!(x_temp::AbstractArray{T,3}, A::AbstractDiffEqComposi
             operating_dims[diff_axis(L)] = 1
         end
 
-        x_temp_1, x_temp_2 = size(x_temp)
+        x_temp_1, x_temp_2, x_temp_3 = size(x_temp)
 
         for L in opsB
             N = diff_axis(L)
