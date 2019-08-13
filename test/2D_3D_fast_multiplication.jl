@@ -942,7 +942,344 @@ end
 
 end
 
-@testset "x, y, and z are both irregular grids" begin
+@testset "3D Multiplication with identical bpc and dx = 0.5, dy = 0.25, dz = 0.05, no coefficients" begin
+
+    N = 100
+    M = zeros(N+2,N+2,N+2)
+    dx = 0.5
+    dy = 0.25
+    dz = 0.05
+    for i in 1:N+2
+        for j in 1:N+2
+            for k in 1:N+2
+                M[i,j,k] = cos(dx*i)+sin(dy*j) + exp(dz*k)
+            end
+        end
+    end
+
+    # Test a single axis, multiple operators: (Lxxx + Lxxxx)*M
+    # Lx3 and Lx4 have the same number of boundary points
+    Lx3 = CenteredDifference{1}(3,4,dx,N)
+    Lx4 = CenteredDifference{1}(4,4,dx,N)
+    A = Lx3 + Lx4
+
+    M_temp = zeros(N,N+2,N+2)
+    mul!(M_temp, A, M)
+
+    @test M_temp ≈ ((Lx3*M)+(Lx4*M))
+
+    # Test a single axis, multiple operators: (Lyyy + Lyyyy)*M
+    # Ly3 and Ly4 have the same number of boundary points
+    Ly3 = CenteredDifference{2}(3,4,dy,N)
+    Ly4 = CenteredDifference{2}(4,4,dy,N)
+    A = Ly3 + Ly4
+
+    M_temp = zeros(N+2,N,N+2)
+    mul!(M_temp, A, M)
+
+    @test M_temp ≈ ((Ly3*M)+(Ly4*M))
+
+    # Test a single axis, multiple operators: (Lzzz + Lzzzz)*M
+    # Lz3 and Lz4 have the same number of boundary points
+    Lz3 = CenteredDifference{3}(3,4,dz,N)
+    Lz4 = CenteredDifference{3}(4,4,dz,N)
+    A = Lz3 + Lz4
+
+    M_temp = zeros(N+2,N+2,N)
+    mul!(M_temp, A, M)
+
+    @test M_temp ≈ ((Lz3*M)+(Lz4*M))
+
+    # Test (Lxxxx + Lyyyy)*M, two boundary points on each axis
+    M_temp = zeros(N,N,N+2)
+    A = Lx4 + Ly4
+    mul!(M_temp, A, M)
+
+    @test M_temp ≈ ((Lx4*M)[1:N,2:N+1,:] +(Ly4*M)[2:N+1,1:N,:])
+
+    # Test (Lxxx + Lyyy)*M, no coefficient. These operators have non-symmetric interior stencils
+    A = Lx3 + Ly3
+    M_temp = zeros(N,N,N+2)
+    mul!(M_temp, A, M)
+
+    @test M_temp ≈ ((Lx3*M)[1:N,2:N+1,:] +(Ly3*M)[2:N+1,1:N,:])
+
+    # Test multiple operators on both axis: (Lxxx + Lyyy + Lxxxx + Lyyyy)*M
+    A = Lx3 + Ly3 + Lx4 + Ly4
+    M_temp = zeros(N,N,N+2)
+    mul!(M_temp, A, M)
+
+    @test M_temp ≈ ((Lx3*M)[1:N,2:N+1,:] +(Ly3*M)[2:N+1,1:N,:] + (Lx4*M)[1:N,2:N+1,:] +(Ly4*M)[2:N+1,1:N,:])
+
+    # Test (Lxxxx + Lzzzz)*M, two boundary points on each axis
+    M_temp = zeros(N,N+2,N)
+    A = Lx4 + Lz4
+    mul!(M_temp, A, M)
+
+    @test M_temp ≈ ((Lx4*M)[1:N,:,2:N+1] +(Lz4*M)[2:N+1,:,1:N])
+
+    # Test (Lxxx + Lzzz)*M, no coefficient. These operators have non-symmetric interior stencils
+    A = Lx3 + Lz3
+    M_temp = zeros(N,N+2,N)
+    mul!(M_temp, A, M)
+
+    @test M_temp ≈ ((Lx3*M)[1:N,:,2:N+1] +(Lz3*M)[2:N+1,:,1:N])
+
+    # Test multiple operators on both axis: (Lxxx + Lzzz + Lxxxx + Lzzzz)*M
+    A = Lx3 + Lz3 + Lx4 + Lz4
+    M_temp = zeros(N,N+2,N)
+    mul!(M_temp, A, M)
+
+    @test M_temp ≈ ((Lx3*M)[1:N,:,2:N+1] +(Lz3*M)[2:N+1,:,1:N] + (Lx4*M)[1:N,:,2:N+1] +(Lz4*M)[2:N+1,:,1:N])
+
+    # Test (Lyyyy + Lzzzz)*M, dx = 1.0, no coefficient, two boundary points on each axis
+    M_temp = zeros(N+2,N,N)
+    A = Ly4 + Lz4
+    mul!(M_temp, A, M)
+
+    @test M_temp ≈ ((Ly4*M)[:,1:N,2:N+1] +(Lz4*M)[:,2:N+1,1:N])
+
+    # Test (Lyyy + Lzzz)*M, no coefficient. These operators have non-symmetric interior stencils
+    A = Ly3 + Lz3
+    M_temp = zeros(N+2,N,N)
+    mul!(M_temp, A, M)
+
+    @test M_temp ≈ ((Ly3*M)[:,1:N,2:N+1] +(Lz3*M)[:,2:N+1,1:N])
+
+    # Test multiple operators on both axis: (Lyyy + Lzzz + Lyyyy + Lzzzz)*M
+    A = Ly3 + Lz3 + Ly4 + Lz4
+    M_temp = zeros(N+2,N,N)
+    mul!(M_temp, A, M)
+
+    @test M_temp ≈ ((Ly3*M)[:,1:N,2:N+1] +(Lz3*M)[:,2:N+1,1:N] + (Ly4*M)[:,1:N,2:N+1] +(Lz4*M)[:,2:N+1,1:N])
+
+    # Test a single operator on each axis: (Lx3 + Ly3 + Lz3)*M
+    A = Lx3 + Ly3 + Lz3
+    M_temp = zeros(N,N,N)
+    mul!(M_temp, A, M)
+
+    @test M_temp ≈ ((Lx3*M)[1:N,2:N+1,2:N+1] + (Ly3*M)[2:N+1,1:N,2:N+1] +(Lz3*M)[2:N+1,2:N+1,1:N])
+
+    # Test a single operator on each axis: (Lx4 + Ly4 + Lz4)*M
+    A = Lx4 + Ly4 + Lz4
+    M_temp = zeros(N,N,N)
+    mul!(M_temp, A, M)
+
+    @test M_temp ≈ ((Lx4*M)[1:N,2:N+1,2:N+1] + (Ly4*M)[2:N+1,1:N,2:N+1] +(Lz4*M)[2:N+1,2:N+1,1:N])
+
+    # Test multiple operators on each axis: (Lx3 + Ly3 + Lz3 + Lx4 + Ly4 + Lz4)*M
+    A = Lx3 + Ly3 + Lz3 + Lx4 + Ly4 + Lz4
+    M_temp = zeros(N,N,N)
+    mul!(M_temp, A, M)
+
+    @test M_temp ≈ ((Lx3*M)[1:N,2:N+1,2:N+1] + (Ly3*M)[2:N+1,1:N,2:N+1] +(Lz3*M)[2:N+1,2:N+1,1:N] + (Lx4*M)[1:N,2:N+1,2:N+1] + (Ly4*M)[2:N+1,1:N,2:N+1] +(Lz4*M)[2:N+1,2:N+1,1:N])
+
+end
+
+@testset "3D Multiplication with differing bpc and dx = 0.5, dy = 0.25, dz = 0.05, no coefficients" begin
+
+    N = 100
+    M = zeros(N+2,N+2,N+2)
+    dx = 0.5
+    dy = 0.25
+    dz = 0.05
+    for i in 1:N+2
+        for j in 1:N+2
+            for k in 1:N+2
+                M[i,j,k] = cos(dx*i)+sin(dy*j) + exp(dz*k)
+            end
+        end
+    end
+
+    # Lx2 has 0 boundary points
+    Lx2 = CenteredDifference{1}(2,2,dx,N)
+    # Lx3 has 1 boundary point
+    Lx3 = CenteredDifference{1}(3,3,dx,N)
+    # Lx4 has 2 boundary points
+    Lx4 = CenteredDifference{1}(4,4,dx,N)
+
+    # Test a single axis, multiple operators: (Lxx+Lxxxx)*M
+    A = Lx2+Lx4
+    M_temp = zeros(N,N+2,N+2)
+    mul!(M_temp, A, M)
+    @test M_temp ≈ ((Lx2*M) + (Lx4*M))
+
+    # Test a single axis, multiple operators: (Lxx++Lxxx+Lxxxx)*M
+    A += Lx3
+    mul!(M_temp, A, M)
+    @test M_temp ≈ ((Lx2*M) + (Lx3*M) + (Lx4*M))
+
+
+    # Ly2 has 0 boundary points
+    Ly2 = CenteredDifference{2}(2,2,dy,N)
+    # Ly3 has 1 boundary point
+    Ly3 = CenteredDifference{2}(3,3,dy,N)
+    # Ly4 has 2 boundary points
+    Ly4 = CenteredDifference{2}(4,4,dy,N)
+
+    # Test a single axis, multiple operators: (Lyy+Lyyyy)*M
+    A = Ly2+Ly4
+    M_temp = zeros(N+2,N,N+2)
+    mul!(M_temp, A, M)
+    @test M_temp ≈ ((Ly2*M) + (Ly4*M))
+
+    # Test a single axis, multiple operators: (Lyy++Lyyy+Lyyyy)*M
+    A += Ly3
+    mul!(M_temp, A, M)
+    @test M_temp ≈ ((Ly2*M) + (Ly3*M) + (Ly4*M))
+
+
+    # Lz2 has 0 boundary points
+    Lz2 = CenteredDifference{3}(2,2,dz,N)
+    # Lz3 has 1 boundary point
+    Lz3 = CenteredDifference{3}(3,3,dz,N)
+    # Lz4 has 2 boundary points
+    Lz4 = CenteredDifference{3}(4,4,dz,N)
+
+    # Test a single axis, multiple operators: (Lzy+Lzzzz)*M
+    A = Lz2+Lz4
+    M_temp = zeros(N+2,N+2,N)
+    mul!(M_temp, A, M)
+    @test M_temp ≈ ((Lz2*M) + (Lz4*M))
+
+    # Test a single axis, multiple operators: (Lzz++Lzzz+Lzzzz)*M
+    A += Lz3
+    mul!(M_temp, A, M)
+    @test M_temp ≈ ((Lz2*M) + (Lz3*M) + (Lz4*M))
+
+    # Test multiple operators on two axis: (Lxx + Lyy + Lxxx + Lyyy + Lxxxx + Lyyyy)*M
+    A = Lx2 + Ly2 + Lx3 + Ly3 + Lx4 + Ly4
+    M_temp = zeros(N,N,N+2)
+    mul!(M_temp, A, M)
+
+    @test M_temp ≈ ((Lx2*M)[1:N,2:N+1,:]+(Ly2*M)[2:N+1,1:N,:]+(Lx3*M)[1:N,2:N+1,:] +(Ly3*M)[2:N+1,1:N,:] + (Lx4*M)[1:N,2:N+1,:] +(Ly4*M)[2:N+1,1:N,:])
+
+    # Test multiple operators on two axis: (Lxx + Lzz + Lxxx + Lzzz + Lxxxx + Lzzzz)*M
+    A = Lx2 + Lz2 + Lx3 + Lz3 + Lx4 + Lz4
+    M_temp = zeros(N,N+2,N)
+    mul!(M_temp, A, M)
+
+    @test M_temp ≈ ((Lx2*M)[1:N,:,2:N+1]+(Lz2*M)[2:N+1,:,1:N]+(Lx3*M)[1:N,:,2:N+1] +(Lz3*M)[2:N+1,:,1:N] + (Lx4*M)[1:N,:,2:N+1] +(Lz4*M)[2:N+1,:,1:N])
+
+    # Test multiple operators on two axis: (Lxx + Lzz + Lxxx + Lzzz + Lxxxx + Lzzzz)*M
+    A = Ly2 + Lz2 + Ly3 + Lz3 + Ly4 + Lz4
+    M_temp = zeros(N+2,N,N)
+    mul!(M_temp, A, M)
+
+    @test M_temp ≈ ((Ly2*M)[:,1:N,2:N+1]+(Lz2*M)[:,2:N+1,1:N]+(Ly3*M)[:,1:N,2:N+1] +(Lz3*M)[:,2:N+1,1:N] + (Ly4*M)[:,1:N,2:N+1] +(Lz4*M)[:,2:N+1,1:N])
+
+    # Test operators on all three axis (Lxx + Lyy + Lzz + Lxxx + Lyyy + Lzzz + Lxxxx + Lyyyy + Lzzzz)*M, no coefficient
+    A = Lx2 + Ly2 + Lz2 + Lx3 + Ly3 + Lz3 + Lx4 + Ly4 + Lz4
+    M_temp = zeros(N,N,N)
+    mul!(M_temp, A, M)
+    @test M_temp ≈ ((Lx2*M)[1:N,2:N+1,2:N+1]+(Ly2*M)[2:N+1,1:N,2:N+1]+(Lz2*M)[2:N+1,2:N+1,1:N]+(Lx3*M)[1:N,2:N+1,2:N+1] +(Ly3*M)[2:N+1,1:N,2:N+1]
+     + (Lz3*M)[2:N+1,2:N+1,1:N] + (Lx4*M)[1:N,2:N+1,2:N+1] +(Ly4*M)[2:N+1,1:N,2:N+1])+(Lz4*M)[2:N+1,2:N+1,1:N]
+
+end
+
+# This is the same test set as the above test set with the addition of coefficients
+@testset "3D Multiplication with coefficients" begin
+
+    N = 100
+    M = zeros(N+2,N+2,N+2)
+    dx = 0.5
+    dy = 0.25
+    dz = 0.05
+    for i in 1:N+2
+        for j in 1:N+2
+            for k in 1:N+2
+                M[i,j,k] = cos(dx*i)+sin(dy*j) + exp(dz*k)
+            end
+        end
+    end
+
+    # Lx2 has 0 boundary points
+    Lx2 = 1.234*CenteredDifference{1}(2,2,dx,N)
+    # Lx3 has 1 boundary point
+    Lx3 = 2.456*CenteredDifference{1}(3,3,dx,N)
+    # Lx4 has 2 boundary points
+    Lx4 = CenteredDifference{1}(4,4,dx,N)
+
+    # Test a single axis, multiple operators: (Lxx+Lxxxx)*M
+    A = Lx2+Lx4
+    M_temp = zeros(N,N+2,N+2)
+    mul!(M_temp, A, M)
+    @test M_temp ≈ ((Lx2*M) + (Lx4*M))
+
+    # Test a single axis, multiple operators: (Lxx++Lxxx+Lxxxx)*M
+    A += Lx3
+    mul!(M_temp, A, M)
+    @test M_temp ≈ ((Lx2*M) + (Lx3*M) + (Lx4*M))
+
+
+    # Ly2 has 0 boundary points
+    Ly2 = CenteredDifference{2}(2,2,dy,N)
+    # Ly3 has 1 boundary point
+    Ly3 = 4.014*CenteredDifference{2}(3,3,dy,N)
+    # Ly4 has 2 boundary points
+    Ly4 = 1.49*CenteredDifference{2}(4,4,dy,N)
+
+    # Test a single axis, multiple operators: (Lyy+Lyyyy)*M
+    A = Ly2+Ly4
+    M_temp = zeros(N+2,N,N+2)
+    mul!(M_temp, A, M)
+    @test M_temp ≈ ((Ly2*M) + (Ly4*M))
+
+    # Test a single axis, multiple operators: (Lyy++Lyyy+Lyyyy)*M
+    A += Ly3
+    mul!(M_temp, A, M)
+    @test M_temp ≈ ((Ly2*M) + (Ly3*M) + (Ly4*M))
+
+
+    # Lz2 has 0 boundary points
+    Lz2 = 1.546*CenteredDifference{3}(2,2,dz,N)
+    # Lz3 has 1 boundary point
+    Lz3 = CenteredDifference{3}(3,3,dz,N)
+    # Lz4 has 2 boundary points
+    Lz4 = 0.55*CenteredDifference{3}(4,4,dz,N)
+
+    # Test a single axis, multiple operators: (Lzy+Lzzzz)*M
+    A = Lz2+Lz4
+    M_temp = zeros(N+2,N+2,N)
+    mul!(M_temp, A, M)
+    @test M_temp ≈ ((Lz2*M) + (Lz4*M))
+
+    # Test a single axis, multiple operators: (Lzz++Lzzz+Lzzzz)*M
+    A += Lz3
+    mul!(M_temp, A, M)
+    @test M_temp ≈ ((Lz2*M) + (Lz3*M) + (Lz4*M))
+
+    # Test multiple operators on two axis: (Lxx + Lyy + Lxxx + Lyyy + Lxxxx + Lyyyy)*M
+    A = Lx2 + Ly2 + Lx3 + Ly3 + Lx4 + Ly4
+    M_temp = zeros(N,N,N+2)
+    mul!(M_temp, A, M)
+
+    @test M_temp ≈ ((Lx2*M)[1:N,2:N+1,:]+(Ly2*M)[2:N+1,1:N,:]+(Lx3*M)[1:N,2:N+1,:] +(Ly3*M)[2:N+1,1:N,:] + (Lx4*M)[1:N,2:N+1,:] +(Ly4*M)[2:N+1,1:N,:])
+
+    # Test multiple operators on two axis: (Lxx + Lzz + Lxxx + Lzzz + Lxxxx + Lzzzz)*M
+    A = Lx2 + Lz2 + Lx3 + Lz3 + Lx4 + Lz4
+    M_temp = zeros(N,N+2,N)
+    mul!(M_temp, A, M)
+
+    @test M_temp ≈ ((Lx2*M)[1:N,:,2:N+1]+(Lz2*M)[2:N+1,:,1:N]+(Lx3*M)[1:N,:,2:N+1] +(Lz3*M)[2:N+1,:,1:N] + (Lx4*M)[1:N,:,2:N+1] +(Lz4*M)[2:N+1,:,1:N])
+
+    # Test multiple operators on two axis: (Lxx + Lzz + Lxxx + Lzzz + Lxxxx + Lzzzz)*M
+    A = Ly2 + Lz2 + Ly3 + Lz3 + Ly4 + Lz4
+    M_temp = zeros(N+2,N,N)
+    mul!(M_temp, A, M)
+
+    @test M_temp ≈ ((Ly2*M)[:,1:N,2:N+1]+(Lz2*M)[:,2:N+1,1:N]+(Ly3*M)[:,1:N,2:N+1] +(Lz3*M)[:,2:N+1,1:N] + (Ly4*M)[:,1:N,2:N+1] +(Lz4*M)[:,2:N+1,1:N])
+
+    # Test operators on all three axis (Lxx + Lyy + Lzz + Lxxx + Lyyy + Lzzz + Lxxxx + Lyyyy + Lzzzz)*M, no coefficient
+    A = Lx2 + Ly2 + Lz2 + Lx3 + Ly3 + Lz3 + Lx4 + Ly4 + Lz4
+    M_temp = zeros(N,N,N)
+    mul!(M_temp, A, M)
+    @test M_temp ≈ ((Lx2*M)[1:N,2:N+1,2:N+1]+(Ly2*M)[2:N+1,1:N,2:N+1]+(Lz2*M)[2:N+1,2:N+1,1:N]+(Lx3*M)[1:N,2:N+1,2:N+1] +(Ly3*M)[2:N+1,1:N,2:N+1]
+     + (Lz3*M)[2:N+1,2:N+1,1:N] + (Lx4*M)[1:N,2:N+1,2:N+1] +(Ly4*M)[2:N+1,1:N,2:N+1])+(Lz4*M)[2:N+1,2:N+1,1:N]
+
+end
+
+@testset "x, y, and z are all irregular grids" begin
 
     N = 100
     dx = cumsum(rand(N+2))
@@ -1025,5 +1362,162 @@ end
     mul!(M_temp, A, M)
     @test M_temp ≈ ((Lx2*M)[1:N,2:N+1,2:N+1]+(Ly2*M)[2:N+1,1:N,2:N+1]+(Lz2*M)[2:N+1,2:N+1,1:N]+(Lx3*M)[1:N,2:N+1,2:N+1] +(Ly3*M)[2:N+1,1:N,2:N+1]
      + (Lz3*M)[2:N+1,2:N+1,1:N] + (Lx4*M)[1:N,2:N+1,2:N+1] +(Ly4*M)[2:N+1,1:N,2:N+1])+(Lz4*M)[2:N+1,2:N+1,1:N]
+
+end
+
+@testset "irregular x grid and regular y and z gris (dy = 0.25, dz = 0.05)" begin
+
+    N = 100
+    dy = 0.25
+    dz = 0.05
+    dy_vec = 0.25:0.25:(N+2)*0.25
+    dz_vec = 0.05:0.05:(N+2)*0.05
+    dx = cumsum(rand(N+2))
+    M = zeros(N+2,N+2,N+2)
+
+    for i in 1:N+2
+        for j in 1:N+2
+            for k in 1:N+2
+                M[i,j,k] = cos(dx[i])+sin(dy*j)+exp(dz*k)
+            end
+        end
+    end
+
+    # Lx2 has 0 boundary points
+    Lx2 = CenteredDifference{1}(2,2,dx,N)
+    # Lx3 has 1 boundary point
+    Lx3 = 1.45*CenteredDifference{1}(3,3,dx,N)
+    # Lx4 has 2 boundary points
+    Lx4 = CenteredDifference{1}(4,4,dx,N)
+
+    # Ly2 has 0 boundary points
+    Ly2 = 8.14*CenteredDifference{2}(2,2,dy,N)
+    # Ly3 has 1 boundary point
+    Ly3 = CenteredDifference{2}(3,3,dy,N)
+    # Ly4 has 2 boundary points
+    Ly4 = 4.567*CenteredDifference{2}(4,4,dy,N)
+
+    # Lz2 has 0 boundary points
+    Lz2 = 1.4*CenteredDifference{3}(2,2,dz,N)
+    # Lz3 has 1 boundary point
+    Lz3 = CenteredDifference{3}(3,3,dz,N)
+    # Lz4 has 2 boundary points
+    Lz4 = CenteredDifference{3}(4,4,dz,N)
+
+    # Test that composition of both x and y operators works
+    A = Lx2 + Ly2 + Lx3 + Ly3 + Ly4 + Lx4
+    M_temp = zeros(N,N,N+2)
+    mul!(M_temp, A, M)
+    @test M_temp ≈ ((Lx2*M)[1:N,2:N+1,:]+(Lx3*M)[1:N,2:N+1,:]+(Lx4*M)[1:N,2:N+1,:]+(Ly2*M)[2:N+1,1:N,:]+(Ly3*M)[2:N+1,1:N,:]+(Ly4*M)[2:N+1,1:N,:])
+
+    # Test that composition of both x and z operators works
+    A = Lx2 + Lz2 + Lx3 + Lz3 + Lz4 + Lx4
+    M_temp = zeros(N,N+2,N)
+    mul!(M_temp, A, M)
+    @test M_temp ≈ ((Lx2*M)[1:N,:,2:N+1]+(Lx3*M)[1:N,:,2:N+1]+(Lx4*M)[1:N,:,2:N+1]+(Lz2*M)[2:N+1,:,1:N]+(Lz3*M)[2:N+1,:,1:N]+(Lz4*M)[2:N+1,:,1:N])
+
+    # Test that composition of x, y, and z operators works
+    A = Lx2 + Lz2 + Lx3 + Lz3 + Lz4 + Lx4 + Ly2 + Ly3 + Ly4
+    M_temp = zeros(N,N,N)
+    mul!(M_temp, A, M)
+    @test M_temp ≈ ((Lx2*M)[1:N,2:N+1,2:N+1]+(Ly2*M)[2:N+1,1:N,2:N+1]+(Lz2*M)[2:N+1,2:N+1,1:N]+(Lx3*M)[1:N,2:N+1,2:N+1] +(Ly3*M)[2:N+1,1:N,2:N+1]
+     + (Lz3*M)[2:N+1,2:N+1,1:N] + (Lx4*M)[1:N,2:N+1,2:N+1] +(Ly4*M)[2:N+1,1:N,2:N+1]+(Lz4*M)[2:N+1,2:N+1,1:N])
+
+    # Last case where we now have some `irregular-grid` operators operating on the
+    # regular-spaced axis y
+
+    # These operators are operating on the regular grid y, but are constructed as though
+    # they were irregular grid operators. Hence we test if we can seperate irregular and
+    # regular gird operators on the same axis
+    # Ly2 has 0 boundary points
+    _Ly2 = CenteredDifference{2}(2,2,dy_vec,N)
+    # Lz3 has 1 boundary point
+    _Lz3 = CenteredDifference{3}(3,3,dz_vec,N)
+    # Ly4 has 2 boundary points
+    _Ly4 = 12.1*CenteredDifference{2}(4,4,dy_vec,N)
+
+    A += _Ly2 + _Lz3 + _Ly4
+    mul!(M_temp, A, M)
+    @test M_temp ≈ ((Lx2*M)[1:N,2:N+1,2:N+1]+(Ly2*M)[2:N+1,1:N,2:N+1]+(Lz2*M)[2:N+1,2:N+1,1:N]+(Lx3*M)[1:N,2:N+1,2:N+1] +(Ly3*M)[2:N+1,1:N,2:N+1]
+     + (Lz3*M)[2:N+1,2:N+1,1:N] + (Lx4*M)[1:N,2:N+1,2:N+1] +(Ly4*M)[2:N+1,1:N,2:N+1]+(Lz4*M)[2:N+1,2:N+1,1:N] + (_Ly2*M)[2:N+1,1:N,2:N+1]+(_Lz3*M)[2:N+1,2:N+1,1:N]+(_Ly4*M)[2:N+1,1:N,2:N+1])
+
+end
+
+@testset "irregular y grid and regular x and z gris (dx = 0.25, dz = 0.05)" begin
+
+    N = 100
+    dx = 0.25
+    dz = 0.05
+    dx_vec = 0.25:0.25:(N+2)*0.25
+    dz_vec = 0.05:0.05:(N+2)*0.05
+    dy = cumsum(rand(N+2))
+    M = zeros(N+2,N+2,N+2)
+
+    for i in 1:N+2
+        for j in 1:N+2
+            for k in 1:N+2
+                M[i,j,k] = cos(dx*i)+sin(dy[j])+exp(dz*k)
+            end
+        end
+    end
+
+    # Lx2 has 0 boundary points
+    Lx2 = CenteredDifference{1}(2,2,dx,N)
+    # Lx3 has 1 boundary point
+    Lx3 = 1.45*CenteredDifference{1}(3,3,dx,N)
+    # Lx4 has 2 boundary points
+    Lx4 = CenteredDifference{1}(4,4,dx,N)
+
+    # Ly2 has 0 boundary points
+    Ly2 = 8.14*CenteredDifference{2}(2,2,dy,N)
+    # Ly3 has 1 boundary point
+    Ly3 = CenteredDifference{2}(3,3,dy,N)
+    # Ly4 has 2 boundary points
+    Ly4 = 4.567*CenteredDifference{2}(4,4,dy,N)
+
+    # Lz2 has 0 boundary points
+    Lz2 = 1.4*CenteredDifference{3}(2,2,dz,N)
+    # Lz3 has 1 boundary point
+    Lz3 = CenteredDifference{3}(3,3,dz,N)
+    # Lz4 has 2 boundary points
+    Lz4 = CenteredDifference{3}(4,4,dz,N)
+
+    # Test that composition of both x and y operators works
+    A = Lx2 + Ly2 + Lx3 + Ly3 + Ly4 + Lx4
+    M_temp = zeros(N,N,N+2)
+    mul!(M_temp, A, M)
+    @test M_temp ≈ ((Lx2*M)[1:N,2:N+1,:]+(Lx3*M)[1:N,2:N+1,:]+(Lx4*M)[1:N,2:N+1,:]+(Ly2*M)[2:N+1,1:N,:]+(Ly3*M)[2:N+1,1:N,:]+(Ly4*M)[2:N+1,1:N,:])
+
+    # Test that composition of both y and z operators works
+    A = Ly2 + Lz2 + Ly3 + Lz3 + Lz4 + Ly4
+    M_temp = zeros(N+2,N,N)
+    mul!(M_temp, A, M)
+    # Need to figure out why this test is exploding
+    @test_broken M_temp ≈ ((Ly2*M)[:,1:N,2:N+1]+(Ly3*M)[:,1:N,2:N+1]+(Ly4*M)[:,1:N,2:N+1]+(Lz2*M)[:,2:N+1,1:N]+(Lz3*M)[:,2:N+1,1:N]+(Lz4*M)[:,2:N+1,1:N])
+
+    # Test that composition of x, y, and z operators works
+    A = Lx2 + Lz2 + Lx3 + Lz3 + Lz4 + Lx4 + Ly2 + Ly3 + Ly4
+    M_temp = zeros(N,N,N)
+    mul!(M_temp, A, M)
+    @test M_temp ≈ ((Lx2*M)[1:N,2:N+1,2:N+1]+(Ly2*M)[2:N+1,1:N,2:N+1]+(Lz2*M)[2:N+1,2:N+1,1:N]+(Lx3*M)[1:N,2:N+1,2:N+1] +(Ly3*M)[2:N+1,1:N,2:N+1]
+     + (Lz3*M)[2:N+1,2:N+1,1:N] + (Lx4*M)[1:N,2:N+1,2:N+1] +(Ly4*M)[2:N+1,1:N,2:N+1]+(Lz4*M)[2:N+1,2:N+1,1:N])
+
+    # Last case where we now have some `irregular-grid` operators operating on the
+    # regular-spaced axis y
+
+    # These operators are operating on the regular grid y, but are constructed as though
+    # they were irregular grid operators. Hence we test if we can seperate irregular and
+    # regular gird operators on the same axis
+    # Lx2 has 0 boundary points
+    _Lx2 = CenteredDifference{1}(2,2,dx_vec,N)
+    # Lz3 has 1 boundary point
+    _Lz3 = CenteredDifference{3}(3,3,dz_vec,N)
+    # Lx4 has 2 boundary points
+    _Lx4 = 12.1*CenteredDifference{1}(4,4,dx_vec,N)
+
+    A += _Lx2 + _Lz3 + _Lx4
+    mul!(M_temp, A, M)
+    @test M_temp ≈ ((Lx2*M)[1:N,2:N+1,2:N+1]+(Ly2*M)[2:N+1,1:N,2:N+1]+(Lz2*M)[2:N+1,2:N+1,1:N]+(Lx3*M)[1:N,2:N+1,2:N+1] +(Ly3*M)[2:N+1,1:N,2:N+1]
+     + (Lz3*M)[2:N+1,2:N+1,1:N] + (Lx4*M)[1:N,2:N+1,2:N+1] +(Ly4*M)[2:N+1,1:N,2:N+1]+(Lz4*M)[2:N+1,2:N+1,1:N] + (_Lx2*M)[1:N,2:N+1,2:N+1]+(_Lz3*M)[2:N+1,2:N+1,1:N]+(_Lx4*M)[1:N,2:N+1,2:N+1])
 
 end
