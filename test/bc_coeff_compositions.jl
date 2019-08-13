@@ -125,7 +125,7 @@ end
 
     # No affine component to the this system
     analytic_f = analytic_AL \ f2.(x)
-    ghost_f = A \ f2.(x) # not correct...
+    ghost_f = A \ f2.(x)
 
     # Check that A\f2.(x) is consistent with analytic_AL \ f2.(x)
     @test analytic_f ≈ ghost_f
