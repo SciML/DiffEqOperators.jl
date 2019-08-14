@@ -115,7 +115,6 @@ function convolve_interior!(x_temp::AbstractVector{T}, _x::BoundaryPaddedVector,
         cur_coeff   = typeof(coeff)   <: AbstractVector ? coeff[i-A.boundary_point_count] : coeff isa Number ? coeff : true
         cur_stencil = use_winding(A) && cur_coeff < 0 ? reverse(cur_stencil) : cur_stencil
         @inbounds for idx in 1:A.stencil_length
-            # @show i, idx, cur_stencil[idx], i-mid+idx, x[i-mid+idx]
             if i-mid+idx == 1
                 x_idx = _x.l
             elseif i-mid+idx == x_len
@@ -153,7 +152,7 @@ function convolve_interior!(x_temp::AbstractVector{T}, _x::BoundaryPaddedVector,
 end
 
 
-function convolve_BC_left!(x_temp::AbstractVector{T}, _x::BoundaryPaddedVector, A::DerivativeOperator) where {T<:Real}
+function convolve_BC_left!(x_temp::AbstractVector{T}, _x::BoundaryPaddedVector, A::DerivativeOperator{T,N,false}) where {T<:Real,N}
     stencil = A.low_boundary_coefs
     coeff   = A.coefficients
 
@@ -188,10 +187,10 @@ function convolve_BC_left!(x_temp::AbstractVector{T}, _x::BoundaryPaddedVector, 
     x_temp[i] = xtempi
 end
 
-function convolve_BC_right!(x_temp::AbstractVector{T}, _x::BoundaryPaddedVector, A::DerivativeOperator) where {T<:Real}
+function convolve_BC_right!(x_temp::AbstractVector{T}, _x::BoundaryPaddedVector, A::DerivativeOperator{T,N,false}) where {T<:Real,N}
     stencil = A.high_boundary_coefs
     coeff   = A.coefficients
-    N = length(_x.u)
+    u_len = length(_x.u)
     bpc = A.boundary_point_count
 
     # need to account for _x.r in last interior convolution
@@ -201,7 +200,7 @@ function convolve_BC_right!(x_temp::AbstractVector{T}, _x::BoundaryPaddedVector,
     flag = false
 
     # explicitely handling the first point which involves the ghost point in its calculations
-    i = N-_bpc
+    i = u_len-_bpc
     cur_coeff   = typeof(coeff)   <: AbstractVector ? coeff[i] : coeff isa Number ? coeff : true
 
     cur_stencil = A.stencil_coefs
@@ -214,8 +213,8 @@ function convolve_BC_right!(x_temp::AbstractVector{T}, _x::BoundaryPaddedVector,
     end
     x_temp[i] = xtempi
 
-    for i in N-_bpc+1 : N
-        cur_stencil = stencil[i+_bpc-N]
+    for i in u_len-_bpc+1 : u_len
+        cur_stencil = stencil[i+_bpc-u_len]
         slen = length(cur_stencil)
 
         cur_coeff   = typeof(coeff)   <: AbstractVector ? coeff[i] : coeff isa Number ? coeff : true
@@ -226,5 +225,80 @@ function convolve_BC_right!(x_temp::AbstractVector{T}, _x::BoundaryPaddedVector,
             xtempi += cur_coeff * cur_stencil[end-idx] * _x.u[end-idx+1]
         end
         x_temp[i] = xtempi
+    end
+end
+
+
+function convolve_BC_left!(x_temp::AbstractVector{T}, _x::BoundaryPaddedVector, A::DerivativeOperator{T,N,true}) where {T<:Real,N}
+    stencil = A.low_boundary_coefs
+    coeff   = A.coefficients
+
+    _bpc = A.boundary_point_count
+    flag = false
+
+    if isempty(stencil)
+        _bpc = 1
+        flag = true
+    end
+
+    for i in 1 : _bpc
+        if flag == true
+            cur_stencil = A.stencil_coefs
+            slen = length(A.stencil_coefs)
+        else
+            cur_stencil = stencil[i]
+            slen = length(cur_stencil)
+        end
+
+        cur_coeff   = typeof(coeff)   <: AbstractVector ? coeff[i] : coeff isa Number ? coeff : true
+        cur_stencil = use_winding(A) && cur_coeff < 0 ? reverse(cur_stencil) : cur_stencil
+
+        # need to account for x.l in first interior
+        xtempi = cur_coeff*cur_stencil[1]*_x.l
+        @inbounds for idx in 2:slen
+            xtempi += cur_coeff * cur_stencil[idx] * _x.u[idx-1]
+        end
+        x_temp[i] = xtempi
+    end
+end
+
+function convolve_BC_right!(x_temp::AbstractVector{T}, _x::BoundaryPaddedVector, A::DerivativeOperator{T,N,true}) where {T<:Real,N}
+    stencil = A.high_boundary_coefs
+    coeff   = A.coefficients
+    u_len = length(_x.u)
+    bpc = A.boundary_point_count
+
+    # need to account for _x.r in last interior convolution
+    mid = div(A.stencil_length,2) + 1
+    x = _x.u
+    i = length(x_temp)-A.boundary_point_count
+    L = A.boundary_stencil_length
+
+    _bpc = A.boundary_point_count
+    flag = false
+
+    if isempty(stencil)
+        _bpc = 1
+        L = A.stencil_length
+        flag = true
+    end
+
+    for i in 1 : _bpc
+        if flag == true
+            cur_stencil = A.stencil_coefs
+            slen = length(A.stencil_coefs)
+        else
+            cur_stencil = stencil[i]
+            slen = length(cur_stencil)
+        end
+
+        cur_coeff   = typeof(coeff)   <: AbstractVector ? coeff[end-_bpc+i] : coeff isa Number ? coeff : true
+        xtempi = cur_coeff*cur_stencil[end]*_x.r
+        cur_stencil = use_winding(A) && cur_coeff < 0 ? reverse(cur_stencil) : cur_stencil
+
+        @inbounds for idx in slen-1:-1:1
+            xtempi += cur_coeff * cur_stencil[end-idx] * _x.u[end-idx+1]
+        end
+        x_temp[end-_bpc+i] = xtempi
     end
 end
