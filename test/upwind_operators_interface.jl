@@ -128,8 +128,8 @@ end
     M = length(x)
 
     Q = RobinBC([1.0, 0.0, y[1]], [1.0, 0.0, y[end]], dx)
-    U = UpwindDifference(3,2, dx, M-2, t->1.0)
-    A = CenteredDifference(3,2, dx, M-2)
+    U = UpwindDifference(2,2, dx, M-2, t->1.0)
+    A = CenteredDifference(2,2, dx, M-2)
 
     res1 = U*Q*y_
     res2 = A*Q*y_
