@@ -38,14 +38,14 @@ function convolve_BC_left!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::D
     coeff   = A.coefficients
 
     _bpc = A.boundary_point_count
-    flag = false
+    use_interior_stencil = false
     if isempty(stencil)
         _bpc = A.boundary_point_count + 1
-        flag = true
+        use_interior_stencil = true
     end
 
     for i in 1 : _bpc
-        if flag == true
+        if use_interior_stencil == true
             cur_stencil = A.stencil_coefs
             slen = length(A.stencil_coefs)
         else
@@ -70,15 +70,15 @@ function convolve_BC_right!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::
     L       = A.boundary_stencil_length
 
     _bpc = A.boundary_point_count
-    flag = false
+    use_interior_stencil = false
 
     if isempty(stencil)
         _bpc = 1
-        flag = true
+        use_interior_stencil = true
     end
 
     for i in 1 : _bpc
-        if flag == true
+        if use_interior_stencil == true
             cur_stencil = A.stencil_coefs
             slen = length(A.stencil_coefs)
             L = A.stencil_length
@@ -157,7 +157,6 @@ function convolve_BC_left!(x_temp::AbstractVector{T}, _x::BoundaryPaddedVector, 
     coeff   = A.coefficients
 
     _bpc = A.boundary_point_count
-    flag = false
 
     for i in 1 : _bpc
         cur_stencil = stencil[i]
@@ -197,7 +196,6 @@ function convolve_BC_right!(x_temp::AbstractVector{T}, _x::BoundaryPaddedVector,
     x = _x.u
     L = A.boundary_stencil_length
     _bpc = A.boundary_point_count
-    flag = false
 
     # explicitely handling the first point which involves the ghost point in its calculations
     i = u_len-_bpc
@@ -234,15 +232,15 @@ function convolve_BC_left!(x_temp::AbstractVector{T}, _x::BoundaryPaddedVector, 
     coeff   = A.coefficients
 
     _bpc = A.boundary_point_count
-    flag = false
+    use_interior_stencil = false
 
     if isempty(stencil)
         _bpc = 1
-        flag = true
+        use_interior_stencil = true
     end
 
     for i in 1 : _bpc
-        if flag == true
+        if use_interior_stencil == true
             cur_stencil = A.stencil_coefs
             slen = length(A.stencil_coefs)
         else
@@ -275,16 +273,16 @@ function convolve_BC_right!(x_temp::AbstractVector{T}, _x::BoundaryPaddedVector,
     L = A.boundary_stencil_length
 
     _bpc = A.boundary_point_count
-    flag = false
+    use_interior_stencil = false
 
     if isempty(stencil)
         _bpc = 1
         L = A.stencil_length
-        flag = true
+        use_interior_stencil = true
     end
 
     for i in 1 : _bpc
-        if flag == true
+        if use_interior_stencil == true
             cur_stencil = A.stencil_coefs
             slen = length(A.stencil_coefs)
         else

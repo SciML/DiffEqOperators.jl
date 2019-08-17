@@ -87,9 +87,21 @@ end
 
     res1 = U*Q*y_
     res2 = A*Q*y_
+
+    res3 = U*y
+    res4 = A*y
+
+    @test res1 ≈ res3
+    @test res2 ≈ res4
+
     @test res1[3:end-2] ≈ res2[1:end-4] # shifted due to upwind operators
     # It is shifted by a constant value so its first derivative has to be 0
     @test D1*(res1[3:end-2] - res2[3:end-2]) ≈ zeros(12) atol=10.0^(-6)
+
+    @test res3[3:end-2] ≈ res4[1:end-4] # shifted due to upwind operators
+    # It is shifted by a constant value so its first derivative has to be 0
+    @test D1*(res4[3:end-2] - res4[3:end-2]) ≈ zeros(12) atol=10.0^(-6)
+
 
     y = 3x.^3 .- 4x.^2 .+ 2x .+ 1
     y_ = y[2:end-1]
@@ -98,9 +110,31 @@ end
     A = CenteredDifference(2,2, 1.0, N-2)
     res1 = U*Q*y_
     res2 = A*Q*y_
+
+    res3 = U*y
+    res4 = A*y
+
+    @test res1 ≈ res3
+    @test res2 ≈ res4
+
     @test res1 ≈ res2 # shifted due to upwind operators
 
-    # CAN ADD MORE TESTS
+    N = 20
+    x = 0:1/(N-1):2*π
+    y = sin.(x)
+    y_ = y[2:end-1]
+
+    dx = x[2]-x[1]
+    M = length(x)
+
+    Q = RobinBC([1.0, 0.0, y[1]], [1.0, 0.0, y[end]], dx)
+    U = UpwindDifference(3,2, dx, M-2, t->1.0)
+    A = CenteredDifference(3,2, dx, M-2)
+
+    res1 = U*Q*y_
+    res2 = A*Q*y_
+
+    @test res1[5:end-4] ≈ res2[5:end-4]
 end
 
 # tests for full and sparse function.... BROKEN!
