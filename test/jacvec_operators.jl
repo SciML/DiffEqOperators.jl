@@ -54,6 +54,8 @@ u0 = [1.0;0.0;0.0]
 tspan = (0.0,100.0)
 ff1 = ODEFunction(lorenz,jac_prototype=JacVecOperator{Float64}(lorenz,u0))
 ff2 = ODEFunction(lorenz,jac_prototype=JacVecOperator{Float64}(lorenz,u0,autodiff=false))
+
+
 for ff in [ff1, ff2]
   prob = ODEProblem(ff,u0,tspan)
   @test solve(prob,TRBDF2()).retcode == :Success

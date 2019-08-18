@@ -40,13 +40,13 @@ end
     al = rand()
     bl = rand()
     cl = rand()
-    dx_l = rand()
+
     ar = rand()
     br = rand()
     cr = rand()
-    dx_r = rand()
+    dx = rand()
 
-    Q = RobinBC(al, bl, cl, dx_l, ar, br, cr, dx_r)
+    Q = RobinBC((al, bl, cl), (ar, br, cr), dx)
     N = 20
     L = CenteredDifference(4,4, 1.0, N)
     L2 = CenteredDifference(2,4, 1.0, N)
@@ -116,7 +116,7 @@ end
     N = length(x)
 
     L = CenteredDifference(2, 2, dx, N)
-    Q = RobinBC(1.0, 0.0, 0.0, dx, 1.0, 0.0, 0.0, dx)
+    Q = RobinBC((1.0, 0.0, 0.0), (1.0, 0.0, 0.0), dx)
     A = L*Q
 
     analytic_L = second_derivative_stencil(N) ./ dx^2
@@ -159,7 +159,7 @@ end
     N = length(x)
 
     L = CenteredDifference(2, 2, dx, N)
-    Q = RobinBC(1.0, 0.0, 4.0, dx, 1.0, 0.0, 4.0, dx)
+    Q = RobinBC((1.0, 0.0, 4.0), (1.0, 0.0, 4.0), dx)
     A = L*Q
 
     analytic_L = second_derivative_stencil(N) ./ dx^2
@@ -207,7 +207,7 @@ end
     u = sin.(x)
 
     L = CenteredDifference(4, 4, dx, N)
-    Q = RobinBC(1.0, 0.0, sin(0.0), dx, 1.0, 0.0, sin(0.2+dx), dx)
+    Q = RobinBC((1.0, 0.0, sin(0.0)), (1.0, 0.0, sin(0.2+dx)), dx)
     A = L*Q
 
     analytic_L = fourth_deriv_approx_stencil(N) ./ dx^4
