@@ -1365,7 +1365,7 @@ end
 
 end
 
-@testset "irregular x grid and regular y and z gris (dy = 0.25, dz = 0.05)" begin
+@testset "irregular x grid and regular y and z grids (dy = 0.25, dz = 0.05)" begin
 
     N = 100
     dy = 0.25
@@ -1489,7 +1489,7 @@ end
     @test M_temp ≈ ((Lx2*M)[1:N,2:N+1,:]+(Lx3*M)[1:N,2:N+1,:]+(Lx4*M)[1:N,2:N+1,:]+(Ly2*M)[2:N+1,1:N,:]+(Ly3*M)[2:N+1,1:N,:]+(Ly4*M)[2:N+1,1:N,:])
 
     # Test that composition of both y and z operators works
-    A = Ly2 + Lz2 + Ly3 + Lz3 + Lz4 + Ly4
+    A = Ly2 +Ly3  + Ly4 + Lz2 + Lz3 + Lz4
     M_temp = zeros(N+2,N,N)
     mul!(M_temp, A, M)
     # Need to figure out why this test is exploding
