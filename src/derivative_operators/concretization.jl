@@ -95,3 +95,59 @@ end
 function Base.convert(::Type{AbstractMatrix},A::DerivativeOperator{T}) where T
     BandedMatrix(A)
 end
+
+
+# HIgher Dimensional Concretizations. The following concretizations return two dimensional arrays
+# which operate on flattened vectors. Mshape is the size of the unflattened array on which A is operating on.
+
+function LinearAlgebra.Array(A::DerivativeOperator{T,N}, Mshape) where {T,N}
+    # Case where A is not differentiating along the first dimension
+    if N != 1
+        B = Matrix(I, Mshape[1],Mshape[1])
+        for i in length(Mshape)-1:-1:1
+            if N != length(Mshape) - i + 1
+                B = Kron(Matrix(I,Mshape[i],Mshape[i]),B)
+            else
+                B = Kron(Array(A),B)
+            end
+        end
+    # Case where A is differentiating along hte first dimension
+    else
+        n = 1
+        for M_i in Mshape[2:end]
+            n *= M_i
+        end
+        B = Kron(Matrix(I,n,n), Array(A))
+    end
+    return B
+end
+
+# Todo
+function SparseArrays.SparseMatrixCSC(A::DerivativeOperator{T,N}, M) where {T,N}
+
+    # The case where M is a vector or matrix and A is differentiating along the first dimension
+    if N == 1
+        return sparse(A)
+
+    # The case where A is differentiating along an arbitrary dimension
+    else
+        # Case where the first dimension is not being differentiated
+        if N != 1
+            B = sparse(I, Mshape[1],Mshape[1])
+            for i in length(Mshape)-1:-1:1
+                if N != length(Mshape) - i + 1
+                    B = Kron(sparse(I,Mshape[i],Mshape[i]),B)
+                else
+                    B = Kron(sparse(A),B)
+                end
+            end
+        # Case where the first dimension is being differentiated
+        else
+            B = sparse(A)
+            for i in len(Mshape)-1:1
+                B = Kron(sparse(I,Mshape[i],Mshape[i]),B)
+            end
+        end
+        return B
+    end
+end
