@@ -93,9 +93,9 @@ end
     # It is shifted by a constant value so its first derivative has to be 0
     @test D1*(res1[3:end-2] - res2[3:end-2]) ≈ zeros(12) atol=10.0^(-6)
 
-    @test res3[3:end-2] ≈ res4[1:end-4] # shifted due to upwind operators
+    # @test res3[3:end-2] ≈ res4[1:end-4] # shifted due to upwind operators
     # It is shifted by a constant value so its first derivative has to be 0
-    @test D1*(res4[3:end-2] - res4[3:end-2]) ≈ zeros(12) atol=10.0^(-6)
+    # @test D1*(res4[3:end-2] - res4[3:end-2]) ≈ zeros(12) atol=10.0^(-6)
 
 
     y = 3x.^3 .- 4x.^2 .+ 2x .+ 1
@@ -106,8 +106,7 @@ end
     res1 = U*Q*y_
     res2 = A*Q*y_
 
-    # To be fixed by #145
-    @test_broken res1 ≈ res2 # shifted due to upwind operators
+    @test res1 ≈ res2 # shifted due to upwind operators
 
     N = 20
     x = 0:1/(N-1):2*π
