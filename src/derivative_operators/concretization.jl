@@ -122,32 +122,24 @@ function LinearAlgebra.Array(A::DerivativeOperator{T,N}, Mshape) where {T,N}
     return B
 end
 
-# Todo
-function SparseArrays.SparseMatrixCSC(A::DerivativeOperator{T,N}, M) where {T,N}
-
-    # The case where M is a vector or matrix and A is differentiating along the first dimension
-    if N == 1
-        return sparse(A)
-
-    # The case where A is differentiating along an arbitrary dimension
-    else
-        # Case where the first dimension is not being differentiated
-        if N != 1
-            B = sparse(I, Mshape[1],Mshape[1])
-            for i in length(Mshape)-1:-1:1
-                if N != length(Mshape) - i + 1
-                    B = Kron(sparse(I,Mshape[i],Mshape[i]),B)
-                else
-                    B = Kron(sparse(A),B)
-                end
-            end
-        # Case where the first dimension is being differentiated
-        else
-            B = sparse(A)
-            for i in len(Mshape)-1:1
+function SparseArrays.SparseMatrixCSC(A::DerivativeOperator{T,N}, Mshape) where {T,N}
+    # Case where A is not differentiating along the first dimension
+    if N != 1
+        B = sparse(I, Mshape[1],Mshape[1])
+        for i in length(Mshape)-1:-1:1
+            if N != length(Mshape) - i + 1
                 B = Kron(sparse(I,Mshape[i],Mshape[i]),B)
+            else
+                B = Kron(sparse(A),B)
             end
         end
-        return B
+    # Case where A is differentiating along hte first dimension
+    else
+        n = 1
+        for M_i in Mshape[2:end]
+            n *= M_i
+        end
+        B = Kron(sparse(I,n,n), sparse(A))
     end
+    return B
 end

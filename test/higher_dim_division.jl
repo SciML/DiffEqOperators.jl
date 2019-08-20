@@ -2,6 +2,10 @@ using SparseArrays, DiffEqOperators, LinearAlgebra, Random,
       Test, BandedMatrices, FillArrays, LazyArrays
 
 
+# This test file may be removed from this branch due to the new implementation focusing on concretization
+# rather than ldiv!
+
+
 # The following test checks that left division in the second dimension is consistent
 # with applying left division at each slice in the second dimension.
 @testset "Basic Second Dimension Division" begin
