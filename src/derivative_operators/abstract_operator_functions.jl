@@ -121,7 +121,7 @@ LinearAlgebra.issymmetric(::DerivativeOperator) = true
 =#
 Base.exp(A::AbstractDerivativeOperator{T}) where T = exp(convert(A))
 Base.:\(A::AbstractVecOrMat, B::AbstractDerivativeOperator) = A \ convert(Array,B)
-Base.:\(A::AbstractDerivativeOperator, B::AbstractArray) = Array(A) \ B
+Base.:\(A::AbstractDerivativeOperator, B::AbstractVecOrMat) = Array(A) \ B
 Base.:/(A::AbstractVecOrMat, B::AbstractDerivativeOperator) = A / convert(Array,B)
 Base.:/(A::AbstractDerivativeOperator, B::AbstractVecOrMat) = Array(A) / B
 
