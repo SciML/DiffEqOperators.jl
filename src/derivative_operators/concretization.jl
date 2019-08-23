@@ -50,7 +50,7 @@ function SparseArrays.SparseMatrixCSC(A::DerivativeOperator{T}, N::Int=A.len) wh
     return L
 end
 
-function SparseArrays.sparse(A::AbstractDerivativeOperator{T}, N::Int=A.len) where T
+function SparseArrays.sparse(A::DerivativeOperator{T}, N::Int=A.len) where T
     SparseMatrixCSC(A,N)
 end
 
@@ -247,3 +247,118 @@ LinearAlgebra.Array(Q::ComposedMultiDimBC, Ns) = Tuple(Array.(Q.BCs, Ns))
 SparseArrays.SparseMatrixCSC(Q::ComposedMultiDimBC, Ns...) = Tuple(sparse.(Q.BCs, Ns))
 SparseArrays.sparse(Q::ComposedMultiDimBC, Ns) = SparseMatrixCSC(Q, Ns)
 BandedMatrices.BandedMatrix(Q::ComposedMultiDimBC, Ns) = Tuple(BandedMatrix.(Q.BCs, Ns))
+
+# HIgher Dimensional Concretizations. The following concretizations return two dimensional arrays
+# which operate on flattened vectors. Mshape is the size of the unflattened array on which A is operating on.
+
+function LinearAlgebra.Array(A::DerivativeOperator{T,N}, Mshape) where {T,N}
+    # Case where A is not differentiating along the first dimension
+    if N != 1
+        n = 1
+        for M_i in Mshape[1:N-1]
+            n *= M_i
+        end
+        B = Kron(Array(A), Eye(n))
+        if N != length(Mshape)
+            n = 1
+            for M_i in Mshape[N+1:end]
+                n *= M_i
+            end
+            B = Kron(Eye(n), B)
+        end
+
+    # Case where A is differentiating along hte first dimension
+    else
+        n = 1
+        for M_i in Mshape[2:end]
+            n *= M_i
+        end
+        B = Kron(Eye(n), Array(A))
+    end
+    return Array(B)
+end
+
+function SparseArrays.SparseMatrixCSC(A::DerivativeOperator{T,N}, Mshape) where {T,N}
+    # Case where A is not differentiating along the first dimension
+    if N != 1
+        n = 1
+        for M_i in Mshape[1:N-1]
+            n *= M_i
+        end
+        B = Kron(sparse(A), sparse(I,n,n))
+        if N != length(Mshape)
+            n = 1
+            for M_i in Mshape[N+1:end]
+                n *= M_i
+            end
+            B = Kron(sparse(I,n,n), B)
+        end
+
+    # Case where A is differentiating along hte first dimension
+    else
+        n = 1
+        for M_i in Mshape[2:end]
+            n *= M_i
+        end
+        B = Kron(sparse(I,n,n), sparse(A))
+    end
+    return sparse(B)
+end
+
+function SparseArrays.sparse(A::DerivativeOperator{T,N}, Mshape) where {T,N}
+    return SparseMatrixCSC(A,Mshape)
+end
+
+function BandedMatrices.BandedMatrix(A::DerivativeOperator{T,N}, Mshape) where {T,N}
+    # Case where A is not differentiating along the first dimension
+    if N != 1
+        n = 1
+        for M_i in Mshape[1:N-1]
+            n *= M_i
+        end
+        B = Kron(BandedMatrix(A), Eye(n))
+        if N != length(Mshape)
+            n = 1
+            for M_i in Mshape[N+1:end]
+                n *= M_i
+            end
+            B = Kron(Eye(n), B)
+        end
+
+    # Case where A is differentiating along hte first dimension
+    else
+        n = 1
+        for M_i in Mshape[2:end]
+            n *= M_i
+        end
+        B = Kron(BandedMatrix(Eye(n)), BandedMatrix(A))
+    end
+    return BandedMatrix(B)
+end
+
+function BlockBandedMatrices.BandedBlockBandedMatrix(A::DerivativeOperator{T,N}, Mshape) where {T,N}
+    # Case where A is not differentiating along the first dimension
+    if N != 1
+        n = 1
+        for M_i in Mshape[1:N-1]
+            n *= M_i
+        end
+        B = Kron(BandedMatrix(A), Eye(n))
+        if N != length(Mshape)
+            n = 1
+            for M_i in Mshape[N+1:end]
+                n *= M_i
+            end
+            B = Kron(Eye(n), B)
+        end
+
+    # Case where A is differentiating along hte first dimension
+    else
+        n = 1
+        for M_i in Mshape[2:end]
+            n *= M_i
+        end
+        B = Kron(BandedMatrix(Eye(n)), BandedMatrix(A))
+    end
+    return BandedBlockBandedMatrix(B)
+end

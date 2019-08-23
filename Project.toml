@@ -5,8 +5,10 @@ version = "4.1.0"
 
 [deps]
 BandedMatrices = "aae01518-5342-5314-be14-df237901396f"
+BlockBandedMatrices = "ffab5731-97b5-5995-9138-79e8c1846df0"
 DiffEqBase = "2b5f629d-d688-5b77-993f-72d75c75574e"
 ForwardDiff = "f6369f11-7733-5829-9624-2563aa707210"
+LazyArrays =  "5078a376-72f3-5289-bfd5-ec5146d43c02"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 NNlib = "872c559c-99b0-510c-b3b7-b6c96a88d5cd"
 SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
