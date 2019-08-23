@@ -213,3 +213,8 @@ Multiplying two DiffEqOperators will build a `DiffEqOperatorComposition`, while
 adding two DiffEqOperators will build a `DiffEqOperatorCombination`. Multiplying
 a DiffEqOperator by a scalar will produce a `DiffEqScaledOperator`. All
 will inherit the appropriate action.
+
+### Efficiency of Composed Operator Actions
+
+Composed operator actions utilize NNLib.jl in order to do cache-efficient
+convolution operations in higher dimensional combinations.
