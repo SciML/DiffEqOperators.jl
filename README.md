@@ -11,7 +11,10 @@ common partial differential equations.
 
 ## Automated Finite Difference Method (FDM) Operators
 
-This library provides lazy operators for finite difference discretizations.
+This library provides lazy operators for arbitrary order uniform and non-uniform
+finite difference discretizations of arbitrary high derivative order and for
+arbitrarily high dimensions.
+
 There are two types of `DerivativeOperator`s: the `CenteredDifference` operator
 and the `UpwindDifference` operator. The `CenteredDifference` operator utilizes
 a central difference scheme while the upwind operator requires a coefficient
@@ -83,9 +86,10 @@ The following concretizations are provided:
 
 Additionally, the function `sparse` is overloaded to give the most efficient
 matrix type for a given operator. For one-dimensional derivatives this is a
-`BandedMatrix`, while for higher dimensional operators this is a `BlockBandedMatrix`
+`BandedMatrix`, while for higher dimensional operators this is a `BlockBandedMatrix`.
+The concretizations are made to act on `vec(u)`.
 
-## Boundary Value Operators
+## Atomic Boundary Value Operators
 
 Boundary conditions are implemented through a ghost node approach. The discretized
 values `u` should be the interior of the domain so that, for the boundary value
@@ -111,8 +115,10 @@ Additionally, the following helpers exist for the Neumann `u'(0) = α` and
 Dirichlet `u(0) = α` cases.
 
 ```julia
-NeumannBC(α::AbstractVector{T}, dx::AbstractVector{T}, order = 1)
+Dirichlet0BC(T::Type)
 DirichletBC(α::AbstractVector{T}, dx::AbstractVector{T}, order = 1)
+Neumann0BC(dx::Union{AbstractVector{T}, T}, order = 1)
+NeumannBC(α::AbstractVector{T}, dx::AbstractVector{T}, order = 1)
 ```
 
 ### General Boundary Conditions
@@ -125,6 +131,32 @@ of coefficients. Represents a condition of the form
 GeneralBC(αl::AbstractArray{T}, αr::AbstractArray{T}, dx::AbstractArray{T}, order = 1)
 ```
 
+### Multidimensional Boundary Conditions
+
+```julia
+Q_dim = MultiDimBC(Q, size(u), dim)
+```
+
+turns `Q` into a boundary condition along the dimension `dim`. Additionally,
+to apply the same boundary values to all dimensions, one can use
+
+```julia
+Qx,Qy,Qz = MultiDimBC(YourBC, size(u)) # Here u is 3d
+```
+
+Multidimensional BCs can then be composed into a single operator with:
+
+```julia
+Q = compose(BCs...)
+```
+
+### Operator Actions
+
+The boundary condition operators act lazily by appending the appropriate values
+to the end of the array, building the ghost-point extended version for the
+derivative operator to act on. This utilizes special array types to not require
+copying the interior data.
+
 ### Concretizations
 
 The following concretizations are provided:
@@ -134,9 +166,50 @@ The following concretizations are provided:
 
 Additionally, the function `sparse` is overloaded to give the most efficient
 matrix type for a given operator. For these operators it's `SparseMatrixCSC`.
+The concretizations are made to act on `vec(u)`.
 
-## Operator Compositions
+## GhostDerivative Operators
+
+When `L` is a `DerivativeOperator` and `Q` is a boundary condition operator,
+`L*Q` produces a `GhostDerivative` operator which is the composition of the
+two operations.
+
+### Concretizations
+
+The following concretizations are provided:
+
+- `Array`
+- `SparseMatrixCSC`
+- `BandedMatrix`
+
+Additionally, the function `sparse` is overloaded to give the most efficient
+matrix type for a given operator. For these operators it's `BandedMatrix` unless
+the boundary conditions are `PeriodicBC`, in which case it's `SparseMatrixCSC`.
+The concretizations are made to act on `vec(u)`.
 
 ## Matrix-Free Operators
 
+```julia
+MatrixFreeOperator(f::F, args::N;
+                   size=nothing, opnorm=true, ishermitian=false) where {F,N}
+```
+
+A `MatrixFreeOperator` is a linear operator `A*u` where the action of `A` is
+explicitly defined by an in-place function `f(du, u, p, t)`.
+
 ## Jacobian-Vector Product Operators
+
+```julia
+JacVecOperator{T}(f,u::AbstractArray,p=nothing,t::Union{Nothing,Number}=nothing;autodiff=true,ishermitian=false,opnorm=true)
+```
+
+The `JacVecOperator` is a linear operator `J*v` where `J` acts like `df/du`
+for some function `f(u,p,t)`. For in-place operations `mul!(w,J,v)`, `f`
+is an in-place function `f(du,u,p,t)`.
+
+## Operator Compositions
+
+Multiplying two DiffEqOperators will build a `DiffEqOperatorComposition`, while
+adding two DiffEqOperators will build a `DiffEqOperatorCombination`. Multiplying
+a DiffEqOperator by a scalar will produce a `DiffEqScaledOperator`. All
+will inherit the appropriate action.
