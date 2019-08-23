@@ -522,7 +522,7 @@ function LinearAlgebra.mul!(x_temp::AbstractArray{T,3}, A::AbstractDiffEqComposi
                         if length(ops_1) == 0 && length(ops_2) == 0
                             convolve_BC_left!(view(x_temp,i,j,:), view(M,i+offset_x,j+offset_y,:), opsA[ops_3_max_bpc_idx...])
                             convolve_BC_right!(view(x_temp,i,j,:), view(M,i+offset_x,j+offset_y,:), opsA[ops_3_max_bpc_idx...])
-                            if i <= pad[1] || i > size(x_temp)[1]-pad[1] #TODO 525-527
+                            if i <= pad[1] || i > size(x_temp)[1]-pad[1]
                                 convolve_interior!(view(x_temp,i,j,:), view(M,i+offset_x,j+offset_y,:), opsA[ops_3_max_bpc_idx...])
                             end
 

@@ -1489,11 +1489,123 @@ end
     @test M_temp ≈ ((Lx2*M)[1:N,2:N+1,:]+(Lx3*M)[1:N,2:N+1,:]+(Lx4*M)[1:N,2:N+1,:]+(Ly2*M)[2:N+1,1:N,:]+(Ly3*M)[2:N+1,1:N,:]+(Ly4*M)[2:N+1,1:N,:])
 
     # Test that composition of both y and z operators works
-    A = Ly2 +Ly3  + Ly4 + Lz2 + Lz3 + Lz4
+    A = Ly2 + Ly3 + Ly4 + Lz2 + Lz3 + Lz4
     M_temp = zeros(N+2,N,N)
     mul!(M_temp, A, M)
     # Need to figure out why this test is exploding
     @test_broken M_temp ≈ ((Ly2*M)[:,1:N,2:N+1]+(Ly3*M)[:,1:N,2:N+1]+(Ly4*M)[:,1:N,2:N+1]+(Lz2*M)[:,2:N+1,1:N]+(Lz3*M)[:,2:N+1,1:N]+(Lz4*M)[:,2:N+1,1:N])
+
+    ############################################################################
+    # Tests to isolate the above problem
+    ############################################################################
+
+    A = Ly2 + Ly3 + Ly4
+    M_temp = zeros(N+2,N,N+2)
+    mul!(M_temp, A, M)
+    @test M_temp ≈ Ly2*M + Ly3*M + Ly4*M
+
+    ### Test the addition of Lz2, Lz3, Lz4 seperately
+
+    A = Ly2 + Ly3 + Ly4 + Lz2
+    M_temp = zeros(N+2,N,N)
+    mul!(M_temp, A, M)
+    @test M_temp ≈ ((Ly2*M)[:,1:N,2:N+1]+(Ly3*M)[:,1:N,2:N+1]+(Ly4*M)[:,1:N,2:N+1]+(Lz2*M)[:,2:N+1,1:N])
+
+    A = Ly2 + Ly3 + Ly4 + Lz3
+    M_temp = zeros(N+2,N,N)
+    mul!(M_temp, A, M)
+    @test M_temp ≈ ((Ly2*M)[:,1:N,2:N+1]+(Ly3*M)[:,1:N,2:N+1]+(Ly4*M)[:,1:N,2:N+1]+(Lz3*M)[:,2:N+1,1:N])
+
+    A = Ly2 + Ly3 + Ly4 + Lz4
+    M_temp = zeros(N+2,N,N)
+    mul!(M_temp, A, M)
+    @test M_temp ≈ ((Ly2*M)[:,1:N,2:N+1]+(Ly3*M)[:,1:N,2:N+1]+(Ly4*M)[:,1:N,2:N+1]+(Lz4*M)[:,2:N+1,1:N])
+
+    ###
+
+    A = Ly2 + Ly3 + Ly4 + Lz2 + Lz3
+    M_temp = zeros(N+2,N,N)
+    mul!(M_temp, A, M)
+    @test_broken M_temp ≈ ((Ly2*M)[:,1:N,2:N+1]+(Ly3*M)[:,1:N,2:N+1]+(Ly4*M)[:,1:N,2:N+1]+(Lz2*M)[:,2:N+1,1:N]+(Lz3*M)[:,2:N+1,1:N])
+
+    A = Ly2 + Ly3 + Ly4 + Lz2 + Lz4
+    M_temp = zeros(N+2,N,N)
+    mul!(M_temp, A, M)
+    @test_broken M_temp ≈ ((Ly2*M)[:,1:N,2:N+1]+(Ly3*M)[:,1:N,2:N+1]+(Ly4*M)[:,1:N,2:N+1]+(Lz2*M)[:,2:N+1,1:N]+(Lz4*M)[:,2:N+1,1:N])
+
+    A = Ly2 + Ly3 + Ly4 + Lz3 + Lz4
+    M_temp = zeros(N+2,N,N)
+    mul!(M_temp, A, M)
+    @test_broken M_temp ≈ ((Ly2*M)[:,1:N,2:N+1]+(Ly3*M)[:,1:N,2:N+1]+(Ly4*M)[:,1:N,2:N+1]+(Lz3*M)[:,2:N+1,1:N]+(Lz4*M)[:,2:N+1,1:N])
+
+
+    ###
+
+    A = Ly2 + Ly3 + Ly4 + Lz2 + Lz2
+    M_temp = zeros(N+2,N,N)
+    mul!(M_temp, A, M)
+    @test_broken M_temp ≈ ((Ly2*M)[:,1:N,2:N+1]+(Ly3*M)[:,1:N,2:N+1]+(Ly4*M)[:,1:N,2:N+1]+(Lz2*M)[:,2:N+1,1:N]+(Lz2*M)[:,2:N+1,1:N])
+    # It appears that multiple z operators with some y operators is causing the issues
+
+    ###
+
+    A = Lz2 + Lz3 + Lz4
+    M_temp = zeros(N+2,N+2,N)
+    mul!(M_temp, A, M)
+    @test M_temp ≈ Lz2*M + Lz3*M + Lz4*M
+
+    A = Lz2 + Lz3 + Lz4 + Ly2
+    M_temp = zeros(N+2,N,N)
+    mul!(M_temp, A, M)
+    @test M_temp ≈ ((Ly2*M)[:,1:N,2:N+1]+(Lz2*M)[:,2:N+1,1:N]+(Lz3*M)[:,2:N+1,1:N]+(Lz4*M)[:,2:N+1,1:N])
+
+    A = Lz2 + Lz3 + Lz4 + Ly3
+    M_temp = zeros(N+2,N,N)
+    mul!(M_temp, A, M)
+    @test_broken M_temp ≈ ((Ly3*M)[:,1:N,2:N+1]+(Lz2*M)[:,2:N+1,1:N]+(Lz3*M)[:,2:N+1,1:N]+(Lz4*M)[:,2:N+1,1:N])
+    # It seems that the y paddign could be the issue
+
+    A = Lz2 + Lz3 + Lz4 + Ly4
+    M_temp = zeros(N+2,N,N)
+    mul!(M_temp, A, M)
+    @test_broken M_temp ≈ ((Ly4*M)[:,1:N,2:N+1]+(Lz2*M)[:,2:N+1,1:N]+(Lz3*M)[:,2:N+1,1:N]+(Lz4*M)[:,2:N+1,1:N])
+    # It seems that the y paddign could be the issue
+
+    A = Lz2 + Lz3 + Lz4 + Ly4 + Ly3
+    M_temp = zeros(N+2,N,N)
+    mul!(M_temp, A, M)
+    @test_broken M_temp ≈ ((Ly3*M)[:,1:N,2:N+1]+(Ly4*M)[:,1:N,2:N+1]+(Lz2*M)[:,2:N+1,1:N]+(Lz3*M)[:,2:N+1,1:N]+(Lz4*M)[:,2:N+1,1:N])
+    # It seems that the y paddign could be the issue
+
+    A = Lz2 + Lz3 + Lz4 + Ly4 + Ly2
+    M_temp = zeros(N+2,N,N)
+    mul!(M_temp, A, M)
+    @test_broken M_temp ≈ ((Ly2*M)[:,1:N,2:N+1]+(Ly4*M)[:,1:N,2:N+1]+(Lz2*M)[:,2:N+1,1:N]+(Lz3*M)[:,2:N+1,1:N]+(Lz4*M)[:,2:N+1,1:N])
+    # It seems that the y paddign could be the issue
+
+    ###
+
+    A = Lz2 + Lz3 +Ly3
+    M_temp = zeros(N+2,N,N)
+    mul!(M_temp, A, M)
+    @test_broken M_temp ≈ ((Ly3*M)[:,1:N,2:N+1]+(Lz2*M)[:,2:N+1,1:N]+(Lz3*M)[:,2:N+1,1:N])
+
+    A = Lz3 +Ly3
+    M_temp = zeros(N+2,N,N)
+    mul!(M_temp, A, M)
+    @test M_temp ≈ ((Ly3*M)[:,1:N,2:N+1]+(Lz3*M)[:,2:N+1,1:N])
+
+    A = Lz2 + Lz3 +Ly2
+    M_temp = zeros(N+2,N,N)
+    mul!(M_temp, A, M)
+    @test M_temp ≈ ((Ly2*M)[:,1:N,2:N+1]+(Lz2*M)[:,2:N+1,1:N]+(Lz3*M)[:,2:N+1,1:N])
+
+    # It seems that the padding of y is forcing multiple z operators to fail
+
+
+
+    ############################################################################
+    ############################################################################
 
     # Test that composition of x, y, and z operators works
     A = Lx2 + Lz2 + Lx3 + Lz3 + Lz4 + Lx4 + Ly2 + Ly3 + Ly4
@@ -1503,9 +1615,9 @@ end
      + (Lz3*M)[2:N+1,2:N+1,1:N] + (Lx4*M)[1:N,2:N+1,2:N+1] +(Ly4*M)[2:N+1,1:N,2:N+1]+(Lz4*M)[2:N+1,2:N+1,1:N])
 
     # Last case where we now have some `irregular-grid` operators operating on the
-    # regular-spaced axis y
+    # regular-spaced axis x and z
 
-    # These operators are operating on the regular grid y, but are constructed as though
+    # These operators are operating on the regular grid x and z, but are constructed as though
     # they were irregular grid operators. Hence we test if we can seperate irregular and
     # regular gird operators on the same axis
     # Lx2 has 0 boundary points
