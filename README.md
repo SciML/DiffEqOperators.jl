@@ -89,7 +89,7 @@ matrix type for a given operator. For one-dimensional derivatives this is a
 `BandedMatrix`, while for higher dimensional operators this is a `BlockBandedMatrix`.
 The concretizations are made to act on `vec(u)`.
 
-## Atomic Boundary Value Operators
+## Boundary Condition Operators
 
 Boundary conditions are implemented through a ghost node approach. The discretized
 values `u` should be the interior of the domain so that, for the boundary value
