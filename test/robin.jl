@@ -12,7 +12,7 @@ cr = rand(5)
 
 # Construct 5 arbitrary RobinBC operators
 for i in 1:5
-    Q = RobinBC([al[i], bl[i], cl[i]], [ar[i], br[i], cr[i]], dx[i])
+    Q = RobinBC((al[i], bl[i], cl[i]), (ar[i], br[i], cr[i]), dx[i])
 
     Q_L, Q_b = Array(Q,5i)
 
@@ -46,7 +46,7 @@ end
 u0 = -4/10
 uend = 125/12
 u = Vector(1.0:10.0)
-Q = RobinBC([1.0, 6.0, 10.0], [1.0, 6.0, 10.0], 1.0, 3)
+Q = RobinBC((1.0, 6.0, 10.0), (1.0, 6.0, 10.0), 1.0, 3)
 urobinextended = Q*u
 @test urobinextended.l ≈ u0
 @test urobinextended.r ≈ uend
