@@ -1,14 +1,14 @@
 # mul! done by convolutions
-function LinearAlgebra.mul!(x_temp::AbstractVector{T}, A::DerivativeOperator, x::AbstractVector{T}) where T<:Real
-    convolve_BC_left!(x_temp, x, A)
-    convolve_interior!(x_temp, x, A)
-    convolve_BC_right!(x_temp, x, A)
+function LinearAlgebra.mul!(x_temp::AbstractVector{T}, A::DerivativeOperator, x::AbstractVector{T}; overwrite = true) where T<:Real
+    convolve_BC_left!(x_temp, x, A, overwrite = overwrite)
+    convolve_interior!(x_temp, x, A, overwrite = overwrite)
+    convolve_BC_right!(x_temp, x, A, overwrite = overwrite)
 end
 
 ################################################
 
 # Against a standard vector, assume already padded and just apply the stencil
-function convolve_interior!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::DerivativeOperator) where {T<:Real}
+function convolve_interior!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::DerivativeOperator; overwrite = true) where {T<:Real}
     @assert length(x_temp)+2 == length(x)
     stencil = A.stencil_coefs
     coeff   = A.coefficients
@@ -29,11 +29,11 @@ function convolve_interior!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::
             x_idx = use_winding(A) && cur_coeff < 0 ? x[i + mid - idx] : x[i - mid + idx]
             xtempi += cur_coeff * cur_stencil[idx] * x_idx
         end
-        x_temp[i] = xtempi
+        x_temp[i] = xtempi + !overwrite*x_temp[i]
     end
 end
 
-function convolve_BC_left!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::DerivativeOperator) where {T<:Real}
+function convolve_BC_left!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::DerivativeOperator; overwrite = true) where {T<:Real}
     stencil = A.low_boundary_coefs
     coeff   = A.coefficients
 
@@ -59,11 +59,11 @@ function convolve_BC_left!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::D
         for idx in 2:slen
             xtempi += cur_coeff * cur_stencil[idx] * x[idx]
         end
-        x_temp[i] = xtempi
+        x_temp[i] = xtempi + !overwrite*x_temp[i]
     end
 end
 
-function convolve_BC_right!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::DerivativeOperator) where {T<:Real}
+function convolve_BC_right!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::DerivativeOperator; overwrite = true) where {T<:Real}
     stencil = A.high_boundary_coefs
     coeff   = A.coefficients
     N       = length(x)
@@ -93,14 +93,14 @@ function convolve_BC_right!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::
         for idx in 1:slen
             xtempi += cur_coeff * cur_stencil[idx] * x[N-L+idx]
         end
-        x_temp[end-_bpc+i] = xtempi
+        x_temp[end-_bpc+i] = xtempi + !overwrite*x_temp[i]
     end
 end
 
 ###########################################
 
 # Against A BC-padded vector, specialize the computation to explicitly use the left, right, and middle parts
-function convolve_interior!(x_temp::AbstractVector{T}, _x::BoundaryPaddedVector, A::DerivativeOperator{T,N,true}) where {T<:Real,N}
+function convolve_interior!(x_temp::AbstractVector{T}, _x::BoundaryPaddedVector, A::DerivativeOperator{T,N,true}; overwrite = true) where {T<:Real,N}
     @assert length(x_temp) == length(_x.u)
     stencil = A.stencil_coefs
     coeff   = A.coefficients
@@ -124,11 +124,11 @@ function convolve_interior!(x_temp::AbstractVector{T}, _x::BoundaryPaddedVector,
             end
             xtempi += cur_coeff * cur_stencil[idx] * x_idx
         end
-        x_temp[i] = xtempi
+        x_temp[i] = xtempi + !overwrite*x_temp[i]
     end
 end
 
-function convolve_interior!(x_temp::AbstractVector{T}, _x::BoundaryPaddedVector, A::DerivativeOperator{T,N,false}) where {T<:Real,N}
+function convolve_interior!(x_temp::AbstractVector{T}, _x::BoundaryPaddedVector, A::DerivativeOperator{T,N,false}; overwrite = true) where {T<:Real,N}
     @assert length(x_temp) == length(_x.u)
     stencil = A.stencil_coefs
     coeff   = A.coefficients
@@ -147,12 +147,12 @@ function convolve_interior!(x_temp::AbstractVector{T}, _x::BoundaryPaddedVector,
             x_idx = use_winding(A) && cur_coeff < 0 ? x[i + mid - idx - 1] : x[i - mid + idx - 1]
             xtempi += cur_coeff * cur_stencil[idx] * x_idx
         end
-        x_temp[i] = xtempi
+        x_temp[i] = xtempi + !overwrite*x_temp[i]
     end
 end
 
 
-function convolve_BC_left!(x_temp::AbstractVector{T}, _x::BoundaryPaddedVector, A::DerivativeOperator{T,N,false}) where {T<:Real,N}
+function convolve_BC_left!(x_temp::AbstractVector{T}, _x::BoundaryPaddedVector, A::DerivativeOperator{T,N,false}; overwrite = true) where {T<:Real,N}
     stencil = A.low_boundary_coefs
     coeff   = A.coefficients
 
@@ -170,7 +170,7 @@ function convolve_BC_left!(x_temp::AbstractVector{T}, _x::BoundaryPaddedVector, 
         @inbounds for idx in 2:slen
             xtempi += cur_coeff * cur_stencil[idx] * _x.u[idx-1]
         end
-        x_temp[i] = xtempi
+        x_temp[i] = xtempi + !overwrite*x_temp[i]
     end
 
     # explicitely handling the last point which involves the ghost point in its calculations
@@ -183,10 +183,10 @@ function convolve_BC_left!(x_temp::AbstractVector{T}, _x::BoundaryPaddedVector, 
     @inbounds for idx in 2:slen
         xtempi += cur_coeff * cur_stencil[idx] * _x.u[idx-1]
     end
-    x_temp[i] = xtempi
+    x_temp[i] = xtempi + !overwrite*x_temp[i]
 end
 
-function convolve_BC_right!(x_temp::AbstractVector{T}, _x::BoundaryPaddedVector, A::DerivativeOperator{T,N,false}) where {T<:Real,N}
+function convolve_BC_right!(x_temp::AbstractVector{T}, _x::BoundaryPaddedVector, A::DerivativeOperator{T,N,false}; overwrite = true) where {T<:Real,N}
     stencil = A.high_boundary_coefs
     coeff   = A.coefficients
     u_len = length(_x.u)
@@ -209,7 +209,7 @@ function convolve_BC_right!(x_temp::AbstractVector{T}, _x::BoundaryPaddedVector,
     @inbounds for idx in slen-1:-1:1
         xtempi += cur_coeff * cur_stencil[end-idx] * _x.u[end-idx+1]
     end
-    x_temp[i] = xtempi
+    x_temp[i] = xtempi + !overwrite*x_temp[i]
 
     for i in u_len-_bpc+1 : u_len
         cur_stencil = stencil[i+_bpc-u_len]
@@ -222,12 +222,12 @@ function convolve_BC_right!(x_temp::AbstractVector{T}, _x::BoundaryPaddedVector,
         @inbounds for idx in slen-1:-1:1
             xtempi += cur_coeff * cur_stencil[end-idx] * _x.u[end-idx+1]
         end
-        x_temp[i] = xtempi
+        x_temp[i] = xtempi + !overwrite*x_temp[i]
     end
 end
 
 
-function convolve_BC_left!(x_temp::AbstractVector{T}, _x::BoundaryPaddedVector, A::DerivativeOperator{T,N,true}) where {T<:Real,N}
+function convolve_BC_left!(x_temp::AbstractVector{T}, _x::BoundaryPaddedVector, A::DerivativeOperator{T,N,true}; overwrite = true) where {T<:Real,N}
     stencil = A.low_boundary_coefs
     coeff   = A.coefficients
 
@@ -256,11 +256,11 @@ function convolve_BC_left!(x_temp::AbstractVector{T}, _x::BoundaryPaddedVector, 
         @inbounds for idx in 2:slen
             xtempi += cur_coeff * cur_stencil[idx] * _x.u[idx-1]
         end
-        x_temp[i] = xtempi
+        x_temp[i] = xtempi + !overwrite*x_temp[i]
     end
 end
 
-function convolve_BC_right!(x_temp::AbstractVector{T}, _x::BoundaryPaddedVector, A::DerivativeOperator{T,N,true}) where {T<:Real,N}
+function convolve_BC_right!(x_temp::AbstractVector{T}, _x::BoundaryPaddedVector, A::DerivativeOperator{T,N,true}; overwrite = true) where {T<:Real,N}
     stencil = A.high_boundary_coefs
     coeff   = A.coefficients
     u_len = length(_x.u)
@@ -297,6 +297,6 @@ function convolve_BC_right!(x_temp::AbstractVector{T}, _x::BoundaryPaddedVector,
         @inbounds for idx in slen-1:-1:1
             xtempi += cur_coeff * cur_stencil[end-idx] * _x.u[end-idx+1]
         end
-        x_temp[end-_bpc+i] = xtempi
+        x_temp[end-_bpc+i] = xtempi + !overwrite*x_temp[i]
     end
 end
