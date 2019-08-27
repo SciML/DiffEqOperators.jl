@@ -54,6 +54,44 @@ struct ComposedMultiDimBC{T, B<:AtomicBC{T}, N,M} <: MultiDimensionalBC{T, N}
     BCs::Vector{Array{B, M}}
 end
 
+struct PartiallyComposedMultiDimBC{T,B<:MultiDimDirectionalBC,N,L} <:MultiDimensionalBC{T,N}
+    BCs::Vector{B}
+end
+
+function Base.:+(Q1::MultiDimDirectionalBC{T,B1,D1,N,M}, Q2::MultiDimDirectionalBC{T,B2,D2,N,M}) where {T,B1, B2,D1,D2,N,M}
+    @assert D1 != D2 "BCs should all extend along a unique axis"
+    return PartiallyComposedMultiDimBC{T,Union{typeof(Q1),typeof(Q2)}, N,2}(Array[Q1,Q2])	
+end
+
+function Base.:+(Q1::MultiDimDirectionalBC{T,B1,D1,2,1}, Q2:: MultiDimDirectionalBC{T,B2,D2,2,1}) where {T,B1,B2,D1,D2}
+    return compose(Q1,Q2)
+end
+
+function Base.:+(Q::PartiallyComposedMultiDimBC{T,B,N,L}, Q1::MultiDimDirectionalBC) where {T,B,N,M,L}
+    new_BCs = vcat(Q.BCs,Q1)
+    if L+1 == N
+        return compose(new_BCs...)
+    elseif !(getaxis(Q1) in getaxis.(Q.BCs))
+	return PartiallyComposedMultiDimBC{T,eltype(new_BCs), N,L-1}(new_BCs)
+    else
+	throw("BCs should all extend along a unique axis")
+    end
+end
+
+Base.:+(Q1::MultiDimDirectionalBC, Q::PartiallyComposedMultiDimBC) = +(Q,Q1)
+
+function Base.:+(Q1::PartiallyComposedMultiDimBC{T,B1,N,L1} Q2::PartiallyComposedMultiDimBC{T,B2,N,L2) where {T,B1,B2,N,L1,L2}
+    new_BCs = vcat(Q1.BCs, Q2.BCs)
+    if L1 + L2 < N
+	@assert length(setdiff(1:N, getaxis.(new_BCs))) == (N-L1-L2) "BCs should all extend along a unique axis"
+	return PartiallyComposedMultiDimBC{T,Union{B1,B2}, N, L1+ L2}(new_BCs)
+    elseif L1+L2 == N
+        return compose(new_BCs...)
+    else
+        throw("Too many supplied BCs for the number of dimensions")
+    end
+end
+
 """
 A multiple dimensional BC, supporting arbitrary BCs at each boundary point.
 To construct an arbitrary BC, pass an Array of BCs with dimension `N-1`, if `N` is the dimensionality of your domain `u`
@@ -82,15 +120,16 @@ For Neumann0BC, please use
     Qx, Qy, Qz... = Neumann0BC(T::Type, (dx::Vector, dy::Vector, dz::Vector ...), approximation_order, size(u))
 where T is the element type of the domain to be extended
 """
-MultiDimBC(BC::Array{B,N}, dim::Integer) where {N, B<:AtomicBC} = MultiDimDirectionalBC{gettype(BC[1]), B, dim, N+1, N}(BC)
+struct MultiDimBC{N} end
+MultiDimBC{dim}(BC::Array{B,N}) where {N, B<:AtomicBC, dim} = MultiDimDirectionalBC{gettype(BC[1]), B, dim, N+1, N}(BC)
 #s should be size of the domain
-MultiDimBC(BC::B, s, dim::Integer) where  {B<:AtomicBC} = MultiDimDirectionalBC{gettype(BC), B, dim, length(s), length(s)-1}(fill(BC, s[setdiff(1:length(s), dim)]))
+MultiDimBC{dim}(BC::B, s) where  {B<:AtomicBC, dim} = MultiDimDirectionalBC{gettype(BC), B, dim, length(s), length(s)-1}(fill(BC, s[setdiff(1:length(s), dim)]))
 
 #Extra constructor to make a set of BC operators that extend an atomic BC Operator to the whole domain
 #Only valid in the uniform grid case!
 MultiDimBC(BC::B, s) where {B<:AtomicBC} = Tuple([MultiDimDirectionalBC{gettype(BC), B, dim, length(s), length(s)-1}(fill(BC, s[setdiff(1:length(s), dim)])) for dim in 1:length(s)])
 
-# Additional constructors for cases when the BC is the same for all boundarties
+# Additional constructors for cases when the BC is the same for all boundarties 
 
 PeriodicBC{T}(s) where T = MultiDimBC(PeriodicBC{T}(), s)
 
@@ -158,3 +197,6 @@ function Base.:*(Q::ComposedMultiDimBC{T, B, N, K}, u::AbstractArray{T, N}) wher
     out = slice_rmul.(Q.BCs, fill(u, N), 1:N)
     return ComposedBoundaryPaddedArray{T, N, K, typeof(u), typeof(out[1][1])}([A[1] for A in out], [A[2] for A in out], u)
 end
+
+function Base.:*(Q::PartiallyComposedMultiDimBC, u::AbstractArray{T,N} where {T,N}
+    return Tuple([MultiDimDirectionalBC

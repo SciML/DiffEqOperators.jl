@@ -16,8 +16,8 @@ BCx = vcat(fill(q1, div(m,2)), fill(q2, m-div(m,2)))  #The size of BCx has to be
 BCy = vcat(fill(q1, div(n,2)), fill(q2, n-div(n,2)))
 
 
-Qx = MultiDimBC(BCx, 1)
-Qy = MultiDimBC(BCy, 2)
+Qx = MultiDimBC{1}(BCx)
+Qy = MultiDimBC{2}(BCy)
 
 Ax = Qx*A
 Ay = Qy*A
@@ -51,10 +51,12 @@ BCx = vcat(fill(q1, (div(m,2), o)), fill(q2, (m-div(m,2), o)))  #The size of BCx
 BCy = vcat(fill(q1, (div(n,2), o)), fill(q2, (n-div(n,2), o)))
 BCz = fill(Dirichlet0BC(Float64), (n,m))
 
-Qx = MultiDimBC(BCx, 1)
-Qy = MultiDimBC(BCy, 2)
-Qz = MultiDimBC(Dirichlet0BC(Float64), size(A), 3) #Test the other constructor
-
+Qx = MultiDimBC{1}(BCx)
+Qy = MultiDimBC{2}(BCy, 2)
+Qz = MultiDimBC{3}(Dirichlet0BC(Float64), size(A)) #Test the other constructor
+@test (Qx+Qy+Qz) == compose(Qx,Qy,Qz) #test addition combinations
+Qtmp = Qx + Qz
+@test Qz+Qx+Qy == Qy+Qtmp
 Ax = Qx*A
 Ay = Qy*A
 Az = Qz*A
