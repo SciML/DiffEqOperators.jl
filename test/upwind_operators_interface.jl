@@ -230,13 +230,21 @@ end
     A = UpwindDifference(d_order,approx_order,dx,length(xarr)-2,t->1.0)
     B = UpwindDifference(d_order,approx_order,dy,length(yarr),t->1.0)
 
+<<<<<<< HEAD
     @test A*F ≈ 2*ones(N-2,M)
+=======
+    @test_broken A*F ≈ 2*ones(N-2,M)
+>>>>>>> d378dbe799e332488738724531a72feb3d42447c
     F*B
     # A*F*B
 
     G = [x^2+y^2 for x = xarr, y = yarr]
 
+<<<<<<< HEAD
     @test A*G ≈ 2*ones(N-2,M) atol=1e-2
+=======
+    @test_broken A*G ≈ 2*ones(N-2,M) atol=1e-2
+>>>>>>> d378dbe799e332488738724531a72feb3d42447c
     G*B
     # A*G*B
 end
