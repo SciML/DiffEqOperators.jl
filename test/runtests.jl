@@ -15,6 +15,6 @@ import Base: isapprox
 @time @safetestset "Matrix-Free Operators" begin include("matrixfree.jl") end
 @time @safetestset "Convolutions" begin include("convolutions.jl") end
 @time @safetestset "Differentiation Dimension" begin include("differentiation_dimension.jl") end
-# @time @safetestset "2D and 3D fast multiplication" begin include("2D_3D_fast_multiplication.jl") end
+@time @safetestset "2D and 3D fast multiplication" begin include("2D_3D_fast_multiplication.jl") end
 @time @safetestset "Higher Dimensional Concretization" begin include("concretization.jl") end
 @time @safetestset "Upwind Operator Interface" begin include("upwind_operators_interface.jl") end
