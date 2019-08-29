@@ -8,7 +8,7 @@ end
 ################################################
 
 # Against a standard vector, assume already padded and just apply the stencil
-function convolve_interior!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::DerivativeOperator; overwrite = true) where {T<:Real, N}
+function convolve_interior!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::DerivativeOperator{T,N,false}; overwrite = true) where {T<:Real, N}
     @assert length(x_temp)+2 == length(x)
     stencil = A.stencil_coefs
     coeff   = A.coefficients
@@ -25,7 +25,7 @@ function convolve_interior!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::
     end
 end
 
-function convolve_BC_left!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::DerivativeOperator; overwrite = true) where {T<:Real, N}
+function convolve_BC_left!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::DerivativeOperator{T,N,false}; overwrite = true) where {T<:Real, N}
     stencil = A.low_boundary_coefs
     coeff   = A.coefficients
     for i in 1 : A.boundary_point_count
@@ -40,7 +40,7 @@ function convolve_BC_left!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::D
     end
 end
 
-function convolve_BC_right!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::DerivativeOperator; overwrite = true) where {T<:Real, N}
+function convolve_BC_right!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::DerivativeOperator{T,N,false}; overwrite = true) where {T<:Real, N}
     stencil = A.high_boundary_coefs
     coeff   = A.coefficients
     for i in 1 : A.boundary_point_count
@@ -54,6 +54,97 @@ function convolve_BC_right!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::
         x_temp[end-A.boundary_point_count+i] = xtempi + !overwrite*x_temp[end-A.boundary_point_count+i]
     end
 end
+
+# Against a standard vector, assume already padded and just apply the stencil
+function convolve_interior!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::DerivativeOperator{T,N,true}; overwrite = true) where {T<:Real, N}
+    @assert length(x_temp)+2 == length(x)
+    stencil = A.stencil_coefs
+    coeff   = A.coefficients
+
+    # Upwind operators have a non-centred stencil
+    if use_winding(A)
+        mid = 1 + A.stencil_length%2
+    else
+        mid = div(A.stencil_length,2)
+    end
+
+    for i in (1+A.boundary_point_count) : (length(x_temp)-A.boundary_point_count)
+        xtempi = zero(T)
+        cur_stencil = eltype(stencil) <: AbstractVector ? stencil[i-A.boundary_point_count] : stencil
+        cur_coeff   = typeof(coeff)   <: AbstractVector ? coeff[i] : coeff isa Number ? coeff : true
+        cur_stencil = use_winding(A) && cur_coeff < 0 ? reverse(cur_stencil) : cur_stencil
+        for idx in 1:A.stencil_length
+            x_idx = use_winding(A) && cur_coeff < 0 ? x[i + mid - idx] : x[i - mid + idx]
+            xtempi += cur_coeff * cur_stencil[idx] * x_idx
+        end
+        x_temp[i] = xtempi + !overwrite*x_temp[i]
+    end
+end
+
+function convolve_BC_left!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::DerivativeOperator{T,N,true}; overwrite = true) where {T<:Real, N}
+    stencil = A.low_boundary_coefs
+    coeff   = A.coefficients
+
+    _bpc = A.boundary_point_count
+    use_interior_stencil = false
+    if isempty(stencil)
+        _bpc = A.boundary_point_count + 1
+        use_interior_stencil = true
+    end
+
+    for i in 1 : _bpc
+        if use_interior_stencil == true
+            cur_stencil = A.stencil_coefs
+            slen = length(A.stencil_coefs)
+        else
+            cur_stencil = stencil[i]
+            slen = length(cur_stencil)
+        end
+
+        cur_coeff   = typeof(coeff)   <: AbstractVector ? coeff[i] : coeff isa Number ? coeff : true
+        cur_stencil = use_winding(A) && cur_coeff < 0 ? reverse(cur_stencil) : cur_stencil
+        xtempi = cur_coeff*cur_stencil[1]*x[1]
+        for idx in 2:slen
+            xtempi += cur_coeff * cur_stencil[idx] * x[idx]
+        end
+        x_temp[i] = xtempi + !overwrite*x_temp[i]
+    end
+end
+
+function convolve_BC_right!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::DerivativeOperator{T,N,true}; overwrite = true) where {T<:Real, N}
+    stencil = A.high_boundary_coefs
+    coeff   = A.coefficients
+    x_len   = length(x)
+    L       = A.boundary_stencil_length
+
+    _bpc = A.boundary_point_count
+    use_interior_stencil = false
+
+    if isempty(stencil)
+        _bpc = 1
+        use_interior_stencil = true
+    end
+
+    for i in 1 : _bpc
+        if use_interior_stencil == true
+            cur_stencil = A.stencil_coefs
+            slen = length(A.stencil_coefs)
+            L = A.stencil_length
+        else
+            cur_stencil = stencil[i]
+            slen = length(cur_stencil)
+        end
+
+        cur_coeff   = typeof(coeff)   <: AbstractVector ? coeff[i] : coeff isa Number ? coeff : true
+        cur_stencil = use_winding(A) && cur_coeff < 0 ? reverse(cur_stencil) : cur_stencil
+        xtempi = zero(T)
+        for idx in 1:slen
+            xtempi += cur_coeff * cur_stencil[idx] * x[x_len-L+idx]
+        end
+        x_temp[end-_bpc+i] = xtempi  + !overwrite*x_temp[end-_bpc+i]
+    end
+end
+
 
 ###########################################
 
