@@ -107,27 +107,8 @@ end
     res2 = A*Q*y_
 
     @test res1 ≈ res2 # shifted due to upwind operators
-
-    N = 20
-    x = 0:1/(N-1):2*π
-    y = sin.(x)
-    y_ = y[2:end-1]
-
-    dx = x[2]-x[1]
-    M = length(x)
-
-    Q = RobinBC((1.0, 0.0, y[1]), (1.0, 0.0, y[end]), dx)
-    U = UpwindDifference(3,2, dx, M-2, t->1.0)
-    A = CenteredDifference(3,2, dx, M-2)
-
-    res1 = U*Q*y_
-    res2 = A*Q*y_
-
-    # To be fixed by #145
-    @test_broken res1[5:end-4] ≈ res2[5:end-4]
 end
 
-# tests for full and sparse function.... BROKEN!
 @testset "Full and Sparse functions:" begin
     N = 10
     d_order = 2
