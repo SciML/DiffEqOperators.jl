@@ -328,22 +328,3 @@ function convolve_BC_right!(x_temp::AbstractVector{T}, _x::BoundaryPaddedVector,
         x_temp[end-_bpc+i] = xtempi + !overwrite*x_temp[end-_bpc+i]
     end
 end
-
-#################################################################################
-
-function convolve_interior_add_range!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::DerivativeOperator, offset::Int) where {T<:Real, N}
-    @assert length(x_temp)+2 == length(x)
-    stencil = A.stencil_coefs
-    coeff   = A.coefficients
-    mid = div(A.stencil_length,2)
-    for i in [(1+A.boundary_point_count):(A.boundary_point_count+offset); (length(x_temp)-A.boundary_point_count-offset+1):(length(x_temp)-A.boundary_point_count)]
-        xtempi = zero(T)
-        cur_stencil = eltype(stencil) <: AbstractVector ? stencil[i] : stencil
-        cur_coeff   = typeof(coeff)   <: AbstractVector ? coeff[i] : coeff isa Number ? coeff : true
-        cur_stencil = use_winding(A) && cur_coeff < 0 ? reverse(cur_stencil) : cur_stencil
-        for idx in 1:A.stencil_length
-            xtempi += cur_coeff * cur_stencil[idx] * x[i - mid + idx]
-        end
-        x_temp[i] += xtempi
-    end
-end
