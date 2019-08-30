@@ -227,7 +227,7 @@ function LinearAlgebra.mul!(x_temp::AbstractArray{T,2}, A::AbstractDiffEqComposi
                             if i <= pad[2] || i > size(x_temp)[2]-pad[2]
                                 convolve_interior!(view(x_temp,:,i), view(M,:,i+offset_x), opsA[Lidx], overwrite = false)
                             elseif pad[1] - opsA[Lidx].boundary_point_count > 0
-                                convolve_interior_add_range!(view(x_temp,:,i), view(M,:,i+offset_x), opsA[Lidx], pad[1] - opsA[Lidx].boundary_point_count)
+                                convolve_interior!(view(x_temp,:,i), view(M,:,i+offset_x), opsA[Lidx], overwrite = false, add_range = true, offset = pad[1] - opsA[Lidx].boundary_point_count)
                             end
                         end
                     end
@@ -259,7 +259,7 @@ function LinearAlgebra.mul!(x_temp::AbstractArray{T,2}, A::AbstractDiffEqComposi
                             if i <= pad[1] || i > size(x_temp)[1]-pad[1]
                                 convolve_interior!(view(x_temp,i,:), view(M,i+offset_y,:), opsA[Lidx], overwrite = false)
                             elseif pad[2] - opsA[Lidx].boundary_point_count > 0
-                                convolve_interior_add_range!(view(x_temp,i,:), view(M,i+offset_y,:), opsA[Lidx], pad[2] - opsA[Lidx].boundary_point_count)
+                                convolve_interior!(view(x_temp,i,:), view(M,i+offset_y,:), opsA[Lidx], overwrite = false, add_range = true, offset = pad[2] - opsA[Lidx].boundary_point_count)
                             end
                         end
                     end
@@ -473,7 +473,7 @@ function LinearAlgebra.mul!(x_temp::AbstractArray{T,3}, A::AbstractDiffEqComposi
                                 if i <= pad[2] || i > size(x_temp)[2]-pad[2] || j <= pad[3] || j > size(x_temp)[3]-pad[3]
                                     convolve_interior!(view(x_temp,:,i,j), view(M,:,i+offset_y,j+offset_z), opsA[Lidx], overwrite = false)
                                 elseif pad[1] - opsA[Lidx].boundary_point_count > 0
-                                    convolve_interior_add_range!(view(x_temp,:,i,j), view(M,:,i+offset_y,j+offset_z), opsA[Lidx], pad[1] - opsA[Lidx].boundary_point_count)
+                                    convolve_interior!(view(x_temp,:,i,j), view(M,:,i+offset_y,j+offset_z), opsA[Lidx], overwrite = false, add_range = true, offset = pad[1] - opsA[Lidx].boundary_point_count)
                                 end
                             end
                         end
@@ -507,7 +507,7 @@ function LinearAlgebra.mul!(x_temp::AbstractArray{T,3}, A::AbstractDiffEqComposi
                                 if i <= pad[1] || i > size(x_temp)[1]-pad[1] || j <= pad[3] || j > size(x_temp)[3]-pad[3]
                                     convolve_interior!(view(x_temp,i,:,j), view(M,i+offset_x,:,j+offset_z), opsA[Lidx], overwrite = false)
                                 elseif pad[2] - opsA[Lidx].boundary_point_count > 0
-                                    convolve_interior_add_range!(view(x_temp,i,:,j), view(M,i+offset_x,:,j+offset_z), opsA[Lidx], pad[2] - opsA[Lidx].boundary_point_count)
+                                    convolve_interior!(view(x_temp,i,:,j), view(M,i+offset_x,:,j+offset_z), opsA[Lidx], overwrite = false, add_range = true, offset = pad[2] - opsA[Lidx].boundary_point_count)
                                 end
                             end
                         end
@@ -541,7 +541,7 @@ function LinearAlgebra.mul!(x_temp::AbstractArray{T,3}, A::AbstractDiffEqComposi
                                 if i <= pad[1] || i > size(x_temp)[1]-pad[1] || j <= pad[2] || j > size(x_temp)[2]-pad[2]
                                     convolve_interior!(view(x_temp,i,j,:), view(M,i+offset_x,j+offset_y,:), opsA[Lidx], overwrite = false)
                                 elseif pad[3] - opsA[Lidx].boundary_point_count > 0
-                                    convolve_interior_add_range!(view(x_temp,i,j,:), view(M,i+offset_x,j+offset_y,:), opsA[Lidx], pad[3] - opsA[Lidx].boundary_point_count)
+                                    convolve_interior!(view(x_temp,i,j,:), view(M,i+offset_x,j+offset_y,:), opsA[Lidx], overwrite = false, add_range = true, offset = pad[3] - opsA[Lidx].boundary_point_count)
                                 end
                             end
                         end
