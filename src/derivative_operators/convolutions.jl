@@ -20,6 +20,7 @@ function convolve_interior!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::
         for idx in 1:A.stencil_length
             xtempi += cur_coeff * cur_stencil[idx] * x[i - mid + idx]
         end
+        x_temp[i] = xtempi  + !overwrite*x_temp[i]
     end
 end
 
