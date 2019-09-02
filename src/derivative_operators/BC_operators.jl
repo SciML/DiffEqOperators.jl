@@ -18,6 +18,7 @@ Creates a periodic boundary condition, where the lower index end of some u is ex
 It is not reccomended to concretize this BC type in to a BandedMatrix, since the vast majority of bands will be all 0s. SpatseMatrix concretization is reccomended.
 """
 struct PeriodicBC{T} <: AtomicBC{T}
+    PeriodicBC(T::Type) = new{T}()
 end
 
 """
