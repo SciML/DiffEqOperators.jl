@@ -46,18 +46,19 @@ end
 
 # Linear Combination
 struct DiffEqOperatorCombination{T,O<:Tuple{Vararg{AbstractDiffEqLinearOperator{T}}},
-  C<:AbstractVector{T}} <: AbstractDiffEqCompositeOperator{T}
-  ops::O
-  cache::C
-  function DiffEqOperatorCombination(ops; cache=nothing)
-    T = eltype(ops[1])
-    if cache == nothing
-      cache = Vector{T}(undef, size(ops[1], 1))
-      fill!(cache,0)
+    C<:AbstractVector{T}} <: AbstractDiffEqCompositeOperator{T}
+    ops::O
+    cache::C
+    function DiffEqOperatorCombination(ops; cache=nothing)
+        T = eltype(ops[1])
+        for i in 2:length(ops)
+            @assert size(ops[i]) == size(ops[1]) "Operators must be of the same size to be combined! Mismatch between $(ops[i]) and $(ops[i-1]), which are operators $i and $(i-1) respectively"
+        end
+        if cache == nothing
+            cache = Vector{T}(undef, size(ops[1], 1))
+        end
+        new{T,typeof(ops),typeof(cache)}(ops, cache)
     end
-    # TODO: safecheck dimensions
-    new{T,typeof(ops),typeof(cache)}(ops, cache)
-  end
 end
 +(ops::AbstractDiffEqLinearOperator...) = DiffEqOperatorCombination(ops)
 +(L1::DiffEqOperatorCombination, L2::AbstractDiffEqLinearOperator) = DiffEqOperatorCombination((L1.ops..., L2))
@@ -92,7 +93,10 @@ struct DiffEqOperatorComposition{T,O<:Tuple{Vararg{AbstractDiffEqLinearOperator{
   caches::C
   function DiffEqOperatorComposition(ops; caches=nothing)
     T = eltype(ops[1])
-    # TODO: safecheck dimensions
+    for i in 2:length(ops)
+      @assert size(ops[i-1], 1) == size(ops[i], 2) "Operations do not have compatable sizes! Mismatch between $(ops[i]) and $(ops[i-1]), which are operators $i and $(i-1) respectively."
+    end
+
     if caches == nothing
       # Construct a list of caches to be used by mul! and ldiv!
       caches = []
