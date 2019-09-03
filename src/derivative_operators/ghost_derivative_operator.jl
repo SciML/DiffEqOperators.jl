@@ -1,9 +1,9 @@
-struct GhostDerivativeOperator{T<:Real, E<:AbstractDerivativeOperator{T}, F<:AbstractBC{T}}
+struct GhostDerivativeOperator{T<:Real, E<:AbstractDiffEqLinearOperator{T}, F<:AbstractBC{T}}
     L :: E
     Q :: F
 end
 
-function *(L::AbstractDerivativeOperator{T}, Q::AbstractBC{T}) where{T}
+function *(L::AbstractDiffEqLinearOperator{T}, Q::AbstractBC{T}) where{T}
     return GhostDerivativeOperator{T, typeof(L), typeof(Q)}(L,Q)
 end
 
@@ -15,7 +15,7 @@ end
 function *(A::GhostDerivativeOperator{T,E,F}, u::AbstractVector{T}) where {T,E,F}
     @assert length(u) == A.L.len
     x = zeros(T, A.L.len)
-    LinearAlgebra.mul!(x, A, u)
+    LinearAlgebra.mul!(x, A, A.Q*u)
     return x
 end
 
