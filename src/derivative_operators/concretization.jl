@@ -163,20 +163,99 @@ function Base.convert(::Type{AbstractMatrix},A::AbstractBC{T}) where T
 end
 
 # Multi dimensional BC operators
+_concretize(Q::MultiDimDirectionalBC, M) = _concretize(Q.BCs, M)
 
-"""
-Returns a tuple, the first element of which is an array of the shape of the boundary,
-filled with the linear operator parts of the respective Atomic BCs.
-the second element is a similarly sized array of the affine parts.
-"""
+function _concretize(Q::AbstractArray{T,N}, M) where {T,N}
+    return (stencil.(Q, fill(M,size(Q))), affine.(Q))
+end
+
 function LinearAlgebra.Array(Q::MultiDimDirectionalBC{T, B, D, N, K}, M) where {T, B, D,N,K}
-    bc_tuples = Array.(Q.BCs, fill(M, size(Q.BCs)))
-    Q_L = [bc_tuple[1] for bc_tuple in bc_tuples]
-    inds = Array(1:N)
-    inds[1], inds[D] = inds[D], inds[1]
-    Q_b = [permutedims(add_dims(bc_tuple[2], N-1), inds) for bc_tuple in bc_tuples]
+    blip = zeros(Int64, N)
+    blip[D] = 2
+    s_pad = s.+ blip
+    Q = _concretize.(Q.BCs, s)
+    ē = unit_indices(N)
+    QL = zeros(T, prod(s_pad), prod(s))
+    Qb = zeros(T, prod(s_pad))
+    ranges = Union{typeof(1:10), Int64}[1:s[i] for i in 1:N]
+    ranges[D] = ranges[D] .+ 1
 
-    return (Q_L, Q_b)
+    interior = CartesianIndices(Tuple(ranges))
+    I1 = CartesianIndex(Tuple(ones(Int64, N)))
+    for I in interior
+        J = I-I1
+        i = I[1] + c2l(I, s_pad)
+        j = c2l(J, s)
+        QL[i,j] = one(T)
+    end
+    ranges[D] = 1
+    lower = CartesianIndices((Tuple(ranges)))
+    ranges[D] = s_pad[D]
+    upper = CartesianIndices((Tuple(ranges)))
+    for K in CartesianIndices(upper)
+        I = CartesianIndex(Tuple(K)[setdiff(1:N, dim)])
+        il = c2l(lower[K], s_pad)
+        iu = c2l(upper[K], s_pad)
+        Qb[il] = Q[2][I][1]
+        Qb[iu] = Q[2][I][2]
+        for k in 0:s[dim]-1
+            j = c2l(K + k*ē[D], s)
+            QL[il, j] = Q[1][I][1][k+1]
+            QL[iu, j] = Q[1][I][2][k+1]
+        end
+    end
+
+    return (QL, Qb)
+end
+
+function c2l(I::CartesianIndex, s)
+    out = I[1]
+    for i in 1:length(s)-1
+        out += (I[i+1]-1)*prod(s[1:i])
+    end
+    return out
+end
+
+"""
+Don't ask how this works, just accept that it does.
+"""
+function LinearAlgebra.Array(Q::ComposedMultiDimBC{T, B, N,M} , s) where {T, B, N, M}
+    s_pad = s.+2
+    Q = Tuple(_concretize.(Q.BCs, s))
+    ē = unit_indices(N)
+    QL = zeros(T, prod(s_pad), prod(s))
+    Qb = zeros(T, prod(s_pad))
+    ranges = Union{typeof(1:10), Int64}[2:s_pad[i]-1 for i in 1:N]
+
+    interior = CartesianIndices(Tuple(ranges))
+    I1 = CartesianIndex(Tuple(ones(Int64, N)))
+    for I in interior
+        J = I-I1
+        i = I[1] + c2l(I, s_pad)
+        j = c2l(J, s)
+        QL[i,j] = one(T)
+    end
+    for dim in 1:N
+        r_ = deepcopy(ranges)
+        r_[dim] = 1
+        lower = CartesianIndices((Tuple(r_)))
+        r_[dim] = s_pad[dim]
+        upper = CartesianIndices((Tuple(r_)))
+        for K in CartesianIndices(upper)
+            I = CartesianIndex(Tuple(K)[setdiff(1:N, dim)])
+            il = c2l(lower[K], s_pad)
+            iu = c2l(upper[K], s_pad)
+            Qb[il] = Q[dim][2][I][1]
+            Qb[iu] = Q[dim][2][I][2]
+            for k in 0:s[dim]-1
+                j = c2l(K + k*ē[dim], s)
+                QL[il, j] = Q[dim][1][I][1][k+1]
+                QL[iu, j] = Q[dim][1][I][2][k+1]
+            end
+        end
+    end
+
+    return (QL, Qb)
 end
 
 """
@@ -184,13 +263,12 @@ Returns a tuple, the first element of which is a sparse array of the shape of th
 filled with the linear operator parts of the respective Atomic BCs.
 the second element is a similarly sized array of the affine parts.
 """
-function SparseArrays.SparseMatrixCSC(Q::MultiDimDirectionalBC{T, B, D, N, K}, M) where {T, B, D,N,K}
+function _SparseMatrixCSC(Q::MultiDimDirectionalBC{T, B, D, N, K}, M) where {T, B, D,N,K}
     bc_tuples = sparse.(Q.BCs, fill(M, size(Q.BCs)))
     Q_L = [bc_tuple[1] for bc_tuple in bc_tuples]
     inds = Array(1:N)
     inds[1], inds[D] = inds[D], inds[1]
     Q_b = [permutedims(add_dims(bc_tuple[2], N-1), inds) for bc_tuple in bc_tuples]
-
     return (Q_L, Q_b)
 end
 
@@ -209,10 +287,7 @@ end
 """
 Returns a Tuple of MultiDimDirectionalBC Array concretizations, one for each dimension
 """
-LinearAlgebra.Array(Q::ComposedMultiDimBC, Ns) = Tuple(Array.(Q.BCs, Ns))
-SparseArrays.SparseMatrixCSC(Q::ComposedMultiDimBC, Ns...) = Tuple(sparse.(Q.BCs, Ns))
 SparseArrays.sparse(Q::ComposedMultiDimBC, Ns) = SparseMatrixCSC(Q, Ns)
-BandedMatrices.BandedMatrix(Q::ComposedMultiDimBC, Ns) = Tuple(BandedMatrix.(Q.BCs, Ns))
 
 # HIgher Dimensional Concretizations. The following concretizations return two dimensional arrays
 # which operate on flattened vectors. Mshape is the size of the unflattened array on which A is operating on.
@@ -294,6 +369,7 @@ function BlockBandedMatrices.BandedBlockBandedMatrix(A::DerivativeOperator{T,N},
 end
 
 ################################################################################
+<<<<<<< HEAD
 # Upwind Operator Concretization
 ################################################################################
 
@@ -566,6 +642,7 @@ function BandedMatrices.BandedMatrix(A::DerivativeOperator{T,N,true,M}, len::Int
 end
 
 # GhostDerivativeOperator Concretizations
+################################################################################
 function LinearAlgebra.Array(A::GhostDerivativeOperator{T, E, F},N::Int=A.L.len) where {T,E,F}
     return (Array(A.L,N)*Array(A.Q,A.L.len)[1], Array(A.L,N)*Array(A.Q,A.L.len)[2])
 end
