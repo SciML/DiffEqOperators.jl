@@ -1,4 +1,4 @@
-struct GhostDerivativeOperator{T, E<:AbstractDiffEqLinearOperator{T}, F<:AbstractBC{T}}
+struct GhostDerivativeOperator{T, E<:AbstractDiffEqLinearOperator{T}, F<:AbstractBC{T}} <: AbstractDiffEqLinearOperator{T}
     L :: E
     Q :: F
 end
@@ -8,26 +8,24 @@ function Base.:*(L::AbstractDiffEqLinearOperator{T}, Q::AbstractBC{T}) where{T}
 end
 
 function LinearAlgebra.mul!(x::AbstractArray{T,N}, A::GhostDerivativeOperator{T,E,F}, u::AbstractArray{T,N}) where {T,E,F,N}
-    @assert size(u) == size(x)
     LinearAlgebra.mul!(x, A.L, u)
 end
 
 function *(A::GhostDerivativeOperator{T,E,F}, u::AbstractArray{T}) where {T,E,F}
-    @assert length(u) == A.L.len
+    #TODO Implement a function domaincheck(L::AbstractDiffEqLinearOperator, u) to see if components of L along each dimension match the size of u
     x = similar(u)
     LinearAlgebra.mul!(x, A, A.Q*u)
     return x
 end
 
 function LinearAlgebra.ldiv!(x::AbstractVector{T}, A::GhostDerivativeOperator{T,E,F}, u::AbstractVector{T}) where {T,E,F}
-    @assert length(x) == A.L.len
+    @assert length(x) == size(A.L,2)
     (AL,Ab) = Array(A)
     LinearAlgebra.ldiv!(x, lu!(AL), u-Ab)
 end
 
 
 function \(A::GhostDerivativeOperator{T,E,F}, u::AbstractVector{T}) where {T,E,F}
-    @assert length(u) == A.L.len
     x = zeros(T,size(A,2))
     LinearAlgebra.ldiv!(x, A, u)
     return x
@@ -58,6 +56,6 @@ end
 
 # length and sizes
 Base.ndims(A::GhostDerivativeOperator) = 2
-Base.size(A::GhostDerivativeOperator) = (A.L.len, A.L.len)
+Base.size(A::GhostDerivativeOperator) = (size(A.L, 2), size(A.L, 2))
 Base.size(A::GhostDerivativeOperator,i::Integer) = size(A)[i]
 Base.length(A::GhostDerivativeOperator) = reduce(*, size(A))
