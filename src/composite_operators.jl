@@ -27,15 +27,15 @@ opnorm(L::DiffEqScaledOperator, p::Real=2) = abs(L.coeff) * opnorm(L.op, p)
 getindex(L::DiffEqScaledOperator, i::Int) = L.coeff * L.op[i]
 getindex(L::DiffEqScaledOperator, I::Vararg{Int, N}) where {N} =
   L.coeff * L.op[I...]
-*(L::DiffEqScaledOperator, x::AbstractVecOrMat) = L.coeff * (L.op * x)
-*(x::AbstractVecOrMat, L::DiffEqScaledOperator) = (L.op * x) * L.coeff
-/(L::DiffEqScaledOperator, x::AbstractVecOrMat) = L.coeff * (L.op / x)
-/(x::AbstractVecOrMat, L::DiffEqScaledOperator) = 1/L.coeff * (x / L.op)
-\(L::DiffEqScaledOperator, x::AbstractVecOrMat) = 1/L.coeff * (L.op \ x)
-\(x::AbstractVecOrMat, L::DiffEqScaledOperator) = L.coeff * (x \ L)
-mul!(Y::AbstractVecOrMat, L::DiffEqScaledOperator, B::AbstractVecOrMat) =
+*(L::DiffEqScaledOperator, x::AbstractArray) = L.coeff * (L.op * x)
+*(x::AbstractArray, L::DiffEqScaledOperator) = (L.op * x) * L.coeff
+/(L::DiffEqScaledOperator, x::AbstractArray) = L.coeff * (L.op / x)
+/(x::AbstractArray, L::DiffEqScaledOperator) = 1/L.coeff * (x / L.op)
+\(L::DiffEqScaledOperator, x::AbstractArray) = 1/L.coeff * (L.op \ x)
+\(x::AbstractArray, L::DiffEqScaledOperator) = L.coeff * (x \ L)
+mul!(Y::AbstractArray, L::DiffEqScaledOperator, B::AbstractArray) =
   lmul!(L.coeff, mul!(Y, L.op, B))
-ldiv!(Y::AbstractVecOrMat, L::DiffEqScaledOperator, B::AbstractVecOrMat) =
+ldiv!(Y::AbstractArray, L::DiffEqScaledOperator, B::AbstractArray) =
   lmul!(1/L.coeff, ldiv!(Y, L.op, B))
 factorize(L::DiffEqScaledOperator) = L.coeff * factorize(L.op)
 for fact in (:lu, :lu!, :qr, :qr!, :cholesky, :cholesky!, :ldlt, :ldlt!,
@@ -73,10 +73,10 @@ convert(::Type{AbstractMatrix}, L::DiffEqOperatorCombination) =
 size(L::DiffEqOperatorCombination, args...) = size(L.ops[1], args...)
 getindex(L::DiffEqOperatorCombination, i::Int) = sum(op -> op[i], L.ops)
 getindex(L::DiffEqOperatorCombination, I::Vararg{Int, N}) where {N} = sum(op -> op[I...], L.ops)
-*(L::DiffEqOperatorCombination, x::AbstractVecOrMat) = sum(op -> op * x, L.ops)
-*(x::AbstractVecOrMat, L::DiffEqOperatorCombination) = sum(op -> x * op, L.ops)
-/(L::DiffEqOperatorCombination, x::AbstractVecOrMat) = sum(op -> op / x, L.ops)
-\(x::AbstractVecOrMat, L::DiffEqOperatorCombination) = sum(op -> x \ op, L.ops)
+*(L::DiffEqOperatorCombination, x::AbstractArray) = sum(op -> op * x, L.ops)
+*(x::AbstractArray, L::DiffEqOperatorCombination) = sum(op -> x * op, L.ops)
+/(L::DiffEqOperatorCombination, x::AbstractArray) = sum(op -> op / x, L.ops)
+\(x::AbstractArray, L::DiffEqOperatorCombination) = sum(op -> x \ op, L.ops)
 function mul!(y::AbstractVector, L::DiffEqOperatorCombination, b::AbstractVector)
   mul!(y, L.ops[1], b)
   for op in L.ops[2:end]
@@ -124,12 +124,12 @@ convert(::Type{AbstractMatrix}, L::DiffEqOperatorComposition) =
 size(L::DiffEqOperatorComposition) = (size(L.ops[end], 1), size(L.ops[1], 2))
 size(L::DiffEqOperatorComposition, m::Integer) = size(L)[m]
 opnorm(L::DiffEqOperatorComposition) = prod(opnorm, L.ops)
-*(L::DiffEqOperatorComposition, x::AbstractVecOrMat) = foldl((acc, op) -> op*acc, L.ops; init=x)
-*(x::AbstractVecOrMat, L::DiffEqOperatorComposition) = foldl((acc, op) -> acc*op, reverse(L.ops); init=x)
-/(L::DiffEqOperatorComposition, x::AbstractVecOrMat) = foldl((acc, op) -> op/acc, L.ops; init=x)
-/(x::AbstractVecOrMat, L::DiffEqOperatorComposition) = foldl((acc, op) -> acc/op, L.ops; init=x)
-\(L::DiffEqOperatorComposition, x::AbstractVecOrMat) = foldl((acc, op) -> op\acc, reverse(L.ops); init=x)
-\(x::AbstractVecOrMat, L::DiffEqOperatorComposition) = foldl((acc, op) -> acc\op, reverse(L.ops); init=x)
+*(L::DiffEqOperatorComposition, x::AbstractArray) = foldl((acc, op) -> op*acc, L.ops; init=x)
+*(x::AbstractArray, L::DiffEqOperatorComposition) = foldl((acc, op) -> acc*op, reverse(L.ops); init=x)
+/(L::DiffEqOperatorComposition, x::AbstractArray) = foldl((acc, op) -> op/acc, L.ops; init=x)
+/(x::AbstractArray, L::DiffEqOperatorComposition) = foldl((acc, op) -> acc/op, L.ops; init=x)
+\(L::DiffEqOperatorComposition, x::AbstractArray) = foldl((acc, op) -> op\acc, reverse(L.ops); init=x)
+\(x::AbstractArray, L::DiffEqOperatorComposition) = foldl((acc, op) -> acc\op, reverse(L.ops); init=x)
 function mul!(y::AbstractVector, L::DiffEqOperatorComposition, b::AbstractVector)
   mul!(L.caches[1], L.ops[1], b)
   for i in 2:length(L.ops) - 1

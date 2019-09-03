@@ -1,4 +1,4 @@
-struct GhostDerivativeOperator{T<:Real, E<:AbstractDiffEqLinearOperator{T}, F<:AbstractBC{T}} <: AbstractDiffEqLinearOperator{T}
+struct GhostDerivativeOperator{T, E<:AbstractDiffEqLinearOperator{T}, F<:AbstractBC{T}} <: AbstractDiffEqLinearOperator{T}
     L :: E
     Q :: F
 end
@@ -11,18 +11,19 @@ function *(L::AbstractDiffEqCompositeOperator{T}, Q::AbstractBC{T}) where{T}
     return sum(map(op -> op * Q, L.ops))
 end
 
-function LinearAlgebra.mul!(x::AbstractVector, A::GhostDerivativeOperator, u::AbstractVector)
-    @assert length(u) == A.L.len == length(x)
-    LinearAlgebra.mul!(x, A.L, A.Q*u)
+function LinearAlgebra.mul!(x::AbstractArray{T,N}, A::GhostDerivativeOperator{T,E,F}, u::AbstractArray{T,N}) where {T,E,F,N}
+    @assert size(u) == size(x)
+    LinearAlgebra.mul!(x, A.L, u)
 end
 
 function *(A::GhostDerivativeOperator{T1}, u::AbstractVector{T2}) where {T1,T2}
     @assert length(u) == A.L.len
-    x = zeros(promote_type(T1,T2), A.L.len)
+    x = similar(u, promote_type(T1,T2))
     LinearAlgebra.mul!(x, A, A.Q*u)
     return x
 end
 
+<<<<<<< HEAD
 function LinearAlgebra.mul!(M_temp::AbstractMatrix, A::GhostDerivativeOperator, M::AbstractMatrix)
     @assert size(M,1) == size(M_temp,1) == A.L.len
     for i in 1:size(M,2)
@@ -39,6 +40,9 @@ end
 
 
 function LinearAlgebra.ldiv!(x::AbstractVector, A::GhostDerivativeOperator, u::AbstractVector)
+=======
+function LinearAlgebra.ldiv!(x::AbstractVector{T}, A::GhostDerivativeOperator{T,E,F}, u::AbstractVector{T}) where {T,E,F}
+>>>>>>> f00c2c5... Allowed AbstractArrays instead of AbstractVecOrMat, allowed AbstractArrays for GhostDerivativeOperator
     @assert length(x) == A.L.len
     (AL,Ab) = Array(A)
     LinearAlgebra.ldiv!(x, lu!(AL), u-Ab)
@@ -87,28 +91,10 @@ function *(coeff_func::Function, A::GhostDerivativeOperator)
     (coeff_func*A.L)*A.Q
 end
 
+=======
+>>>>>>> f00c2c5... Allowed AbstractArrays instead of AbstractVecOrMat, allowed AbstractArrays for GhostDerivativeOperator
 # length and sizes
 Base.ndims(A::GhostDerivativeOperator) = 2
 Base.size(A::GhostDerivativeOperator) = (A.L.len, A.L.len)
 Base.size(A::GhostDerivativeOperator,i::Integer) = size(A)[i]
 Base.length(A::GhostDerivativeOperator) = reduce(*, size(A))
-
-
-# Concretizations, will be moved to concretizations.jl later
-function LinearAlgebra.Array(A::GhostDerivativeOperator,N::Int=A.L.len)
-    return (Array(A.L,N)*Array(A.Q,A.L.len)[1], Array(A.L,N)*Array(A.Q,A.L.len)[2])
-end
-
-function BandedMatrices.BandedMatrix(A::GhostDerivativeOperator,N::Int=A.L.len)
-    return (BandedMatrix(A.L,N)*Array(A.Q,A.L.len)[1], BandedMatrix(A.L,N)*Array(A.Q,A.L.len)[2])
-end
-
-function SparseArrays.SparseMatrixCSC(A::GhostDerivativeOperator,N::Int=A.L.len)
-    return (SparseMatrixCSC(A.L,N)*SparseMatrixCSC(A.Q,A.L.len)[1], SparseMatrixCSC(A.L,N)*SparseMatrixCSC(A.Q,A.L.len)[2])
-end
-
-function SparseArrays.sparse(A::GhostDerivativeOperator,N::Int=A.L.len)
-    return SparseMatrixCSC(A,N)
-end
-
-@inline ==(A1::GhostDerivativeOperator, A2::GhostDerivativeOperator) = A1.L == A2.L && A1.Q == A2.Q
