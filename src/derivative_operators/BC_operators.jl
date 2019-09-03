@@ -77,8 +77,11 @@ struct RobinBC{T, V<:AbstractVector{T}} <: AffineBC{T}
     end
 end
 
+stencil(q::AffineBC{T}, N::Int) where T = ([transpose(q.a_l) transpose(zeros(T, N-length(q.a_l)))], [transpose(zeros(T, N-length(q.a_r))) transpose(q.a_r)])
+affine(q::AffineBC) = (q.b_l, q.b_r)
 
-
+stencil(q::PeriodicBC{T}, N::Int) where T= ([transpose(zeros(T, N-1)) one(T)], [transpose(zeros(T, N-1)) one(T)])
+affine(q::PeriodicBC{T}) where T = (zero(T), zero(T))
 """
 q = GeneralBC(α_leftboundary, α_rightboundary, dx::T, approximation_order)
 
