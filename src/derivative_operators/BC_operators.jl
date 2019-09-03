@@ -8,6 +8,10 @@ Robin, General, and in general Neumann, Dirichlet and Bridge BCs are all affine 
 """
 abstract type AffineBC{T} <: AtomicBC{T} end
 
+struct NeumannBC{N} end
+struct Neumann0BC{N} end
+struct DirichletBC{N} end
+struct Dirichlet0BC{N} end
 """
 q = PeriodicBC{T}()
 

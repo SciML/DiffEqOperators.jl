@@ -54,61 +54,6 @@ struct ComposedMultiDimBC{T, B<:AtomicBC{T}, N,M} <: MultiDimensionalBC{T, N}
     BCs::Vector{Array{B, M}}
 end
 
-struct PartiallyComposedMultiDimBC{T,B<:Union{MultiDimDirectionalBC, Nothing},N, is_extended} <:MultiDimensionalBC{T,N}
-    BCs::Vector{B}
-end
-
-numextended
-
-
-function Base._:+(BCs::MultiDimDirectionalBC{T}...) where T
-	D = getaxis.(BCs)
-	BCs = BCs[sortperm([D...])]
-	B = typeof.(BCs)
-	dimensionalities = ndims.(BCs)
-	for n in dimensionalities[2:end]
-		@assert dimensionalites[1] == n "There are "
-
-	for d in D
-        @assert length(setdiff(D, d)) == (N-1) "There are multiple boundary conditions that extend along $d - make sure every dimension has a unique extension"
-    end
-	is_extended = falses(length(ndims(BCs[1]))
-	is_extended[D] .= true
-	A = Vector{Union{B..., Nothing}}(undef, ndims(BCs[1]))
-	A[!is_extended] .= Nothing()
-	for (i,BC) in enumerate(BCs)
-		A[is_extended][i] = BC
-	end
-	return PartiallyComposedMultiDimBC{T, eltype(A), N, is_extended}(A)
-end
-
-
-function Base.:+(Q::PartiallyComposedMultiDimBC{T,B,N,L}, Q1::MultiDimDirectionalBC{T, B2, D, N, M}) where {T,D, B1, B2,N,M,L}
-    new_BCs = Q.BCs
-	new_BCs[D] = Q1
-	is_extended = L
-	is_extended[D] = true
-    @assert !(getaxis(Q1) in getaxis.(Q.BCs)) "BCs should all extend along a unique axis"
-	return PartiallyComposedMultiDimBC{T,eltype(new_BCs), N,is_extended}(new_BCs)
-
-end
-
-Base.:+(Q1::MultiDimDirectionalBC, Q::PartiallyComposedMultiDimBC) = +(Q,Q1)
-
-function Base.:+(Q1::PartiallyComposedMultiDimBC{T,B1,N,L1} Q2::PartiallyComposedMultiDimBC{T,B2,N,L2}) where {T,B1,B2,N,L1,L2}
-    new_BCs = deepcopy(Q1.BCs)
-	Lnew = L1 .| L2
-	for (i,q) in enumerate(Q2.BCs)
-		if q <: MultiDimensionalBC
-			if new_BCs[i] <: Nothing
-				new_BCs[i] = q
-			else
-				throw("BCs should all extend along a unique axis")
-			end
-		end
-	end
-	return PartiallyComposedMultiDimBC{T,Union{B1,B2}, N, Lnew}(new_BCs)
-end
 
 """
 A multiple dimensional BC, supporting arbitrary BCs at each boundary point.
@@ -139,10 +84,7 @@ For Neumann0BC, please use
 where T is the element type of the domain to be extended
 """
 struct MultiDimBC{N} end
-struct NeumannBC{N} end
-struct Neumann0BC{N} end
-struct DirichletBC{N} end
-struct Dirichlet0BC{N} end
+
 
 MultiDimBC{dim}(BC::Array{B,N}) where {N, B<:AtomicBC, dim} = MultiDimDirectionalBC{gettype(BC[1]), B, dim, N+1, N}(BC)
 #s should be size of the domain
@@ -153,25 +95,25 @@ MultiDimBC{dim}(BC::B, s) where  {B<:AtomicBC, dim} = MultiDimDirectionalBC{gett
 MultiDimBC(BC::B, s) where {B<:AtomicBC} = Tuple([MultiDimDirectionalBC{gettype(BC), B, dim, length(s), length(s)-1}(fill(BC, s[setdiff(1:length(s), dim)])) for dim in 1:length(s)])
 
 # Additional constructors for cases when the BC is the same for all boundarties
-PeriodicBC{dim}(T,s) where T = MultiDimBC{dim}(PeriodicBC(T), s)
-PeriodicBC(T,s) where T = MultiDimBC(PeriodicBC(T), s)
+PeriodicBC{dim}(T,s) where dim = MultiDimBC{dim}(PeriodicBC(T), s)
+PeriodicBC(T,s) = MultiDimBC(PeriodicBC(T), s)
 
-NeumannBC{dim}(α::NTuple{2,T}, dx, order, s) where T = RobinBC{dim}((zero(T), one(T), α[1]), (zero(T), one(T), α[2]), dx, order, s)
+NeumannBC{dim}(α::NTuple{2,T}, dx, order, s) where {T,dim} = RobinBC{dim}((zero(T), one(T), α[1]), (zero(T), one(T), α[2]), dx, order, s)
 NeumannBC(α::NTuple{2,T}, dxyz, order, s) where T = RobinBC((zero(T), one(T), α[1]), (zero(T), one(T), α[2]), dxyz, order, s)
 
-DirichletBC{dim}(αl::T, αr::T, s) where T = RobinBC{dim}((one(T), zero(T), αl), (one(T), zero(T), αr), [ones(T, si) for si in s], 2.0, s)
+DirichletBC{dim}(αl::T, αr::T, s) where {T,dim} = RobinBC{dim}((one(T), zero(T), αl), (one(T), zero(T), αr), [ones(T, si) for si in s], 2.0, s)
 DirichletBC(αl::T, αr::T, s) where T = RobinBC((one(T), zero(T), αl), (one(T), zero(T), αr), [ones(T, si) for si in s], 2.0, s)
 
-Dirichlet0BC{dim}(T::Type, s) = DirichletBC{dim}(zero(T), zero(T), s)
+Dirichlet0BC{dim}(T::Type, s) where {dim} = DirichletBC{dim}(zero(T), zero(T), s)
 Dirichlet0BC(T::Type, s) = DirichletBC(zero(T), zero(T), s)
 
-Neumann0BC{dim}(T::Type, dx, order, s) = NeumannBC{dim}((zero(T), zero(T)), dx, order, s)
+Neumann0BC{dim}(T::Type, dx, order, s) where {dim} = NeumannBC{dim}((zero(T), zero(T)), dx, order, s)
 Neumann0BC(T::Type, dxyz, order, s) = NeumannBC((zero(T), zero(T)), dxyz, order, s)
 
-RobinBC{dim}(l::NTuple{3,T}, r::NTuple{3,T}, dx, order, s) where {T} = MultiDimBC{dim}(RobinBC(l, r, dx, order), s)
+RobinBC{dim}(l::NTuple{3,T}, r::NTuple{3,T}, dx, order, s) where {T,dim} = MultiDimBC{dim}(RobinBC(l, r, dx, order), s)
 RobinBC(l::NTuple{3,T}, r::NTuple{3,T}, dxyz, order, s) where {T} = Tuple([MultiDimDirectionalBC{T, RobinBC{T}, dim, length(s), length(s)-1}(fill(RobinBC(l, r, dxyz[dim], order), perpindex(s,dim))) for dim in 1:length(s)])
 
-GeneralBC{dim}(αl::AbstractVector{T}, αr::AbstractVector{T}, dx, order, s) where {T} = MultiDimBC{dim}(GeneralBC(αl, αr, dx, order), s)
+GeneralBC{dim}(αl::AbstractVector{T}, αr::AbstractVector{T}, dx, order, s) where {T,dim} = MultiDimBC{dim}(GeneralBC(αl, αr, dx, order), s)
 GeneralBC(αl::AbstractVector{T}, αr::AbstractVector{T}, dxyz, order, s) where {T} = Tuple([MultiDimDirectionalBC{T, GeneralBC{T}, dim, length(s), length(s)-1}(fill(GeneralBC(αl, αr, dxyz[dim], order),perpindex(s,dim))) for dim in 1:length(s)])
 
 
@@ -230,20 +172,4 @@ function Base.:*(Q::ComposedMultiDimBC{T, B, N, K}, u::AbstractArray{T, N}) wher
     end
     out = slice_rmul.(Q.BCs, fill(u, N), 1:N)
     return ComposedBoundaryPaddedArray{T, N, K, typeof(u), typeof(out[1][1])}([A[1] for A in out], [A[2] for A in out], u)
-end
-
-
-
-function Base.:*(Q::PartiallyComposedMultiDimBC{T,B,N,is_extended}, u::AbstractArray{T,N} where {T,N}
-	lower = Vector{Union{Array{T,N-1}, Nothing}}(undef, N)
-	upper = Vector{Union{Array{T,N-1}, Nothing}}(undef, N)
-	for (i,q) in Q.BCs
-		if !(q <: Nothing)
-			lower[i], upper[i] = slice_rmul(q, u)
-		else
-			lower[i] = Nothing()
-			upper[i] = Nothing()
-		end
-	end
-	return PartiallyComposedBoundaryPaddedArray{}(lower,upper,u)
 end
