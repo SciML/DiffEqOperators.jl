@@ -384,3 +384,20 @@ function BlockBandedMatrices.BandedBlockBandedMatrix(A::DerivativeOperator{T,N},
     end
     return BandedBlockBandedMatrix(B)
 end
+
+# GhostDerivativeOperator Concretizations
+function LinearAlgebra.Array(A::GhostDerivativeOperator{T, E, F},N::Int=A.L.len) where {T,E,F}
+    return (Array(A.L,N)*Array(A.Q,A.L.len)[1], Array(A.L,N)*Array(A.Q,A.L.len)[2])
+end
+
+function BandedMatrices.BandedMatrix(A::GhostDerivativeOperator{T, E, F},N::Int=A.L.len) where {T,E,F}
+    return (BandedMatrix(A.L,N)*Array(A.Q,A.L.len)[1], BandedMatrix(A.L,N)*Array(A.Q,A.L.len)[2])
+end
+
+function SparseArrays.SparseMatrixCSC(A::GhostDerivativeOperator{T, E, F},N::Int=A.L.len) where {T,E,F}
+    return (SparseMatrixCSC(A.L,N)*SparseMatrixCSC(A.Q,A.L.len)[1], SparseMatrixCSC(A.L,N)*SparseMatrixCSC(A.Q,A.L.len)[2])
+end
+
+function SparseArrays.sparse(A::GhostDerivativeOperator{T, E, F},N::Int=A.L.len) where {T,E,F}
+    return SparseMatrixCSC(A,N)
+end
