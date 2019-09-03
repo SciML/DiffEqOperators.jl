@@ -25,7 +25,7 @@ convert(::Type{AbstractMatrix}, L::DiffEqScaledOperator) = L.coeff * convert(Abs
 size(L::DiffEqScaledOperator, args...) = size(L.op, args...)
 opnorm(L::DiffEqScaledOperator, p::Real=2) = abs(L.coeff) * opnorm(L.op, p)
 getindex(L::DiffEqScaledOperator, i::Int) = L.coeff * L.op[i]
-getindex(L::DiffEqScaledOperator, I::Vararg{Int, N}) where {N} = 
+getindex(L::DiffEqScaledOperator, I::Vararg{Int, N}) where {N} =
   L.coeff * L.op[I...]
 *(L::DiffEqScaledOperator, x::AbstractVecOrMat) = L.coeff * (L.op * x)
 *(x::AbstractVecOrMat, L::DiffEqScaledOperator) = (L.op * x) * L.coeff
@@ -38,25 +38,27 @@ mul!(Y::AbstractVecOrMat, L::DiffEqScaledOperator, B::AbstractVecOrMat) =
 ldiv!(Y::AbstractVecOrMat, L::DiffEqScaledOperator, B::AbstractVecOrMat) =
   lmul!(1/L.coeff, ldiv!(Y, L.op, B))
 factorize(L::DiffEqScaledOperator) = L.coeff * factorize(L.op)
-for fact in (:lu, :lu!, :qr, :qr!, :cholesky, :cholesky!, :ldlt, :ldlt!, 
+for fact in (:lu, :lu!, :qr, :qr!, :cholesky, :cholesky!, :ldlt, :ldlt!,
   :bunchkaufman, :bunchkaufman!, :lq, :lq!, :svd, :svd!)
-  @eval LinearAlgebra.$fact(L::DiffEqScaledOperator, args...) = 
+  @eval LinearAlgebra.$fact(L::DiffEqScaledOperator, args...) =
     L.coeff * fact(L.op, args...)
 end
 
 # Linear Combination
 struct DiffEqOperatorCombination{T,O<:Tuple{Vararg{AbstractDiffEqLinearOperator{T}}},
-  C<:AbstractVector{T}} <: AbstractDiffEqCompositeOperator{T}
-  ops::O
-  cache::C
-  function DiffEqOperatorCombination(ops; cache=nothing)
-    T = eltype(ops[1])
-    if cache == nothing
-      cache = Vector{T}(undef, size(ops[1], 1))
+    C<:AbstractVector{T}} <: AbstractDiffEqCompositeOperator{T}
+    ops::O
+    cache::C
+    function DiffEqOperatorCombination(ops; cache=nothing)
+        T = eltype(ops[1])
+        for i in 2:length(ops)
+            @assert size(ops[i]) == size(ops[1]) "Operators must be of the same size to be combined! Mismatch between $(ops[i]) and $(ops[i-1]), which are operators $i and $(i-1) respectively"
+        end
+        if cache == nothing
+            cache = Vector{T}(undef, size(ops[1], 1))
+        end
+        new{T,typeof(ops),typeof(cache)}(ops, cache)
     end
-    # TODO: safecheck dimensions
-    new{T,typeof(ops),typeof(cache)}(ops, cache)
-  end
 end
 +(ops::AbstractDiffEqLinearOperator...) = DiffEqOperatorCombination(ops)
 +(L1::DiffEqOperatorCombination, L2::AbstractDiffEqLinearOperator) = DiffEqOperatorCombination((L1.ops..., L2))
@@ -91,7 +93,10 @@ struct DiffEqOperatorComposition{T,O<:Tuple{Vararg{AbstractDiffEqLinearOperator{
   caches::C
   function DiffEqOperatorComposition(ops; caches=nothing)
     T = eltype(ops[1])
-    # TODO: safecheck dimensions
+    for i in 2:length(ops)
+      @assert size(ops[i-1], 1) == size(ops[i], 2) "Operations do not have compatable sizes! Mismatch between $(ops[i]) and $(ops[i-1]), which are operators $i and $(i-1) respectively."
+    end
+
     if caches == nothing
       # Construct a list of caches to be used by mul! and ldiv!
       caches = []
@@ -140,8 +145,8 @@ function ldiv!(y::AbstractVector, L::DiffEqOperatorComposition, b::AbstractVecto
   ldiv!(y, L.ops[1], L.caches[1])
 end
 factorize(L::DiffEqOperatorComposition) = prod(factorize, reverse(L.ops))
-for fact in (:lu, :lu!, :qr, :qr!, :cholesky, :cholesky!, :ldlt, :ldlt!, 
+for fact in (:lu, :lu!, :qr, :qr!, :cholesky, :cholesky!, :ldlt, :ldlt!,
   :bunchkaufman, :bunchkaufman!, :lq, :lq!, :svd, :svd!)
-  @eval LinearAlgebra.$fact(L::DiffEqOperatorComposition, args...) = 
+  @eval LinearAlgebra.$fact(L::DiffEqOperatorComposition, args...) =
     prod(op -> $fact(op, args...), reverse(L.ops))
 end
