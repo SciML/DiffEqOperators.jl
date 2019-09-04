@@ -230,19 +230,11 @@ function _concretize(Q::AbstractArray{T,N}, M) where {T,N}
     return (stencil.(Q, fill(M,size(Q))), affine.(Q))
 end
 
-function c2l(I::CartesianIndex, s) #Not sure if there is a builtin that does this
-    out = I[1]
-    for i in 1:length(s)-1
-        out += (I[i+1]-1)*prod(s[1:i])
-    end
-    return out
-end
-
-function LinearAlgebra.Array(Q::MultiDimDirectionalBC{T, B, D, N, K}, M) where {T, B, D,N,K}
+function LinearAlgebra.Array(Q::MultiDimDirectionalBC{T, B, D, N, K}, s) where {T, B, D,N,K}
     blip = zeros(Int64, N)
     blip[D] = 2
     s_pad = s.+ blip # extend s in the right direction
-    Q = _concretize.(Q.BCs, s)
+    Q = _concretize(Q.BCs, s[D])
     ē = unit_indices(N)
     QL = zeros(T, prod(s_pad), prod(s))
     Qb = zeros(T, prod(s_pad))
@@ -253,7 +245,7 @@ function LinearAlgebra.Array(Q::MultiDimDirectionalBC{T, B, D, N, K}, M) where {
     I1 = CartesianIndex(Tuple(ones(Int64, N)))
     for I in interior
         i = c2l(I, s_pad)
-        j = c2l(I-I1, s)
+        j = c2l(I-ē[D], s)
         QL[i,j] = one(T)
     end
     ranges[D] = 1
@@ -266,10 +258,10 @@ function LinearAlgebra.Array(Q::MultiDimDirectionalBC{T, B, D, N, K}, M) where {
         iu = c2l(upper[K], s_pad)
         Qb[il] = Q[2][I][1]
         Qb[iu] = Q[2][I][2]
-        for k in 1:s[D]
-            j = c2l(lower[K] + k*ē[D]- I1, s)
-            QL[il, j] = Q[1][I][1][k]
-            QL[iu, j] = Q[1][I][2][k]
+        for k in 0:s[D]-1
+            j = c2l(lower[K] + k*ē[D], s)
+            QL[il, j] = Q[1][I][1][k+1]
+            QL[iu, j] = Q[1][I][2][k+1]
         end
     end
 
@@ -322,7 +314,7 @@ end
 """
 See comments on the `Array` method for this type for an idea of what is going on
 """
-function SparseArrays.SparseMatrixCSC(Q::MultiDimDirectionalBC{T, B, D, N, K}, M) where {T, B, D,N,K}
+function SparseArrays.SparseMatrixCSC(Q::MultiDimDirectionalBC{T, B, D, N, K}, s) where {T, B, D,N,K}
     blip = zeros(Int64, N)
     blip[D] = 2
     s_pad = s.+ blip
@@ -413,11 +405,9 @@ function BandedMatrices.BandedMatrix(Q::MultiDimDirectionalBC{T, B, D, N, K}, M)
     return (Q_L, Q_b)
 end
 
-"""
-Returns a Tuple of MultiDimDirectionalBC Array concretizations, one for each dimension
-"""
-SparseArrays.sparse(Q::ComposedMultiDimBC, Ns) = SparseMatrixCSC(Q, Ns)
-
+################################################################################
+# Higher Dimensional DerivativeOperator Concretizations
+################################################################################
 # HIgher Dimensional Concretizations. The following concretizations return two dimensional arrays
 # which operate on flattened vectors. Mshape is the size of the unflattened array on which A is operating on.
 
@@ -550,7 +540,7 @@ function BandedMatrices.BandedMatrix(A::GhostDerivativeOperator{T, E, F},N::Int=
 end
 
 function BandedMatrices.BandedMatrix(A::GhostDerivativeOperator{T, E, F}, s::NTuple{N,I}) where {T,E,F, N, I<:Int}
-    return (BandedMatrix(A.L,s)*Array(A.Q,s)[1], BandedMatrix(A.L,N)*Array(A.Q,s)[2])
+    return (BandedMatrix(A.L,s)*Array(A.Q,s)[1], BandedMatrix(A.L,s)*Array(A.Q,s)[2])
 end
 
 function SparseArrays.SparseMatrixCSC(A::GhostDerivativeOperator{T, E, F},N::Int=A.L.len) where {T,E,F}
@@ -558,11 +548,16 @@ function SparseArrays.SparseMatrixCSC(A::GhostDerivativeOperator{T, E, F},N::Int
 end
 
 function SparseArrays.SparseMatrixCSC(A::GhostDerivativeOperator{T, E, F}, s::NTuple{N,I}) where {T,E,F,N,I<:Int}
-    return (SparseMatrixCSC(A.L,s)*SparseMatrixCSC(A.Q,s)[1], SparseMatrixCSC(A.L,N)*SparseMatrixCSC(A.Q,s)[2])
+    return (SparseMatrixCSC(A.L,s)*SparseMatrixCSC(A.Q,s)[1], SparseMatrixCSC(A.L,s)*SparseMatrixCSC(A.Q,s)[2])
 end
 
 
-function SparseArrays.sparse(A::GhostDerivativeOperator{T, E, F}, N) where {T,E,F}
+function SparseArrays.sparse(A::GhostDerivativeOperator{T, E, F}, N::Int=A.L.len) where {T,E,F}
+    return SparseMatrixCSC(A,N)
+end
+
+
+function SparseArrays.sparse(A::GhostDerivativeOperator{T, E, F}, s::NTuple{N,I}) where {T,E,F, N,I}
     return SparseMatrixCSC(A,N)
 end
 

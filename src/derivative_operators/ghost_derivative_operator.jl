@@ -29,21 +29,28 @@ end
 
 
 function LinearAlgebra.ldiv!(x::AbstractVector{T}, A::GhostDerivativeOperator{T,E,F}, u::AbstractVector{T}) where {T,E,F}
-    @assert length(x) == size(A.L,2)
-    (AL,Ab) = sparse(A)
+    @assert length(x) == size(A.L,1)
+    (AL,Ab) = Array(A, size(A.L,1))
     LinearAlgebra.ldiv!(x, lu!(AL), u.-Ab)
+end
+
+function LinearAlgebra.ldiv!(x::AbstractVector{T}, A::GhostDerivativeOperator{T,E,F}, u::AbstractMatrix{T}) where {T,E,F} # Needs to be specifically defined to avoid ambiuguity with the fallback method in DiffEqBase
+    s_ = prod(size(u))
+    @assert length(x) == s_
+    Al, Ab = Array(A, size(u))
+    LinearAlgebra.ldiv!(x, lu!(Al), reshape(u, s_).-Ab)
 end
 
 function LinearAlgebra.ldiv!(x::AbstractVector{T}, A::GhostDerivativeOperator{T,E,F}, u::AbstractArray{T,N}) where {T,E,F,N}
     s_ = prod(size(u))
     @assert length(x) == s_
-    (AL,Ab) = sparse(A, s_)
-    LinearAlgebra.ldiv!(x, lu!(AL), reshape(u, s_).-Ab)
+    Al, Ab = Array(A, size(u))
+    LinearAlgebra.ldiv!(x, lu!(Al), reshape(u, s_).-Ab)
 end
 
 
 function \(A::GhostDerivativeOperator{T,E,F}, u::AbstractVector{T}) where {T,E,F}
-    x = zeros(T,size(A,2))
+    x = zeros(T,length(u))
     LinearAlgebra.ldiv!(x, A, u)
     return x
 end

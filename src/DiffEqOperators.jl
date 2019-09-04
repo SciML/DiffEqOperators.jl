@@ -49,8 +49,8 @@ export JacVecOperator, getops
 export AbstractDerivativeOperator, DerivativeOperator,
        CenteredDifference, UpwindDifference
 export DirichletBC, Dirichlet0BC, NeumannBC, Neumann0BC, RobinBC, GeneralBC, MultiDimBC, PeriodicBC,
-       MultiDimDirectionalBC, ComposedMultiDimBC,
-       compose, decompose, perpsize
+       MultiDimDirectionalBC, ComposedMultiDimBC
+export compose, decompose, perpsize, c2l
 
 export GhostDerivativeOperator
 end # module
