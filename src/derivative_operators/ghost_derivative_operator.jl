@@ -18,10 +18,27 @@ function *(A::GhostDerivativeOperator{T,E,F}, u::AbstractArray{T}) where {T,E,F}
     return x
 end
 
+
+function \(A::GhostDerivativeOperator{T,E,F}, u::AbstractArray{T,N}) where {T,E,F,N}
+    #TODO implement check that A has compatible size with u
+    s = size(u)
+    x = zeros(T,prod(s))
+    LinearAlgebra.ldiv!(x, A, u)
+    return reshape(x, s)
+end
+
+
 function LinearAlgebra.ldiv!(x::AbstractVector{T}, A::GhostDerivativeOperator{T,E,F}, u::AbstractVector{T}) where {T,E,F}
     @assert length(x) == size(A.L,2)
-    (AL,Ab) = Array(A)
-    LinearAlgebra.ldiv!(x, lu!(AL), u-Ab)
+    (AL,Ab) = sparse(A)
+    LinearAlgebra.ldiv!(x, lu!(AL), u.-Ab)
+end
+
+function LinearAlgebra.ldiv!(x::AbstractVector{T}, A::GhostDerivativeOperator{T,E,F}, u::AbstractArray{T,N}) where {T,E,F,N}
+    s_ = prod(size(u))
+    @assert length(x) == s_
+    (AL,Ab) = sparse(A, s_)
+    LinearAlgebra.ldiv!(x, lu!(AL), reshape(u, s_).-Ab)
 end
 
 
@@ -29,20 +46,6 @@ function \(A::GhostDerivativeOperator{T,E,F}, u::AbstractVector{T}) where {T,E,F
     x = zeros(T,size(A,2))
     LinearAlgebra.ldiv!(x, A, u)
     return x
-end
-
-function LinearAlgebra.ldiv!(M_temp::AbstractMatrix{T}, A::GhostDerivativeOperator{T,E,F}, M::AbstractMatrix{T}) where {T,E,F}
-    @assert size(M_temp) == size(M)
-    @assert A.L.len == size(M,1)
-    (AL,Ab) = Array(A)
-    LinearAlgebra.ldiv!(M_temp, lu!(AL), M .- Ab)
-end
-
-function \(A::GhostDerivativeOperator{T,E,F}, M::AbstractMatrix{T}) where {T,E,F}
-    @assert A.L.len == size(M,1)
-    M_temp = zeros(T, A.L.len, size(M,2))
-    LinearAlgebra.ldiv!(M_temp, A, M)
-    return M_temp
 end
 
 # update coefficients

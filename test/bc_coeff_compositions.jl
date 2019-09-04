@@ -74,6 +74,15 @@ end
     # Test for consistency of GhostDerivativeOperator*u with L*(Q*u)
     @test A*u ≈ L*(Q*u)
 
+    # Test for consistency of GhostDerivativeOperator*M with L*(Q*M)
+    M = rand(N,10)
+    LQM = zeros(N,10)
+    for i in 1:10
+        mul!(view(LQM,:,i), L, Q*M[:,i])
+    end
+    ghost_LQM = A*M
+    @test ghost_LQM ≈ LQM
+
     u = rand(22)
     @test (L + L2) * u ≈ convert(AbstractMatrix,L + L2) * u ≈ (BandedMatrix(L) + BandedMatrix(L2)) * u
 
