@@ -313,7 +313,7 @@ end
     # Test a single axis, multiple operators: (Lyy+Lyyyy)*M, dx = 1.0
     A = Ly2+Ly4
     mul!(M_temp, A, M)
-    @test M_temp ≈ ((Ly2*M) + (Ly4*M))
+    @test isapprox(M_temp, ((Ly2*M) + (Ly4*M)), atol = 1e-7)
 
     # Test a single axis, multiple operators: (Lyy++Lyyy+Lyyyy)*M, dx = 1.0
     A += Ly3
