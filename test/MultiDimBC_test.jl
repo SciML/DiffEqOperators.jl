@@ -10,14 +10,14 @@ A = rand(n,m)
 
 #Create atomic BC
 q1 = RobinBC((1.0, 2.0, 3.0), (0.0, -1.0, 2.0), 0.1, 4.0)
-q2 = PeriodicBC{Float64}()
+q2 = PeriodicBC(Float64)
 
 BCx = vcat(fill(q1, div(m,2)), fill(q2, m-div(m,2)))  #The size of BCx has to be all size components *except* for x
 BCy = vcat(fill(q1, div(n,2)), fill(q2, n-div(n,2)))
 
 
-Qx = MultiDimBC(BCx, 1)
-Qy = MultiDimBC(BCy, 2)
+Qx = MultiDimBC{1}(BCx)
+Qy = MultiDimBC{2}(BCy)
 
 Ax = Qx*A
 Ay = Qy*A
@@ -45,16 +45,22 @@ A = rand(n,m, o)
 
 #Create atomic BC
 q1 = RobinBC((1.0, 2.0, 3.0), (0.0, -1.0, 2.0), 0.1, 4.0)
-q2 = PeriodicBC{Float64}()
+q2 = PeriodicBC(Float64)
 
 BCx = vcat(fill(q1, (div(m,2), o)), fill(q2, (m-div(m,2), o)))  #The size of BCx has to be all size components *except* for x
 BCy = vcat(fill(q1, (div(n,2), o)), fill(q2, (n-div(n,2), o)))
 BCz = fill(Dirichlet0BC(Float64), (n,m))
 
-Qx = MultiDimBC(BCx, 1)
-Qy = MultiDimBC(BCy, 2)
-Qz = MultiDimBC(Dirichlet0BC(Float64), size(A), 3) #Test the other constructor
+Qx = MultiDimBC{1}(BCx)
+Qy = MultiDimBC{2}(BCy)
+Qz = Dirichlet0BC{3}(Float64, size(A)) #Test the other constructor
 
+Q1 = (Qx+Qy+Qz)
+Q2 = compose(Qx,Qy,Qz) #test addition combinations
+@test_broken Q1 == Q2 #This fails
+@test all(Q1.BCs .== Q2.BCs) # but this passes so it does actually work
+@test_broken Qtmp = Qx + Qz
+@test_skip Qz+Qx+Qy == Qy+Qtmp
 Ax = Qx*A
 Ay = Qy*A
 Az = Qz*A

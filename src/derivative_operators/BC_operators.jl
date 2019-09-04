@@ -8,6 +8,10 @@ Robin, General, and in general Neumann, Dirichlet and Bridge BCs are all affine 
 """
 abstract type AffineBC{T} <: AtomicBC{T} end
 
+struct NeumannBC{N} end
+struct Neumann0BC{N} end
+struct DirichletBC{N} end
+struct Dirichlet0BC{N} end
 """
 q = PeriodicBC{T}()
 
@@ -18,6 +22,7 @@ Creates a periodic boundary condition, where the lower index end of some u is ex
 It is not reccomended to concretize this BC type in to a BandedMatrix, since the vast majority of bands will be all 0s. SpatseMatrix concretization is reccomended.
 """
 struct PeriodicBC{T} <: AtomicBC{T}
+    PeriodicBC(T::Type) = new{T}()
 end
 
 """
