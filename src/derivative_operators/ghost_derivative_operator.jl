@@ -15,42 +15,36 @@ function LinearAlgebra.mul!(x::AbstractArray{T,N}, A::GhostDerivativeOperator{T,
     LinearAlgebra.mul!(x, A.L, u)
 end
 
-function *(A::GhostDerivativeOperator{T1}, u::AbstractVector{T2}) where {T1,T2}
+function *(A::GhostDerivativeOperator{T1}, u::AbstractArray{T2}) where {T1,T2}
     #TODO Implement a function domaincheck(L::AbstractDiffEqLinearOperator, u) to see if components of L along each dimension match the size of u
     x = similar(u, promote_type(T1,T2))
     LinearAlgebra.mul!(x, A, A.Q*u)
     return x
 end
 
+
+function \(A::GhostDerivativeOperator{T1}, u::AbstractArray{T2}) where {T1,T2}
+    #TODO implement check that A has compatible size with u
+    s = size(u)
+    x = zeros(promote_type(T1,T2),prod(s))
+    LinearAlgebra.ldiv!(x, A, u)
+    return reshape(x, s)
+end
+
+
 function LinearAlgebra.ldiv!(x::AbstractVector{T}, A::GhostDerivativeOperator{T,E,F}, u::AbstractVector{T}) where {T,E,F}
     @assert length(x) == size(A.L,2)
-    (AL,Ab) = Array(A)
-    LinearAlgebra.ldiv!(x, lu!(AL), u-Ab)
+    (AL,Ab) = sparse(A)
+    LinearAlgebra.ldiv!(x, lu!(AL), u.-Ab)
 end
 
-
-function \(A::GhostDerivativeOperator{T1}, u::AbstractVector{T2}) where {T1,T2}
-    x = zeros(promote_type(T1,T2),size(A,2))
-    LinearAlgebra.ldiv!(x, A, u)
-    return x
+function LinearAlgebra.ldiv!(x::AbstractVector{T}, A::GhostDerivativeOperator{T,E,F}, u::AbstractArray{T,N}) where {T,E,F,N}
+    s_ = prod(size(u))
+    @assert length(x) == s_
+    (AL,Ab) = sparse(A, s_)
+    LinearAlgebra.ldiv!(x, lu!(AL), reshape(u, s_).-Ab)
 end
 
-function LinearAlgebra.ldiv!(M_temp::AbstractMatrix, A::GhostDerivativeOperator, M::AbstractMatrix)
-    @assert size(M_temp) == size(M)
-    @assert A.L.len == size(M,1)
-    (AL,Ab) = Array(A)
-    LinearAlgebra.ldiv!(M_temp, lu!(AL), M .- Ab)
-end
-
-function \(A::GhostDerivativeOperator{T1}, M::AbstractMatrix{T2}) where {T1,T2}
-    @assert A.L.len == size(M,1)
-    M_temp = zeros(promote_type(T1,T2), A.L.len, size(M,2))
-    LinearAlgebra.ldiv!(M_temp, A, M)
-    return M_temp
-end
-
-# # Interface with other GhostDerivativeOperator and with
-# # AbstractDiffEqCompositeOperator
 
 # update coefficients
 function DiffEqBase.update_coefficients!(A::GhostDerivativeOperator,u,p,t)
