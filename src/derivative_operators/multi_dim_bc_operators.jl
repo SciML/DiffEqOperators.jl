@@ -54,6 +54,7 @@ struct ComposedMultiDimBC{T, B<:AtomicBC{T}, N,M} <: MultiDimensionalBC{T, N}
     BCs::Vector{Array{B, M}}
 end
 
+
 """
 A multiple dimensional BC, supporting arbitrary BCs at each boundary point.
 To construct an arbitrary BC, pass an Array of BCs with dimension `N-1`, if `N` is the dimensionality of your domain `u`
@@ -82,25 +83,37 @@ For Neumann0BC, please use
     Qx, Qy, Qz... = Neumann0BC(T::Type, (dx::Vector, dy::Vector, dz::Vector ...), approximation_order, size(u))
 where T is the element type of the domain to be extended
 """
-MultiDimBC(BC::Array{B,N}, dim::Integer) where {N, B<:AtomicBC} = MultiDimDirectionalBC{gettype(BC[1]), B, dim, N+1, N}(BC)
+struct MultiDimBC{N} end
+
+
+MultiDimBC{dim}(BC::Array{B,N}) where {N, B<:AtomicBC, dim} = MultiDimDirectionalBC{gettype(BC[1]), B, dim, N+1, N}(BC)
 #s should be size of the domain
-MultiDimBC(BC::B, s, dim::Integer) where  {B<:AtomicBC} = MultiDimDirectionalBC{gettype(BC), B, dim, length(s), length(s)-1}(fill(BC, s[setdiff(1:length(s), dim)]))
+MultiDimBC{dim}(BC::B, s) where  {B<:AtomicBC, dim} = MultiDimDirectionalBC{gettype(BC), B, dim, length(s), length(s)-1}(fill(BC, s[setdiff(1:length(s), dim)]))
 
 #Extra constructor to make a set of BC operators that extend an atomic BC Operator to the whole domain
 #Only valid in the uniform grid case!
 MultiDimBC(BC::B, s) where {B<:AtomicBC} = Tuple([MultiDimDirectionalBC{gettype(BC), B, dim, length(s), length(s)-1}(fill(BC, s[setdiff(1:length(s), dim)])) for dim in 1:length(s)])
 
 # Additional constructors for cases when the BC is the same for all boundarties
+PeriodicBC{dim}(T,s) where dim = MultiDimBC{dim}(PeriodicBC(T), s)
+PeriodicBC(T,s) = MultiDimBC(PeriodicBC(T), s)
 
-PeriodicBC{T}(s) where T = MultiDimBC(PeriodicBC{T}(), s)
-
+NeumannBC{dim}(α::NTuple{2,T}, dx, order, s) where {T,dim} = RobinBC{dim}((zero(T), one(T), α[1]), (zero(T), one(T), α[2]), dx, order, s)
 NeumannBC(α::NTuple{2,T}, dxyz, order, s) where T = RobinBC((zero(T), one(T), α[1]), (zero(T), one(T), α[2]), dxyz, order, s)
+
+DirichletBC{dim}(αl::T, αr::T, s) where {T,dim} = RobinBC{dim}((one(T), zero(T), αl), (one(T), zero(T), αr), 1.0, 2.0, s)
 DirichletBC(αl::T, αr::T, s) where T = RobinBC((one(T), zero(T), αl), (one(T), zero(T), αr), [ones(T, si) for si in s], 2.0, s)
 
+Dirichlet0BC{dim}(T::Type, s) where {dim} = DirichletBC{dim}(zero(T), zero(T), s)
 Dirichlet0BC(T::Type, s) = DirichletBC(zero(T), zero(T), s)
+
+Neumann0BC{dim}(T::Type, dx, order, s) where {dim} = NeumannBC{dim}((zero(T), zero(T)), dx, order, s)
 Neumann0BC(T::Type, dxyz, order, s) = NeumannBC((zero(T), zero(T)), dxyz, order, s)
 
+RobinBC{dim}(l::NTuple{3,T}, r::NTuple{3,T}, dx, order, s) where {T,dim} = MultiDimBC{dim}(RobinBC(l, r, dx, order), s)
 RobinBC(l::NTuple{3,T}, r::NTuple{3,T}, dxyz, order, s) where {T} = Tuple([MultiDimDirectionalBC{T, RobinBC{T}, dim, length(s), length(s)-1}(fill(RobinBC(l, r, dxyz[dim], order), perpindex(s,dim))) for dim in 1:length(s)])
+
+GeneralBC{dim}(αl::AbstractVector{T}, αr::AbstractVector{T}, dx, order, s) where {T,dim} = MultiDimBC{dim}(GeneralBC(αl, αr, dx, order), s)
 GeneralBC(αl::AbstractVector{T}, αr::AbstractVector{T}, dxyz, order, s) where {T} = Tuple([MultiDimDirectionalBC{T, GeneralBC{T}, dim, length(s), length(s)-1}(fill(GeneralBC(αl, αr, dxyz[dim], order),perpindex(s,dim))) for dim in 1:length(s)])
 
 
@@ -118,7 +131,7 @@ Creates a ComposedMultiDimBC operator, Q, that extends every boundary when appli
 
 Qx Qy and Qz can be passed in any order, as long as there is exactly one BC operator that extends each dimension.
 """
-function compose(BCs...)
+function compose(BCs::MultiDimDirectionalBC...)
     T = gettype(BCs[1])
     N = ndims(BCs[1])
     Ds = getaxis.(BCs)
@@ -130,6 +143,8 @@ function compose(BCs...)
 
     ComposedMultiDimBC{T, Union{eltype.(BC.BCs for BC in BCs)...}, N,N-1}([condition.BCs for condition in BCs])
 end
+
+Base.:+(BCs::MultiDimDirectionalBC...) = compose(BCs...)
 
 """
 Qx, Qy,... = decompose(Q::ComposedMultiDimBC{T,N,M})
