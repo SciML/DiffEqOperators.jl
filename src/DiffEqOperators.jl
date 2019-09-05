@@ -39,7 +39,7 @@ include("composite_operators.jl")
 include("derivative_operators/concretization.jl")
 
 # The (u,p,t) and (du,u,p,t) interface
-for T in [DiffEqScaledOperator, DiffEqOperatorCombination, DiffEqOperatorComposition]
+for T in [DiffEqScaledOperator, DiffEqOperatorCombination, DiffEqOperatorComposition, GhostDerivativeOperator]
   (L::T)(u,p,t) = (update_coefficients!(L,u,p,t); L * u)
   (L::T)(du,u,p,t) = (update_coefficients!(L,u,p,t); mul!(du,L,u))
 end
