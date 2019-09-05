@@ -369,11 +369,6 @@ end
     end
     analytic_Am = kron(Diagonal(ones(2)), analytic_L)*analytic_QM
 
-    @show N
-    @show size(L)
-    @show size(Array(Q,N)[1])
-    @show size(Array(Q,N)[2])
-    @show size(L*Array(Q,N)[2])
     # No affine component to the this system
     analytic_f = analytic_AL \ f2.(x)
     ghost_f = A \ f2.(x)
