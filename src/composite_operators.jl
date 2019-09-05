@@ -10,6 +10,7 @@ function update_coefficients!(L::AbstractDiffEqCompositeOperator,u,p,t)
   L
 end
 is_constant(L::AbstractDiffEqCompositeOperator) = all(is_constant, getops(L))
+LinearAlgebra.lmul!(α::DiffEqScalar, B::AbstractVecOrMat) = lmul!(α.val, B)
 
 # Scaled operator (α * A)
 struct DiffEqScaledOperator{T,F,OpType<:AbstractDiffEqLinearOperator{T}} <: AbstractDiffEqCompositeOperator{T}
@@ -33,8 +34,12 @@ getindex(L::DiffEqScaledOperator, I::Vararg{Int, N}) where {N} =
 /(x::AbstractArray, L::DiffEqScaledOperator) = 1/L.coeff * (x / L.op)
 \(L::DiffEqScaledOperator, x::AbstractArray) = 1/L.coeff * (L.op \ x)
 \(x::AbstractArray, L::DiffEqScaledOperator) = L.coeff * (x \ L)
-mul!(Y::AbstractArray, L::DiffEqScaledOperator, B::AbstractArray) =
-  lmul!(L.coeff, mul!(Y, L.op, B))
+for N in (2,3)
+  @eval begin
+    mul!(Y::AbstractArray{T,$N}, L::DiffEqScaledOperator{T}, B::AbstractArray{T,$N}) where {T} =
+        lmul!(Y, L.coeff, mul!(Y, L.op, B))
+  end
+end
 ldiv!(Y::AbstractArray, L::DiffEqScaledOperator, B::AbstractArray) =
   lmul!(1/L.coeff, ldiv!(Y, L.op, B))
 factorize(L::DiffEqScaledOperator) = L.coeff * factorize(L.op)
