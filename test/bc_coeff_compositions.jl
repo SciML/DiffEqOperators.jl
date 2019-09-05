@@ -153,7 +153,7 @@ end
     # Test for consistency of GhostDerivativeOperator*M with L*(Q*M)
 
     M = rand(N,10)
-    Qx = MultiDimBC(Q, size(M),1)
+    Qx = MultiDimBC{1}(Q, size(M))
     Am = L*Qx
     LQM = zeros(N,10)
     for i in 1:10
@@ -392,7 +392,7 @@ end
 
     # Check that left division with matrices works
     M = [f2.(x) f2.(x)]
-    Qx = MultiDimBC(Q, size(M),1)
+    Qx = MultiDimBC{1}(Q, size(M))
 
     Am = L*Qx
 
@@ -506,7 +506,7 @@ end
 
     M2 = [u 2.0*u 10.0*u]
     s = size(M2)
-    Qx = MultiDimBC(Q, size(M2), 1)
+    Qx = MultiDimBC{1}(Q, size(M2))
     Am = L*Qx
     #Somehow the operator is singular
     @test_broken analytic_M = analytic_Am \ (reshape(M2, prod(s)) .-repeat(analytic_Ab, 3))
