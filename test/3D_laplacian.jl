@@ -6,7 +6,7 @@ dx = dy = dz = x[2] - x[1]
 Dxx = CenteredDifference{1}(2, 4, dx, length(x))
 Dyy = CenteredDifference{2}(2, 4, dy, length(y))
 Dzz = CenteredDifference{3}(2, 4, dz, length(z))
-Q = compose(PeriodicBC{Float64}(length.(s))...)
+Q = compose(PeriodicBC(Float64,length.(s))...)
 
 ∇² = Dxx + Dyy + Dzz
 
