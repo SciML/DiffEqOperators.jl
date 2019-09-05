@@ -1,4 +1,4 @@
-using LinearAlgebra, DiffEqOperators, Random, Test
+using LinearAlgebra, SparseArrays, DiffEqOperators, Random, Test
 ################################################################################
 # Test 2d extension
 ################################################################################
@@ -65,6 +65,17 @@ Ax = Qx*A
 Ay = Qy*A
 Az = Qz*A
 
+Q = compose(Qx,Qy,Qz)
+QL, Qb = Array(Q, size(A))
+QLs, Qbs = sparse(Q, size(A))
+
+A_conc = QL*reshape(A, prod(size(A))) .+Qb
+A_conc_sp = QLs*reshape(A,prod(size(A))) .+Qbs
+
+#test BC concretization
+A_arr = Array(Q*A)
+@test reshape(A_arr, prod(size(A_arr))) ≈ A_conc_sp ≈ A_conc
+
 @test size(Ax)[1] == size(A)[1]+2
 @test size(Ay)[2] == size(A)[2]+2
 @test size(Az)[3] == size(A)[3]+2
@@ -83,12 +94,14 @@ for N in 2:7
     sizes = rand(4:7, N)
     A = rand(sizes...)
 
-    Q1_N = Neumann0BC(Float64, Tuple(ones(N)), 3.0, size(A))
+    Q1_N = RobinBC(Tuple(rand(3)), Tuple(rand(3)), fill(0.1, N), 4.0, size(A))
 
     Q = compose(Q1_N...)
 
     A1_N = Q1_N.*fill(A, N)
 
-    A_extended = Q*A
-    @test Array(A_extended) == Array(compose(A1_N...))
+
+    A_arr = Array(Q*A)
+
+    @test A_arr == Array(compose(A1_N...))
 end
