@@ -281,3 +281,21 @@ end
     @test_broken reshape(analytic_M, s) ≈ ghost_M
 
 end
+
+@testset "Test Operator and BC combinations" begin
+    N = 40
+    x = range(-pi, stop = pi, length=N)
+    Δx = x[2]-x[1]
+    u₀=1.0
+    Γ=1.0
+    Dx=u₀*CenteredDifference{1}(1,2,Δx,N)
+    Dxx=Γ*CenteredDifference{1}(2,2,Δx,N)
+    Q=PeriodicBC(Float64)
+
+    A = Dx*Q + Dxx*Q
+    y = A*(x.^2)
+
+    analytic_y = 2x+2
+
+    @test y ≈ analytic_y
+end
