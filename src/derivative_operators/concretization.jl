@@ -256,8 +256,8 @@ See comments on the `Array` method for this type for an idea of what is going on
 function SparseArrays.SparseMatrixCSC(Q::MultiDimDirectionalBC{T, B, D, N, K}, s) where {T, B, D,N,K}
     blip = zeros(Int64, N)
     blip[D] = 2
-    s_pad = s.+ blip
-    Q = _concretize.(Q.BCs, s)
+    s_pad = s.+ blip # extend s in the right direction
+    Q = _concretize(Q.BCs, s[D])
     ē = unit_indices(N)
     QL = spzeros(T, prod(s_pad), prod(s))
     Qb = spzeros(T, prod(s_pad))
@@ -268,7 +268,7 @@ function SparseArrays.SparseMatrixCSC(Q::MultiDimDirectionalBC{T, B, D, N, K}, s
     I1 = CartesianIndex(Tuple(ones(Int64, N)))
     for I in interior
         i = c2l(I, s_pad)
-        j = c2l(I-I1, s)
+        j = c2l(I-ē[D], s)
         QL[i,j] = one(T)
     end
     ranges[D] = 1
@@ -281,10 +281,10 @@ function SparseArrays.SparseMatrixCSC(Q::MultiDimDirectionalBC{T, B, D, N, K}, s
         iu = c2l(upper[K], s_pad)
         Qb[il] = Q[2][I][1]
         Qb[iu] = Q[2][I][2]
-        for k in 1:s[D]
-            j = c2l(lower[K] + k*ē[D]- I1, s)
-            QL[il, j] = Q[1][I][1][k]
-            QL[iu, j] = Q[1][I][2][k]
+        for k in 0:s[D]-1
+            j = c2l(lower[K] + k*ē[D], s)
+            QL[il, j] = Q[1][I][1][k+1]
+            QL[iu, j] = Q[1][I][2][k+1]
         end
     end
 
@@ -294,33 +294,35 @@ end
 
 function SparseArrays.SparseMatrixCSC(Q::ComposedMultiDimBC{T, B, N,M} , s) where {T, B, N, M}
     s_pad = s.+2
-    Q = Tuple(_concretize.(Q.BCs, s))
-    ē = unit_indices(N)
+    Q = Tuple(_concretize.(Q.BCs, s)) #essentially finding the first and last rows of the matrix part and affine part for every atomic BC
+
     QL = spzeros(T, prod(s_pad), prod(s))
     Qb = spzeros(T, prod(s_pad))
-    ranges = Union{typeof(1:10), Int64}[2:s_pad[i]-1 for i in 1:N]
 
+    ranges = Union{typeof(1:10), Int64}[2:s_pad[i]-1 for i in 1:N] #Set up indices corresponding to the interior
     interior = CartesianIndices(Tuple(ranges))
-    I1 = CartesianIndex(Tuple(ones(Int64, N)))
-    for I in interior
-        i = c2l(I, s_pad)
-        j = c2l(I-I1, s)
-        QL[i,j] = one(T)
+
+    ē = unit_indices(N) #setup unit indices in each direction
+    I1 = CartesianIndex(Tuple(ones(Int64, N))) #setup the ones index
+    for I in interior #loop over interior
+        i = c2l(I, s_pad) #find the index on the padded side
+        j = c2l(I-I1, s)  #find the index on the unpadded side
+        QL[i,j] = one(T)  #create a padded identity matrix
     end
-    for dim in 1:N
+    for dim in 1:N #Loop over boundaries
         r_ = deepcopy(ranges)
         r_[dim] = 1
-        lower = CartesianIndices((Tuple(r_)))
+        lower = CartesianIndices((Tuple(r_))) #set up upper anmd lower indices
         r_[dim] = s_pad[dim]
         upper = CartesianIndices((Tuple(r_)))
-        for K in CartesianIndices(upper)
-            I = CartesianIndex(Tuple(K)[setdiff(1:N, dim)])
-            il = c2l(lower[K], s_pad)
-            iu = c2l(upper[K], s_pad)
-            Qb[il] = Q[dim][2][I][1]
-            Qb[iu] = Q[dim][2][I][2]
-            for k in 1:s[dim]
-                j = c2l(lower[K] + k*ē[dim]-I1, s)
+        for K in CartesianIndices(upper) #for every element of the boundaries
+            I = CartesianIndex(Tuple(K)[setdiff(1:N, dim)]) #convert K to 2D index for indexing the BC arrays
+            il = c2l(lower[K], s_pad) #Translate to linear indices
+            iu = c2l(upper[K], s_pad) # ditto
+            Qb[il] = Q[dim][2][I][1] #store the affine parts in indices corresponding with the lower index boundary
+            Qb[iu] = Q[dim][2][I][2] #ditto with upper index
+            for k in 1:s[dim] #loop over the direction orthogonal to the boundary
+                j = c2l(lower[K] + k*ē[dim]-I1, s) #Find the linear index this element of the boundary stencil should be at on the unpadded side
                 QL[il, j] = Q[dim][1][I][1][k]
                 QL[iu, j] = Q[dim][1][I][2][k]
             end
@@ -710,11 +712,11 @@ end
 
 
 function BandedMatrices.BandedMatrix(A::GhostDerivativeOperator{T, E, F},N::Int=A.L.len) where {T,E,F}
-    return (BandedMatrix(A.L,N)*Array(A.Q,A.L.len)[1], BandedMatrix(A.L,N)*Array(A.Q,A.L.len)[2])
+    return (BandedMatrix(A.L,N)*BandedMatrix(A.Q,A.L.len)[1], BandedMatrix(A.L,N)*BandedMatrix(A.Q,A.L.len)[2])
 end
 
 function BandedMatrices.BandedMatrix(A::GhostDerivativeOperator{T, E, F}, s::NTuple{N,I}) where {T,E,F, N, I<:Int}
-    return (BandedMatrix(A.L,s)*Array(A.Q,s)[1], BandedMatrix(A.L,s)*Array(A.Q,s)[2])
+    return (BandedMatrix(A.L,s)*BandedMatrix(A.Q,s)[1], BandedMatrix(A.L,s)*BandedMatrix(A.Q,s)[2])
 end
 
 function SparseArrays.SparseMatrixCSC(A::GhostDerivativeOperator{T, E, F},N::Int=A.L.len) where {T,E,F}

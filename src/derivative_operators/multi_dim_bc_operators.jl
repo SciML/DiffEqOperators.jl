@@ -163,7 +163,7 @@ Base.ndims(Q::MultiDimensionalBC{T,N}) where {T,N} = N
 function Base.:*(Q::MultiDimDirectionalBC{T, B, D, N, K}, u::AbstractArray{T, N}) where {T, B, D, N, K}
     @assert perpsize(u, D) == size(Q.BCs) "Size of the BCs array in the MultiDimBC is incorrect, needs to be $(perpsize(u,D)) to extend dimension $D, got $(size(Q.BCs))"
     lower, upper = slice_rmul(Q.BCs, u, D)
-    return BoundaryPaddedArray{T, D, N, K, typeof(u), typeof(lower)}(lower, upper, u)
+    return BoundaryPaddedArray{T, D, N, K, typeof(u), Array{T,N-1}}(lower, upper, u)
 end
 
 function Base.:*(Q::ComposedMultiDimBC{T, B, N, K}, u::AbstractArray{T, N}) where {T, B, N, K}
@@ -171,5 +171,5 @@ function Base.:*(Q::ComposedMultiDimBC{T, B, N, K}, u::AbstractArray{T, N}) wher
         @assert perpsize(u, dim) == size(Q.BCs[dim]) "Size of the BCs array for dimension $dim in the MultiDimBC is incorrect, needs to be $(perpsize(u,dim)), got $(size(Q.BCs[dim]))"
     end
     out = slice_rmul.(Q.BCs, fill(u, N), 1:N)
-    return ComposedBoundaryPaddedArray{T, N, K, typeof(u), typeof(out[1][1])}([A[1] for A in out], [A[2] for A in out], u)
+    return ComposedBoundaryPaddedArray{T, N, K, typeof(u), Array{T,N-1}}([A[1] for A in out], [A[2] for A in out], u)
 end
