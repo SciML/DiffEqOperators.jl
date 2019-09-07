@@ -79,7 +79,7 @@ function CenteredDifference{N}(derivative_order::Int,
 
     deriv_spots             = (-div(stencil_length,2)+1) : -1
     L_boundary_deriv_spots  = left_boundary_x[2:div(stencil_length,2)]
-    R_boundary_deriv_spots  = right_boundary_x[2:div(stencil_length,2)]
+    R_boundary_deriv_spots  = reverse(L_boundary_deriv_spots)
 
     function generate_interior_coordinates(i, stencil_x, dx)
         len = length(stencil_x)
@@ -93,27 +93,43 @@ function CenteredDifference{N}(derivative_order::Int,
         return stencil_x
     end
 
-    function generate_boundary_coordinates(i, stencil_x, dx)
+    function generate_left_boundary_coordinates(i, stencil_x, dx)
         len = length(stencil_x)
-        stencil_x = dx[1:len]
-        stencil_x[1:i] .= -stencil_x[1:i]
+        _dx = dx[1:len-1]
         stencil_x[i] = zero(typeof(stencil_x[1]))
         for j in i-1:-1:1
-            stencil_x[j] = stencil_x[j+1] - dx[j]
+            stencil_x[j] = stencil_x[j+1] - _dx[j]
         end
         for j in i+1:len
-            stencil_x[j] = stencil_x[j-1] + dx[j]
+            stencil_x[j] = stencil_x[j-1] + _dx[j-1]
         end
+        return stencil_x
+    end
+
+    function generate_right_boundary_coordinates(i, stencil_x, dx)
+        len = length(stencil_x)
+        len_dx = length(dx)
+        _dx = dx[N-len+1:len_dx]
+        i = len_dx-i+len
+        @show i
+        stencil_x[i] = zero(typeof(stencil_x[1]))
+        for j in i-1:-1:1
+            stencil_x[j] = stencil_x[j+1] - _dx[j]
+        end
+        for j in i+1:len
+            stencil_x[j] = stencil_x[j-1] + _dx[j-1]
+        end
+        @show stencil_x
         return stencil_x
     end
 
     stencil_coefs           = convert(SVector{length(interior_dx_indices)}, [convert(SVector{stencil_length, T}, calculate_weights(derivative_order, zero(T), generate_interior_coordinates(i, interior_stencil_x, dx))) for i in interior_dx_indices])
 
-    _low_boundary_coefs     = SVector{boundary_stencil_length, T}[convert(SVector{boundary_stencil_length, T}, calculate_weights(derivative_order, oneunit(T)*i, generate_boundary_coordinates(i, boundary_stencil_x, dx)) for i in L_boundary_deriv_spots)]
+    _low_boundary_coefs     = SVector{boundary_stencil_length, T}[convert(SVector{boundary_stencil_length, T}, calculate_weights(derivative_order, zero(T), generate_left_boundary_coordinates(i, boundary_stencil_x, dx))) for i in L_boundary_deriv_spots]
 
     low_boundary_coefs      = convert(SVector{boundary_point_count},_low_boundary_coefs)
 
-    _high_boundary_coefs    = SVector{boundary_stencil_length, T}[convert(SVector{boundary_stencil_length, T}, (1/dx^derivative_order) * calculate_weights(derivative_order, oneunit(T)*x0, reverse(right_boundary_x))) for x0 in R_boundary_deriv_spots]
+    _high_boundary_coefs     = SVector{boundary_stencil_length, T}[convert(SVector{boundary_stencil_length, T}, calculate_weights(derivative_order, zero(T), generate_right_boundary_coordinates(i, boundary_stencil_x, dx))) for i in R_boundary_deriv_spots]
 
     boundary_x              = -boundary_stencil_length+1:0
 
