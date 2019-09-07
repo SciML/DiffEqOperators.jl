@@ -87,6 +87,19 @@ end
     end
 end
 
+# Cross check from http://web.media.mit.edu/~crtaylor/calculator.html
+@testset "Correctness of Left Boundary Stencils on Non-Uniform grid" begin
+    N = 14
+    dx = [0.1*i for i in 1:15]
+
+    L = CenteredDifference(2,3, dx, N)
+    correct_left_boundary = [[8890/63,-15120/63,7600/63,-1505/63,135/63],
+                            [5110/63,-7980/63,3100/63,-245/63,15/63]]
+
+    for i in length(L.low_boundary_coefs)
+        @test L.stencil_coefs[i] ≈ correct_left_boundary[i]
+    end
+end
 
 # tests for full and sparse function
 @testset "Full and Sparse functions:" begin
