@@ -221,3 +221,15 @@ end
     G*B
     # A*G*B
 end
+
+# This test set will be cleaned up and/or merged with other test sets later.
+@testset "Consistency of multiplication with concretization" begin
+    N = 20
+    x = rand(N+2)
+    L1 = UpwindDifference(1,2,1.0,N,t->1.0)
+    @test L1*x ≈ Array(L1)*x ≈ sparse(L1)*x ≈ BandedMatrix(L1)*x
+
+    L1 = UpwindDifference(1,2,1.0,N,t->-1.0)
+    @test_broken L1*x ≈ Array(L1)*x ≈ sparse(L1)*x ≈ BandedMatrix(L1)*x
+
+end
