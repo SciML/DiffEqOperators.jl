@@ -59,6 +59,18 @@ function convert_by_multiplication(::Type{Array}, A::AbstractDerivativeOperator{
     return mat
 end
 
+
+
+# [-3/2, 2.0, -1/2]
+# 0 [-3/2, 2.0, -1/2]
+# 0 0 [-3/2, 2.0, -1/2]
+# 0 0 0 [-3/2, 2.0, -1/2]
+# 0 0 0 0 [-3/2, 2.0, -1/2]
+# 0 0 0 0 0 [-3/2, 2.0, -1/2]
+# 0 0 0 0 0 0 [-3/2, 2.0, -1/2]
+
+#For downwind difference, reverse the stencil and negate it
+
 # Tests the corrrectness of stencils, along with concretization.
 # Do not modify the following test-set unless you are completely certain of your changes.
 @testset "Correctness of Stencils" begin
