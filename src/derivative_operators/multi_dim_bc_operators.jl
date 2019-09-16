@@ -173,3 +173,9 @@ function Base.:*(Q::ComposedMultiDimBC{T, B, N, K}, u::AbstractArray{T, N}) wher
     out = slice_rmul.(Q.BCs, fill(u, N), 1:N)
     return ComposedBoundaryPaddedArray{T, N, K, typeof(u), Array{T,N-1}}([A[1] for A in out], [A[2] for A in out], u)
 end
+
+function Base.:*(Q::ComposedMultiDimBC{T, PeriodicBC{T}, N, K}, u::AbstractArray{T, N}) where {T, B, N, K}
+    lower = [selectdim(u, d, 1) for d in 1:N]
+    upper = [selectdim(u, d, size(u, d)) for d in 1:N]
+    return ComposedBoundaryPaddedArray{T, N, K, typeof(u), typeof(lower[1])}(lower, upper, u)
+end
