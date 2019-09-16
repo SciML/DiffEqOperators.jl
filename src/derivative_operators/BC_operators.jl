@@ -1,4 +1,4 @@
-abstract type AbstractBC{T} <: AbstractDiffEqLinearOperator{T} end
+abstract type AbstractBC{T} <: AbstractDiffEqAffineOperator{T} end
 
 
 abstract type AtomicBC{T} <: AbstractBC{T} end

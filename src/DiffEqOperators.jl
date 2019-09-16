@@ -7,6 +7,7 @@ import DiffEqBase: AbstractDiffEqLinearOperator, update_coefficients!, isconstan
 using SparseArrays, ForwardDiff, BandedMatrices, NNlib, LazyArrays, BlockBandedMatrices
 using ModelingToolkit
 
+abstract type AbstractDiffEqAffineOperator{T} end
 abstract type AbstractDerivativeOperator{T} <: AbstractDiffEqLinearOperator{T} end
 abstract type AbstractDiffEqCompositeOperator{T} <: AbstractDiffEqLinearOperator{T} end
 abstract type AbstractMatrixFreeOperator{T} <: AbstractDiffEqLinearOperator{T} end
