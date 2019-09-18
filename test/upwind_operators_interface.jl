@@ -60,6 +60,7 @@ function convert_by_multiplication(::Type{Array}, A::AbstractDerivativeOperator{
 end
 
 
+# Examples: Do: (1,1), (1,2), (2,3) for both all positive and all negative drift
 
 # [-3/2, 2.0, -1/2]
 # 0 [-3/2, 2.0, -1/2]
@@ -244,4 +245,41 @@ end
     L1 = UpwindDifference(1,2,1.0,N,t->-1.0)
     @test_broken L1*x ≈ Array(L1)*x ≈ sparse(L1)*x ≈ BandedMatrix(L1)*x
 
+end
+
+function analytic_UD11pos(N)
+    L = zeros(N,N+2)
+    for i in 1:N
+        L[i,i+1:i+2] = [-1.0, 1.0]
+    end
+    return L
+end
+
+function analytic_UD11neg(N)
+    L = zeros(N,N+2)
+    for i in 1:N
+        L[i,i:i+1] = [-1.0, 1.0]
+    end
+    return L
+end
+
+@testset "UpwindDifference(1,1,...) analytic tests" begin
+    N = 10
+    L1 = UpwindDifference(1,1,1.0,N,t->1.0)
+    x = rand(12)
+    L1_analytic_pos = analytic_UD11pos(N)
+
+    # Test positive coefficient UpwindDifferenec(1,1,...)
+    @test_broken Array(L1) ≈ L1_analytic_pos
+    @test_broken L1*x ≈ L1_analytic_pos*x
+    @test_broken Array(L1)*x ≈ L1_analytic_pos*x
+
+    # Test negative coefficient UpwindDifferenec(1,1,...)
+
+    L1_analytic_neg = analytic_UD11neg(N)
+    L1 = UpwindDifference(1,1,1.0,N,t->-1.0)
+
+    @test_broken Array(L1) ≈ L1_analytic_neg
+    @test_broken L1*x ≈ L1_analytic_neg*x
+    @test_broken Array(L1)*x ≈ L1_analytic_neg*x
 end
