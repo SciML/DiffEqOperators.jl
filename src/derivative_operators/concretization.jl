@@ -6,7 +6,40 @@ function LinearAlgebra.Array(A::DerivativeOperator{T}, N::Int=A.len) where T
     coeff   = A.coefficients
 
     if use_winding(A)
-        stencil_pivot = 1 + A.stencil_length%2
+
+        for i in 1:bl
+            cur_coeff   = typeof(coeff)   <: AbstractVector ? coeff[i] : coeff isa Number ? coeff : true
+            cur_stencil = use_winding(A) && cur_coeff < 0 ? A.low_boundary_coefs[i] : A.stencil_coefs
+
+            if cur_coeff >= 0
+                L[i,i+1:i+bstl] = cur_coeff * cur_stencil
+            else
+                L[i,1:bstl] = cur_coeff * cur_stencil
+            end
+        end
+
+        for i in bl+1:N-bl
+            cur_coeff   = typeof(coeff)   <: AbstractVector ? coeff[i] : coeff isa Number ? coeff : true
+            stencil     = eltype(A.stencil_coefs) <: AbstractVector ? A.stencil_coefs[i] : A.stencil_coefs
+            cur_stencil = use_winding(A) && cur_coeff < 0 ? -1.0*reverse(stencil) : stencil
+            if cur_coeff >= 0
+                L[i,i+1:i+stencil_length] = cur_coeff * cur_stencil
+            else
+                L[i,i-stencil_length+2:i+1] = cur_coeff * cur_stencil
+            end
+        end
+
+        for i in N-bl+1:N
+            cur_coeff   = typeof(coeff)   <: AbstractVector ? coeff[i] : coeff isa Number ? coeff : true
+            cur_stencil = use_winding(A) && cur_coeff > 0 ? A.high_boundary_coefs[i-N+bl] : -1.0*reverse(A.stencil_coefs)
+            if cur_coeff >= 0
+               L[i,N-bstl+3:N+2] = cur_coeff * cur_stencil
+            else
+                L[i,i-bstl+2:i+1] = cur_coeff * cur_stencil
+            end
+        end
+        return L
+
     else
         stencil_pivot = div(stencil_length,2)
     end
