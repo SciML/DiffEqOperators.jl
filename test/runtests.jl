@@ -18,3 +18,4 @@ import Base: isapprox
 @time @safetestset "2D and 3D fast multiplication" begin include("2D_3D_fast_multiplication.jl") end
 @time @safetestset "Higher Dimensional Concretization" begin include("concretization.jl") end
 @time @safetestset "Upwind Operator Interface" begin include("upwind_operators_interface.jl") end
+@time @safetestset "MOLFiniteDifference Interface" begin include("MOLtest.jl") end
