@@ -4,7 +4,7 @@ struct MOLFiniteDifference{T} <: DiffEqBase.AbstractDiscretization
 end
 MOLFiniteDifference(args...;order=2) = MOLFiniteDifference(args,order)
 
-function discretize(pdesys::PDESystem,discretization::MOLFiniteDifference)
+function DiffEqBase.discretize(pdesys::PDESystem,discretization::MOLFiniteDifference)
   tdomain = pdesys.domain[1].domain
   domain = pdesys.domain[2].domain
   @assert domain isa IntervalDomain
@@ -13,7 +13,7 @@ function discretize(pdesys::PDESystem,discretization::MOLFiniteDifference)
   interior = domain.lower+dx:dx:domain.upper-dx
   X = domain.lower:dx:domain.upper
   L = CenteredDifference(2,2,dx,Int(len/dx)-2)
-  Q = DiffEqOperators.DirichletBC([0.0,0.0],[1.0,1.0])
+  Q = DirichletBC(0.0,0.0)
   function f(du,u,p,t)
     mul!(du,L,Array(Q*u))
   end
