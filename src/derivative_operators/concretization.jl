@@ -118,49 +118,74 @@ function SparseArrays.SparseMatrixCSC(Q::AffineBC{T}, N::Int) where {T}
 end
 
 function BandedMatrices.BandedMatrix(Q::AffineBC{T}, N::Int) where {T}
-    Q_l = BandedMatrix{T}(Eye(N), (length(Q.a_r)-1, length(Q.a_l)-1))
-    BandedMatrices.inbands_setindex!(Q_l, Q.a_l, 1, 1:length(Q.a_l))
-    BandedMatrices.inbands_setindex!(Q_l, Q.a_r, N, (N-length(Q.a_r)+1):N)
+    # We want the concrete matrix to have as small bandwidths as
+    # possible, and we accomplish this by dropping all trailing
+    # zeros. This way, we do not write outside the bands of the
+    # BandedMatrix.
+    a_r = Q.a_r[1:something(findlast(!iszero, Q.a_r), 0)]
+    a_l = Q.a_l[1:something(findlast(!iszero, Q.a_l), 0)]
+
+    # Compute bandwidths; the BC matrix should have the shape
+    #
+    # [a b c ...
+    #  1
+    #    1
+    #      1
+    #        .
+    #          1
+    #  ... x y z]
+    #
+    # where a,b,c,... and ...,x,y,z are determined by the boundary
+    # conditions. If these coefficients are zero (Dirichlet0BC), then
+    # the proper bandwidths are (l,u) = (1,-1).    
+    l = max(count(!iszero, a_r)+1, 1)
+    u = max(count(!iszero, a_l)-1, -1)
+
+    Q_l = BandedMatrix((-1 => ones(T,N),), (N+2,N), (l, u))
+    for (j,e) ∈ enumerate(a_l)
+        BandedMatrices.inbands_setindex!(Q_l, e, 1, j)
+    end
+    for (j,e) ∈ enumerate(a_r)
+        BandedMatrices.inbands_setindex!(Q_l, e, N+2, N-length(a_r)+j)
+    end
     Q_b = [Q.b_l; zeros(T,N); Q.b_r]
-    return (Q_l, Q_b)
+    
+    Q_l, Q_b
 end
 
-function SparseArrays.sparse(Q::AffineBC{T}, N::Int) where {T}
-    SparseMatrixCSC(Q,N)
-end
+"""
+    sparse(Q::AffineBC, N)
+
+Since affine boundary conditions are representable by banded matrices,
+that is the default sparse concretization; if you want a
+`SparseMatrixCSC`, use `SparseMatrixCSC(Q, N)` instead.
+"""
+SparseArrays.sparse(Q::AffineBC, N::Int) = BandedMatrix(Q,N)
 
 # ** Periodic BCs
 
 LinearAlgebra.Array(Q::PeriodicBC{T}, N::Int) where T =
     ([transpose(zeros(T, N-1)) one(T)
       Diagonal(ones(T,N))
-      one(T) transpose(zeros(T, N-1))], zeros(T, N))
+      one(T) transpose(zeros(T, N-1))],
+     zeros(T,N+2))
 
 SparseArrays.SparseMatrixCSC(Q::PeriodicBC{T}, N::Int) where T =
     (vcat(hcat(zeros(T, 1,N-1), one(T)),
           Diagonal(ones(T,N)),
-          hcat(one(T), zeros(T, 1, N-1))), zeros(T, N))
+          hcat(one(T), zeros(T, 1, N-1))),
+     zeros(T,N+2))
 
 SparseArrays.sparse(Q::PeriodicBC{T}, N::Int) where T = SparseMatrixCSC(Q,N)
 
 BandedMatrices.BandedMatrix(::PeriodicBC, ::Int) =
     throw(ArgumentError("Periodic boundary conditions should be concretized as sparse matrices"))
 
-function LinearAlgebra.Array(Q::BoundaryPaddedVector)
-    return [Q.l; Q.u; Q.r]
-end
+LinearAlgebra.Array(Q::BoundaryPaddedVector) = [Q.l; Q.u; Q.r]
 
-function Base.convert(::Type{Array},A::AbstractBC{T}) where T
-    Array(A)
-end
-
-function Base.convert(::Type{SparseMatrixCSC},A::AbstractBC{T}) where T
-    SparseMatrixCSC(A)
-end
-
-function Base.convert(::Type{AbstractMatrix},A::AbstractBC{T}) where T
-    SparseMatrixCSC(A)
-end
+Base.convert(::Type{Array},A::AbstractBC) = Array(A)
+Base.convert(::Type{SparseMatrixCSC},A::AbstractBC) = SparseMatrixCSC(A)
+Base.convert(::Type{AbstractMatrix},A::AbstractBC) = SparseMatrixCSC(A)
 
 # Multi dimensional BC operators
 
