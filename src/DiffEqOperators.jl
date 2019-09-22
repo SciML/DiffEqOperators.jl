@@ -46,7 +46,7 @@ for T in [DiffEqScaledOperator, DiffEqOperatorCombination, DiffEqOperatorComposi
 end
 
 export MatrixFreeOperator
-export JacVecOperator, getops
+export AnalyticalJacVecOperator, JacVecOperator, getops
 export AbstractDerivativeOperator, DerivativeOperator,
        CenteredDifference, UpwindDifference
 export DirichletBC, Dirichlet0BC, NeumannBC, Neumann0BC, RobinBC, GeneralBC, MultiDimBC, PeriodicBC,
