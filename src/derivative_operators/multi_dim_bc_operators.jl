@@ -169,7 +169,7 @@ end
 function Base.:*(Q::MultiDimDirectionalBC{T, PeriodicBC{T}, D, N, K}, u::AbstractArray{T, N}) where {T, B, D, N, K}
     lower = selectdim(u, D, 1)
     upper = selectdim(u, D, size(u,D))
-    return BoundaryPaddedArray{T, D, N, K, typeof(u), typeof(lower)}(lower, upper, u)
+    return BoundaryPaddedArray{T, D, N, K, typeof(u), Union{typeof.(lower)..., typeof.(upper)...}}(lower, upper, u)
 end
 
 
@@ -184,5 +184,5 @@ end
 function Base.:*(Q::ComposedMultiDimBC{T, PeriodicBC{T}, N, K}, u::AbstractArray{T, N}) where {T, B, N, K}
     lower = [selectdim(u, d, 1) for d in 1:N]
     upper = [selectdim(u, d, size(u, d)) for d in 1:N]
-    return ComposedBoundaryPaddedArray{T, N, K, typeof(u), typeof(lower[1])}(lower, upper, u)
+    return ComposedBoundaryPaddedArray{T, N, K, typeof(u), Union{typeof.(lower)..., typeof.(upper)...}}(lower, upper, u)
 end
