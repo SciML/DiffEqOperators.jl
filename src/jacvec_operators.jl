@@ -132,3 +132,52 @@ function LinearAlgebra.mul!(du::AbstractVector,L::JacVecOperator,x::AbstractVect
         end
     end
 end
+
+### AnalyticalOperator Implementation
+
+mutable struct AnalyticalJacVecOperator{T,F,uType,P,tType,O} <: DiffEqBase.AbstractDiffEqLinearOperator{T}
+    f::F
+    u::uType
+    p::P
+    t::tType
+    ishermitian::Bool
+    opnorm::O
+    function AnalyticalJacVecOperator{T}(f,u=nothing,p=nothing,t::Union{Nothing,Number}=nothing;ishermitian=false,opnorm=true) where T
+        u===nothing ? uType = Any : uType = typeof(u)
+        p===nothing ? P = Any : P = typeof(p)
+        t===nothing ? tType = Any : tType = typeof(t)
+        new{T,typeof(f),uType,P,tType,typeof(opnorm)}(f,u,p,t,ishermitian,opnorm)
+    end
+    function AnalyticalJacVecOperator(f,u,args...;kwargs...)
+        AnalyticalJacVecOperator{eltype(u)}(f,u,args...;kwargs...)
+    end
+end
+
+LinearAlgebra.opnorm(L::AnalyticalJacVecOperator, p::Real=2) = L.opnorm
+LinearAlgebra.ishermitian(L::AnalyticalJacVecOperator) = L.ishermitian
+
+Base.size(L::AnalyticalJacVecOperator) = (length(L.u),length(L.u))
+Base.size(L::AnalyticalJacVecOperator,i::Int) = length(L.u)
+function update_coefficients!(L::AnalyticalJacVecOperator,u,p,t)
+    L.u = u
+    L.p = p
+    L.t = t
+end
+
+# Interpret the call as df/du * u
+
+function (L::AnalyticalJacVecOperator)(u,p,t::Number)
+    update_coefficients!(L,u,p,t)
+    L*u
+end
+
+function (L::AnalyticalJacVecOperator)(du,u,p,t::Number)
+    update_coefficients!(L,u,p,t)
+    mul!(du,L,u)
+end
+
+Base.:*(L::AnalyticalJacVecOperator,x::AbstractVector) = L.f(x,L.u,L.p,L.t)
+
+function LinearAlgebra.mul!(du::AbstractVector,L::AnalyticalJacVecOperator,x::AbstractVector)
+    L.f(du,x,L.u,L.p,L.t)
+end
