@@ -183,10 +183,6 @@ BandedMatrices.BandedMatrix(::PeriodicBC, ::Int) =
 
 LinearAlgebra.Array(Q::BoundaryPaddedVector) = [Q.l; Q.u; Q.r]
 
-Base.convert(::Type{Array},A::AbstractBC) = Array(A)
-Base.convert(::Type{SparseMatrixCSC},A::AbstractBC) = SparseMatrixCSC(A)
-Base.convert(::Type{AbstractMatrix},A::AbstractBC) = SparseMatrixCSC(A)
-
 # Multi dimensional BC operators
 
 """
