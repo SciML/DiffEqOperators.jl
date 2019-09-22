@@ -1,5 +1,5 @@
 using SparseArrays, DiffEqOperators, LinearAlgebra, Random,
-    Test, BandedMatrices, FillArrays, LazyArrays, BlockBandedMatrices
+    Test, BandedMatrices, FillArrays, LazyArrays, BlockBandedMatrices, Compat
 
 @testset "Concretizations of BCs" begin
     T = Float64
