@@ -18,6 +18,7 @@ struct DiffEqScaledOperator{T,F,OpType<:AbstractDiffEqLinearOperator{T}} <: Abst
   op::OpType
 end
 *(α::DiffEqScalar{T,F}, L::AbstractDiffEqLinearOperator{T}) where {T,F} = DiffEqScaledOperator(α, L)
+*(α::Number, L::AbstractDiffEqLinearOperator{T}) where T = DiffEqScaledOperator(DiffEqScalar(convert(T,α)), L)
 -(L::AbstractDiffEqLinearOperator{T}) where {T} = DiffEqScalar(-one(T)) * L
 getops(L::DiffEqScaledOperator) = (L.coeff, L.op)
 Matrix(L::DiffEqScaledOperator) = L.coeff * Matrix(L.op)
