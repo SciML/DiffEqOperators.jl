@@ -41,7 +41,8 @@ LinearAlgebra.Array(A::DerivativeOperator{T}, N::Int=A.len) where T =
 SparseArrays.SparseMatrixCSC(A::DerivativeOperator{T}, N::Int=A.len) where T =
     copyto!(spzeros(T, N, N+2), A, N)
 
-SparseArrays.sparse(A::DerivativeOperator{T}, N::Int=A.len) where T = SparseMatrixCSC(A,N)
+SparseArrays.sparse(A::DerivativeOperator{T}, N::Int=A.len) where T =
+    BandedMatrix(A,N)
 
 function BandedMatrices.BandedMatrix(A::DerivativeOperator{T}, N::Int=A.len) where T
     stencil_length = A.stencil_length
