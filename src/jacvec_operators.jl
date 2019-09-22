@@ -135,7 +135,7 @@ end
 
 ### AnalyticalOperator Implementation
 
-mutable struct AnalyticalJacVecOperator{T,F,T1,T2,uType,P,tType,O} <: DiffEqBase.AbstractDiffEqLinearOperator{T}
+mutable struct AnalyticalJacVecOperator{T,F,uType,P,tType,O} <: DiffEqBase.AbstractDiffEqLinearOperator{T}
     f::F
     u::uType
     p::P
@@ -178,6 +178,6 @@ end
 
 Base.:*(L::AnalyticalJacVecOperator,x::AbstractVector) = L.f(x,L.u,L.p,L.t)
 
-function LinearAlgebra.mul!(du::AbstractVector,L::JacVecOperator,x::AbstractVector)
+function LinearAlgebra.mul!(du::AbstractVector,L::AnalyticalJacVecOperator,x::AbstractVector)
     L.f(du,x,L.u,L.p,L.t)
 end
