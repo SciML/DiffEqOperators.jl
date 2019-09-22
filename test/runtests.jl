@@ -19,3 +19,4 @@ import Base: isapprox
 @time @safetestset "Higher Dimensional Concretization" begin include("concretization.jl") end
 @time @safetestset "Upwind Operator Interface" begin include("upwind_operators_interface.jl") end
 @time @savetestset "3D laplacian Test" begin include("3D_laplacian.jl") end
+@time @safetestset "MOLFiniteDifference Interface" begin include("MOLtest.jl") end

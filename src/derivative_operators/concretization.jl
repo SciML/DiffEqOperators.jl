@@ -1,128 +1,61 @@
-################################################################################
-# DerivativeOperator Concretizations
-################################################################################
 
-
-function LinearAlgebra.Array(A::DerivativeOperator{T}, N::Int=A.len) where T
-    L = zeros(T, N, N+2)
+function Base.copyto!(L::AbstractMatrix{T}, A::DerivativeOperator{T}, N::Int) where T
     bl = A.boundary_point_count
     stencil_length = A.stencil_length
+    stencil_pivot = use_winding(A) ? (1 + stencil_length%2) : div(stencil_length,2)    
     bstl = A.boundary_stencil_length
+    
     coeff   = A.coefficients
-
-    if use_winding(A)
-        stencil_pivot = 1 + A.stencil_length%2
+    get_coeff = if coeff isa AbstractVector
+        i -> coeff[i]
+    elseif coeff isa Number
+        i -> coeff
     else
-        stencil_pivot = div(stencil_length,2)
+        i -> true
     end
 
     for i in 1:bl
-        cur_coeff   = typeof(coeff)   <: AbstractVector ? coeff[i] : coeff isa Number ? coeff : true
+        cur_coeff   = get_coeff(i)
         cur_stencil = use_winding(A) && cur_coeff < 0 ? reverse(A.low_boundary_coefs[i]) : A.low_boundary_coefs[i]
         L[i,1:bstl] = cur_coeff * cur_stencil
     end
 
     for i in bl+1:N-bl
-        cur_coeff   = typeof(coeff)   <: AbstractVector ? coeff[i] : coeff isa Number ? coeff : true
+        cur_coeff   = get_coeff(i)
         stencil     = eltype(A.stencil_coefs) <: AbstractVector ? A.stencil_coefs[i] : A.stencil_coefs
         cur_stencil = use_winding(A) && cur_coeff < 0 ? reverse(stencil) : stencil
         L[i,i+1-stencil_pivot:i-stencil_pivot+stencil_length] = cur_coeff * cur_stencil
     end
 
     for i in N-bl+1:N
-        cur_coeff   = typeof(coeff)   <: AbstractVector ? coeff[i] : coeff isa Number ? coeff : true
+        cur_coeff   = get_coeff(i)
         cur_stencil = use_winding(A) && cur_coeff < 0 ? reverse(A.high_boundary_coefs[i-N+bl]) : A.high_boundary_coefs[i-N+bl]
         L[i,N-bstl+3:N+2] = cur_coeff * cur_stencil
     end
-    return L
+    
+    L
 end
 
-function SparseArrays.SparseMatrixCSC(A::DerivativeOperator{T}, N::Int=A.len) where T
-    L = spzeros(T, N, N+2)
-    bl = A.boundary_point_count
-    stencil_length = A.stencil_length
-    stencil_pivot = div(stencil_length,2)
-    bstl = A.boundary_stencil_length
-    coeff   = A.coefficients
+LinearAlgebra.Array(A::DerivativeOperator{T}, N::Int=A.len) where T =
+    copyto!(zeros(T, N, N+2), A, N)
 
-    if use_winding(A)
-        stencil_pivot = 1 + A.stencil_length%2
-    else
-        stencil_pivot = div(stencil_length,2)
-    end
+SparseArrays.SparseMatrixCSC(A::DerivativeOperator{T}, N::Int=A.len) where T =
+    copyto!(spzeros(T, N, N+2), A, N)
 
-    for i in 1:A.boundary_point_count
-        cur_coeff   = typeof(coeff)   <: AbstractVector ? coeff[i] : coeff isa Number ? coeff : true
-        cur_stencil = use_winding(A) && cur_coeff < 0 ? reverse(A.low_boundary_coefs[i]) : A.low_boundary_coefs[i]
-        L[i,1:bstl] = cur_coeff * cur_stencil
-    end
-
-    for i in bl+1:N-bl
-        cur_coeff   = typeof(coeff)   <: AbstractVector ? coeff[i] : coeff isa Number ? coeff : true
-        stencil     = eltype(A.stencil_coefs) <: AbstractVector ? A.stencil_coefs[i] : A.stencil_coefs
-        cur_stencil = use_winding(A) && cur_coeff < 0 ? reverse(stencil) : stencil
-        L[i,i+1-stencil_pivot:i-stencil_pivot+stencil_length] = cur_coeff * cur_stencil
-    end
-
-    for i in N-bl+1:N
-        cur_coeff   = typeof(coeff)   <: AbstractVector ? coeff[i] : coeff isa Number ? coeff : true
-        cur_stencil = use_winding(A) && cur_coeff < 0 ? reverse(A.high_boundary_coefs[i-N+bl]) : A.high_boundary_coefs[i-N+bl]
-        L[i,N-bstl+3:N+2] = cur_coeff * cur_stencil
-    end
-    return L
-end
-
-function SparseArrays.sparse(A::DerivativeOperator{T}, N::Int=A.len) where T
-    SparseMatrixCSC(A,N)
-end
+SparseArrays.sparse(A::DerivativeOperator{T}, N::Int=A.len) where T = SparseMatrixCSC(A,N)
 
 function BandedMatrices.BandedMatrix(A::DerivativeOperator{T}, N::Int=A.len) where T
-    bl = A.boundary_point_count
     stencil_length = A.stencil_length
     bstl = A.boundary_stencil_length
-    coeff   = A.coefficients
-    if use_winding(A)
-        stencil_pivot = 1 + A.stencil_length%2
-    else
-        stencil_pivot = div(stencil_length,2)
-    end
     L = BandedMatrix{T}(Zeros(N, N+2), (max(stencil_length-3,0,bstl),max(stencil_length-1,0,bstl)))
-
-    for i in 1:A.boundary_point_count
-        cur_coeff   = typeof(coeff)   <: AbstractVector ? coeff[i] : coeff isa Number ? coeff : true
-        cur_stencil = use_winding(A) && cur_coeff < 0 ? reverse(A.low_boundary_coefs[i]) : A.low_boundary_coefs[i]
-        L[i,1:bstl] = cur_coeff * cur_stencil
-    end
-    for i in bl+1:N-bl
-        cur_coeff   = typeof(coeff)   <: AbstractVector ? coeff[i] : coeff isa Number ? coeff : true
-        stencil     = eltype(A.stencil_coefs) <: AbstractVector ? A.stencil_coefs[i] : A.stencil_coefs
-        cur_stencil = use_winding(A) && cur_coeff < 0 ? reverse(stencil) : stencil
-        L[i,i+1-stencil_pivot:i-stencil_pivot+stencil_length] = cur_coeff * cur_stencil
-    end
-    for i in N-bl+1:N
-        cur_coeff   = typeof(coeff)   <: AbstractVector ? coeff[i] : coeff isa Number ? coeff : true
-        cur_stencil = use_winding(A) && cur_coeff < 0 ? reverse(A.high_boundary_coefs[i-N+bl]) : A.high_boundary_coefs[i-N+bl]
-        L[i,N-bstl+3:N+2] = cur_coeff * cur_stencil
-    end
-    return L
+    copyto!(L, A, N)
 end
 
-function Base.convert(::Type{Array},A::DerivativeOperator{T}) where T
-    Array(A)
-end
+Base.convert(::Type{Mat}, A::DerivativeOperator) where {Mat<:Union{Array,SparseMatrixCSC,BandedMatrix}} =
+    Mat(A)
 
-function Base.convert(::Type{SparseMatrixCSC},A::DerivativeOperator{T}) where T
-    SparseMatrixCSC(A)
-end
-
-function Base.convert(::Type{BandedMatrix},A::DerivativeOperator{T}) where T
+Base.convert(::Type{AbstractMatrix},A::DerivativeOperator) =
     BandedMatrix(A)
-end
-
-function Base.convert(::Type{AbstractMatrix},A::DerivativeOperator{T}) where T
-    BandedMatrix(A)
-end
-
 
 ################################################################################
 # Boundary Padded Array concretizations
@@ -184,10 +117,10 @@ end
 
 function BandedMatrices.BandedMatrix(Q::AffineBC{T}, N::Int) where {T}
     Q_l = BandedMatrix{T}(Eye(N), (length(Q.a_r)-1, length(Q.a_l)-1))
-    inbands_setindex!(Q_L, Q.a_l, 1, 1:length(Q.a_l))
-    inbands_setindex!(Q_L, Q.a_r, N, (N-length(Q.a_r)+1):N)
+    BandedMatrices.inbands_setindex!(Q_l, Q.a_l, 1, 1:length(Q.a_l))
+    BandedMatrices.inbands_setindex!(Q_l, Q.a_r, N, (N-length(Q.a_r)+1):N)
     Q_b = [Q.b_l; zeros(T,N); Q.b_r]
-    return (Q_L, Q_b)
+    return (Q_l, Q_b)
 end
 
 function SparseArrays.sparse(Q::AffineBC{T}, N::Int) where {T}
@@ -569,3 +502,4 @@ end
 Array(L::DiffEqScaledOperator, s) = L.coeff * Array(L.op, s)
 Array(L::DiffEqOperatorCombination, s) = sum(Array.(L.ops, fill(s, length(L.ops))))
 Array(L::DiffEqOperatorComposition, s) = prod(Array.(reverse(L.ops), fill(s, length(L.ops))))
+
