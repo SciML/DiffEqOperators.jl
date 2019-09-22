@@ -101,7 +101,10 @@ end
 # Boundary Condition Operator concretizations
 ################################################################################
 
-#Atomic BCs
+# * Atomic BCs
+
+# ** Affine BCs
+
 function LinearAlgebra.Array(Q::AffineBC{T}, N::Int) where {T}
     Q_L = [transpose(Q.a_l) transpose(zeros(T, N-length(Q.a_l))); Diagonal(ones(T,N)); transpose(zeros(T, N-length(Q.a_r))) transpose(Q.a_r)]
     Q_b = [Q.b_l; zeros(T,N); Q.b_r]
@@ -126,18 +129,22 @@ function SparseArrays.sparse(Q::AffineBC{T}, N::Int) where {T}
     SparseMatrixCSC(Q,N)
 end
 
-LinearAlgebra.Array(Q::PeriodicBC{T}, N::Int) where T = (Array([transpose(zeros(T, N-1)) one(T); Diagonal(ones(T,N)); one(T) transpose(zeros(T, N-1))]), zeros(T, N))
-SparseArrays.SparseMatrixCSC(Q::PeriodicBC{T}, N::Int) where T = ([transpose(zeros(T, N-1)) one(T); Diagonal(ones(T,N)); one(T) transpose(zeros(T, N-1))], zeros(T, N))
-SparseArrays.sparse(Q::PeriodicBC{T}, N::Int) where T = SparseMatrixCSC(Q,N)
-function BandedMatrices.BandedMatrix(Q::PeriodicBC{T}, N::Int) where T #Not reccomended!
-    Q_array = BandedMatrix{T}(Eye(N), (N-1, N-1))
-    Q_array[1, end] = one(T)
-    Q_array[1, 1] = zero(T)
-    Q_array[end, 1] = one(T)
-    Q_array[end, end] = zero(T)
+# ** Periodic BCs
 
-    return (Q_array, zeros(T, N))
-end
+LinearAlgebra.Array(Q::PeriodicBC{T}, N::Int) where T =
+    ([transpose(zeros(T, N-1)) one(T)
+      Diagonal(ones(T,N))
+      one(T) transpose(zeros(T, N-1))], zeros(T, N))
+
+SparseArrays.SparseMatrixCSC(Q::PeriodicBC{T}, N::Int) where T =
+    (vcat(hcat(zeros(T, 1,N-1), one(T)),
+          Diagonal(ones(T,N)),
+          hcat(one(T), zeros(T, 1, N-1))), zeros(T, N))
+
+SparseArrays.sparse(Q::PeriodicBC{T}, N::Int) where T = SparseMatrixCSC(Q,N)
+
+BandedMatrices.BandedMatrix(::PeriodicBC, ::Int) =
+    throw(ArgumentError("Periodic boundary conditions should be concretized as sparse matrices"))
 
 function LinearAlgebra.Array(Q::BoundaryPaddedVector)
     return [Q.l; Q.u; Q.r]

@@ -19,7 +19,7 @@ Qx, Qy, ... = PeriodicBC{T}(size(u)) #When all dimensions are to be extended wit
 
 -------------------------------------------------------------------------------------
 Creates a periodic boundary condition, where the lower index end of some u is extended with the upper index end and vice versa.
-It is not reccomended to concretize this BC type in to a BandedMatrix, since the vast majority of bands will be all 0s. SpatseMatrix concretization is reccomended.
+It is not recommended to concretize this BC type in to a BandedMatrix, since the vast majority of bands will be all 0s. SparseMatrix concretization is recommended.
 """
 struct PeriodicBC{T} <: AtomicBC{T}
     PeriodicBC(T::Type) = new{T}()
