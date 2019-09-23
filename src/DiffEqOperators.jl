@@ -25,7 +25,7 @@ include("utils.jl")
 include("boundary_padded_arrays.jl")
 
 ### Boundary Operators
-include("derivative_operators/BC_operators.jl")
+include("derivative_operators/bc_operators.jl")
 include("derivative_operators/multi_dim_bc_operators.jl")
 
 ### Derivative Operators

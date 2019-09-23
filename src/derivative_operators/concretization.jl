@@ -2,9 +2,9 @@
 function Base.copyto!(L::AbstractMatrix{T}, A::DerivativeOperator{T}, N::Int) where T
     bl = A.boundary_point_count
     stencil_length = A.stencil_length
-    stencil_pivot = use_winding(A) ? (1 + stencil_length%2) : div(stencil_length,2)    
+    stencil_pivot = use_winding(A) ? (1 + stencil_length%2) : div(stencil_length,2)
     bstl = A.boundary_stencil_length
-    
+
     coeff   = A.coefficients
     get_coeff = if coeff isa AbstractVector
         i -> coeff[i]
@@ -32,7 +32,7 @@ function Base.copyto!(L::AbstractMatrix{T}, A::DerivativeOperator{T}, N::Int) wh
         cur_stencil = use_winding(A) && cur_coeff < 0 ? reverse(A.high_boundary_coefs[i-N+bl]) : A.high_boundary_coefs[i-N+bl]
         L[i,N-bstl+3:N+2] = cur_coeff * cur_stencil
     end
-    
+
     L
 end
 
@@ -163,7 +163,8 @@ function _concretize(Q::AbstractArray{T,N}, M) where {T,N}
     return (stencil.(Q, fill(M,size(Q))), affine.(Q))
 end
 
-function LinearAlgebra.Array(Q::MultiDimDirectionalBC{T, B, D, N, K}, s) where {T, B, D,N,K}
+function LinearAlgebra.Array(Q::MultiDimDirectionalBC{T, B, D, N, L}, s) where {T, B, D,N,L}
+    @assert size(Q.BCs) == perpsize(s, D) "The size of the BC array in Q, $(size(Q.BCs)) is incompatible with s, $s"
     blip = zeros(Int64, N)
     blip[D] = 2
     s_pad = s.+ blip # extend s in the right direction
@@ -205,6 +206,9 @@ end
 This is confusing, but it does work
 """
 function LinearAlgebra.Array(Q::ComposedMultiDimBC{T, B, N,M} , s) where {T, B, N, M}
+    for d in 1:N
+        @assert size(Q.BCs[d]) == perpsize(s, d) "The size of the BC array in Q along dimension $d, $(size(Q.BCs[d])) is incompatible with s, $s"
+    end
     s_pad = s.+2
     Q = Tuple(_concretize.(Q.BCs, s)) #essentially finding the first and last rows of the matrix part and affine part for every atomic BC
 
@@ -247,7 +251,8 @@ end
 """
 See comments on the `Array` method for this type for an idea of what is going on
 """
-function SparseArrays.SparseMatrixCSC(Q::MultiDimDirectionalBC{T, B, D, N, K}, s) where {T, B, D,N,K}
+function SparseArrays.SparseMatrixCSC(Q::MultiDimDirectionalBC{T, B, D, N, L}, s) where {T, B, D,N,L}
+    @assert size(Q.BCs) == perpsize(s, D) "The size of the BC array in Q, $(size(Q.BCs)) is incompatible with s, $s"
     blip = zeros(Int64, N)
     blip[D] = 2
     s_pad = s.+ blip # extend s in the right direction
@@ -287,6 +292,9 @@ end
 
 
 function SparseArrays.SparseMatrixCSC(Q::ComposedMultiDimBC{T, B, N,M} , s) where {T, B, N, M}
+    for d in 1:N
+        @assert size(Q.BCs[d]) == perpsize(s, d) "The size of the BC array in Q along dimension $d, $(size(Q.BCs[d])) is incompatible with s, $s"
+    end
     s_pad = s.+2
     Q = Tuple(_concretize.(Q.BCs, s)) #essentially finding the first and last rows of the matrix part and affine part for every atomic BC
 
@@ -502,4 +510,3 @@ end
 Array(L::DiffEqScaledOperator, s) = L.coeff * Array(L.op, s)
 Array(L::DiffEqOperatorCombination, s) = sum(Array.(L.ops, fill(s, length(L.ops))))
 Array(L::DiffEqOperatorComposition, s) = prod(Array.(reverse(L.ops), fill(s, length(L.ops))))
-
