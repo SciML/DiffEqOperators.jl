@@ -163,8 +163,8 @@ function _concretize(Q::AbstractArray{T,N}, M) where {T,N}
     return (stencil.(Q, fill(M,size(Q))), affine.(Q))
 end
 
-function LinearAlgebra.Array(Q::MultiDimDirectionalBC{T, B, D, N, L}, s) where {T, B, D,N,L}
-    @assert size(Q.BCs) == perpsize(s, D) "The size of the BC array in Q, $(size(Q.BCs)) is incompatible with s, $s"
+function LinearAlgebra.Array(Q::MultiDimDirectionalBC{T, B, D, N, L}, s::NTuple{N,G}) where {T, B, D,N,L, G<:Int}
+    @assert size(Q.BCs) == perpindex(s, D) "The size of the BC array in Q, $(size(Q.BCs)) is incompatible with s, $s"
     blip = zeros(Int64, N)
     blip[D] = 2
     s_pad = s.+ blip # extend s in the right direction
@@ -205,9 +205,9 @@ end
 """
 This is confusing, but it does work
 """
-function LinearAlgebra.Array(Q::ComposedMultiDimBC{T, B, N,M} , s) where {T, B, N, M}
+function LinearAlgebra.Array(Q::ComposedMultiDimBC{T, B, N,M} , s::NTuple{N,G}) where {T, B, N, M, G<:Int}
     for d in 1:N
-        @assert size(Q.BCs[d]) == perpsize(s, d) "The size of the BC array in Q along dimension $d, $(size(Q.BCs[d])) is incompatible with s, $s"
+        @assert size(Q.BCs[d]) == perpindex(s, d) "The size of the BC array in Q along dimension $d, $(size(Q.BCs[d])) is incompatible with s, $s"
     end
     s_pad = s.+2
     Q = Tuple(_concretize.(Q.BCs, s)) #essentially finding the first and last rows of the matrix part and affine part for every atomic BC
@@ -251,8 +251,8 @@ end
 """
 See comments on the `Array` method for this type for an idea of what is going on
 """
-function SparseArrays.SparseMatrixCSC(Q::MultiDimDirectionalBC{T, B, D, N, L}, s) where {T, B, D,N,L}
-    @assert size(Q.BCs) == perpsize(s, D) "The size of the BC array in Q, $(size(Q.BCs)) is incompatible with s, $s"
+function SparseArrays.SparseMatrixCSC(Q::MultiDimDirectionalBC{T, B, D, N, L}, s::NTuple{N,G}) where {T, B, D,N,L, G<:Int}
+    @assert size(Q.BCs) == perpindex(s, D) "The size of the BC array in Q, $(size(Q.BCs)) is incompatible with s, $s"
     blip = zeros(Int64, N)
     blip[D] = 2
     s_pad = s.+ blip # extend s in the right direction
@@ -291,9 +291,9 @@ function SparseArrays.SparseMatrixCSC(Q::MultiDimDirectionalBC{T, B, D, N, L}, s
 end
 
 
-function SparseArrays.SparseMatrixCSC(Q::ComposedMultiDimBC{T, B, N,M} , s) where {T, B, N, M}
+function SparseArrays.SparseMatrixCSC(Q::ComposedMultiDimBC{T, B, N,M}, s::NTuple{N,G}) where {T, B, N, M, G<:Int}
     for d in 1:N
-        @assert size(Q.BCs[d]) == perpsize(s, d) "The size of the BC array in Q along dimension $d, $(size(Q.BCs[d])) is incompatible with s, $s"
+        @assert size(Q.BCs[d]) == perpindex(s, d) "The size of the BC array in Q along dimension $d, $(size(Q.BCs[d])) is incompatible with s, $s"
     end
     s_pad = s.+2
     Q = Tuple(_concretize.(Q.BCs, s)) #essentially finding the first and last rows of the matrix part and affine part for every atomic BC
@@ -334,18 +334,12 @@ function SparseArrays.SparseMatrixCSC(Q::ComposedMultiDimBC{T, B, N,M} , s) wher
     return (QL, Qb)
 end
 
-SparseArrays.sparse(Q::MultiDimDirectionalBC, N) = SparseMatrixCSC(Q, N)
-SparseArrays.sparse(Q::ComposedMultiDimBC, N) = SparseMatrixCSC(Q, N)
+SparseArrays.sparse(Q::MultiDimDirectionalBC, s) = SparseMatrixCSC(Q, s)
+SparseArrays.sparse(Q::ComposedMultiDimBC, s) = SparseMatrixCSC(Q, s)
 
 
-function BandedMatrices.BandedMatrix(Q::MultiDimDirectionalBC{T, B, D, N, K}, M) where {T, B, D,N,K}
-    bc_tuples = BandedMatrix.(Q.BCs, fill(M, size(Q.BCs)))
-    Q_L = [bc_tuple[1] for bc_tuple in bc_tuples]
-    inds = Array(1:N)
-    inds[1], inds[D] = inds[D], inds[1]
-    Q_b = [permutedims(add_dims(bc_tuple[2], N-1),inds) for bc_tuple in bc_tuples]
-
-    return (Q_L, Q_b)
+function BandedMatrices.BandedMatrix(Q:: MultiDimensionalBC, M) where {T, B, D,N,K}
+    throw("Banded Matrix cocnretization not yet supported for MultiDimensionalBCs")
 end
 
 ################################################################################
@@ -470,28 +464,33 @@ end
 # GhostDerivativeOperator Concretizations
 ################################################################################
 function LinearAlgebra.Array(A::GhostDerivativeOperator{T, E, F},N::Int=A.L.len) where {T,E,F}
-    return (Array(A.L,N)*Array(A.Q,A.L.len)[1], Array(A.L,N)*Array(A.Q,A.L.len)[2])
+    Q_l, Q_b = Array(A.Q,N)
+    return (Array(A.L,N)*Q_l, Array(A.L,N)*Q_b)
 end
 
 function LinearAlgebra.Array(A::GhostDerivativeOperator{T, E, F}, s::NTuple{N,I}) where {T,E,F,N,I<:Int}
-    return (Array(A.L, s)*Array(A.Q, s)[1], Array(A.L, s)*Array(A.Q, s)[2])
+    Q_l, Q_b = Array(A.Q,s)
+    return (Array(A.L,s)*Q_l, Array(A.L,s)*Q_b)
 end
 
-
 function BandedMatrices.BandedMatrix(A::GhostDerivativeOperator{T, E, F},N::Int=A.L.len) where {T,E,F}
-    return (BandedMatrix(A.L,N)*BandedMatrix(A.Q,A.L.len)[1], BandedMatrix(A.L,N)*BandedMatrix(A.Q,A.L.len)[2])
+    Q_l, Q_b = BandedMatrix(A.Q,N)
+    return (BandedMatrix(A.L,N)*Q_l, BandedMatrix(A.L,N)*Q_b)
 end
 
 function BandedMatrices.BandedMatrix(A::GhostDerivativeOperator{T, E, F}, s::NTuple{N,I}) where {T,E,F, N, I<:Int}
-    return (BandedMatrix(A.L,s)*BandedMatrix(A.Q,s)[1], BandedMatrix(A.L,s)*BandedMatrix(A.Q,s)[2])
+    Q_l,Q_b = BandedMatrix(A.Q,s)
+    return (BandedMatrix(A.L,s)*Q_l, BandedMatrix(A.L,s)*Q_b)
 end
 
 function SparseArrays.SparseMatrixCSC(A::GhostDerivativeOperator{T, E, F},N::Int=A.L.len) where {T,E,F}
-    return (SparseMatrixCSC(A.L,N)*SparseMatrixCSC(A.Q,A.L.len)[1], SparseMatrixCSC(A.L,N)*SparseMatrixCSC(A.Q,A.L.len)[2])
+    Q_l, Q_b = SparseMatrixCSC(A.Q,N)
+    return (SparseMatrixCSC(A.L,N)*Q_l, SparseMatrixCSC(A.L,N)*Q_b)
 end
 
 function SparseArrays.SparseMatrixCSC(A::GhostDerivativeOperator{T, E, F}, s::NTuple{N,I}) where {T,E,F,N,I<:Int}
-    return (SparseMatrixCSC(A.L,s)*SparseMatrixCSC(A.Q,s)[1], SparseMatrixCSC(A.L,s)*SparseMatrixCSC(A.Q,s)[2])
+    Q_l, Q_b = SparseMatrixCSC(A.Q,s)
+    return (SparseMatrixCSC(A.L,s)*Q_l, SparseMatrixCSC(A.L,s)*Q_b)
 end
 
 
@@ -501,7 +500,7 @@ end
 
 
 function SparseArrays.sparse(A::GhostDerivativeOperator{T, E, F}, s::NTuple{N,I}) where {T,E,F, N,I}
-    return SparseMatrixCSC(A,N)
+    return SparseMatrixCSC(A,s)
 end
 
 ################################################################################

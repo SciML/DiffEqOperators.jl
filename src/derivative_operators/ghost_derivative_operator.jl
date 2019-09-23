@@ -22,7 +22,7 @@ end
 function \(A::GhostDerivativeOperator{T,E,F}, u::AbstractArray{T,N}) where {T,E,F,N}
     #TODO implement check that A has compatible size with u
     s = size(u)
-    (A_l,A_b) = sparse(A, size(u))
+    (A_l,A_b) = sparse(A, s)
     x = A_l\(reshape(u, length(u)).-A_b)
     return reshape(x, s)
 end
