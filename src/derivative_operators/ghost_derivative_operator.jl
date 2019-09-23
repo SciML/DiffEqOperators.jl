@@ -23,15 +23,16 @@ function *(A::GhostDerivativeOperator{T1}, u::AbstractArray{T2}) where {T1,T2}
 end
 
 
-function \(A::GhostDerivativeOperator{T1}, u::AbstractArray{T2}) where {T1,T2}
+function \(A::GhostDerivativeOperator, u::AbstractArray) # FIXME should have T1,T2 and promote result
     #TODO implement check that A has compatible size with u
     s = size(u)
-    x = zeros(promote_type(T1,T2),prod(s))
-    LinearAlgebra.ldiv!(x, A, u)
+    (A_l,A_b) = sparse(A, s)
+    x = A_l\(reshape(u, length(u)).-A_b)
     return reshape(x, s)
 end
 
 
+<<<<<<< HEAD
 function LinearAlgebra.ldiv!(x::AbstractVector{T}, A::GhostDerivativeOperator{T,E,F}, u::AbstractVector{T}) where {T,E,F}
     @assert length(x) == size(A.L,1)
     (AL,Ab) = sparse(A, size(A.L,1))
@@ -51,7 +52,6 @@ function LinearAlgebra.ldiv!(x::AbstractVector{T}, A::GhostDerivativeOperator{T,
     Al, Ab = sparse(A, size(u))
     LinearAlgebra.ldiv!(x, Al, reshape(u, s_).-Ab)
 end
-
 
 # update coefficients
 function DiffEqBase.update_coefficients!(A::GhostDerivativeOperator,u,p,t)

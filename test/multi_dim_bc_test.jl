@@ -95,6 +95,8 @@ for N in 2:7
     A1_N = Q1_N.*fill(A, N)
 
     A_arr = Array(Q*A)
+    Q_l, Q_b = sparse(Q, size(A))
 
     @test A_arr == Array(compose(A1_N...))
+    @test A_arr == reshape(Q_l*reshape(A, length(A)) .+ Q_b, size(A)) #Test concretization
 end

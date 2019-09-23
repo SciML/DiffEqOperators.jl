@@ -10,7 +10,6 @@ function update_coefficients!(L::AbstractDiffEqCompositeOperator,u,p,t)
   L
 end
 isconstant(L::AbstractDiffEqCompositeOperator) = all(isconstant, getops(L))
-LinearAlgebra.lmul!(α::DiffEqScalar, B::AbstractVecOrMat) = lmul!(α.val, B)
 
 # Scaled operator (α * A)
 struct DiffEqScaledOperator{T,F,OpType<:AbstractDiffEqLinearOperator{T}} <: AbstractDiffEqCompositeOperator{T}
