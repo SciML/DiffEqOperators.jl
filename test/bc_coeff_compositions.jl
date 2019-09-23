@@ -379,18 +379,12 @@ end
     # Additionally test that A\f2.(x) ≈ f.(x)
     @test f.(x) ≈ ghost_f ≈ analytic_f
 
-    # Check ldiv!
-    f_temp = zeros(N)
-    ldiv!(f_temp, A, f2.(x))
-    @test f_temp ≈ ghost_f ≈ analytic_f
-
-
     # Check that left division with matrices works
     M = [f2.(x) f2.(x)]
     Qx = MultiDimBC{1}(Q, size(M))
 
     Am = L*Qx
-
+    @show size(M)
     ghost_fM = Am \ M
     s = size(M)
     analytic_fM = analytic_Am \ reshape(M, prod(s))
@@ -428,11 +422,6 @@ end
 
     # Additionally test that A\f2.(x) ≈ f.(x)
     @test f.(x) ≈ ghost_f ≈ analytic_f
-
-    # Check ldiv!
-    f_temp = zeros(N)
-    ldiv!(f_temp, A, f2.(x))
-    @test f_temp ≈ ghost_f ≈ analytic_f
 
     # Check \ for Matrix
     M2 = [f2.(x) 2.0*f2.(x) 10.0*f2.(x)]
@@ -484,20 +473,14 @@ end
     end
     analytic_Am = kron(Diagonal(ones(3)), analytic_L)*analytic_QM
 
-
+    @show analytic_AL
+    @show Array(A_L, size(u))[1]
 
     analytic_u = analytic_AL \ (u - analytic_Ab)
     ghost_u = A \ u
 
     # Check that A\u.(x) is consistent with analytic_AL \ u.(x)
     @test analytic_u ≈ ghost_u
-
-    # Check ldiv!
-    u_temp = zeros(N)
-    ldiv!(u_temp, A, u)
-    @test u_temp ≈ ghost_u ≈ analytic_u
-
-
 
     M2 = [u 2.0*u 10.0*u]
     s = size(M2)
