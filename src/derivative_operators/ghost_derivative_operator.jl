@@ -82,18 +82,20 @@ Base.length(A::GhostDerivativeOperator) = reduce(*, size(A))
 
 
 # Concretizations, will be moved to concretizations.jl later
-function LinearAlgebra.Array(A::GhostDerivativeOperator{T, E, F},N::Int=A.L.len) where {T,E,F}
-    return (Array(A.L,N)*Array(A.Q,A.L.len)[1], Array(A.L,N)*Array(A.Q,A.L.len)[2])
+
+for Mat in [:Array,:BandedMatrix,:SparseMatrixCSC]
+    @eval function $Mat(A::GhostDerivativeOperator, N::Int=A.L.len)
+        L = $Mat(A.L,N)
+        Qm,Qu = $Mat(A.Q, A.L.len)
+
+        LQm = L*Qm
+        LQu = L*Qu
+        LQm, LQu
+    end
 end
 
-function BandedMatrices.BandedMatrix(A::GhostDerivativeOperator{T, E, F},N::Int=A.L.len) where {T,E,F}
-    return (BandedMatrix(A.L,N)*Array(A.Q,A.L.len)[1], BandedMatrix(A.L,N)*Array(A.Q,A.L.len)[2])
-end
+SparseArrays.sparse(A::GhostDerivativeOperator{<:Any,<:Any,<:AbstractBC},N::Int=A.L.len) =
+    SparseMatrixCSC(A,N)
 
-function SparseArrays.SparseMatrixCSC(A::GhostDerivativeOperator{T, E, F},N::Int=A.L.len) where {T,E,F}
-    return (SparseMatrixCSC(A.L,N)*SparseMatrixCSC(A.Q,A.L.len)[1], SparseMatrixCSC(A.L,N)*SparseMatrixCSC(A.Q,A.L.len)[2])
-end
-
-function SparseArrays.sparse(A::GhostDerivativeOperator{T, E, F},N::Int=A.L.len) where {T,E,F}
-    return SparseMatrixCSC(A,N)
-end
+SparseArrays.sparse(A::GhostDerivativeOperator{<:Any,<:Any,<:AffineBC},N::Int=A.L.len) =
+    BandedMatrix(A,N)

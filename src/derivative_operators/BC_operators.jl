@@ -4,7 +4,7 @@ abstract type AbstractBC{T} <: AbstractDiffEqLinearOperator{T} end
 abstract type AtomicBC{T} <: AbstractBC{T} end
 
 """
-Robin, General, and in general Neumann, Dirichlet and Bridge BCs are all affine opeartors, meaning that they take the form Q*x = Qa*x + Qb.
+Robin, General, and in general Neumann, Dirichlet and Bridge BCs are all affine operators, meaning that they take the form Q*x = Qa*x + Qb.
 """
 abstract type AffineBC{T} <: AtomicBC{T} end
 
@@ -19,7 +19,6 @@ Qx, Qy, ... = PeriodicBC{T}(size(u)) #When all dimensions are to be extended wit
 
 -------------------------------------------------------------------------------------
 Creates a periodic boundary condition, where the lower index end of some u is extended with the upper index end and vice versa.
-It is not reccomended to concretize this BC type in to a BandedMatrix, since the vast majority of bands will be all 0s. SpatseMatrix concretization is reccomended.
 """
 struct PeriodicBC{T} <: AtomicBC{T}
     PeriodicBC(T::Type) = new{T}()
