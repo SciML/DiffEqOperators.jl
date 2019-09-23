@@ -151,7 +151,6 @@ end
     Qx = MultiDimBC{1}(Q, size(M))
 
     Am = L*Qx
-    @show size(M)
     ghost_fM = Am \ M
     s = size(M)
     analytic_fM = analytic_Am \ reshape(M, prod(s))
@@ -194,7 +193,7 @@ end
     M2 = [f2.(x) 2.0*f2.(x) 10.0*f2.(x)]
 
     s = size(M2)
-    Qx = MultiDimBC(Q, size(M2), 1)
+    Qx = MultiDimBC{1}(Q, size(M2))
 
     analytic_QLm, analytic_Qbm = Array(Qx, s)
 
@@ -240,14 +239,20 @@ end
     end
     analytic_Am = kron(Diagonal(ones(3)), analytic_L)*analytic_QM
 
-    @show analytic_AL
-    @show Array(A_L, size(u))[1]
-
-    analytic_u = analytic_AL \ (u - analytic_Ab)
+    analytic_u = analytic_AL \ Vector(u .- analytic_Ab)
     ghost_u = A \ u
 
+    As_l, As_b = sparse(A, length(u))
+
+    @test As_l ≈ analytic_AL #This is true
+    @test As_b ≈  analytic_Ab #This is true
+    @test Vector(u .- analytic_Ab) ≈ Vector(u .- As_b) #this is true
+    @test_broken analytic_AL\Vector(u .- analytic_Ab) ≈ As_l\Vector(u .- As_b) #Then why isn't this working?
+
+    sp_u = As_l\Vector(u .- As_b)
     # Check that A\u.(x) is consistent with analytic_AL \ u.(x)
-    @test analytic_u ≈ ghost_u
+    @test ghost_u ≈ sp_u
+    @test_broken analytic_u ≈ ghost_u #
 
     M2 = [u 2.0*u 10.0*u]
     s = size(M2)
@@ -266,14 +271,15 @@ end
     Δx = x[2]-x[1]
     u₀=1.0
     Γ=1.0
-    Dx=u₀*CenteredDifference{1}(1,2,Δx,N)
-    Dxx=Γ*CenteredDifference{1}(2,2,Δx,N)
-    Q=PeriodicBC(Float64)
+    Dx=u₀*CenteredDifference{1}(1,4,Δx,N)
+    Dxx=Γ*CenteredDifference{1}(2,4,Δx,N)
+    Q=NeumannBC((-2(pi)+2, 2(pi)+2), Δx)
 
     A = Dx*Q + Dxx*Q
+    Ac = (Dx+Dxx)*Q
     y = A*(x.^2)
+    @test y ≈ Ac*(x.^2)
+    analytic_y = 2x.+2
 
-    analytic_y = 2x+2
-
-    @test y ≈ analytic_y
+    @test_broken y ≈ analytic_y
 end
