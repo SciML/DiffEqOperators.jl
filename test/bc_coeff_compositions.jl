@@ -273,12 +273,11 @@ end
     Γ=1.0
     Dx=u₀*CenteredDifference{1}(1,4,Δx,N)
     Dxx=Γ*CenteredDifference{1}(2,4,Δx,N)
-    Q=NeumannBC((-2(pi)+2, 2(pi)+2), Δx)
+    Q=NeumannBC((2x[1]+2, 2x[end]+2), Δx, 6)
 
     A = Dx*Q + Dxx*Q
-    Ac = (Dx+Dxx)*Q
+
     y = A*(x.^2)
-    @test y ≈ Ac*(x.^2)
     analytic_y = 2x.+2
 
     @test_broken y ≈ analytic_y
