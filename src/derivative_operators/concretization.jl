@@ -169,7 +169,8 @@ function _concretize(Q::AbstractArray{T,N}, M) where {T,N}
     return (stencil.(Q, fill(M,size(Q))), affine.(Q))
 end
 
-function LinearAlgebra.Array(Q::MultiDimDirectionalBC{T, B, D, N, K}, s) where {T, B, D,N,K}
+function LinearAlgebra.Array(Q::MultiDimDirectionalBC{T, B, D, N, L}, s) where {T, B, D,N,L}
+    @assert size(Q.BCs) == perpsize(s, D) "The size of the BC array in Q, $(size(Q.BCs)) is incompatible with s, $s"
     blip = zeros(Int64, N)
     blip[D] = 2
     s_pad = s.+ blip # extend s in the right direction
@@ -211,6 +212,9 @@ end
 This is confusing, but it does work
 """
 function LinearAlgebra.Array(Q::ComposedMultiDimBC{T, B, N,M} , s) where {T, B, N, M}
+    for d in 1:N
+        @assert size(Q.BCs[d]) == perpsize(s, d) "The size of the BC array in Q along dimension $d, $(size(Q.BCs[d])) is incompatible with s, $s"
+    end
     s_pad = s.+2
     Q = Tuple(_concretize.(Q.BCs, s)) #essentially finding the first and last rows of the matrix part and affine part for every atomic BC
 
@@ -253,7 +257,8 @@ end
 """
 See comments on the `Array` method for this type for an idea of what is going on
 """
-function SparseArrays.SparseMatrixCSC(Q::MultiDimDirectionalBC{T, B, D, N, K}, s) where {T, B, D,N,K}
+function SparseArrays.SparseMatrixCSC(Q::MultiDimDirectionalBC{T, B, D, N, L}, s) where {T, B, D,N,L}
+    @assert size(Q.BCs) == perpsize(s, D) "The size of the BC array in Q, $(size(Q.BCs)) is incompatible with s, $s"
     blip = zeros(Int64, N)
     blip[D] = 2
     s_pad = s.+ blip # extend s in the right direction
@@ -293,6 +298,9 @@ end
 
 
 function SparseArrays.SparseMatrixCSC(Q::ComposedMultiDimBC{T, B, N,M} , s) where {T, B, N, M}
+    for d in 1:N
+        @assert size(Q.BCs[d]) == perpsize(s, d) "The size of the BC array in Q along dimension $d, $(size(Q.BCs[d])) is incompatible with s, $s"
+    end
     s_pad = s.+2
     Q = Tuple(_concretize.(Q.BCs, s)) #essentially finding the first and last rows of the matrix part and affine part for every atomic BC
 
