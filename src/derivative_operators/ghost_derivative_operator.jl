@@ -11,14 +11,10 @@ function *(L::AbstractDiffEqCompositeOperator{T}, Q::AbstractBC{T}) where{T}
     return sum(map(op -> op * Q, L.ops))
 end
 
-function LinearAlgebra.mul!(x::AbstractArray{T,N}, A::GhostDerivativeOperator{T,E,F}, u::AbstractArray{T,N}) where {T,E,F,N}
-    LinearAlgebra.mul!(x, A.L, u)
-end
-
 function *(A::GhostDerivativeOperator{T1}, u::AbstractArray{T2}) where {T1,T2}
     #TODO Implement a function domaincheck(L::AbstractDiffEqLinearOperator, u) to see if components of L along each dimension match the size of u
     x = similar(u, promote_type(T1,T2))
-    LinearAlgebra.mul!(x, A, A.Q*u)
+    LinearAlgebra.mul!(x, A.L, A.Q*u)
     return x
 end
 
@@ -27,30 +23,14 @@ function \(A::GhostDerivativeOperator, u::AbstractArray) # FIXME should have T1,
     #TODO implement check that A has compatible size with u
     s = size(u)
     (A_l,A_b) = sparse(A, s)
-    x = A_l\(reshape(u, length(u)).-A_b)
+    x = A_l \ Vector(reshape(u, length(u)) .- A_b) #Has to be converted to vector to work, A_b being sparse was causing a conversion to sparse.
     return reshape(x, s)
 end
 
-
-<<<<<<< HEAD
-function LinearAlgebra.ldiv!(x::AbstractVector{T}, A::GhostDerivativeOperator{T,E,F}, u::AbstractVector{T}) where {T,E,F}
-    @assert length(x) == size(A.L,1)
-    (AL,Ab) = sparse(A, size(A.L,1))
-    LinearAlgebra.ldiv!(x, AL, u.-Ab)
-end
-
-function LinearAlgebra.ldiv!(x::AbstractVector{T}, A::GhostDerivativeOperator{T,E,F}, u::AbstractMatrix{T}) where {T,E,F} # Needs to be specifically defined to avoid ambiuguity with the fallback method in DiffEqBase
-    s_ = prod(size(u))
-    @assert length(x) == s_
-    Al, Ab = sparse(A, size(u))
-    LinearAlgebra.ldiv!(x, Al, reshape(u, s_).-Ab)
-end
-
-function LinearAlgebra.ldiv!(x::AbstractVector{T}, A::GhostDerivativeOperator{T,E,F}, u::AbstractArray{T,N}) where {T,E,F,N}
-    s_ = prod(size(u))
-    @assert length(x) == s_
-    Al, Ab = sparse(A, size(u))
-    LinearAlgebra.ldiv!(x, Al, reshape(u, s_).-Ab)
+function \(A::GhostDerivativeOperator{T,E,F}, u::AbstractVector{T}) where {T,E,F}
+    @assert length(u) == size(A.L, 1)
+    (A_l,A_b) = sparse(A,length(u))
+    A_l \ Vector(u .- A_b)
 end
 
 # update coefficients
