@@ -5,6 +5,8 @@
 [![Coverage Status](https://coveralls.io/repos/JuliaDiffEq/DiffEqOperators.jl/badge.svg?branch=master&service=github)](https://coveralls.io/github/JuliaDiffEq/DiffEqOperators.jl?branch=master)
 [![codecov.io](http://codecov.io/github/shivin9/DiffEqOperators.jl/coverage.svg?branch=master)](http://codecov.io/github/JuliaDiffEq/DiffEqOperators.jl?branch=master)
 
+#### This package is still experimental and may not work for all documented cases
+
 DiffEqOperators.jl provides a set of pre-defined operators for use with
 DifferentialEquations.jl. These operators make it easy to discretize and solve
 common partial differential equations.
