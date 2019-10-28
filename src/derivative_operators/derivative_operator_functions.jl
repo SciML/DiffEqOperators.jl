@@ -1,3 +1,19 @@
+#
+# The mul! methods that contract derivative operators with arrays.
+#
+# These methods handle the {N} dimension type parameter.
+# 
+# There are four methods.  One is a general method for multidimensional
+# arrays, and the others are short cuts for 1, 2 and 3 dimensions.  The 1 dimensional
+# method for AbstractVector is defined in convolutions.jl, and the
+# others are defined here.
+#
+# At the interior points of an evenly spaced grid, a finite difference
+# operator is a convolution.  Where possible, the heavy lifting is
+# done by the efficient conv!  routine from NNlib.  The routines
+# defined in convolutions.jl cover the cases where that isn't possible.
+# 
+
 # Fallback mul! implementation for a single DerivativeOperator operating on an AbstractArray
 function LinearAlgebra.mul!(x_temp::AbstractArray{T}, A::DerivativeOperator{T,N}, M::AbstractArray{T}; overwrite = true) where {T,N}
 

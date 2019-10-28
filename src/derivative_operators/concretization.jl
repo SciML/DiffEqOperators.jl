@@ -1,3 +1,10 @@
+#
+# Casting to normal matrix types.
+#
+# This implements the casts described in README.md, and the cast from
+# BoundaryPaddedArray to Array.
+#
+
 function Base.copyto!(L::AbstractMatrix{T}, A::DerivativeOperator{T}, N::Int) where T
     bl = A.boundary_point_count
     stencil_length = A.stencil_length

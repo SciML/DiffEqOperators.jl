@@ -1,28 +1,118 @@
-# DiffEqOperators.jl
+# Finite Difference Derivative Operators with Boundary Conditions
 
 [![Build Status](https://travis-ci.org/JuliaDiffEq/DiffEqOperators.jl.svg?branch=master)](https://travis-ci.org/JuliaDiffEq/DiffEqOperators.jl)
 [![Build status](https://ci.appveyor.com/api/projects/status/au9knv63u9oh1aie?svg=true)](https://ci.appveyor.com/project/ChrisRackauckas/diffeqoperators-jl)
 [![Coverage Status](https://coveralls.io/repos/JuliaDiffEq/DiffEqOperators.jl/badge.svg?branch=master&service=github)](https://coveralls.io/github/JuliaDiffEq/DiffEqOperators.jl?branch=master)
 [![codecov.io](http://codecov.io/github/shivin9/DiffEqOperators.jl/coverage.svg?branch=master)](http://codecov.io/github/JuliaDiffEq/DiffEqOperators.jl?branch=master)
 
-#### This package is still experimental and may not work for all documented cases
+Construct finite-difference operators to discretize a partial
+differential equation and its boundary conditions by the method of
+lines.  This reduces it to a system of ordinary differential
+equations that can be solved by [`DifferentialEquations.jl`](https://juliadiffeq.org/).
 
-DiffEqOperators.jl provides a set of pre-defined operators for use with
-DifferentialEquations.jl. These operators make it easy to discretize and solve
-common partial differential equations.
+Both centred and [upwind](https://en.wikipedia.org/wiki/Upwind_scheme)
+operators are provided, for domains of any dimension, arbitrarily
+spaced grids, and for any order of accuracy.  The cases of 1, 2 and
+3 dimensions with an evenly spaced grid are optimized with a
+convolution routine from `NNlib.jl`.  Care is taken to avoid
+unnecessary allocations.
 
-## Automated Finite Difference Method (FDM) Operators
+Any operator can be concretised as an `Array`, a `BandedMatrix` or
+a sparse matrix.
 
-This library provides lazy operators for arbitrary order uniform and non-uniform
-finite difference discretizations of arbitrary high derivative order and for
-arbitrarily high dimensions.
+**This package is still experimental and may not work for all
+documented cases.  The docstrings might be more current than this
+README.**
 
-There are two types of `DerivativeOperator`s: the `CenteredDifference` operator
-and the `UpwindDifference` operator. The `CenteredDifference` operator utilizes
-a central difference scheme while the upwind operator requires a coefficient
-to be defined to perform an upwinding difference scheme.
+## The simplest case
 
-### Operators Constructors
+As shown in the figure, the operators act on a set of samples
+`f_j = f(x_j)` for a function `f` at a grid of points `x_j`.  The
+grid has `n` interior points at `x_j = jh` for `j = 1` to `n`, and 2
+boundary points at `x_0 = 0` and `x_{n+1} = (n+1) h`.  The input to
+the numerical operators is a vector `u = [f_1, f_2, …, f_N]`, and
+they output a vector of sampled derivatives `du ≈ [f'(x_1), f'(x_2),
+…, f'(x_N)]`, or a higher order derivative as requested.
+
+A numerical derivative operator `D` of order `m` can be constructed
+for this grid with `D = CenteredDifference(1, m, h, n)`  The argument
+`1` indicates that this is a first derivative.  Order `m` means
+that the operator is exact up to rounding when `f` is a polynomial
+of degree `m` or lower.
+
+The derivative operator `D` is used along with a boundary condition
+operator `Q`, to compute derivatives at the interior points of the
+grid.  A simple boundary condition `f(x_0) = f(x_n+1) = 0` is
+constructed with `Q = Dirichlet0BC(eltype(u))`.
+
+Given these definitions, the derivatives are calculated as if the
+operators `D` and `Q` were matrices.  `du = D*Q*u`.  This is an
+abuse of notation!  The particular `Q` in this example is a linear
+operator, but in general boundary conditions are affine operators.
+They have the form `Q(x) = M*x + c`, where `M` is a matrix and `c`
+is a constant vector.  As a consequence, `Q` can not be concretized
+to a matrix.
+
+![Actions of DiffEqOperators on interior points and ghost points](action.svg)
+
+The operator `D` works by interpolating a polynomial of degree `m`
+through `m+1` adjacent points on the grid.  Near the middle of the
+grid, the derivative is approximated at `x_j` by interpolating a
+polynomial of order `m` with `x_j` at its centre.  To define a
+order-`m` polynomial, values are required at `m+1` points.  When
+`x_j` is too close to the boundary for that to fit, the polynomial
+is interpolated through the leftmost or rightmost `m+1` points,
+including two “ghost” points that `Q` appends on the boundaries.
+The numerical derivatives are linear combinations of the values
+through which the polynomials are interpolated.  The vectors of
+coefficients in these linear combinations are called “stencils”.
+Because `D` takes values at the ghost points and returns values at
+the interior points, it is a `n×(n+2)` matrix.
+
+The boundary condition operator `Q`
+acts as an `(n+2)×n` matrix.  The output `Q*u` is a vector of values
+on the `n` interior and the 2 boundary points, `[a, f(x_1), …, f(x_N), b]`.
+The interior points take the values of `u`.  The values `a` and `b` are
+samples at “ghost” points on the grid boundaries.  As shown, these
+values are assigned so that an interpolated polynomial `P(x)` satisfies
+the left hand boundary condition, and `Q(x)` satisfies the right hand
+boundary condition.  The boundary conditions provided by the
+library are precisely those for which the values `a` and `b` are affine
+functions of the interior values `f_j`, so that `Q` is an affine operator.
+
+## Higher dimensions
+
+In one dimension, `u` is naturally stored as a `Vector`,
+and the derivative and boundary condition operators are similar
+to matrices.
+
+In two dimensions, the values `f(x_j)` are naturally stored as a
+matrix.  Taking derivatives along the downwards axis is easy, because
+matrices act columnwise.  Horizontal derivatives can be taken by
+transposing the matrices.  The derivative along the rightward axis
+is `(D*F')' = F*D' `.  This is easy to code, but less easy to read
+for those who haven't seen it before.
+
+When a function has three or more arguments, its values are naturally
+stored in a higher dimensional array.  Julia's multiplication
+operator is only defined for `Vector` and `Matrix`, so applying an
+operator matrix to these arrays would require a complicated and
+error prone series of `reshape` and axis permutation functions.
+
+Therefore the types of derivative and boundary condition operators
+are parameterised by the axis along which the operator acts.  With
+derivative operators, the axis is supplied as a type parameter.
+The simple case `CenteredDifference(…)` is equivalent to
+`CenteredDifference{1}(…)`, rowwise derivatives are taken by
+`CenteredDifference{2}(…)`, sheetwise by `CenteredDifference{3}(…)`,
+and along the `N`th axis by `CenteredDifference{N}(…)`.
+
+Boundary conditions are more complicated.  See `@doc MultiDimBC`
+for how they are supposed to work in multiple dimensions.  They
+don't currently work that way.
+
+
+## Constructors
 
 The constructors are as follows:
 
@@ -55,21 +145,6 @@ The arguments are:
 `N`-dimensional derivative operators need to act against a value of at least
 `N` dimensions.
 
-### Example
-
-The 3-dimensional Laplacian is created by:
-
-```julia
-N = 64
-Dxx = CenteredDifference(2,2,dx,N)
-Dyy = CenteredDifference{2}(2,2,dx,N)
-Dzz = CenteredDifference{3}(2,2,dx,N)
-L = Dxx + Dyy + Dzz
-
-u = rand(N,N,N)
-L*u
-```
-
 ### Derivative Operator Actions
 
 These operators are lazy, meaning the memory is not allocated. Similarly, the
@@ -90,6 +165,8 @@ Additionally, the function `sparse` is overloaded to give the most efficient
 matrix type for a given operator. For one-dimensional derivatives this is a
 `BandedMatrix`, while for higher dimensional operators this is a `BlockBandedMatrix`.
 The concretizations are made to act on `vec(u)`.
+
+A contraction operator concretizes to an ordinary matrix, no matter which dimension the contraction acts along.
 
 ## Boundary Condition Operators
 
@@ -117,8 +194,13 @@ Additionally, the following helpers exist for the Neumann `u'(0) = α` and
 Dirichlet `u(0) = α` cases.
 
 ```julia
-Dirichlet0BC(T::Type)
-DirichletBC(α::AbstractVector{T}, dx::AbstractVector{T}, order = 1)
+DirichletBC(αl::T, αr::T)
+Dirichlet0BC(T::Type) = DirichletBC(zero(T), zero(T))
+```
+
+This fixes `u = αl` at the (first, second?) point of the grid, and `u = αr` at the (second?) last point.
+
+```julia
 Neumann0BC(dx::Union{AbstractVector{T}, T}, order = 1)
 NeumannBC(α::AbstractVector{T}, dx::AbstractVector{T}, order = 1)
 ```
@@ -133,24 +215,6 @@ of coefficients. Represents a condition of the form
 GeneralBC(αl::AbstractArray{T}, αr::AbstractArray{T}, dx::AbstractArray{T}, order = 1)
 ```
 
-### Multidimensional Boundary Conditions
-
-```julia
-Q_dim = MultiDimBC(Q, size(u), dim)
-```
-
-turns `Q` into a boundary condition along the dimension `dim`. Additionally,
-to apply the same boundary values to all dimensions, one can use
-
-```julia
-Qx,Qy,Qz = MultiDimBC(YourBC, size(u)) # Here u is 3d
-```
-
-Multidimensional BCs can then be composed into a single operator with:
-
-```julia
-Q = compose(BCs...)
-```
 
 ### Operator Actions
 

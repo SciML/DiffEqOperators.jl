@@ -1,3 +1,18 @@
+# 
+# Convolutions that can not be done by NNlib.conv!
+# 
+# There are three convolution routines.  They compute the derivative
+# on the left margin, interior and right margin of the grid.  They
+# are used by the mul! methods defined in derivative_operator_functions.jl
+# to compute derivatives.  When possible, the mul! methods use
+# NNlib.conv! for the interior.
+# 
+# These methods are defined for AbstractVector as a fallback.  However,
+# derivative operators normally act on a BoundaryPaddedVector returned
+# by a boundary condition operator, and there are specialised methods
+# to avoid allocation in this case.
+# 
+
 # mul! done by convolutions
 function LinearAlgebra.mul!(x_temp::AbstractVector{T}, A::DerivativeOperator, x::AbstractVector{T}; overwrite = true) where T<:Real
     convolve_BC_left!(x_temp, x, A, overwrite = overwrite)

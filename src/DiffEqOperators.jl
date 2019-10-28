@@ -39,6 +39,8 @@ include("composite_operators.jl")
 
 include("MOL_discretization.jl")
 
+include("docstrings.jl")
+
 # The (u,p,t) and (du,u,p,t) interface
 for T in [DiffEqScaledOperator, DiffEqOperatorCombination, DiffEqOperatorComposition]
   (L::T)(u,p,t) = (update_coefficients!(L,u,p,t); L * u)
