@@ -4,7 +4,9 @@ abstract type AbstractBC{T} <: AbstractDiffEqLinearOperator{T} end
 abstract type AtomicBC{T} <: AbstractBC{T} end
 
 """
-Robin, General, and in general Neumann, Dirichlet and Bridge BCs are all affine opeartors, meaning that they take the form Q*x = Qa*x + Qb.
+Robin, General, and in general Neumann, Dirichlet and Bridge BCs
+are not necessarily linear operators.  Instead, they are affine
+opeartors, with a constant term Q*x = Qa*x + Qb.
 """
 abstract type AffineBC{T} <: AtomicBC{T} end
 
