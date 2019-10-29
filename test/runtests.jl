@@ -1,5 +1,7 @@
 using SafeTestsets
-import Base: isapprox
+
+# Examples
+@time @safetestset "Poisson example" begin include("../examples/poisson.jl") end
 
 @time @safetestset "Basic Operators Interface" begin include("basic_operators_interface.jl") end
 @time @safetestset "Robin Boundary Condition Operators" begin include("robin.jl") end
@@ -14,3 +16,4 @@ import Base: isapprox
 @time @safetestset "Matrix-Free Operators" begin include("matrixfree.jl") end
 @time @safetestset "Convolutions" begin include("convolutions.jl") end
 @time @safetestset "Differentiation Dimension" begin include("differentiation_dimension.jl") end
+
