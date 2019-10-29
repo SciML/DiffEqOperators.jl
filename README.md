@@ -1,4 +1,4 @@
-# Finite Difference Derivative Operators with Boundary Conditions
+# DiffEqOperators.jl
 
 [![Build Status](https://travis-ci.org/JuliaDiffEq/DiffEqOperators.jl.svg?branch=master)](https://travis-ci.org/JuliaDiffEq/DiffEqOperators.jl)
 [![Build status](https://ci.appveyor.com/api/projects/status/au9knv63u9oh1aie?svg=true)](https://ci.appveyor.com/project/ChrisRackauckas/diffeqoperators-jl)
@@ -103,14 +103,13 @@ Therefore the types of derivative and boundary condition operators
 are parameterised by the axis along which the operator acts.  With
 derivative operators, the axis is supplied as a type parameter.
 The simple case `CenteredDifference(…)` is equivalent to
-`CenteredDifference{1}(…)`, rowwise derivatives are taken by
-`CenteredDifference{2}(…)`, sheetwise by `CenteredDifference{3}(…)`,
+`CenteredDifference{1}(…)`, row-wise derivatives are taken by
+`CenteredDifference{2}(…)`, sheet-wise by `CenteredDifference{3}(…)`,
 and along the `N`th axis by `CenteredDifference{N}(…)`.
 
 Boundary conditions are more complicated.  See `@doc MultiDimBC`
 for how they are supposed to work in multiple dimensions.  They
 don't currently work that way.
-
 
 ## Constructors
 
@@ -166,7 +165,9 @@ matrix type for a given operator. For one-dimensional derivatives this is a
 `BandedMatrix`, while for higher dimensional operators this is a `BlockBandedMatrix`.
 The concretizations are made to act on `vec(u)`.
 
-A contraction operator concretizes to an ordinary matrix, no matter which dimension the contraction acts along.
+A contraction operator concretizes to an ordinary matrix, no matter which dimension 
+the contraction acts along, by doing the kroncker product formulation. I.e., the
+action of the built matrix will match the action on `vec(u)`.
 
 ## Boundary Condition Operators
 
@@ -198,7 +199,7 @@ DirichletBC(αl::T, αr::T)
 Dirichlet0BC(T::Type) = DirichletBC(zero(T), zero(T))
 ```
 
-This fixes `u = αl` at the (first, second?) point of the grid, and `u = αr` at the (second?) last point.
+This fixes `u = αl` at the first point of the grid, and `u = αr` at the last point.
 
 ```julia
 Neumann0BC(dx::Union{AbstractVector{T}, T}, order = 1)
