@@ -1,11 +1,14 @@
 using LinearAlgebra, DiffEqOperators, Random, Test, BandedMatrices, SparseArrays
 
+# 4th derivative, 4th order
 function fourth_deriv_approx_stencil(N)
     A = zeros(N,N+2)
     A[1,1:8] = [3.5 -56/3 42.5 -54.0 251/6 -20.0 5.5 -2/3]
     A[2,1:8] = [2/3 -11/6 0.0 31/6 -22/3 4.5 -4/3 1/6]
+
     A[N-1,N-5:end] = reverse([2/3 -11/6 0.0 31/6 -22/3 4.5 -4/3 1/6], dims=2)
     A[N,N-5:end] = reverse([3.5 -56/3 42.5 -54.0 251/6 -20.0 5.5 -2/3], dims=2)
+
     for i in 3:N-2
         A[i,i-2:i+4] = [-1/6 2.0 -13/2 28/3 -13/2 2.0 -1/6]
     end
@@ -14,8 +17,8 @@ end
 
 function second_deriv_fourth_approx_stencil(N)
     A = zeros(N,N+2)
-    A[1,1:6] = [5/6 -1.25 -1/3 7/6 -0.5 5/60]
-    A[N,N-3:end] = reverse([5/6 -1.25 -1/3 7/6 -0.5 5/60], dims=2)
+    A[1,1:6] = [5/6 -15/12 -1/3 7/6 -6/12 5/60]
+    A[N,N-3:end] = [1/12 -6/12 14/12 -4/12 -15/12 10/12]
     for i in 2:N-1
         A[i,i-1:i+3] = [-1/12 4/3 -5/2 4/3 -1/12]
     end
@@ -31,18 +34,19 @@ function second_derivative_stencil(N)
   A
 end
 
+
 @testset "Test Constructor, Multiplication, and Concretization" begin
     # Generate random parameters
     al = rand()
     bl = rand()
     cl = rand()
-    dx_l = rand()
+
     ar = rand()
     br = rand()
     cr = rand()
-    dx_r = rand()
+    dx = rand()
 
-    Q = RobinBC(al, bl, cl, dx_l, ar, br, cr, dx_r)
+    Q = RobinBC((al, bl, cl), (ar, br, cr), dx)
     N = 20
     L = CenteredDifference(4,4, 1.0, N)
     L2 = CenteredDifference(2,4, 1.0, N)
@@ -112,7 +116,7 @@ end
     N = length(x)
 
     L = CenteredDifference(2, 2, dx, N)
-    Q = RobinBC(1.0, 0.0, 0.0, dx, 1.0, 0.0, 0.0, dx)
+    Q = RobinBC((1.0, 0.0, 0.0), (1.0, 0.0, 0.0), dx)
     A = L*Q
 
     analytic_L = second_derivative_stencil(N) ./ dx^2
@@ -155,7 +159,7 @@ end
     N = length(x)
 
     L = CenteredDifference(2, 2, dx, N)
-    Q = RobinBC(1.0, 0.0, 4.0, dx, 1.0, 0.0, 4.0, dx)
+    Q = RobinBC((1.0, 0.0, 4.0), (1.0, 0.0, 4.0), dx)
     A = L*Q
 
     analytic_L = second_derivative_stencil(N) ./ dx^2
@@ -203,7 +207,7 @@ end
     u = sin.(x)
 
     L = CenteredDifference(4, 4, dx, N)
-    Q = RobinBC(1.0, 0.0, sin(0.0), dx, 1.0, 0.0, sin(0.2+dx), dx)
+    Q = RobinBC((1.0, 0.0, sin(0.0)), (1.0, 0.0, sin(0.2+dx)), dx)
     A = L*Q
 
     analytic_L = fourth_deriv_approx_stencil(N) ./ dx^4
