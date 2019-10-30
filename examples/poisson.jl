@@ -11,8 +11,6 @@ u_analytic(x) = f/2*x^2 + (b-a-f/2) * x + a
 
 # We would like to recompute this solution numerically
 using DiffEqOperators
-using DiffEqOperators: DirichletBC
-
 
 nknots = 10
 h = 1.0/(nknots+1)
@@ -20,8 +18,7 @@ ord_deriv = 2
 ord_approx = 2
 
 Δ = CenteredDifference(ord_deriv, ord_approx, h, nknots)
-spacings = fill(h, nknots)
-bc = DirichletBC([a,b], spacings)
+bc = DirichletBC(a, b)
 
 # Before solving the equation, lets take a look at Δ and bc:
 # display(Array(Δ))
@@ -30,7 +27,7 @@ bc = DirichletBC([a,b], spacings)
 # And `bc` acts by padding the values just outside the boundaries.
 
 u = (Δ*bc) \ fill(f, nknots)
-knots = cumsum(spacings)
+knots = range(h, step=h, length=nknots)
 
 # Since we used a second order approximation and the analytic solution itself was a second order
 # polynomial, we expect that they are equal up to rounding errors:
