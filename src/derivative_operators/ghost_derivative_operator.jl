@@ -41,7 +41,7 @@ function LinearAlgebra.ldiv!(x::AbstractVector, A::GhostDerivativeOperator, u::A
 end
 
 
-function \(A::GhostDerivativeOperator{T1}, u::AbstractVector{T2})
+function \(A::GhostDerivativeOperator{T1}, u::AbstractVector{T2}) where {T1,T2}
     @assert length(u) == A.L.len
     x = zeros(promote_type(T1,T2),size(A,2))
     LinearAlgebra.ldiv!(x, A, u)
