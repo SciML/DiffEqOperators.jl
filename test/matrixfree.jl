@@ -9,14 +9,14 @@ using DiffEqOperators, OrdinaryDiffEq
   p = 1.
   A = MatrixFreeOperator(f, (p,), size=(5,5), opnorm=5)
   b = rand(5)
-  @test is_constant(A)
+  @test isconstant(A)
   prob = ODEProblem(A, b, (0,1.), p)
   @test_nowarn solve(prob, Tsit5())
 
   f = (du, u, p, t) -> cumsum!(du, u)
   args = (1, 1)
   A = MatrixFreeOperator(f,args, size=(5,5), opnorm=(p)->5)
-  @test is_constant(A) == false
+  @test isconstant(A) == false
   b = rand(5)
   @test_nowarn solve(prob, LawsonEuler(krylov=true, m=5), dt=0.1)
 
