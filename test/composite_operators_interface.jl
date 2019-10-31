@@ -1,5 +1,6 @@
 using Test, LinearAlgebra, Random, DiffEqOperators
 using DiffEqBase
+using DiffEqBase: isconstant
 using DiffEqOperators: DiffEqScaledOperator, DiffEqOperatorCombination, DiffEqOperatorComposition
 
 @testset "Operator Compostion" begin
