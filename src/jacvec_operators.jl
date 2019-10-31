@@ -7,10 +7,13 @@ struct JacVecTag end
 function auto_jacvec!(du, f, x, v,
                  cache1 = ForwardDiff.Dual{JacVecTag}.(x, v),
                  cache2 = ForwardDiff.Dual{JacVecTag}.(x, v))
-    cache1 .= ForwardDiff.Dual{JacVecTag}.(x, v)
+    vcache1 = vec(cache1)
+    vcache1 .= ForwardDiff.Dual{JacVecTag}.(vec(x), vec(v))
     f(cache2,cache1)
-    du .= ForwardDiff.partials.(cache2, 1)
+    vdu = vec(du)
+    vdu .= ForwardDiff.partials.(vec(cache2), 1)
 end
+
 function auto_jacvec(f, x, v)
     ForwardDiff.partials.(f(ForwardDiff.Dual{JacVecTag}.(x, v)), 1)
 end
@@ -22,11 +25,14 @@ function num_jacvec!(du,f,x,v,cache1 = similar(v),
     T = eltype(x)
     # Should it be min? max? mean?
     ϵ = sqrt(eps(real(T))) * max(one(real(T)), abs(norm(x)))
-    @. x += ϵ*v
+    vv = vec(v); vx = vec(x)
+    @. vx += ϵ*vv
     f(cache2,x)
-    @. x -= ϵ*v
-    @. du = (cache2 - cache1)/ϵ
+    @. vx -= ϵ*vv
+    vdu = vec(du); vcache1 = vec(cache1); vcache2 = vec(cache2)
+    @. vdu = (vcache2 - vcache1)/ϵ
 end
+
 function num_jacvec(f,x,v,f0=nothing)
     f0 === nothing ? _f0 = f(x) : _f0 = f0
     T = eltype(x)
