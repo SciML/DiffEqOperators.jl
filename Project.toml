@@ -17,7 +17,7 @@ StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 SuiteSparse = "4607b0f0-06f3-5cda-b6b1-a6196a1729e9"
 
 [compat]
-DiffEqBase = "6.4.2"
+DiffEqBase = "6.4.1"
 ModelingToolkit = "0.8.0"
 julia = "1"
 
