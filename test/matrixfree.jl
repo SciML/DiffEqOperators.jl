@@ -1,4 +1,5 @@
 using Test, LinearAlgebra
+using DiffEqBase: isconstant
 using DiffEqOperators, OrdinaryDiffEq
 
 @testset "Matrix Free Operator" begin
