@@ -33,7 +33,7 @@ end
   A = zeros(2,2); fA = (A,u,p,t) -> fill!(A, t)
   B = zeros(2,2); fB = (B,u,p,t) -> fill!(B, 2t)
   L = DiffEqArrayOperator(A; update_func=fA) * DiffEqArrayOperator(B; update_func=fB)
-  @test is_constant(L) == false
+  @test isconstant(L) == false
   u = [1.0, 2.0]
   t = 1.1
   @test L(u,nothing,t) ≈ fill(t, (2,2)) * (fill(2t, (2,2)) * u)
