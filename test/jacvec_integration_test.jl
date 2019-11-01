@@ -1,4 +1,4 @@
-using OrdinaryDiffEq, DiffEqOperators
+using OrdinaryDiffEq, DiffEqOperators, Test
 
 const N = 32
 const xyd_brusselator = range(0,stop=1,length=N)
@@ -38,9 +38,11 @@ prob_ode_brusselator_2d = ODEProblem(brusselator_2d_loop,
 
 f = ODEFunction(brusselator_2d_loop;jac_prototype=Jv)
 prob_ode_brusselator_2d_jacfree = ODEProblem(f,u0,(0.,11.5),p)
-solve(prob_ode_brusselator_2d_jacfree,TRBDF2(linsolve=LinSolveGMRES()),save_everystep=false)
+sol = solve(prob_ode_brusselator_2d_jacfree,TRBDF2(linsolve=LinSolveGMRES()),save_everystep=false)
+@test sol.retcode === :Success
 
 Jv = JacVecOperator(brusselator_2d_loop,u0,p,0.0,autodiff=false)
 f = ODEFunction(brusselator_2d_loop;jac_prototype=Jv)
 prob_ode_brusselator_2d_jacfree = ODEProblem(f,u0,(0.,11.5),p)
-solve(prob_ode_brusselator_2d_jacfree,TRBDF2(linsolve=LinSolveGMRES()),save_everystep=false)
+sol = solve(prob_ode_brusselator_2d_jacfree,TRBDF2(linsolve=LinSolveGMRES()),save_everystep=false)
+@test sol.retcode === :Success

@@ -27,6 +27,7 @@ function num_jacvec!(du,f,x,v,cache1 = similar(v),
     vv = reshape(v, size(x))
     @. x += ϵ*vv
     f(cache2,x)
+    @. x -= ϵ*vv # restore x
     cache1 = vec(cache1)
     cache2 = vec(cache2)
     @. du = (cache2 - cache1)/ϵ
