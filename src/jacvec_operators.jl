@@ -11,6 +11,7 @@ function auto_jacvec!(du, f, x, v,
     f(cache2,cache1)
     du .= vec(ForwardDiff.partials.(cache2, 1))
 end
+
 function auto_jacvec(f, x, v)
     vv = reshape(v, axes(x))
     ForwardDiff.partials.(vec(f(ForwardDiff.Dual{JacVecTag}.(x, vv))), 1)
@@ -30,6 +31,7 @@ function num_jacvec!(du,f,x,v,cache1 = similar(v),
     cache2 = vec(cache2)
     @. du = (cache2 - cache1)/ϵ
 end
+
 function num_jacvec(f,x,v,f0=nothing)
     vv = reshape(v, axes(x))
     f0 === nothing ? _f0 = f(x) : _f0 = f0
