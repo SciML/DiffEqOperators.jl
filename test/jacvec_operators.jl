@@ -24,6 +24,13 @@ L = JacVecOperator(f,x)
 @test mul!(du,L,v) ≈ DiffEqOperators.auto_jacvec(f, x, v)
 DiffEqBase.update_coefficients!(L,v,nothing,nothing)
 @test mul!(du,L,v) ≈ DiffEqOperators.auto_jacvec(f, v, v)
+# reshape
+xx = [x x]
+vv = [v v]
+duu = [du du]
+L = JacVecOperator(f, xx)
+@test L*vec(xx) ≈ mul!(vec(duu),L,vec(xx))
+@test vec(duu) ≈ vec(A*xx)
 
 L = JacVecOperator(f,x,autodiff=false)
 DiffEqBase.update_coefficients!(L,x,nothing,nothing)
@@ -32,17 +39,28 @@ DiffEqBase.update_coefficients!(L,x,nothing,nothing)
 @test mul!(du,L,v) ≈ DiffEqOperators.num_jacvec(f, x, v) rtol=1e-6
 DiffEqBase.update_coefficients!(L,v,nothing,nothing)
 @test mul!(du,L,v) ≈ DiffEqOperators.num_jacvec(f, v, v) rtol=1e-6
+L = JacVecOperator(f, xx, autodiff=false)
+DiffEqBase.update_coefficients!(L,vv,nothing,nothing)
+@test L*vec(xx) ≈ mul!(vec(duu),L,vec(xx))
+@test vec(duu) ≈ vec(A*xx)
 
 L2 = JacVecOperator{Float64}(f)
 DiffEqBase.update_coefficients!(L2,x,nothing,nothing)
 @test L2*x ≈ DiffEqOperators.auto_jacvec(f, x, x)
 @test L2*v ≈ DiffEqOperators.auto_jacvec(f, v, v)
 @test mul!(du,L2,x) ≈ DiffEqOperators.auto_jacvec(f, x, x)
+DiffEqBase.update_coefficients!(L2,xx,nothing,nothing)
+@test L2*vec(xx) ≈ DiffEqOperators.auto_jacvec(f, xx, vec(xx))
+@test L2*vec(vv) ≈ DiffEqOperators.auto_jacvec(f, vv, vec(vv))
+@test mul!(vec(duu),L2,vec(xx)) ≈ DiffEqOperators.auto_jacvec(f, xx, vec(xx))
 
 L2 = JacVecOperator{Float64}(f,autodiff=false)
 DiffEqBase.update_coefficients!(L2,x,nothing,nothing)
 @test L2*x ≈ DiffEqOperators.num_jacvec(f, x, x)
 @test L2*v ≈ DiffEqOperators.num_jacvec(f, v, v) rtol=1e-6
+DiffEqBase.update_coefficients!(L2,xx,nothing,nothing)
+@test L2*vec(xx) ≈ DiffEqOperators.num_jacvec(f, xx, vec(xx))
+@test L2*vec(vv) ≈ DiffEqOperators.num_jacvec(f, vv, vec(vv)) rtol=1e-6
 
 using OrdinaryDiffEq
 function lorenz(du,u,p,t)
