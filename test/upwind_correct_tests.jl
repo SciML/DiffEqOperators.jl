@@ -85,7 +85,7 @@ function analyticTwoThreeNeg()
 end
 
 
-@testset "First test" begin
+@testset "Test: Derivative Order = 1, Approx Order = 1, Winding = Positive" begin
       N = 5
       L = UpwindDifference(1,1, 1.0, N, t->1.0)
       analyticL = analyticOneOnePos()
@@ -107,4 +107,156 @@ end
 
 end
 
-# TODO: add more of the above tests
+@testset "Test: Derivative Order = 1, Approx Order = 1, Winding = Negative" begin
+      N = 5
+      L = UpwindDifference(1,1, 1.0, N, t->-1.0)
+      analyticL = analyticOneOneNeg()
+      x = rand(7)
+
+      # Test that multiplication agrees with analytic multiplication
+      @test_broken L*x ≈ analyticL*x
+
+      # Test that concretized multiplication agrees with analytic multiplication
+      @test_broken Array(L)*x ≈ analyticL*x
+
+      # Test that matrix-free multiplication agrees with concretized multiplication
+      @test_broken L*x ≈ Array(L)*x
+
+      # Test that concretized matrix agrees with analytic matrix
+      @test_broken Array(L) == analyticL
+
+      # TODO: add tests for sparse and banded concretizations
+
+end
+
+@testset "Test: Derivative Order = 1, Approx Order = 2, Winding = Positive" begin
+      N = 5
+      L = UpwindDifference(1,2, 1.0, N, t->1.0)
+      analyticL = analyticOneTwoPos()
+      x = rand(7)
+
+      # Test that multiplication agrees with analytic multiplication
+      @test_broken L*x ≈ analyticL*x
+
+      # Test that concretized multiplication agrees with analytic multiplication
+      @test_broken Array(L)*x ≈ analyticL*x
+
+      # Test that matrix-free multiplication agrees with concretized multiplication
+      @test L*x ≈ Array(L)*x
+
+      # Test that concretized matrix agrees with analytic matrix
+      @test_broken Array(L) == analyticL
+
+      # TODO: add tests for sparse and banded concretizations
+
+end
+
+@testset "Test: Derivative Order = 1, Approx Order = 2, Winding = Negative" begin
+      N = 5
+      L = UpwindDifference(1,2, 1.0, N, t->-1.0)
+      analyticL = analyticOneTwoNeg()
+      x = rand(7)
+
+      # Test that multiplication agrees with analytic multiplication
+      @test_broken L*x ≈ analyticL*x
+
+      # Test that concretized multiplication agrees with analytic multiplication
+      @test_broken Array(L)*x ≈ analyticL*x
+
+      # Test that matrix-free multiplication agrees with concretized multiplication
+      @test_broken L*x ≈ Array(L)*x
+
+      # Test that concretized matrix agrees with analytic matrix
+      @test_broken Array(L) == analyticL
+
+      # TODO: add tests for sparse and banded concretizations
+
+end
+
+@testset "Test: Derivative Order = 2, Approx Order = 2, Winding = Positive" begin
+      N = 5
+      L = UpwindDifference(2,2, 1.0, N, t->1.0)
+      analyticL = analyticTwoTwoPos()
+      x = rand(7)
+
+      # Test that multiplication agrees with analytic multiplication
+      @test_broken L*x ≈ analyticL*x
+
+      # Test that concretized multiplication agrees with analytic multiplication
+      @test_broken Array(L)*x ≈ analyticL*x
+
+      # Test that matrix-free multiplication agrees with concretized multiplication
+      @test_broken L*x ≈ Array(L)*x
+
+      # Test that concretized matrix agrees with analytic matrix
+      @test_broken Array(L) == analyticL
+
+      # TODO: add tests for sparse and banded concretizations
+
+end
+
+@testset "Test: Derivative Order = 2, Approx Order = 2, Winding = Negative" begin
+      N = 5
+      L = UpwindDifference(2,2, 1.0, N, t->-1.0)
+      analyticL = analyticTwoTwoNeg()
+      x = rand(7)
+
+      # Test that multiplication agrees with analytic multiplication
+      @test_broken L*x ≈ analyticL*x
+
+      # Test that concretized multiplication agrees with analytic multiplication
+      @test_broken Array(L)*x ≈ analyticL*x
+
+      # Test that matrix-free multiplication agrees with concretized multiplication
+      @test_broken L*x ≈ Array(L)*x
+
+      # Test that concretized matrix agrees with analytic matrix
+      @test_broken Array(L) == analyticL
+
+      # TODO: add tests for sparse and banded concretizations
+
+end
+
+@testset "Test: Derivative Order = 2, Approx Order = 3, Winding = Positive" begin
+      N = 5
+      L = UpwindDifference(2,3, 1.0, N, t->1.0)
+      analyticL = analyticTwoThreePos()
+      x = rand(7)
+
+      # Test that multiplication agrees with analytic multiplication
+      @test_broken L*x ≈ analyticL*x
+
+      # Test that concretized multiplication agrees with analytic multiplication
+      @test_broken Array(L)*x ≈ analyticL*x
+
+      # Test that matrix-free multiplication agrees with concretized multiplication
+      @test_broken L*x ≈ Array(L)*x
+
+      # Test that concretized matrix agrees with analytic matrix
+      @test_broken Array(L) == analyticL
+
+      # TODO: add tests for sparse and banded concretizations
+
+end
+
+@testset "Test: Derivative Order = 2, Approx Order = 3, Winding = Negative" begin
+      N = 5
+      L = UpwindDifference(2,3, 1.0, N, t->-1.0)
+      analyticL = analyticTwoThreeNeg()
+      x = rand(7)
+
+      # Test that multiplication agrees with analytic multiplication
+      @test_broken L*x ≈ analyticL*x
+
+      # Test that concretized multiplication agrees with analytic multiplication
+      @test_broken Array(L)*x ≈ analyticL*x
+
+      # Test that matrix-free multiplication agrees with concretized multiplication
+      @test_broken L*x ≈ Array(L)*x
+
+      # Test that concretized matrix agrees with analytic matrix
+      @test_broken Array(L) == analyticL
+
+      # TODO: add tests for sparse and banded concretizations
+
+end
