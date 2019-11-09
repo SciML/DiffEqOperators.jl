@@ -260,3 +260,5 @@ end
       # TODO: add tests for sparse and banded concretizations
 
 end
+
+# TODO: tests for non-uniform grid

@@ -109,14 +109,31 @@ function UpwindDifference{N}(derivative_order::Int,
                           len::Int, coeff_func=nothing) where {T<:Real,N}
     stencil_length          = derivative_order + approximation_order
     boundary_stencil_length = derivative_order + approximation_order
+    #=
     # Fornberg generates ghost order approach incompatible stencils for even approximation orders
     if boundary_stencil_length%2 == 0
         boundary_stencil_length += 1
     end
+    =#
+    boundary_point_count = boundary_stencil_length - 2
+    dummy_x = 0.0 : stencil_length - 1.0
+    stencil_coefs = convert(SVector{stencil_length, T}, (1/dx^derivative_order) * calculate_weights(derivative_order, 0.0, dummy_x))
 
+    low_boundary_x         = 0.0:(boundary_stencil_length-1)
+    L_boundary_deriv_spots = 1.0:boundary_stencil_length - 2.0
+    _low_boundary_coefs     = SVector{boundary_stencil_length, T}[convert(SVector{boundary_stencil_length, T}, (1/dx^derivative_order) * calculate_weights(derivative_order, oneunit(T)*x0, low_boundary_x)) for x0 in L_boundary_deriv_spots]
+    low_boundary_coefs      = convert(SVector{boundary_point_count},_low_boundary_coefs)
+
+    high_boundary_x         = 0.0:-1.0:-(boundary_stencil_length-1.0)
+    R_boundary_deriv_spots = -1.0:-1.0:-(boundary_stencil_length-2.0)
+    _high_boundary_coefs     = SVector{boundary_stencil_length, T}[convert(SVector{boundary_stencil_length, T}, (1/dx^derivative_order) * calculate_weights(derivative_order, oneunit(T)*x0, high_boundary_x)) for x0 in R_boundary_deriv_spots]
+    high_boundary_coefs = convert(SVector{boundary_point_count},_high_boundary_coefs)
+
+
+    #=
     dummy_x                 = -1.0 : stencil_length - 2.0
     boundary_x              = -boundary_stencil_length+1:0
-    boundary_point_count    = boundary_stencil_length - 1 # -1 due to the ghost point
+    boundary_point_count    = boundary_stencil_length - 2 # -1 due to the ghost point
     # Because it's a N x (N+2) operator, the last stencil on the sides are the [b,0,x,x,x,x] stencils, not the [0,x,x,x,x,x] stencils, since we're never solving for the derivative at the boundary point.
     boundary_deriv_spots    = boundary_x[2:stencil_length]
     stencil_pivot           = (stencil_length+1)%2 - 1.0
@@ -135,8 +152,9 @@ function UpwindDifference{N}(derivative_order::Int,
     # _high_boundary_coefs    = SVector{boundary_stencil_length, T}[convert(SVector{boundary_stencil_length, T}, (1/dx^derivative_order) * calculate_weights(derivative_order, oneunit(T)*x0, reverse(right_boundary_x))) for x0 in R_boundary_deriv_spots]
     # high_boundary_coefs      = convert(SVector{boundary_point_count},_high_boundary_coefs)
     high_boundary_coefs      = convert(SVector{boundary_point_count},reverse(map(reverse, _low_boundary_coefs)))
-
-    coefficients            = Vector{T}(undef,len)
+    =#
+    # Compute coefficients
+    coefficients = Vector{T}(undef,len)
     for i in 1:len
         coefficients[i] = coeff_func(i)
     end
@@ -153,6 +171,7 @@ function UpwindDifference{N}(derivative_order::Int,
         )
 end
 
+# TODO implement the non-uniform grid
 function UpwindDifference{N}(derivative_order::Int,
                           approximation_order::Int, dx::AbstractVector{T},
                           len::Int, coeff_func=nothing) where {T<:Real,N}
