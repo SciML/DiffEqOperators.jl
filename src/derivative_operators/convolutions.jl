@@ -70,16 +70,13 @@ function convolve_interior!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::
     stencil = A.stencil_coefs
     coeff   = A.coefficients
 
-    # Upwind operators have a non-centred stencil
-    mid = 1 + A.stencil_length%2
-
     for i in (1+A.boundary_point_count) : (length(x_temp)-A.boundary_point_count)
         xtempi = zero(T)
         cur_stencil = eltype(stencil) <: AbstractVector ? stencil[i-A.boundary_point_count] : stencil
         cur_coeff   = typeof(coeff)   <: AbstractVector ? coeff[i] : coeff isa Number ? coeff : true
-        cur_stencil = use_winding(A) && cur_coeff < 0 ? reverse(cur_stencil) : cur_stencil
+        cur_stencil = cur_coeff >= 0 ? cur_stencil : A.derivative_order % 2 == 0 ? reverse(cur_stencil) : -1*reverse(cur_stencil)
         for idx in 1:A.stencil_length
-            x_idx = use_winding(A) && cur_coeff < 0 ? x[i + mid - idx] : x[i - mid + idx]
+            x_idx = cur_coeff < 0 ? x[i - A.stencil_length + 1 + idx] : x[i + idx]
             xtempi += cur_coeff * cur_stencil[idx] * x_idx
         end
         x_temp[i] = xtempi + !overwrite*x_temp[i]
