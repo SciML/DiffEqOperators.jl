@@ -110,7 +110,7 @@ end
 @testset "Test: Derivative Order = 1, Approx Order = 1, Winding = Negative" begin
       N = 5
       L = UpwindDifference(1,1, 1.0, N, t->-1.0)
-      analyticL = analyticOneOneNeg()
+      analyticL = -1*analyticOneOneNeg()
       x = rand(7)
 
       # Test that multiplication agrees with analytic multiplication
@@ -154,7 +154,7 @@ end
 @testset "Test: Derivative Order = 1, Approx Order = 2, Winding = Negative" begin
       N = 5
       L = UpwindDifference(1,2, 1.0, N, t->-1.0)
-      analyticL = analyticOneTwoNeg()
+      analyticL = -1*analyticOneTwoNeg()
       x = rand(7)
 
       # Test that multiplication agrees with analytic multiplication
@@ -198,7 +198,7 @@ end
 @testset "Test: Derivative Order = 2, Approx Order = 2, Winding = Negative" begin
       N = 5
       L = UpwindDifference(2,2, 1.0, N, t->-1.0)
-      analyticL = analyticTwoTwoNeg()
+      analyticL = -1*analyticTwoTwoNeg()
       x = rand(7)
 
       # Test that multiplication agrees with analytic multiplication
@@ -242,7 +242,7 @@ end
 @testset "Test: Derivative Order = 2, Approx Order = 3, Winding = Negative" begin
       N = 5
       L = UpwindDifference(2,3, 1.0, N, t->-1.0)
-      analyticL = analyticTwoThreeNeg()
+      analyticL = -1*analyticTwoThreeNeg()
       x = rand(7)
 
       # Test that multiplication agrees with analytic multiplication
