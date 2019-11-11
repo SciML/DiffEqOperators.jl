@@ -114,7 +114,7 @@ end
       x = rand(7)
 
       # Test that multiplication agrees with analytic multiplication
-      @test_broken L*x ≈ analyticL*x
+      @test L*x ≈ analyticL*x
 
       # Test that concretized multiplication agrees with analytic multiplication
       @test_broken Array(L)*x ≈ analyticL*x
