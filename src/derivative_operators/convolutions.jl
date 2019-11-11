@@ -152,9 +152,10 @@ function convolve_BC_right!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::
             cur_stencil = upwind_stencils[i]
             for idx in 1:A.boundary_stencil_length
                 xtempi += cur_coeff*cur_stencil[idx]*x[len-A.boundary_stencil_length+idx]
+                println(xtempi)
             end
         end
-        x_temp[len-A.boundary_point_count+i] = xtempi + !overwrite*x_temp[i]
+        x_temp[len-A.boundary_point_count+i] = xtempi + !overwrite*x_temp[len-A.boundary_point_count+i]
     end
 end
 
