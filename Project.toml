@@ -19,6 +19,7 @@ SuiteSparse = "4607b0f0-06f3-5cda-b6b1-a6196a1729e9"
 [compat]
 DiffEqBase = "6.4.1"
 ModelingToolkit = "0.9.0"
+NNlib = "0.6"
 StaticArrays = "0.12"
 julia = "1"
 
