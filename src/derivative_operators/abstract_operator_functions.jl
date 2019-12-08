@@ -135,7 +135,7 @@ Base.:/(A::AbstractVecOrMat, B::AbstractDerivativeOperator) = A / convert(Array,
 Base.:/(A::AbstractDerivativeOperator, B::AbstractVecOrMat) = Array(A) / B
 
 #=
-    The Inf opnorm can be calculated easily using the stencil coeffiicents, while other opnorms
+    The Inf opnorm can be calculated easily using the stencil coefficients, while other opnorms
     default to compute from the full matrix form.
 =#
 function LinearAlgebra.opnorm(A::DerivativeOperator, p::Real=2)

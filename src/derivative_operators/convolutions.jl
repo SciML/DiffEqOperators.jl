@@ -9,7 +9,7 @@
 #
 # These methods are defined for AbstractVector as a fallback.  However,
 # derivative operators normally act on a BoundaryPaddedVector returned
-# by a boundary condition operator, and there are specialised methods
+# by a boundary condition operator, and there are specialized methods
 # to avoid allocation in this case.
 #
 

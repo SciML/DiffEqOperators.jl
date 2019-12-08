@@ -1,7 +1,7 @@
 # # Heat Equation
 #
 # This example demonstrates how to combine `OrdinaryDiffEq` with `DiffEqOperators` to solve a time dependent PDE.
-# We consider the heat equation on the unit interval, with dirichlet boundary conditions:
+# We consider the heat equation on the unit interval, with Dirichlet boundary conditions:
 # ∂ₜu = Δu
 # u(x=0,t)  = a
 # u(x=1,t)  = b

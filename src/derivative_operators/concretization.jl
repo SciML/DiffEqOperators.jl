@@ -167,7 +167,7 @@ end
 """
 Returns a tuple, the first element of which is an array of the shape of the boundary,
 filled with the linear operator parts of the respective Atomic BCs.
-the second element is a simularly sized array of the affine parts.
+the second element is a similarly sized array of the affine parts.
 """
 function LinearAlgebra.Array(Q::MultiDimDirectionalBC{T, B, D, N, K}, M) where {T, B, D,N,K}
     bc_tuples = Array.(Q.BCs, fill(M, size(Q.BCs)))
@@ -182,7 +182,7 @@ end
 """
 Returns a tuple, the first element of which is a sparse array of the shape of the boundary,
 filled with the linear operator parts of the respective Atomic BCs.
-the second element is a simularly sized array of the affine parts.
+the second element is a similarly sized array of the affine parts.
 """
 function SparseArrays.SparseMatrixCSC(Q::MultiDimDirectionalBC{T, B, D, N, K}, M) where {T, B, D,N,K}
     bc_tuples = sparse.(Q.BCs, fill(M, size(Q.BCs)))
@@ -233,7 +233,7 @@ function LinearAlgebra.Array(A::DerivativeOperator{T,N}, Mshape) where {T,N}
             B = Kron(Eye(n), B)
         end
 
-    # Case where A is differentiating along hte first dimension
+    # Case where A is differentiating along the first dimension
     else
         n = 1
         for M_i in Mshape[2:end]
@@ -260,7 +260,7 @@ function SparseArrays.SparseMatrixCSC(A::DerivativeOperator{T,N}, Mshape) where 
             B = Kron(sparse(I,n,n), B)
         end
 
-    # Case where A is differentiating along hte first dimension
+    # Case where A is differentiating along the first dimension
     else
         n = 1
         for M_i in Mshape[2:end]
@@ -291,7 +291,7 @@ function BandedMatrices.BandedMatrix(A::DerivativeOperator{T,N}, Mshape) where {
             B = Kron(Eye(n), B)
         end
 
-    # Case where A is differentiating along hte first dimension
+    # Case where A is differentiating along the first dimension
     else
         n = 1
         for M_i in Mshape[2:end]
@@ -318,7 +318,7 @@ function BlockBandedMatrices.BandedBlockBandedMatrix(A::DerivativeOperator{T,N},
             B = Kron(Eye(n), B)
         end
 
-    # Case where A is differentiating along hte first dimension
+    # Case where A is differentiating along the first dimension
     else
         n = 1
         for M_i in Mshape[2:end]

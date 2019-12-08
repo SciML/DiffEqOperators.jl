@@ -32,7 +32,7 @@ These operators can be contracted over an arbitrary dimension, given by the type
 
 The `CentredDifference` and `UpwindDifference` types serve as hooks to hang constructors, but no objects are actually constructed with those types.  Their constructors return structures of type `DerivativeOperator`, with stencils constructed by `calculate_weights`, and other fields filled out appropriately.
 
-The finite-difference methods are defined for `DerivativeOperator`.  In particular, `*`, which actaully takes derivatives.
+The finite-difference methods are defined for `DerivativeOperator`.  In particular, `*`, which actually takes derivatives.
 
 The key data are three stencils of coefficients, stored in `SVector`s.  The interior stencil, stored in `stencil_coefs::S1`, is the normal one used in the interior of the grid.  The others, `low_boundary_coefs::S2` and `high_boundary_coefs::S2`, are used where the normal stencil would jut out of the grid boundary.  These can have a different length than the interior stencil, hence the two types.
 
@@ -40,11 +40,11 @@ When the operator is applied by `mul!`, these stencils are multiplied by the vec
 
 The `coefficients` field appears to be a more general `DifferentialEquations` thing.  There is an `update_coefficients!` method.
 
-The term “left boundary” is used interchangably with “low boundary”, and “right” with “high”.
+The term “left boundary” is used interchangeably with “low boundary”, and “right” with “high”.
 
 # Type Parameters
 
-Presumably, most of these are to force method specialisation on:a) the stencil lengths, which are given by the parameters of the `SVector` types `S1` and `S2`, and b) even or arbitrary grid spacing.
+Presumably, most of these are to force method specialization on:a) the stencil lengths, which are given by the parameters of the `SVector` types `S1` and `S2`, and b) even or arbitrary grid spacing.
 
 - `T<:Real`: Function range type.
 - `N`: Contraction dimension
@@ -151,4 +151,3 @@ RobinBC
 @doc (@doc RobinBC) Neumann0BC
 @doc (@doc RobinBC) DirichletBC
 @doc (@doc RobinBC) Dirichlet0BC
-    
