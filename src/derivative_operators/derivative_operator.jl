@@ -2,7 +2,7 @@
 # The types and constructors for derivative operators.
 # 
 # The type of the operator objects is DerivativeOperator.  This is a
-# dumb data structure.  It is initialised by the constructors for
+# dumb data structure.  It is initialized by the constructors for
 # CenteredDifference and UpwindDifference, which call the calculate_weights
 # routine in fornberg.jl to generate the stencils.  The derivatives
 # are computed by the mul! methods defined in

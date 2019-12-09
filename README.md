@@ -10,7 +10,7 @@ differential equation and its boundary conditions by the method of
 lines.  This reduces it to a system of ordinary differential
 equations that can be solved by [`DifferentialEquations.jl`](https://juliadiffeq.org/).
 
-Both centred and [upwind](https://en.wikipedia.org/wiki/Upwind_scheme)
+Both centered and [upwind](https://en.wikipedia.org/wiki/Upwind_scheme)
 operators are provided, for domains of any dimension, arbitrarily
 spaced grids, and for any order of accuracy.  The cases of 1, 2 and
 3 dimensions with an evenly spaced grid are optimized with a
