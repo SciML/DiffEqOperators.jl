@@ -220,25 +220,16 @@ BandedMatrices.BandedMatrix(Q::ComposedMultiDimBC, Ns) = Tuple(BandedMatrix.(Q.B
 function LinearAlgebra.Array(A::DerivativeOperator{T,N}, Mshape) where {T,N}
     # Case where A is not differentiating along the first dimension
     if N != 1
-        n = 1
-        for M_i in Mshape[1:N-1]
-            n *= M_i
-        end
+        n = prod(Mshape[1:N-1])
         B = Kron(Array(A), Eye(n))
         if N != length(Mshape)
-            n = 1
-            for M_i in Mshape[N+1:end]
-                n *= M_i
-            end
+            n = prod(Mshape[N+1:end])
             B = Kron(Eye(n), B)
         end
 
     # Case where A is differentiating along the first dimension
     else
-        n = 1
-        for M_i in Mshape[2:end]
-            n *= M_i
-        end
+        n = prod(Mshape[2:end])
         B = Kron(Eye(n), Array(A))
     end
     return Array(B)
@@ -247,25 +238,16 @@ end
 function SparseArrays.SparseMatrixCSC(A::DerivativeOperator{T,N}, Mshape) where {T,N}
     # Case where A is not differentiating along the first dimension
     if N != 1
-        n = 1
-        for M_i in Mshape[1:N-1]
-            n *= M_i
-        end
+        n = prod(Mshape[1:N-1])
         B = Kron(sparse(A), sparse(I,n,n))
         if N != length(Mshape)
-            n = 1
-            for M_i in Mshape[N+1:end]
-                n *= M_i
-            end
+            n = prod(Mshape[N+1:end])
             B = Kron(sparse(I,n,n), B)
         end
 
     # Case where A is differentiating along the first dimension
     else
-        n = 1
-        for M_i in Mshape[2:end]
-            n *= M_i
-        end
+        n = prod(Mshape[2:end])
         B = Kron(sparse(I,n,n), sparse(A))
     end
     return sparse(B)
@@ -278,25 +260,16 @@ end
 function BandedMatrices.BandedMatrix(A::DerivativeOperator{T,N}, Mshape) where {T,N}
     # Case where A is not differentiating along the first dimension
     if N != 1
-        n = 1
-        for M_i in Mshape[1:N-1]
-            n *= M_i
-        end
+        n = prod(Mshape[1:N-1])
         B = Kron(BandedMatrix(A), Eye(n))
         if N != length(Mshape)
-            n = 1
-            for M_i in Mshape[N+1:end]
-                n *= M_i
-            end
+            n = prod(Mshape[N+1:end])
             B = Kron(Eye(n), B)
         end
 
     # Case where A is differentiating along the first dimension
     else
-        n = 1
-        for M_i in Mshape[2:end]
-            n *= M_i
-        end
+        n = prod(Mshape[2:end])
         B = Kron(BandedMatrix(Eye(n)), BandedMatrix(A))
     end
     return BandedMatrix(B)
@@ -305,25 +278,16 @@ end
 function BlockBandedMatrices.BandedBlockBandedMatrix(A::DerivativeOperator{T,N}, Mshape) where {T,N}
     # Case where A is not differentiating along the first dimension
     if N != 1
-        n = 1
-        for M_i in Mshape[1:N-1]
-            n *= M_i
-        end
+        n = prod(Mshape[1:N-1])
         B = Kron(BandedMatrix(A), Eye(n))
         if N != length(Mshape)
-            n = 1
-            for M_i in Mshape[N+1:end]
-                n *= M_i
-            end
+            n = prod(Mshape[N+1:end])
             B = Kron(Eye(n), B)
         end
 
     # Case where A is differentiating along the first dimension
     else
-        n = 1
-        for M_i in Mshape[2:end]
-            n *= M_i
-        end
+        n = prod(Mshape[2:end])
         B = Kron(BandedMatrix(Eye(n)), BandedMatrix(A))
     end
     return BandedBlockBandedMatrix(B)
