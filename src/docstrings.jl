@@ -119,10 +119,15 @@ AbstractBC
 @doc """
     PeriodicBC{T}()
 
-Only one ghost node is added at each end.  This means that periodic
-functions will not be consistent at the interior and near the
-boundary with high order stencils.  It is likely to cause other
-limitations too.
+q = PeriodicBC{T}()
+
+Qx, Qy, ... = PeriodicBC{T}(size(u)) #When all dimensions are to be extended with
+a periodic boundary condition.
+
+Creates a periodic boundary condition, where the lower index end of some u is extended 
+with the upper index end and vice versa. It is not recommended to concretize this BC 
+type in to a BandedMatrix, since the vast majority of bands will be all 0s. 
+SparseMatrix concretization is recommended.
 
 Currently, periodic boundary conditions are only implemented in one
 dimension.
@@ -136,15 +141,22 @@ See also: [`AbstractBC`](@ref)
 PeriodicBC
 
 
-@doc """
-NeumannBC(α::NTuple{2,T}, dx::Union{AbstractVector{T}, T}, order = 1) where T = RobinBC((zero(T), one(T), α[1]), (zero(T), one(T), α[2]), dx, order)
-DirichletBC(αl::T, αr::T) where T = RobinBC((one(T), zero(T), αl), (one(T), zero(T), αr), 1.0, 2.0 )
-#specialized constructors for Neumann0 and Dirichlet0
-Dirichlet0BC(T::Type) = DirichletBC(zero(T), zero(T))
-Neumann0BC(dx::Union{AbstractVector{T}, T}, order = 1) where T = NeumannBC((zero(T), zero(T)), dx, order)
+"""
+  q = RobinBC(left_coefficients, right_coefficients, dx::T, approximation_order) where T # When this BC extends a dimension with a uniform step size
 
+  q = RobinBC(left_coefficients, right_coefficients, dx::Vector{T}, approximation_order) where T # When this BC extends a dimension with a non uniform step size. dx should be the vector of step sizes for the whole dimension
 
-See also: [`AbstractBC`](@ref)
+-------------------------------------------------------------------------------------
+
+  The variables in l are [αl, βl, γl], and correspond to a BC of the form αl*u(0) + βl*u'(0) = γl imposed on the lower index boundary.
+  The variables in r are [αl, βl, γl], and correspond to an analogous boundary on the higher index end.
+  Implements a robin boundary condition operator Q that acts on a vector to give an extended vector as a result
+  Referring to (https://github.com/JuliaDiffEq/DiffEqOperators.jl/files/3267835/ghost_node.pdf)
+  Write vector b̄₁ as a vertical concatenation with b0 and the rest of the elements of b̄ ₁, denoted b̄`₁, the same with ū into u0 and ū`. b̄`₁ = b̄`_2 = fill(β/Δx, length(stencil)-1)
+  Pull out the product of u0 and b0 from the dot product. The stencil used to approximate u` is denoted s. b0 = α+(β/Δx)*s[1]
+  Rearrange terms to find a general formula for u0:= -b̄`₁̇⋅ū`/b0 + γ/b0, which is dependent on ū` the robin coefficients and Δx.
+  The non identity part of Qa is qa:= -b`₁/b0 = -β.*s[2:end]/(α+β*s[1]/Δx). The constant part is Qb = γ/(α+β*s[1]/Δx)
+  do the same at the other boundary (amounts to a flip of s[2:end], with the other set of boundary coeffs)
 """
 RobinBC
 @doc (@doc RobinBC) NeumannBC
