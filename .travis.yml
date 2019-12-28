@@ -3,6 +3,9 @@ language: julia
 os:
   - linux
 #  - osx
+branches:
+  only:
+    - master
 julia:
   - 1
 env:
