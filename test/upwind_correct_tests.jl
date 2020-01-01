@@ -57,7 +57,7 @@ function analyticTwoTwoNeg()
       A[1,1:4] = [1 -2 1 0]
       A[2,1:4] = [0 1 -2 1]
       for i in 3:5
-            A[i,i-2:i+1] = [-1 4 5 2]
+            A[i,i-2:i+1] = [-1 4 -5 2]
       end
       return A
 end
@@ -136,7 +136,7 @@ end
       x = rand(7)
 
       # Test that multiplication agrees with analytic multiplication
-      @test_broken L*x ≈ analyticL*x
+      @test L*x ≈ analyticL*x
 
       # Test that concretized multiplication agrees with analytic multiplication
       @test_broken Array(L)*x ≈ analyticL*x
@@ -158,7 +158,7 @@ end
       x = rand(7)
 
       # Test that multiplication agrees with analytic multiplication
-      @test_broken L*x ≈ analyticL*x
+      @test L*x ≈ analyticL*x
 
       # Test that concretized multiplication agrees with analytic multiplication
       @test_broken Array(L)*x ≈ analyticL*x
@@ -180,7 +180,7 @@ end
       x = rand(7)
 
       # Test that multiplication agrees with analytic multiplication
-      @test_broken L*x ≈ analyticL*x
+      @test L*x ≈ analyticL*x
 
       # Test that concretized multiplication agrees with analytic multiplication
       @test_broken Array(L)*x ≈ analyticL*x
