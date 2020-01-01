@@ -202,7 +202,7 @@ end
       x = rand(7)
 
       # Test that multiplication agrees with analytic multiplication
-      @test_broken L*x ≈ analyticL*x
+      @test L*x ≈ analyticL*x
 
       # Test that concretized multiplication agrees with analytic multiplication
       @test_broken Array(L)*x ≈ analyticL*x
@@ -217,6 +217,8 @@ end
 
 end
 
+# Here the operators are too big for five grid points, so weird corner cases must be accounted for
+# We should be able to assume that users will not have cases like this.
 @testset "Test: Derivative Order = 2, Approx Order = 3, Winding = Positive" begin
       N = 5
       L = UpwindDifference(2,3, 1.0, N, t->1.0)
@@ -224,7 +226,7 @@ end
       x = rand(7)
 
       # Test that multiplication agrees with analytic multiplication
-      @test_broken L*x ≈ analyticL*x
+      @test L*x ≈ analyticL*x
 
       # Test that concretized multiplication agrees with analytic multiplication
       @test_broken Array(L)*x ≈ analyticL*x

@@ -90,7 +90,7 @@ function convolve_BC_left!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::D
     for i in 1:A.boundary_point_count
         cur_coeff = coeff[i]
         xtempi = 0.0
-        if cur_coeff >= 0
+        if cur_coeff >= 0 && i+A.stencil_length <= length(x)
             cur_stencil = eltype(upwind_stencils) <: AbstractVector ? upwind_stencils[i] : upwind_stencils
             for idx in 1:A.stencil_length
                 xtempi += cur_coeff*cur_stencil[idx]*x[i+idx]
@@ -145,17 +145,16 @@ function convolve_BC_right!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::
     for i in 1:A.boundary_point_count
         cur_coeff = coeff[x_temp_len-A.boundary_point_count+i]
         xtempi = 0.0
-        if cur_coeff < 0
+        if cur_coeff < 0 && x_len-A.stencil_length - A.boundary_point_count + i >= 1
             cur_stencil = eltype(downwind_stencils) <: AbstractVector ? downwind_stencils[i] : downwind_stencils
             cur_stencil = ((-1)^A.derivative_order)*reverse(cur_stencil)
             for idx in 1:A.stencil_length
-                xtempi += cur_coeff*cur_stencil[idx]*x[x_len-A.stencil_length+idx - 1]
+                xtempi += cur_coeff*cur_stencil[idx]*x[x_len-A.stencil_length + idx - A.boundary_point_count + i - 1]
             end
         else
             cur_stencil = upwind_stencils[i]
             for idx in 1:A.boundary_stencil_length
                 xtempi += cur_coeff*cur_stencil[idx]*x[x_len-A.boundary_stencil_length+idx]
-                println(xtempi)
             end
         end
         x_temp[x_temp_len-A.boundary_point_count+i] = xtempi + !overwrite*x_temp[x_temp_len-A.boundary_point_count+i]
