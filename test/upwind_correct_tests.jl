@@ -95,13 +95,13 @@ end
       @test L*x ≈ analyticL*x
 
       # Test that concretized multiplication agrees with analytic multiplication
-      @test_broken Array(L)*x ≈ analyticL*x
+      @test Array(L)*x ≈ analyticL*x
 
       # Test that matrix-free multiplication agrees with concretized multiplication
-      @test_broken L*x ≈ Array(L)*x
+      @test L*x ≈ Array(L)*x
 
       # Test that concretized matrix agrees with analytic matrix
-      @test_broken Array(L) == analyticL
+      @test Array(L) == analyticL
 
       # TODO: add tests for sparse and banded concretizations
 
@@ -117,13 +117,13 @@ end
       @test L*x ≈ analyticL*x
 
       # Test that concretized multiplication agrees with analytic multiplication
-      @test_broken Array(L)*x ≈ analyticL*x
+      @test Array(L)*x ≈ analyticL*x
 
       # Test that matrix-free multiplication agrees with concretized multiplication
-      @test_broken L*x ≈ Array(L)*x
+      @test L*x ≈ Array(L)*x
 
       # Test that concretized matrix agrees with analytic matrix
-      @test_broken Array(L) == analyticL
+      @test Array(L) == analyticL
 
       # TODO: add tests for sparse and banded concretizations
 
@@ -139,13 +139,13 @@ end
       @test L*x ≈ analyticL*x
 
       # Test that concretized multiplication agrees with analytic multiplication
-      @test_broken Array(L)*x ≈ analyticL*x
+      @test Array(L)*x ≈ analyticL*x
 
       # Test that matrix-free multiplication agrees with concretized multiplication
-      @test_broken L*x ≈ Array(L)*x
+      @test L*x ≈ Array(L)*x
 
       # Test that concretized matrix agrees with analytic matrix
-      @test_broken Array(L) == analyticL
+      @test Array(L) == analyticL
 
       # TODO: add tests for sparse and banded concretizations
 
@@ -161,13 +161,13 @@ end
       @test L*x ≈ analyticL*x
 
       # Test that concretized multiplication agrees with analytic multiplication
-      @test_broken Array(L)*x ≈ analyticL*x
+      @test Array(L)*x ≈ analyticL*x
 
       # Test that matrix-free multiplication agrees with concretized multiplication
-      @test_broken L*x ≈ Array(L)*x
+      @test L*x ≈ Array(L)*x
 
       # Test that concretized matrix agrees with analytic matrix
-      @test_broken Array(L) == analyticL
+      @test Array(L) == analyticL
 
       # TODO: add tests for sparse and banded concretizations
 
@@ -183,13 +183,13 @@ end
       @test L*x ≈ analyticL*x
 
       # Test that concretized multiplication agrees with analytic multiplication
-      @test_broken Array(L)*x ≈ analyticL*x
+      @test Array(L)*x ≈ analyticL*x
 
       # Test that matrix-free multiplication agrees with concretized multiplication
-      @test_broken L*x ≈ Array(L)*x
+      @test L*x ≈ Array(L)*x
 
       # Test that concretized matrix agrees with analytic matrix
-      @test_broken Array(L) == analyticL
+      @test Array(L) == analyticL
 
       # TODO: add tests for sparse and banded concretizations
 
@@ -205,13 +205,13 @@ end
       @test L*x ≈ analyticL*x
 
       # Test that concretized multiplication agrees with analytic multiplication
-      @test_broken Array(L)*x ≈ analyticL*x
+      @test Array(L)*x ≈ analyticL*x
 
       # Test that matrix-free multiplication agrees with concretized multiplication
-      @test_broken L*x ≈ Array(L)*x
+      @test L*x ≈ Array(L)*x
 
       # Test that concretized matrix agrees with analytic matrix
-      @test_broken Array(L) == analyticL
+      @test Array(L) == analyticL
 
       # TODO: add tests for sparse and banded concretizations
 

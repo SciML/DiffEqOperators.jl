@@ -384,3 +384,57 @@ function BlockBandedMatrices.BandedBlockBandedMatrix(A::DerivativeOperator{T,N},
     end
     return BandedBlockBandedMatrix(B)
 end
+
+################################################################################
+# Upwind Operator Concretization
+################################################################################
+
+function LinearAlgebra.Array(A::DerivativeOperator{T,N,true}, len::Int=A.len) where {T,N}
+    L = zeros(T, len, len+2)
+    bpc = A.boundary_point_count
+    stl = A.stencil_length
+    bstl = A.boundary_stencil_length
+    coeff   = A.coefficients
+
+    # downwind stencils at low boundary
+    downwind_stencils = A.low_boundary_coefs
+    # upwind stencils at upper boundary
+    upwind_stencils = A.high_boundary_coefs
+    # interior stencils
+    stencils = A.stencil_coefs
+
+    for i in 1:bpc
+        cur_coeff   = coeff[i]
+        if cur_coeff >= 0
+            cur_stencil = eltype(stencils) <: AbstractVector ? stencils[i] : stencils
+            L[i,i+1:i+stl] = cur_stencil
+        else
+            cur_stencil = downwind_stencils[i]
+            L[i,1:bstl] = cur_coeff * cur_stencil
+        end
+    end
+
+    for i in bpc+1:len-bpc
+        cur_coeff   = coeff[i]
+        cur_stencil = eltype(stencils) <: AbstractVector ? stencils[i-A.boundary_point_count] : stencils
+        cur_stencil = cur_coeff >= 0 ? cur_stencil : A.derivative_order % 2 == 0 ? reverse(cur_stencil) : -1*reverse(cur_stencil)
+        if cur_coeff >= 0
+            L[i,i+1:i+stl] = cur_coeff * cur_stencil
+        else
+            L[i,i-stl+2:i+1] = cur_coeff * cur_stencil
+        end
+    end
+
+    for i in len-bpc+1:len
+        cur_coeff   = coeff[i]
+        if cur_coeff < 0
+            cur_stencil = eltype(stencils) <: AbstractVector ? stencils[i] : stencils # TODO, fix the indexing here for the vectors
+            cur_stencil = ((-1)^A.derivative_order)*reverse(cur_stencil) #TODO make this consistent with above
+            L[i,i-stl+2:i+1] = cur_coeff * cur_stencil
+        else
+            cur_stencil = upwind_stencils[i-len+bpc]
+            L[i,len-bstl+3:len+2] = cur_coeff * cur_stencil
+        end
+    end
+    return L
+end
