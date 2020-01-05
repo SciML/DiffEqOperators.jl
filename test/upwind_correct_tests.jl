@@ -84,6 +84,20 @@ function analyticTwoThreeNeg()
       return A
 end
 
+# analytically derived upwind operators for the irregular grid:
+# [0.0, 0.08, 0.1, 0.15, 0.19, 0.26, 0.29], and spacing:
+# dx = [0.08, 0.02, 0.05, 0.04, 0.07, 0.03]
+
+function analyticOneOnePosIrr()
+      A = zeros(5,7)
+      A[1,2:3] = [-50, 50]
+      A[2,3:4] = [-20, 20]
+      A[3,4:5] = [-25, 25]
+      A[4,5:6] = [-100/7, 100/7]
+      A[5,6:7] = [-100/3, 100/3]
+      return A
+end
+
 
 @testset "Test: Derivative Order = 1, Approx Order = 1, Winding = Positive" begin
       N = 5
@@ -264,3 +278,25 @@ end
 end
 
 # TODO: tests for non-uniform grid
+
+@testset "Test: Derivative Order = 1, Approx Order = 1, Winding = Positive, Grid = Irregular" begin
+      N = 5
+      # constructor throws an error at the moment
+      @test_broken L = UpwindDifference(1,1, [0.08, 0.02, 0.05, 0.04, 0.07, 0.03], N, t->1.0)
+      analytiL = analyticOneOnePosIrr()
+      x = rand(5)
+
+      # Test that multiplication agrees with analytic multiplication
+      @test_broken L*x ≈ analyticL*x
+
+      # Test that concretized multiplication agrees with analytic multiplication
+      @test_broken Array(L)*x ≈ analyticL*x
+
+      # Test that matrix-free multiplication agrees with concretized multiplication
+      @test_broken L*x ≈ Array(L)*x
+
+      # Test that concretized matrix agrees with analytic matrix
+      @test_broken Array(L) ≈ analyticL
+
+      # TODO: add tests for sparse and banded concretizations
+end
