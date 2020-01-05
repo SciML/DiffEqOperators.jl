@@ -63,22 +63,22 @@ function analyticTwoTwoNeg()
 end
 
 function analyticTwoThreePos()
-      A = zeros(5,7)
-      for i in 1:2
+      A = zeros(7,9)
+      for i in 1:4
             A[i,i+1:i+5] = [35/12 -104/12 114/12 -56/12 11/12]
       end
-      A[3,3:7] = [11/12 -20/12 6/12 4/12 -1/12]
-      A[4,3:7] = [-1/12 16/12 -30/12 16/12 -1/12]
-      A[5,3:7] = [-1/12 4/12 6/12 -20/12 11/12]
+      A[5,5:9] = [11/12 -20/12 6/12 4/12 -1/12]
+      A[6,5:9] = [-1/12 16/12 -30/12 16/12 -1/12]
+      A[7,5:9] = [-1/12 4/12 6/12 -20/12 11/12]
       return A
 end
 
 function analyticTwoThreeNeg()
-      A = zeros(5,7)
+      A = zeros(7,9)
       A[1,1:5] = [11/12 -20/12 6/12 4/12 -1/12]
       A[2,1:5] = [-1/12 16/12 -30/12 16/12 -1/12]
       A[3,1:5] = [-1/12 4/12 6/12 -20/12 11/12]
-      for i in 4:5
+      for i in 4:7
             A[i,i-3:i+1] = [11/12 -56/12 114/12 -104/12 35/12]
       end
       return A
@@ -220,44 +220,44 @@ end
 # Here the operators are too big for five grid points, so weird corner cases must be accounted for
 # We should be able to assume that users will not have cases like this.
 @testset "Test: Derivative Order = 2, Approx Order = 3, Winding = Positive" begin
-      N = 5
+      N = 7
       L = UpwindDifference(2,3, 1.0, N, t->1.0)
       analyticL = analyticTwoThreePos()
-      x = rand(7)
+      x = rand(9)
 
       # Test that multiplication agrees with analytic multiplication
       @test L*x ≈ analyticL*x
 
       # Test that concretized multiplication agrees with analytic multiplication
-      @test_broken Array(L)*x ≈ analyticL*x
+      @test Array(L)*x ≈ analyticL*x
 
       # Test that matrix-free multiplication agrees with concretized multiplication
-      @test_broken L*x ≈ Array(L)*x
+      @test L*x ≈ Array(L)*x
 
       # Test that concretized matrix agrees with analytic matrix
-      @test_broken Array(L) == analyticL
+      @test Array(L) ≈ analyticL
 
       # TODO: add tests for sparse and banded concretizations
 
 end
 
 @testset "Test: Derivative Order = 2, Approx Order = 3, Winding = Negative" begin
-      N = 5
+      N = 7
       L = UpwindDifference(2,3, 1.0, N, t->-1.0)
       analyticL = -1*analyticTwoThreeNeg()
-      x = rand(7)
+      x = rand(9)
 
       # Test that multiplication agrees with analytic multiplication
-      @test_broken L*x ≈ analyticL*x
+      @test L*x ≈ analyticL*x
 
       # Test that concretized multiplication agrees with analytic multiplication
-      @test_broken Array(L)*x ≈ analyticL*x
+      @test Array(L)*x ≈ analyticL*x
 
       # Test that matrix-free multiplication agrees with concretized multiplication
-      @test_broken L*x ≈ Array(L)*x
+      @test L*x ≈ Array(L)*x
 
       # Test that concretized matrix agrees with analytic matrix
-      @test_broken Array(L) == analyticL
+      @test Array(L) ≈ analyticL
 
       # TODO: add tests for sparse and banded concretizations
 
