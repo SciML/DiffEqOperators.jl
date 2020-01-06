@@ -389,6 +389,7 @@ end
 # Upwind Operator Concretization
 ################################################################################
 
+# TODO: Remove the generality of the non-uniform grid from this implementation 
 function LinearAlgebra.Array(A::DerivativeOperator{T,N,true}, len::Int=A.len) where {T,N}
     L = zeros(T, len, len+2)
     bpc = A.boundary_point_count
@@ -434,6 +435,43 @@ function LinearAlgebra.Array(A::DerivativeOperator{T,N,true}, len::Int=A.len) wh
         else
             cur_stencil = upwind_stencils[i-len+bpc]
             L[i,len-bstl+3:len+2] = cur_coeff * cur_stencil
+        end
+    end
+    return L
+end
+
+function LinearAlgebra.Array(A::DerivativeOperator{T,N,true,M}, len::Int=A.len) where {T,N,M<:AbstractArray{T}}
+    println("we are here")
+    L = zeros(T, len, len+2)
+    bpc = A.boundary_point_count
+    stl = A.stencil_length
+    bstl = A.boundary_stencil_length
+    coeff   = A.coefficients
+
+    for i in 1:bpc
+        cur_coeff   = coeff[i]
+        if cur_coeff >= 0
+            L[i,i+1:i+stl] = cur_coef * A.low_boundary_coefs[1,i]
+        else
+            L[i,1:bstl] = cur_coeff * A.low_boundary_coefs[2,i]
+        end
+    end
+
+    for i in bpc+1:len-bpc
+        cur_coeff   = coeff[i]
+        if cur_coeff >= 0
+            L[i,i+1:i+stl] = cur_coeff * A.stencil_coefs[1,i-bpc]
+        else
+            L[i,i-stl+2:i+1] = cur_coeff * A.stencil_coefs[2,i-bpc]
+        end
+    end
+
+    for i in len-bpc+1:len
+        cur_coeff   = coeff[i]
+        if cur_coeff < 0
+            L[i,i-stl+2:i+1] = cur_coeff * A.high_boundary_coefs[2,i-len+bpc]
+        else
+            L[i,len-bstl+3:len+2] = cur_coeff * A.high_boundary_coefs[1,i-len+bpc]
         end
     end
     return L

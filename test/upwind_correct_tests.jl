@@ -293,20 +293,20 @@ end
       N = 5
       # constructor throws an error at the moment
       L = UpwindDifference(1,1, [0.08, 0.02, 0.05, 0.04, 0.07, 0.03], N, t->1.0)
-      analytiL = analyticOneOnePosIrr()
-      x = rand(5)
+      analyticL = analyticOneOnePosIrr()
+      x = rand(7)
 
       # Test that multiplication agrees with analytic multiplication
       @test_broken L*x ≈ analyticL*x
 
       # Test that concretized multiplication agrees with analytic multiplication
-      @test_broken Array(L)*x ≈ analyticL*x
+      @test Array(L)*x ≈ analyticL*x
 
       # Test that matrix-free multiplication agrees with concretized multiplication
       @test_broken L*x ≈ Array(L)*x
 
       # Test that concretized matrix agrees with analytic matrix
-      @test_broken Array(L) ≈ analyticL
+      @test Array(L) ≈ analyticL
 
       # TODO: add tests for sparse and banded concretizations
 end
@@ -315,20 +315,20 @@ end
       N = 5
       # constructor throws an error at the moment
       L = UpwindDifference(1,1, [0.08, 0.02, 0.05, 0.04, 0.07, 0.03], N, t->-1.0)
-      analytiL = analyticOneOneNegIrr()
-      x = rand(5)
+      analyticL = -1*analyticOneOneNegIrr()
+      x = rand(7)
 
       # Test that multiplication agrees with analytic multiplication
       @test_broken L*x ≈ analyticL*x
 
       # Test that concretized multiplication agrees with analytic multiplication
-      @test_broken Array(L)*x ≈ analyticL*x
+      @test Array(L)*x ≈ analyticL*x
 
       # Test that matrix-free multiplication agrees with concretized multiplication
       @test_broken L*x ≈ Array(L)*x
 
       # Test that concretized matrix agrees with analytic matrix
-      @test_broken Array(L) ≈ analyticL
+      @test Array(L) ≈ analyticL
 
       # TODO: add tests for sparse and banded concretizations
 end
