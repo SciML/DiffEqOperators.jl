@@ -1,4 +1,5 @@
 import LinearAlgebra: mul!
+import Base.==
 mutable struct MatrixFreeOperator{F,N,S,O} <: AbstractMatrixFreeOperator{F}
   f::F
   args::N
@@ -14,6 +15,7 @@ mutable struct MatrixFreeOperator{F,N,S,O} <: AbstractMatrixFreeOperator{F}
 end
 MatrixFreeOperator(f) = MatrixFreeOperator(f, (nothing,))
 
+# Overloading Base functions
 function Base.size(M::MatrixFreeOperator)
   M.size === nothing && error("M.size is nothing, please define size as a tuple of integers")
   return M.size
@@ -23,6 +25,10 @@ end
   n <= 0 && error("dimension out of range")
   return n <= length(M.size) ? M.size[n] : 1
 end
+@inline ==(M1::MatrixFreeOperator, M2::MatrixFreeOperator) = M1.f == M2.f && M1.args == M2.args && M1.size == M2.size && M1.opnorm == M2.opnorm && M1.ishermitian == M2.ishermitian
+@inline Base.:*(A::MatrixFreeOperator, X::AbstractVecOrMat) = mul!(similar(X), A, X)
+
+# Overloading LinearAlgebra functions
 LinearAlgebra.ishermitian(M::MatrixFreeOperator) = M.ishermitian
 function LinearAlgebra.opnorm(M::MatrixFreeOperator, p::Real)
   M.opnorm === nothing && error("""
@@ -33,6 +39,9 @@ function LinearAlgebra.opnorm(M::MatrixFreeOperator, p::Real)
   opn = M.opnorm
   return opn isa Number ? opn : M.opnorm(p)
 end
+
+# DiffEqBase
+DiffEqBase.numargs(::MatrixFreeOperator) = 4
 
 # Interface
 is_constant(M::MatrixFreeOperator) = length(M.args) == 1
@@ -84,6 +93,3 @@ end
   end
   Y
 end
-@inline Base.:*(A::MatrixFreeOperator, X::AbstractVecOrMat) = mul!(similar(X), A, X)
-
-DiffEqBase.numargs(::MatrixFreeOperator) = 4
