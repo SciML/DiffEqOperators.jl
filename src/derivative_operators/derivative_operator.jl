@@ -107,15 +107,12 @@ struct UpwindDifference{N} end
 function UpwindDifference{N}(derivative_order::Int,
                           approximation_order::Int, dx::T,
                           len::Int, coeff_func=nothing) where {T<:Real,N}
+
     stencil_length          = derivative_order + approximation_order
     boundary_stencil_length = derivative_order + approximation_order
-    #=
-    # Fornberg generates ghost order approach incompatible stencils for even approximation orders
-    if boundary_stencil_length%2 == 0
-        boundary_stencil_length += 1
-    end
-    =#
-    boundary_point_count = boundary_stencil_length - 2
+    boundary_point_count    = boundary_stencil_length - 2
+
+    # TODO: Clean up the implementation here so that it is more readable and easier to extend in the future
     dummy_x = 0.0 : stencil_length - 1.0
     stencil_coefs = convert(SVector{stencil_length, T}, (1/dx^derivative_order) * calculate_weights(derivative_order, 0.0, dummy_x))
 
