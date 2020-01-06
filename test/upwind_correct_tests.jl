@@ -292,7 +292,7 @@ end
 @testset "Test: Derivative Order = 1, Approx Order = 1, Winding = Positive, Grid = Irregular" begin
       N = 5
       # constructor throws an error at the moment
-      @test_broken L = UpwindDifference(1,1, [0.08, 0.02, 0.05, 0.04, 0.07, 0.03], N, t->1.0)
+      L = UpwindDifference(1,1, [0.08, 0.02, 0.05, 0.04, 0.07, 0.03], N, t->1.0)
       analytiL = analyticOneOnePosIrr()
       x = rand(5)
 
@@ -314,7 +314,7 @@ end
 @testset "Test: Derivative Order = 1, Approx Order = 1, Winding = Negative, Grid = Irregular" begin
       N = 5
       # constructor throws an error at the moment
-      @test_broken L = UpwindDifference(1,1, [0.08, 0.02, 0.05, 0.04, 0.07, 0.03], N, t->-1.0)
+      L = UpwindDifference(1,1, [0.08, 0.02, 0.05, 0.04, 0.07, 0.03], N, t->-1.0)
       analytiL = analyticOneOneNegIrr()
       x = rand(5)
 
