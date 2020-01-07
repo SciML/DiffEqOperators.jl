@@ -119,9 +119,11 @@ Base.size(A::AbstractDerivativeOperator,i::Integer) = size(A)[i]
 Base.length(A::AbstractDerivativeOperator) = reduce(*, size(A))
 
 #=
-    For the evenly spaced grid we have a symmetric matrix
+    For the evenly spaced grid we have a symmetric matrix.
+    If it is not evenly spaced (i.e. dx is a vector), then
+    we throw an error (TODO: implement a proper transpose).
 =#
-Base.transpose(A::DerivativeOperator) = A
+Base.transpose(A::DerivativeOperator) = typeof(A.dx)<:Real ? A : error("Transpose for DerivativeOperator with non-uniform grid has yet to be implemented.")
 Base.adjoint(A::DerivativeOperator) = A
 LinearAlgebra.issymmetric(::DerivativeOperator) = true
 
@@ -135,7 +137,7 @@ Base.:/(A::AbstractVecOrMat, B::AbstractDerivativeOperator) = A / convert(Array,
 Base.:/(A::AbstractDerivativeOperator, B::AbstractVecOrMat) = Array(A) / B
 
 #=
-    The Inf opnorm can be calculated easily using the stencil coeffiicents, while other opnorms
+    The Inf opnorm can be calculated easily using the stencil coefficients, while other opnorms
     default to compute from the full matrix form.
 =#
 function LinearAlgebra.opnorm(A::DerivativeOperator, p::Real=2)
