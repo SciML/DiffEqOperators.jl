@@ -389,7 +389,7 @@ end
 # Upwind Operator Concretization
 ################################################################################
 
-# TODO: Remove the generality of the non-uniform grid from this implementation 
+# TODO: Remove the generality of the non-uniform grid from this implementation
 function LinearAlgebra.Array(A::DerivativeOperator{T,N,true}, len::Int=A.len) where {T,N}
     L = zeros(T, len, len+2)
     bpc = A.boundary_point_count
@@ -441,7 +441,6 @@ function LinearAlgebra.Array(A::DerivativeOperator{T,N,true}, len::Int=A.len) wh
 end
 
 function LinearAlgebra.Array(A::DerivativeOperator{T,N,true,M}, len::Int=A.len) where {T,N,M<:AbstractArray{T}}
-    println("we are here")
     L = zeros(T, len, len+2)
     bpc = A.boundary_point_count
     stl = A.stencil_length
@@ -451,7 +450,7 @@ function LinearAlgebra.Array(A::DerivativeOperator{T,N,true,M}, len::Int=A.len) 
     for i in 1:bpc
         cur_coeff   = coeff[i]
         if cur_coeff >= 0
-            L[i,i+1:i+stl] = cur_coef * A.low_boundary_coefs[1,i]
+            L[i,i+1:i+stl] = cur_coeff * A.low_boundary_coefs[1,i]
         else
             L[i,1:bstl] = cur_coeff * A.low_boundary_coefs[2,i]
         end
