@@ -137,11 +137,10 @@ end
 function convolve_interior!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::DerivativeOperator{T,N,true,M}; overwrite = true) where {T<:Real,N,M<:AbstractArray{T}}
     @assert length(x_temp)+2 == length(x)
 
-    len = A.len                         #
-    bpc = A.boundary_point_count        #
-    stl = A.stencil_length              #
-    bstl = A.boundary_stencil_length
-    coeff   = A.coefficients            #
+    len = A.len
+    bpc = A.boundary_point_count
+    stl = A.stencil_length
+    coeff   = A.coefficients
 
     for i in bpc+1:len-bpc
         cur_coeff   = coeff[i]
@@ -159,6 +158,65 @@ function convolve_interior!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::
                 xtempi += cur_coeff * cur_stencil[idx]*x[i-stl+1+idx]
             end
             x_temp[i] = xtempi + !overwrite*x_temp[i]
+        end
+    end
+end
+
+function convolve_BC_left!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::DerivativeOperator{T,N,true,M}; overwrite = true) where {T<:Real,N,M<:AbstractArray{T}}
+
+    bpc = A.boundary_point_count
+    stl = A.stencil_length
+    bstl = A.boundary_stencil_length
+    coeff   = A.coefficients
+
+    for i in 1:bpc
+        cur_coeff   = coeff[i]
+        if cur_coeff >= 0
+            xtempi = zero(T)
+            cur_stencil = A.low_boundary_coefs[1,i]
+            for idx in 1:stl
+                xtempi += cur_coeff * cur_stencil[idx]*x[i+idx]
+            end
+            x_temp[i] = xtempi + !overwrite*x_temp[i]
+        else
+            xtempi = zero(T)
+            cur_stencil = A.low_boundary_coefs[2,i]
+            for idx in 1:bstl
+                xtempi += cur_coeff*cur_stencil[idx]*x[idx]
+            end
+            x_temp[i] = xtempi + !overwrite*x_temp[i]
+        end
+    end
+end
+
+function convolve_BC_right!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::DerivativeOperator{T,N,true,M}; overwrite = true) where {T<:Real,N,M<:AbstractArray{T}}
+
+    len = A.len
+    bpc = A.boundary_point_count
+    stl = A.stencil_length
+    bstl = A.boundary_stencil_length
+    coeff   = A.coefficients
+
+    for i in len-bpc+1:len
+        cur_coeff   = coeff[i]
+        if cur_coeff < 0
+            xtempi = zero(T)
+            cur_stencil = A.high_boundary_coefs[2,i-len+bpc]
+            for idx in 1:stl
+                xtempi += cur_coeff*cur_stencil[idx]*x[i-stl+1+idx]
+            end
+            x_temp[i] = xtempi + !overwrite*x_temp[i]
+
+            # L[i,i-stl+2:i+1] = cur_coeff * A.high_boundary_coefs[2,i-len+bpc]
+        else
+            xtempi = zero(T)
+            cur_stencil = A.high_boundary_coefs[1,i-len+bpc]
+            for idx in 1:bstl
+                xtempi += cur_coeff*cur_stencil[idx]*x[len-bstl+2+idx]
+            end
+            x_temp[i] = xtempi + !overwrite*x_temp[i]
+
+            # L[i,len-bstl+3:len+2] = cur_coeff * A.high_boundary_coefs[1,i-len+bpc]
         end
     end
 end
