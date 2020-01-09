@@ -337,13 +337,13 @@ end
       x = rand(7)
 
       # Test that multiplication agrees with analytic multiplication
-      @test_broken L*x ≈ analyticL*x
+      @test L*x ≈ analyticL*x
 
       # Test that concretized multiplication agrees with analytic multiplication
       @test Array(L)*x ≈ analyticL*x
 
       # Test that matrix-free multiplication agrees with concretized multiplication
-      @test_broken L*x ≈ Array(L)*x
+      @test L*x ≈ Array(L)*x
 
       # Test that concretized matrix agrees with analytic matrix
       @test Array(L) ≈ analyticL
@@ -359,13 +359,13 @@ end
       x = rand(7)
 
       # Test that multiplication agrees with analytic multiplication
-      @test_broken L*x ≈ analyticL*x
+      @test L*x ≈ analyticL*x
 
       # Test that concretized multiplication agrees with analytic multiplication
       @test Array(L)*x ≈ analyticL*x
 
       # Test that matrix-free multiplication agrees with concretized multiplication
-      @test_broken L*x ≈ Array(L)*x
+      @test L*x ≈ Array(L)*x
 
       # Test that concretized matrix agrees with analytic matrix
       @test Array(L) ≈ analyticL

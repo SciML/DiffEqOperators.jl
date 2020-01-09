@@ -130,6 +130,39 @@ function convolve_BC_right!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::
     end
 end
 
+################################################################################
+# Non-uniform grid Upwind convolutions
+################################################################################
+
+function convolve_interior!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::DerivativeOperator{T,N,true,M}; overwrite = true) where {T<:Real,N,M<:AbstractArray{T}}
+    @assert length(x_temp)+2 == length(x)
+
+    len = A.len                         #
+    bpc = A.boundary_point_count        #
+    stl = A.stencil_length              #
+    bstl = A.boundary_stencil_length
+    coeff   = A.coefficients            #
+
+    for i in bpc+1:len-bpc
+        cur_coeff   = coeff[i]
+        if cur_coeff >= 0
+            xtempi = zero(T)
+            cur_stencil = A.stencil_coefs[1,i-bpc]
+            for idx in 1:stl
+                xtempi += cur_coeff * cur_stencil[idx]*x[i+idx]
+            end
+            x_temp[i] = xtempi + !overwrite*x_temp[i]
+        else
+            xtempi = zero(T)
+            cur_stencil = A.stencil_coefs[2,i-bpc]
+            for idx in 1:stl
+                xtempi += cur_coeff * cur_stencil[idx]*x[i-stl+1+idx]
+            end
+            x_temp[i] = xtempi + !overwrite*x_temp[i]
+        end
+    end
+end
+
 ###########################################
 
 # Against A BC-padded vector, specialize the computation to explicitly use the left, right, and middle parts
