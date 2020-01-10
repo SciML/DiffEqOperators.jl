@@ -408,7 +408,7 @@ function LinearAlgebra.Array(A::DerivativeOperator{T,N,true}, len::Int=A.len) wh
         cur_coeff   = coeff[i]
         if cur_coeff >= 0
             cur_stencil = eltype(stencils) <: AbstractVector ? stencils[i] : stencils
-            L[i,i+1:i+stl] = cur_stencil
+            L[i,i+1:i+stl] = cur_coeff*cur_stencil
         else
             cur_stencil = downwind_stencils[i]
             L[i,1:bstl] = cur_coeff * cur_stencil

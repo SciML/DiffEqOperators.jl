@@ -460,3 +460,185 @@ end
 
       # TODO: add tests for sparse and banded concretizations
 end
+
+@testset "Test: Scaling by dx and Derivative Order in Uniform Case" begin
+      N = 5
+      # constructor throws an error at the moment
+      L = UpwindDifference(1,2, 0.1, N, t->1.0)
+      analyticL = 10.0*analyticOneTwoPos()
+      x = rand(7)
+
+      # Test that multiplication agrees with analytic multiplication
+      @test L*x ≈ analyticL*x
+
+      # Test that concretized multiplication agrees with analytic multiplication
+      @test Array(L)*x ≈ analyticL*x
+
+      # Test that matrix-free multiplication agrees with concretized multiplication
+      @test L*x ≈ Array(L)*x
+
+      # Test that concretized matrix agrees with analytic matrix
+      @test Array(L) ≈ analyticL
+
+      # TODO: add tests for sparse and banded concretizations
+
+      L = UpwindDifference(1,2, 0.1, N, t->-1.0)
+      analyticL = -10.0*analyticOneTwoNeg()
+
+      # Test that multiplication agrees with analytic multiplication
+      @test L*x ≈ analyticL*x
+
+      # Test that concretized multiplication agrees with analytic multiplication
+      @test Array(L)*x ≈ analyticL*x
+
+      # Test that matrix-free multiplication agrees with concretized multiplication
+      @test L*x ≈ Array(L)*x
+
+      # Test that concretized matrix agrees with analytic matrix
+      @test Array(L) ≈ analyticL
+
+      L = UpwindDifference(2,2, 0.1, N, t->1.0)
+      analyticL = 100.0*analyticTwoTwoPos()
+
+      # Test that multiplication agrees with analytic multiplication
+      @test L*x ≈ analyticL*x
+
+      # Test that concretized multiplication agrees with analytic multiplication
+      @test Array(L)*x ≈ analyticL*x
+
+      # Test that matrix-free multiplication agrees with concretized multiplication
+      @test L*x ≈ Array(L)*x
+
+      # Test that concretized matrix agrees with analytic matrix
+      @test Array(L) ≈ analyticL
+
+      # TODO: add tests for sparse and banded concretizations
+
+      L = UpwindDifference(2,2, 0.1, N, t->-1.0)
+      analyticL = -100.0*analyticTwoTwoNeg()
+
+      # Test that multiplication agrees with analytic multiplication
+      @test L*x ≈ analyticL*x
+
+      # Test that concretized multiplication agrees with analytic multiplication
+      @test Array(L)*x ≈ analyticL*x
+
+      # Test that matrix-free multiplication agrees with concretized multiplication
+      @test L*x ≈ Array(L)*x
+
+      # Test that concretized matrix agrees with analytic matrix
+      @test Array(L) ≈ analyticL
+end
+
+@testset "Test: Non-Trivial Coefficient Handling in Uniform Grid Case" begin
+      N = 5
+      # constructor throws an error at the moment
+      L = UpwindDifference(2,2, 1.0, N, t->4.56)
+      analyticL = 4.56*analyticTwoTwoPos()
+      x = rand(7)
+
+      # Test that multiplication agrees with analytic multiplication
+      @test L*x ≈ analyticL*x
+
+      # Test that concretized multiplication agrees with analytic multiplication
+      @test Array(L)*x ≈ analyticL*x
+
+      # Test that matrix-free multiplication agrees with concretized multiplication
+      @test L*x ≈ Array(L)*x
+
+      # Test that concretized matrix agrees with analytic matrix
+      @test Array(L) ≈ analyticL
+
+      # TODO: add tests for sparse and banded concretizations
+
+      L = UpwindDifference(2,2, 1.0, N, t->-4.56)
+      analyticL = -4.56*analyticTwoTwoNeg()
+
+      # Test that multiplication agrees with analytic multiplication
+      @test L*x ≈ analyticL*x
+
+      # Test that concretized multiplication agrees with analytic multiplication
+      @test Array(L)*x ≈ analyticL*x
+
+      # Test that matrix-free multiplication agrees with concretized multiplication
+      @test L*x ≈ Array(L)*x
+
+      # Test that concretized matrix agrees with analytic matrix
+      @test Array(L) ≈ analyticL
+end
+
+@testset "Test: dx and Derivative Order Scaling and Non-Trivial Coefficient Handling in Uniform Grid Case" begin
+      N = 5
+      # constructor throws an error at the moment
+      L = UpwindDifference(2,2, 0.1, N, t->4.56)
+      analyticL = 4.56*100.0*analyticTwoTwoPos()
+      x = rand(7)
+
+      # Test that multiplication agrees with analytic multiplication
+      @test L*x ≈ analyticL*x
+
+      # Test that concretized multiplication agrees with analytic multiplication
+      @test Array(L)*x ≈ analyticL*x
+
+      # Test that matrix-free multiplication agrees with concretized multiplication
+      @test L*x ≈ Array(L)*x
+
+      # Test that concretized matrix agrees with analytic matrix
+      @test Array(L) ≈ analyticL
+
+      # TODO: add tests for sparse and banded concretizations
+
+      L = UpwindDifference(2,2, 0.1, N, t->-4.56)
+      analyticL = -4.56*100.0*analyticTwoTwoNeg()
+
+      # Test that multiplication agrees with analytic multiplication
+      @test L*x ≈ analyticL*x
+
+      # Test that concretized multiplication agrees with analytic multiplication
+      @test Array(L)*x ≈ analyticL*x
+
+      # Test that matrix-free multiplication agrees with concretized multiplication
+      @test L*x ≈ Array(L)*x
+
+      # Test that concretized matrix agrees with analytic matrix
+      @test Array(L) ≈ analyticL
+end
+
+@testset "Test: Coefficient Handling in Non-Uniform Grid Case" begin
+      N = 5
+      # constructor throws an error at the moment
+      L = UpwindDifference(2,2, [0.08, 0.02, 0.05, 0.04, 0.07, 0.03], N, t->4.56)
+      analyticL = 4.56*analyticTwoTwoPosIrr()
+      x = rand(7)
+
+      # Test that multiplication agrees with analytic multiplication
+      @test L*x ≈ analyticL*x
+
+      # Test that concretized multiplication agrees with analytic multiplication
+      @test Array(L)*x ≈ analyticL*x
+
+      # Test that matrix-free multiplication agrees with concretized multiplication
+      @test L*x ≈ Array(L)*x
+
+      # Test that concretized matrix agrees with analytic matrix
+      @test Array(L) ≈ analyticL
+
+      # TODO: add tests for sparse and banded concretizations
+
+      L = UpwindDifference(2,2, [0.08, 0.02, 0.05, 0.04, 0.07, 0.03], N, t->-4.56)
+      analyticL = -4.56*analyticTwoTwoNegIrr()
+
+      # Test that multiplication agrees with analytic multiplication
+      @test L*x ≈ analyticL*x
+
+      # Test that concretized multiplication agrees with analytic multiplication
+      @test Array(L)*x ≈ analyticL*x
+
+      # Test that matrix-free multiplication agrees with concretized multiplication
+      @test L*x ≈ Array(L)*x
+
+      # Test that concretized matrix agrees with analytic matrix
+      @test Array(L) ≈ analyticL
+end
+
+# TODO: potentially other coefficient functions
