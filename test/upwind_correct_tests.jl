@@ -98,6 +98,99 @@ function analyticOneOnePosIrr()
       return A
 end
 
+function analyticOneOneNegIrr()
+    A = zeros(5,7)
+    A[1,1:2] = [-25. / 2., 25. / 2.]
+    A[2,2:3] = [-50., 50.]
+    A[3,3:4] = [-20., 20.]
+    A[4,4:5] = [-25., 25.]
+    A[5,5:6] = [-100/7, 100/7]
+    return A
+end
+
+function analyticOneTwoPosIrr()
+    A = zeros(5,7)
+    A[1,2:4] = [-450. / 7., 70., -40. / 7.]
+    A[2,3:5] = [-280. / 9., 45., -125. / 9.]
+    A[3,4:6] = [-2625. / 77., 3025. / 77., -400. / 77.]
+    A[4,5:7] = [-510. / 21., 1000. / 21., -490. / 21.]
+    A[5,5:7] = [-90. / 21., -400. / 21., 490. / 21.]
+    return A
+end
+
+function analyticOneTwoNegIrr()
+    A = zeros(5,7)
+    A[1,1:3] = [-5. / 2., -75. / 2., 40.]
+    A[2,1:3] = [5. / 2., -125. / 2., 60.]
+    A[3,2:4] = [250. / 7., -70., 240. / 7.]
+    A[4,3:5] = [80. / 9., -45., 325. / 9.]
+    A[5,4:6] = [1225. / 77., -39. - 2. / 7., 23. + 29. / 77.]
+    return A
+end
+
+function analyticTwoTwoPosIrr()
+    A = zeros(5,7)
+    A[1,2:5] = [2597. + 31. / 77., -4000., 1857. + 1. / 7., -454. - 42. / 77.]
+    A[2,3:6] = [833. + 11. / 33., -2272. - 24. / 33., 1666. + 2. / 3., -227. - 3. / 11.]
+    A[3,4:7] = [941. + 43. / 77., -1785 - 5. / 7., 1558. + 34. / 77., -714. - 2. / 7.]
+    A[4,4:7] = [551. + 73. / 77., -928. - 4. / 7., 519. + 37. / 77., -142. - 6. / 7.]
+    A[5,4:7] = [-129. - 67. / 77., 571. + 3. / 7., -1298. - 54. / 77., 857. + 1. / 7.]
+    return A
+end
+
+function analyticTwoTwoNegIrr()
+    A = zeros(5,7)
+    A[1,1:4] = [150., -178. - 4. / 7., -200., 228. + 4. / 7.]
+    A[2,1:4] = [50., 892. + 6. / 7., -1400., 457. + 1. / 7.]
+    A[3,2:5] = [ -200., 3571. + 3. / 7., -4400., 1028. + 4. / 7.]
+    A[4,3:6] = [-1688 - 72. / 231., 3333. + 77. / 231.,
+                -2857. - 33 / 231., 1212. + 28. / 231.]
+    A[5,4:7] = [-500., 2090. + 10. / 11.,
+                -2142. - 6. / 7., 551. + 73. / 77.]
+    return A
+end
+
+function analyticTwoThreePosIrr()
+    A = zeros(5,7)
+    A[1,2:6] = [3412. + 484. / 693., -5569. - 308. / 693.,
+                3324. + 468. / 693., -1269. - 583. / 693.,
+                101. + 632. / 693.]
+    A[2,3:7] = [1226. + 8008. / 13167., -4019. - 6327. / 13167.,
+                3801. + 7733. / 13167., -1682. - 11856. / 13167.,
+                674. + 2442. / 13167.]
+    A[3,3:7] = [371. + 4543. / 13167., -707. - 10431. / 13167.,
+                230. + 2090. / 13167., 183. + 12939. / 13167.,
+                -77. - 9141. / 13167.]
+    A[4,3:7] = [2. + 12166. / 13167., 538. + 12654. / 13167.,
+                -912. - 9196. / 13167., 508. + 8664. / 13167.,
+                -137. - 11121. / 13167.]
+    A[5,3:7] = [33. + 8239. / 13167., -279. - 2907. / 13167.,
+                753. + 12749. / 13167., -1423. - 2109. / 13167.,
+                914. + 10362. / 13167.]
+    return A
+end
+
+function analyticTwoThreeNegIrr()
+    A = zeros(5,7)
+    A[1,1:5] = [99. + 1617. / 13167., 762. + 12996. / 13167.,
+                -1488. - 11704. / 13167., 780. + 12540. / 13167.,
+                -154. - 2282. / 13167.]
+    A[2,1:5] = [14. + 12012. / 13167., 1542. + 2736. / 13167.,
+                -2288. - 11704. / 13167., 838. + 1254. / 13167.,
+                -106. - 4298. / 13167.]
+    A[3,1:5] = [-11. - 5313. / 13167., 81. + 2223. / 13167.,
+                377. + 10241. / 13167., -1019. - 627. / 13167.,
+                571. + 6643. / 13167.]
+    A[4,1:5] = [157. + 231. / 13167., -4594. - 2052. / 13167.,
+                7311. + 1463. / 13167., -4561. - 11913. / 13167.,
+                1687. + 12271. / 13167.]
+    A[5,2:6] = [2633. + 331. / 693., -5569. - 308. / 693.,
+                6831. + 117. / 693., -4776. - 232. / 693.,
+                881. + 92. / 693.]
+    return A
+end
+
+
 
 @testset "Test: Derivative Order = 1, Approx Order = 1, Winding = Positive" begin
       N = 5
@@ -283,7 +376,29 @@ end
       N = 5
       # constructor throws an error at the moment
       @test_broken L = UpwindDifference(1,1, [0.08, 0.02, 0.05, 0.04, 0.07, 0.03], N, t->1.0)
-      analytiL = analyticOneOnePosIrr()
+      analyticL = analyticOneOnePosIrr()
+      x = rand(5)
+
+      # Test that multiplication agrees with analytic multiplication
+      @test_broken L*x ≈ analyticL*x
+
+      # Test that concretized multiplication agrees with analytic multiplication
+      @test_broken Array(L)*x ≈ analyticL*x
+
+      # Test that matrix-free multiplication agrees with concretized multiplication
+      @test_broken L*x ≈ Array(L)*x
+
+      # Test that concretized matrix agrees with analytic matrix
+      @test_broken Array(L) ≈ analyticL
+
+      # TODO: add tests for sparse and banded concretizations
+end
+
+@testset "Test: Derivative Order = 1, Approx Order = 1, Winding = Negative, Grid = Irregular" begin
+      N = 5
+      # constructor throws an error at the moment
+      @test_broken L = UpwindDifference(1,1, [0.08, 0.02, 0.05, 0.04, 0.07, 0.03], N, t->-1.0)
+      analyticL = analyticOneOnePosIrr()
       x = rand(5)
 
       # Test that multiplication agrees with analytic multiplication
