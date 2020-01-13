@@ -104,9 +104,36 @@ end
 
 struct UpwindDifference{N} end
 
+"""
+```
+UpwindDifference{N}(derivative_order, approximation_order, dx, len, coeff_func = nothing)
+```
+constructs a DerivativeOperator that automatically implements upwinding.
+
+### Inputs
+* `dx::T` or `dx::Vector{T}`: grid spacing
+* `coeff_func`: function mapping index in the grid to coefficient at that grid location
+
+### Examples
+julia> drift = [1., 1., -1.]
+julia> L1 = UpwindDifference(1, 1, 1., 3, i -> drift[i])
+julia> L2 = UpwindDifference(1, 1, 1., 3, i -> 1.)
+julia> Q = Neumann0BC(1, 1.)
+julia> Array(L1 * Q)[1]
+3×3 Array{Float64,2}:
+ -1.0   1.0   0.0
+  0.0  -1.0   1.0
+  0.0   1.0  -1.0
+julia> Array(L2 * Q)[1]
+3×3 Array{Float64,2}:
+ -1.0   1.0  0.0
+  0.0  -1.0  1.0
+  0.0   0.0  0.0
+
+"""
 function UpwindDifference{N}(derivative_order::Int,
-                          approximation_order::Int, dx::T,
-                          len::Int, coeff_func=nothing) where {T<:Real,N}
+                             approximation_order::Int, dx::T,
+                             len::Int, coeff_func=nothing) where {T<:Real,N}
 
     stencil_length          = derivative_order + approximation_order
     boundary_stencil_length = derivative_order + approximation_order
