@@ -104,38 +104,7 @@ function convolve_BC_left!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::D
         x_temp[i] = xtempi + !overwrite*x_temp[i]
     end
 end
-    #=
-    stencil = A.low_boundary_coefs
-    coeff   = A.coefficients
 
-    _bpc = A.boundary_point_count
-    use_interior_stencil = false
-    if isempty(stencil)
-        _bpc = A.boundary_point_count + 1
-        use_interior_stencil = true
-    end
-
-    for i in 1 : _bpc
-        if use_interior_stencil == true
-            cur_stencil = A.stencil_coefs
-            slen = length(A.stencil_coefs)
-        else
-            cur_stencil = stencil[i]
-            slen = length(cur_stencil)
-        end
-
-        cur_coeff   = typeof(coeff)   <: AbstractVector ? coeff[i] : coeff isa Number ? coeff : true
-        cur_stencil = cur_coeff < 0 ? reverse(cur_stencil) : cur_stencil
-        xtempi = cur_coeff*cur_stencil[1]*x[1]
-        for idx in 2:slen
-            xtempi += cur_coeff * cur_stencil[idx] * x[idx]
-        end
-        x_temp[i] = xtempi + !overwrite*x_temp[i]
-    end
-end
-=#
-
-# TODO
 function convolve_BC_right!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::DerivativeOperator{T,N,true}; overwrite = true) where {T<:Real, N}
     coeff = A.coefficients
     upwind_stencils = A.high_boundary_coefs
@@ -161,41 +130,96 @@ function convolve_BC_right!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::
     end
 end
 
-#=
-    stencil = A.high_boundary_coefs
+################################################################################
+# Non-uniform grid Upwind convolutions
+################################################################################
+
+function convolve_interior!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::DerivativeOperator{T,N,true,M}; overwrite = true) where {T<:Real,N,M<:AbstractArray{T}}
+    @assert length(x_temp)+2 == length(x)
+
+    len = A.len
+    bpc = A.boundary_point_count
+    stl = A.stencil_length
     coeff   = A.coefficients
-    x_len   = length(x)
-    L       = A.boundary_stencil_length
 
-    _bpc = A.boundary_point_count
-    use_interior_stencil = false
-
-    if isempty(stencil)
-        _bpc = 1
-        use_interior_stencil = true
-    end
-
-    for i in 1 : _bpc
-        if use_interior_stencil == true
-            cur_stencil = A.stencil_coefs
-            slen = length(A.stencil_coefs)
-            L = A.stencil_length
+    for i in bpc+1:len-bpc
+        cur_coeff   = coeff[i]
+        if cur_coeff >= 0
+            xtempi = zero(T)
+            cur_stencil = A.stencil_coefs[1,i-bpc]
+            for idx in 1:stl
+                xtempi += cur_coeff * cur_stencil[idx]*x[i+idx]
+            end
+            x_temp[i] = xtempi + !overwrite*x_temp[i]
         else
-            cur_stencil = stencil[i]
-            slen = length(cur_stencil)
+            xtempi = zero(T)
+            cur_stencil = A.stencil_coefs[2,i-bpc]
+            for idx in 1:stl
+                xtempi += cur_coeff * cur_stencil[idx]*x[i-stl+1+idx]
+            end
+            x_temp[i] = xtempi + !overwrite*x_temp[i]
         end
-
-        cur_coeff   = typeof(coeff)   <: AbstractVector ? coeff[i] : coeff isa Number ? coeff : true
-        cur_stencil = cur_coeff < 0 ? reverse(cur_stencil) : cur_stencil
-        xtempi = zero(T)
-        for idx in 1:slen
-            xtempi += cur_coeff * cur_stencil[idx] * x[x_len-L+idx]
-        end
-        x_temp[end-_bpc+i] = xtempi  + !overwrite*x_temp[end-_bpc+i]
     end
 end
-=#
 
+function convolve_BC_left!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::DerivativeOperator{T,N,true,M}; overwrite = true) where {T<:Real,N,M<:AbstractArray{T}}
+
+    bpc = A.boundary_point_count
+    stl = A.stencil_length
+    bstl = A.boundary_stencil_length
+    coeff   = A.coefficients
+
+    for i in 1:bpc
+        cur_coeff   = coeff[i]
+        if cur_coeff >= 0
+            xtempi = zero(T)
+            cur_stencil = A.low_boundary_coefs[1,i]
+            for idx in 1:stl
+                xtempi += cur_coeff * cur_stencil[idx]*x[i+idx]
+            end
+            x_temp[i] = xtempi + !overwrite*x_temp[i]
+        else
+            xtempi = zero(T)
+            cur_stencil = A.low_boundary_coefs[2,i]
+            for idx in 1:bstl
+                xtempi += cur_coeff*cur_stencil[idx]*x[idx]
+            end
+            x_temp[i] = xtempi + !overwrite*x_temp[i]
+        end
+    end
+end
+
+function convolve_BC_right!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::DerivativeOperator{T,N,true,M}; overwrite = true) where {T<:Real,N,M<:AbstractArray{T}}
+
+    len = A.len
+    bpc = A.boundary_point_count
+    stl = A.stencil_length
+    bstl = A.boundary_stencil_length
+    coeff   = A.coefficients
+
+    for i in len-bpc+1:len
+        cur_coeff   = coeff[i]
+        if cur_coeff < 0
+            xtempi = zero(T)
+            cur_stencil = A.high_boundary_coefs[2,i-len+bpc]
+            for idx in 1:stl
+                xtempi += cur_coeff*cur_stencil[idx]*x[i-stl+1+idx]
+            end
+            x_temp[i] = xtempi + !overwrite*x_temp[i]
+
+            # L[i,i-stl+2:i+1] = cur_coeff * A.high_boundary_coefs[2,i-len+bpc]
+        else
+            xtempi = zero(T)
+            cur_stencil = A.high_boundary_coefs[1,i-len+bpc]
+            for idx in 1:bstl
+                xtempi += cur_coeff*cur_stencil[idx]*x[len-bstl+2+idx]
+            end
+            x_temp[i] = xtempi + !overwrite*x_temp[i]
+
+            # L[i,len-bstl+3:len+2] = cur_coeff * A.high_boundary_coefs[1,i-len+bpc]
+        end
+    end
+end
 
 ###########################################
 
