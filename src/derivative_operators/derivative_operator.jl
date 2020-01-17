@@ -41,6 +41,7 @@ function CenteredDifference{N}(derivative_order::Int,
     high_boundary_coefs      = convert(SVector{boundary_point_count},reverse(map(reverse, _low_boundary_coefs)))
 
     coefficients            = coeff_func isa Nothing ? nothing : Vector{T}(undef,len)
+
     DerivativeOperator{T,N,false,T,typeof(stencil_coefs),
         typeof(low_boundary_coefs),typeof(coefficients),
         typeof(coeff_func)}(
@@ -154,8 +155,8 @@ function UpwindDifference{N}(derivative_order::Int,
     high_boundary_coefs = convert(SVector{boundary_point_count},_high_boundary_coefs)
 
     coefficients = Vector{T}(undef,len)
-    for i in 1:len
-        coefficients[i] = coeff_func(i)
+    if coeff_func != nothing
+        compute_coeffs!(coeff_func, coefficients)
     end
 
     DerivativeOperator{T,N,true,T,typeof(stencil_coefs),
@@ -200,8 +201,8 @@ function UpwindDifference{N}(derivative_order::Int,
 
     # Compute coefficients
     coefficients = Vector{T}(undef,len)
-    for i in 1:len
-        coefficients[i] = coeff_func(i)
+    if coeff_func != nothing
+        compute_coeffs!(coeff_func, coefficients)
     end
 
     DerivativeOperator{T,N,true,typeof(dx),typeof(stencil_coefs),
