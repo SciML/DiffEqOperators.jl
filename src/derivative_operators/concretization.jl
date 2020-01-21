@@ -389,7 +389,6 @@ end
 # Upwind Operator Concretization
 ################################################################################
 
-# TODO: Remove the generality of the non-uniform grid from this implementation
 function LinearAlgebra.Array(A::DerivativeOperator{T,N,true}, len::Int=A.len) where {T,N}
     L = zeros(T, len, len+2)
     bpc = A.boundary_point_count
