@@ -15,7 +15,7 @@ end
 # Coefficient functions when coeff_func is a Function and current_coeffs exists
 function compute_coeffs!(coeff_func::Function, current_coeffs::AbstractVector{T}) where {T<:Number}
     if hasmethod(coeff_func, (Vector{T},))
-        current_coeffs[:,] = coeff_func(current_coeffs)
+        current_coeffs[:] = coeff_func(current_coeffs)
     else
         map!(coeff_func, current_coeffs, current_coeffs)
     end

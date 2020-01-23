@@ -166,7 +166,12 @@ end
 ################################################################################
 
 function *(coeff_func::Function, A::DerivativeOperator{T,N,Wind}) where {T,N,Wind}
-    coefficients = compute_coeffs(coeff_func, A.coefficients === nothing ? Vector{T}(undef, A.len) : A.coefficients)
+    if hasmethod(coeff_func, (Any,))
+        coefficients = compute_coeffs(coeff_func, A.coefficients === nothing ? Vector{T}(undef, A.len) : A.coefficients)
+    else
+        coefficients = A.coefficients === nothing ? Vector{T}(undef, A.len) : A.coefficients
+    end
+
     DerivativeOperator{T,N,Wind,typeof(A.dx),typeof(A.stencil_coefs),
                        typeof(A.low_boundary_coefs),typeof(coefficients),
                        typeof(coeff_func)}(
