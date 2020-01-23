@@ -150,7 +150,7 @@ end
 
 @testset "Test: Derivative Order = 1, Approx Order = 1, Winding = Positive" begin
       N = 5
-      L = UpwindDifference(1,1, 1.0, N, t->1.0)
+      L = UpwindDifference(1,1, 1.0, N, 1.0)
       analyticL = analyticOneOnePos()
       x = rand(7)
 
@@ -172,7 +172,7 @@ end
 
 @testset "Test: Derivative Order = 1, Approx Order = 1, Winding = Negative" begin
       N = 5
-      L = UpwindDifference(1,1, 1.0, N, t->-1.0)
+      L = UpwindDifference(1,1, 1.0, N, -1.0)
       analyticL = -1*analyticOneOneNeg()
       x = rand(7)
 
@@ -194,7 +194,7 @@ end
 
 @testset "Test: Derivative Order = 1, Approx Order = 2, Winding = Positive" begin
       N = 5
-      L = UpwindDifference(1,2, 1.0, N, t->1.0)
+      L = UpwindDifference(1,2, 1.0, N, 1.0)
       analyticL = analyticOneTwoPos()
       x = rand(7)
 
@@ -216,7 +216,7 @@ end
 
 @testset "Test: Derivative Order = 1, Approx Order = 2, Winding = Negative" begin
       N = 5
-      L = UpwindDifference(1,2, 1.0, N, t->-1.0)
+      L = UpwindDifference(1,2, 1.0, N, -1.0)
       analyticL = -1*analyticOneTwoNeg()
       x = rand(7)
 
@@ -238,7 +238,7 @@ end
 
 @testset "Test: Derivative Order = 2, Approx Order = 2, Winding = Positive" begin
       N = 5
-      L = UpwindDifference(2,2, 1.0, N, t->1.0)
+      L = UpwindDifference(2,2, 1.0, N, 1.0)
       analyticL = analyticTwoTwoPos()
       x = rand(7)
 
@@ -260,7 +260,7 @@ end
 
 @testset "Test: Derivative Order = 2, Approx Order = 2, Winding = Negative" begin
       N = 5
-      L = UpwindDifference(2,2, 1.0, N, t->-1.0)
+      L = UpwindDifference(2,2, 1.0, N, -1.0)
       analyticL = -1*analyticTwoTwoNeg()
       x = rand(7)
 
@@ -284,7 +284,7 @@ end
 # We should be able to assume that users will not have cases like this.
 @testset "Test: Derivative Order = 2, Approx Order = 3, Winding = Positive" begin
       N = 7
-      L = UpwindDifference(2,3, 1.0, N, t->1.0)
+      L = UpwindDifference(2,3, 1.0, N, 1.0)
       analyticL = analyticTwoThreePos()
       x = rand(9)
 
@@ -306,7 +306,7 @@ end
 
 @testset "Test: Derivative Order = 2, Approx Order = 3, Winding = Negative" begin
       N = 7
-      L = UpwindDifference(2,3, 1.0, N, t->-1.0)
+      L = UpwindDifference(2,3, 1.0, N, -1.0)
       analyticL = -1*analyticTwoThreeNeg()
       x = rand(9)
 
@@ -331,7 +331,7 @@ end
 @testset "Test: Derivative Order = 1, Approx Order = 1, Winding = Positive, Grid = Irregular" begin
       N = 5
       # constructor throws an error at the moment
-      L = UpwindDifference(1,1, [0.08, 0.02, 0.05, 0.04, 0.07, 0.03], N, t->1.0)
+      L = UpwindDifference(1,1, [0.08, 0.02, 0.05, 0.04, 0.07, 0.03], N, 1.0)
       analyticL = analyticOneOnePosIrr()
       x = rand(7)
 
@@ -346,7 +346,6 @@ end
 
       # Test that concretized matrix agrees with analytic matrix
       @test Array(L) ≈ analyticL
->>>>>>> upwind_fix
 
       # TODO: add tests for sparse and banded concretizations
 end
@@ -354,7 +353,7 @@ end
 @testset "Test: Derivative Order = 1, Approx Order = 1, Winding = Negative, Grid = Irregular" begin
       N = 5
       # constructor throws an error at the moment
-      L = UpwindDifference(1,1, [0.08, 0.02, 0.05, 0.04, 0.07, 0.03], N, t->-1.0)
+      L = UpwindDifference(1,1, [0.08, 0.02, 0.05, 0.04, 0.07, 0.03], N, -1.0)
       analyticL = -1*analyticOneOneNegIrr()
       x = rand(7)
 
@@ -376,7 +375,7 @@ end
 @testset "Test: Derivative Order = 1, Approx Order = 2, Winding = Positive, Grid = Irregular" begin
       N = 5
       # constructor throws an error at the moment
-      L = UpwindDifference(1,2, [0.08, 0.02, 0.05, 0.04, 0.07, 0.03], N, t->1.0)
+      L = UpwindDifference(1,2, [0.08, 0.02, 0.05, 0.04, 0.07, 0.03], N, 1.0)
       analyticL = analyticOneTwoPosIrr()
       x = rand(7)
 
@@ -398,7 +397,7 @@ end
 @testset "Test: Derivative Order = 1, Approx Order = 2, Winding = Negative, Grid = Irregular" begin
       N = 5
       # constructor throws an error at the moment
-      L = UpwindDifference(1,2, [0.08, 0.02, 0.05, 0.04, 0.07, 0.03], N, t->-1.0)
+      L = UpwindDifference(1,2, [0.08, 0.02, 0.05, 0.04, 0.07, 0.03], N, -1.0)
       analyticL = -1*analyticOneTwoNegIrr()
       x = rand(7)
 
@@ -420,7 +419,7 @@ end
 @testset "Test: Derivative Order = 2, Approx Order = 2, Winding = Positive, Grid = Irregular" begin
       N = 5
       # constructor throws an error at the moment
-      L = UpwindDifference(2,2, [0.08, 0.02, 0.05, 0.04, 0.07, 0.03], N, t->1.0)
+      L = UpwindDifference(2,2, [0.08, 0.02, 0.05, 0.04, 0.07, 0.03], N, 1.0)
       analyticL = analyticTwoTwoPosIrr()
       x = rand(7)
 
@@ -442,7 +441,7 @@ end
 @testset "Test: Derivative Order = 2, Approx Order = 2, Winding = Negative, Grid = Irregular" begin
       N = 5
       # constructor throws an error at the moment
-      L = UpwindDifference(2,2, [0.08, 0.02, 0.05, 0.04, 0.07, 0.03], N, t->-1.0)
+      L = UpwindDifference(2,2, [0.08, 0.02, 0.05, 0.04, 0.07, 0.03], N, -1.0)
       analyticL = -1*analyticTwoTwoNegIrr()
       x = rand(7)
 
@@ -464,7 +463,7 @@ end
 @testset "Test: Scaling by dx and Derivative Order in Uniform Case" begin
       N = 5
       # constructor throws an error at the moment
-      L = UpwindDifference(1,2, 0.1, N, t->1.0)
+      L = UpwindDifference(1,2, 0.1, N, 1.0)
       analyticL = 10.0*analyticOneTwoPos()
       x = rand(7)
 
@@ -482,7 +481,7 @@ end
 
       # TODO: add tests for sparse and banded concretizations
 
-      L = UpwindDifference(1,2, 0.1, N, t->-1.0)
+      L = UpwindDifference(1,2, 0.1, N, -1.0)
       analyticL = -10.0*analyticOneTwoNeg()
 
       # Test that multiplication agrees with analytic multiplication
@@ -497,7 +496,7 @@ end
       # Test that concretized matrix agrees with analytic matrix
       @test Array(L) ≈ analyticL
 
-      L = UpwindDifference(2,2, 0.1, N, t->1.0)
+      L = UpwindDifference(2,2, 0.1, N, 1.0)
       analyticL = 100.0*analyticTwoTwoPos()
 
       # Test that multiplication agrees with analytic multiplication
@@ -514,7 +513,7 @@ end
 
       # TODO: add tests for sparse and banded concretizations
 
-      L = UpwindDifference(2,2, 0.1, N, t->-1.0)
+      L = UpwindDifference(2,2, 0.1, N, -1.0)
       analyticL = -100.0*analyticTwoTwoNeg()
 
       # Test that multiplication agrees with analytic multiplication
@@ -533,7 +532,7 @@ end
 @testset "Test: Non-Trivial Coefficient Handling in Uniform Grid Case" begin
       N = 5
       # constructor throws an error at the moment
-      L = UpwindDifference(2,2, 1.0, N, t->4.56)
+      L = UpwindDifference(2,2, 1.0, N, 4.56)
       analyticL = 4.56*analyticTwoTwoPos()
       x = rand(7)
 
@@ -551,7 +550,7 @@ end
 
       # TODO: add tests for sparse and banded concretizations
 
-      L = UpwindDifference(2,2, 1.0, N, t->-4.56)
+      L = UpwindDifference(2,2, 1.0, N, -4.56)
       analyticL = -4.56*analyticTwoTwoNeg()
 
       # Test that multiplication agrees with analytic multiplication
@@ -570,7 +569,7 @@ end
 @testset "Test: dx and Derivative Order Scaling and Non-Trivial Coefficient Handling in Uniform Grid Case" begin
       N = 5
       # constructor throws an error at the moment
-      L = UpwindDifference(2,2, 0.1, N, t->4.56)
+      L = UpwindDifference(2,2, 0.1, N, 4.56)
       analyticL = 4.56*100.0*analyticTwoTwoPos()
       x = rand(7)
 
@@ -588,7 +587,7 @@ end
 
       # TODO: add tests for sparse and banded concretizations
 
-      L = UpwindDifference(2,2, 0.1, N, t->-4.56)
+      L = UpwindDifference(2,2, 0.1, N, -4.56)
       analyticL = -4.56*100.0*analyticTwoTwoNeg()
 
       # Test that multiplication agrees with analytic multiplication
@@ -607,7 +606,7 @@ end
 @testset "Test: Coefficient Handling in Non-Uniform Grid Case" begin
       N = 5
       # constructor throws an error at the moment
-      L = UpwindDifference(2,2, [0.08, 0.02, 0.05, 0.04, 0.07, 0.03], N, t->4.56)
+      L = UpwindDifference(2,2, [0.08, 0.02, 0.05, 0.04, 0.07, 0.03], N, 4.56)
       analyticL = 4.56*analyticTwoTwoPosIrr()
       x = rand(7)
 
@@ -625,7 +624,7 @@ end
 
       # TODO: add tests for sparse and banded concretizations
 
-      L = UpwindDifference(2,2, [0.08, 0.02, 0.05, 0.04, 0.07, 0.03], N, t->-4.56)
+      L = UpwindDifference(2,2, [0.08, 0.02, 0.05, 0.04, 0.07, 0.03], N, -4.56)
       analyticL = -4.56*analyticTwoTwoNegIrr()
 
       # Test that multiplication agrees with analytic multiplication
