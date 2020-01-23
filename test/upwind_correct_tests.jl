@@ -166,7 +166,11 @@ end
       # Test that concretized matrix agrees with analytic matrix
       @test Array(L) == analyticL
 
-      # TODO: add tests for sparse and banded concretizations
+      # Test Banded and Sparse concretizations
+      @test Array(L) == BandedMatrix(L)
+      @test Array(L) == SparseMatrixCSC(L)
+      @test typeof(BandedMatrix(L)) <: BandedMatrix
+      @test typeof(SparseMatrixCSC(L)) <: SparseMatrixCSC
 
 end
 
@@ -188,7 +192,11 @@ end
       # Test that concretized matrix agrees with analytic matrix
       @test Array(L) == analyticL
 
-      # TODO: add tests for sparse and banded concretizations
+      # Test Banded and Sparse concretizations
+      @test Array(L) == BandedMatrix(L)
+      @test Array(L) == SparseMatrixCSC(L)
+      @test typeof(BandedMatrix(L)) <: BandedMatrix
+      @test typeof(SparseMatrixCSC(L)) <: SparseMatrixCSC
 
 end
 
@@ -210,7 +218,11 @@ end
       # Test that concretized matrix agrees with analytic matrix
       @test Array(L) == analyticL
 
-      # TODO: add tests for sparse and banded concretizations
+      # Test Banded and Sparse concretizations
+      @test Array(L) == BandedMatrix(L)
+      @test Array(L) == SparseMatrixCSC(L)
+      @test typeof(BandedMatrix(L)) <: BandedMatrix
+      @test typeof(SparseMatrixCSC(L)) <: SparseMatrixCSC
 
 end
 
@@ -232,7 +244,11 @@ end
       # Test that concretized matrix agrees with analytic matrix
       @test Array(L) == analyticL
 
-      # TODO: add tests for sparse and banded concretizations
+      # Test Banded and Sparse concretizations
+      @test Array(L) == BandedMatrix(L)
+      @test Array(L) == SparseMatrixCSC(L)
+      @test typeof(BandedMatrix(L)) <: BandedMatrix
+      @test typeof(SparseMatrixCSC(L)) <: SparseMatrixCSC
 
 end
 
@@ -254,7 +270,11 @@ end
       # Test that concretized matrix agrees with analytic matrix
       @test Array(L) == analyticL
 
-      # TODO: add tests for sparse and banded concretizations
+      # Test Banded and Sparse concretizations
+      @test Array(L) == BandedMatrix(L)
+      @test Array(L) == SparseMatrixCSC(L)
+      @test typeof(BandedMatrix(L)) <: BandedMatrix
+      @test typeof(SparseMatrixCSC(L)) <: SparseMatrixCSC
 
 end
 
@@ -276,7 +296,11 @@ end
       # Test that concretized matrix agrees with analytic matrix
       @test Array(L) == analyticL
 
-      # TODO: add tests for sparse and banded concretizations
+      # Test Banded and Sparse concretizations
+      @test Array(L) == BandedMatrix(L)
+      @test Array(L) == SparseMatrixCSC(L)
+      @test typeof(BandedMatrix(L)) <: BandedMatrix
+      @test typeof(SparseMatrixCSC(L)) <: SparseMatrixCSC
 
 end
 
@@ -300,7 +324,11 @@ end
       # Test that concretized matrix agrees with analytic matrix
       @test Array(L) ≈ analyticL
 
-      # TODO: add tests for sparse and banded concretizations
+      # Test Banded and Sparse concretizations
+      @test Array(L) == BandedMatrix(L)
+      @test Array(L) == SparseMatrixCSC(L)
+      @test typeof(BandedMatrix(L)) <: BandedMatrix
+      @test typeof(SparseMatrixCSC(L)) <: SparseMatrixCSC
 
 end
 
@@ -322,11 +350,13 @@ end
       # Test that concretized matrix agrees with analytic matrix
       @test Array(L) ≈ analyticL
 
-      # TODO: add tests for sparse and banded concretizations
+      # Test Banded and Sparse concretizations
+      @test Array(L) == BandedMatrix(L)
+      @test Array(L) == SparseMatrixCSC(L)
+      @test typeof(BandedMatrix(L)) <: BandedMatrix
+      @test typeof(SparseMatrixCSC(L)) <: SparseMatrixCSC
 
 end
-
-# TODO: tests for non-uniform grid
 
 @testset "Test: Derivative Order = 1, Approx Order = 1, Winding = Positive, Grid = Irregular" begin
       N = 5
@@ -347,7 +377,11 @@ end
       # Test that concretized matrix agrees with analytic matrix
       @test Array(L) ≈ analyticL
 
-      # TODO: add tests for sparse and banded concretizations
+      # Test Banded and Sparse concretizations
+      @test Array(L) == BandedMatrix(L)
+      @test Array(L) == SparseMatrixCSC(L)
+      @test typeof(BandedMatrix(L)) <: BandedMatrix
+      @test typeof(SparseMatrixCSC(L)) <: SparseMatrixCSC
 end
 
 @testset "Test: Derivative Order = 1, Approx Order = 1, Winding = Negative, Grid = Irregular" begin
@@ -369,7 +403,11 @@ end
       # Test that concretized matrix agrees with analytic matrix
       @test Array(L) ≈ analyticL
 
-      # TODO: add tests for sparse and banded concretizations
+      # Test Banded and Sparse concretizations
+      @test Array(L) == BandedMatrix(L)
+      @test Array(L) == SparseMatrixCSC(L)
+      @test typeof(BandedMatrix(L)) <: BandedMatrix
+      @test typeof(SparseMatrixCSC(L)) <: SparseMatrixCSC
 end
 
 @testset "Test: Derivative Order = 1, Approx Order = 2, Winding = Positive, Grid = Irregular" begin
@@ -391,7 +429,11 @@ end
       # Test that concretized matrix agrees with analytic matrix
       @test Array(L) ≈ analyticL
 
-      # TODO: add tests for sparse and banded concretizations
+      # Test Banded and Sparse concretizations
+      @test Array(L) == BandedMatrix(L)
+      @test Array(L) == SparseMatrixCSC(L)
+      @test typeof(BandedMatrix(L)) <: BandedMatrix
+      @test typeof(SparseMatrixCSC(L)) <: SparseMatrixCSC
 end
 
 @testset "Test: Derivative Order = 1, Approx Order = 2, Winding = Negative, Grid = Irregular" begin
@@ -413,7 +455,11 @@ end
       # Test that concretized matrix agrees with analytic matrix
       @test Array(L) ≈ analyticL
 
-      # TODO: add tests for sparse and banded concretizations
+      # Test Banded and Sparse concretizations
+      @test Array(L) == BandedMatrix(L)
+      @test Array(L) == SparseMatrixCSC(L)
+      @test typeof(BandedMatrix(L)) <: BandedMatrix
+      @test typeof(SparseMatrixCSC(L)) <: SparseMatrixCSC
 end
 
 @testset "Test: Derivative Order = 2, Approx Order = 2, Winding = Positive, Grid = Irregular" begin
@@ -435,7 +481,11 @@ end
       # Test that concretized matrix agrees with analytic matrix
       @test Array(L) ≈ analyticL
 
-      # TODO: add tests for sparse and banded concretizations
+      # Test Banded and Sparse concretizations
+      @test Array(L) == BandedMatrix(L)
+      @test Array(L) == SparseMatrixCSC(L)
+      @test typeof(BandedMatrix(L)) <: BandedMatrix
+      @test typeof(SparseMatrixCSC(L)) <: SparseMatrixCSC
 end
 
 @testset "Test: Derivative Order = 2, Approx Order = 2, Winding = Negative, Grid = Irregular" begin
@@ -457,7 +507,12 @@ end
       # Test that concretized matrix agrees with analytic matrix
       @test Array(L) ≈ analyticL
 
-      # TODO: add tests for sparse and banded concretizations
+      # Test Banded and Sparse concretizations
+      @test Array(L) == BandedMatrix(L)
+      @test Array(L) == SparseMatrixCSC(L)
+      @test typeof(BandedMatrix(L)) <: BandedMatrix
+      @test typeof(SparseMatrixCSC(L)) <: SparseMatrixCSC
+
 end
 
 @testset "Test: Scaling by dx and Derivative Order in Uniform Case" begin
@@ -479,7 +534,11 @@ end
       # Test that concretized matrix agrees with analytic matrix
       @test Array(L) ≈ analyticL
 
-      # TODO: add tests for sparse and banded concretizations
+      # Test Banded and Sparse concretizations
+      @test Array(L) == BandedMatrix(L)
+      @test Array(L) == SparseMatrixCSC(L)
+      @test typeof(BandedMatrix(L)) <: BandedMatrix
+      @test typeof(SparseMatrixCSC(L)) <: SparseMatrixCSC
 
       L = UpwindDifference(1,2, 0.1, N, -1.0)
       analyticL = -10.0*analyticOneTwoNeg()
@@ -496,6 +555,12 @@ end
       # Test that concretized matrix agrees with analytic matrix
       @test Array(L) ≈ analyticL
 
+      # Test Banded and Sparse concretizations
+      @test Array(L) == BandedMatrix(L)
+      @test Array(L) == SparseMatrixCSC(L)
+      @test typeof(BandedMatrix(L)) <: BandedMatrix
+      @test typeof(SparseMatrixCSC(L)) <: SparseMatrixCSC
+
       L = UpwindDifference(2,2, 0.1, N, 1.0)
       analyticL = 100.0*analyticTwoTwoPos()
 
@@ -511,7 +576,11 @@ end
       # Test that concretized matrix agrees with analytic matrix
       @test Array(L) ≈ analyticL
 
-      # TODO: add tests for sparse and banded concretizations
+      # Test Banded and Sparse concretizations
+      @test Array(L) == BandedMatrix(L)
+      @test Array(L) == SparseMatrixCSC(L)
+      @test typeof(BandedMatrix(L)) <: BandedMatrix
+      @test typeof(SparseMatrixCSC(L)) <: SparseMatrixCSC
 
       L = UpwindDifference(2,2, 0.1, N, -1.0)
       analyticL = -100.0*analyticTwoTwoNeg()
@@ -527,6 +596,13 @@ end
 
       # Test that concretized matrix agrees with analytic matrix
       @test Array(L) ≈ analyticL
+
+      # Test Banded and Sparse concretizations
+      @test Array(L) == BandedMatrix(L)
+      @test Array(L) == SparseMatrixCSC(L)
+      @test typeof(BandedMatrix(L)) <: BandedMatrix
+      @test typeof(SparseMatrixCSC(L)) <: SparseMatrixCSC
+
 end
 
 @testset "Test: Non-Trivial Coefficient Handling in Uniform Grid Case" begin
@@ -548,7 +624,11 @@ end
       # Test that concretized matrix agrees with analytic matrix
       @test Array(L) ≈ analyticL
 
-      # TODO: add tests for sparse and banded concretizations
+      # Test Banded and Sparse concretizations
+      @test Array(L) == BandedMatrix(L)
+      @test Array(L) == SparseMatrixCSC(L)
+      @test typeof(BandedMatrix(L)) <: BandedMatrix
+      @test typeof(SparseMatrixCSC(L)) <: SparseMatrixCSC
 
       L = UpwindDifference(2,2, 1.0, N, -4.56)
       analyticL = -4.56*analyticTwoTwoNeg()
@@ -564,6 +644,13 @@ end
 
       # Test that concretized matrix agrees with analytic matrix
       @test Array(L) ≈ analyticL
+
+      # Test Banded and Sparse concretizations
+      @test Array(L) == BandedMatrix(L)
+      @test Array(L) == SparseMatrixCSC(L)
+      @test typeof(BandedMatrix(L)) <: BandedMatrix
+      @test typeof(SparseMatrixCSC(L)) <: SparseMatrixCSC
+
 end
 
 @testset "Test: dx and Derivative Order Scaling and Non-Trivial Coefficient Handling in Uniform Grid Case" begin
@@ -585,7 +672,11 @@ end
       # Test that concretized matrix agrees with analytic matrix
       @test Array(L) ≈ analyticL
 
-      # TODO: add tests for sparse and banded concretizations
+      # Test Banded and Sparse concretizations
+      @test Array(L) == BandedMatrix(L)
+      @test Array(L) == SparseMatrixCSC(L)
+      @test typeof(BandedMatrix(L)) <: BandedMatrix
+      @test typeof(SparseMatrixCSC(L)) <: SparseMatrixCSC
 
       L = UpwindDifference(2,2, 0.1, N, -4.56)
       analyticL = -4.56*100.0*analyticTwoTwoNeg()
@@ -601,6 +692,13 @@ end
 
       # Test that concretized matrix agrees with analytic matrix
       @test Array(L) ≈ analyticL
+
+      # Test Banded and Sparse concretizations
+      @test Array(L) == BandedMatrix(L)
+      @test Array(L) == SparseMatrixCSC(L)
+      @test typeof(BandedMatrix(L)) <: BandedMatrix
+      @test typeof(SparseMatrixCSC(L)) <: SparseMatrixCSC
+
 end
 
 @testset "Test: Coefficient Handling in Non-Uniform Grid Case" begin
@@ -622,7 +720,11 @@ end
       # Test that concretized matrix agrees with analytic matrix
       @test Array(L) ≈ analyticL
 
-      # TODO: add tests for sparse and banded concretizations
+      # Test Banded and Sparse concretizations
+      @test Array(L) == BandedMatrix(L)
+      @test Array(L) == SparseMatrixCSC(L)
+      @test typeof(BandedMatrix(L)) <: BandedMatrix
+      @test typeof(SparseMatrixCSC(L)) <: SparseMatrixCSC
 
       L = UpwindDifference(2,2, [0.08, 0.02, 0.05, 0.04, 0.07, 0.03], N, -4.56)
       analyticL = -4.56*analyticTwoTwoNegIrr()
@@ -638,6 +740,11 @@ end
 
       # Test that concretized matrix agrees with analytic matrix
       @test Array(L) ≈ analyticL
-end
 
-# TODO: potentially other coefficient functions
+      # Test Banded and Sparse concretizations
+      @test Array(L) == BandedMatrix(L)
+      @test Array(L) == SparseMatrixCSC(L)
+      @test typeof(BandedMatrix(L)) <: BandedMatrix
+      @test typeof(SparseMatrixCSC(L)) <: SparseMatrixCSC
+
+end
