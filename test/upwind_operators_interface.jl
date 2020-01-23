@@ -63,11 +63,11 @@ end
 # Do not modify the following test-set unless you are completely certain of your changes.
 @testset "Correctness of Stencils" begin
     N = 20
-    L1 = UpwindDifference(1,2, 1.0, N, t->1.0)
+    L1 = UpwindDifference(1,2, 1.0, N, 1.0)
     correct = [-3/2, 2.0, -1/2]
     @test L1.stencil_coefs ≈ correct
 
-    L1 = UpwindDifference(1,3, 1.0, N, t->1.0)
+    L1 = UpwindDifference(1,3, 1.0, N, 1.0)
     correct = [-2/6, -3/6, 6/6, -1/6]
     @test L1.stencil_coefs ≈ correct
 end
@@ -82,7 +82,7 @@ end
 
     # Dirichlet BC with fixed end points
     Q = RobinBC((1.0, 0.0, y[1]), (1.0, 0.0, y[end]), 1.0)
-    U = UpwindDifference(1,2, dx, N-2, t->1.0)
+    U = UpwindDifference(1,2, dx, N-2, 1.0)
     A = CenteredDifference(1,2, dx, N-2)
     D1 = CenteredDifference(1,2, dx, N-4) # For testing whether the array is constant
 
@@ -101,7 +101,7 @@ end
     y = 3x.^3 .- 4x.^2 .+ 2x .+ 1
     y_ = y[2:end-1]
     Q = RobinBC((1.0, 0.0, y[1]), (1.0, 0.0, y[end]), 1.0)
-    U = UpwindDifference(2,2, 1.0, N-2, t->1.0)
+    U = UpwindDifference(2,2, 1.0, N-2, 1.0)
     A = CenteredDifference(2,2, 1.0, N-2)
     res1 = U*Q*y_
     res2 = A*Q*y_
@@ -114,7 +114,7 @@ end
     d_order = 2
     approx_order = 2
     correct = second_derivative_stencil(N)
-    A = UpwindDifference(d_order,approx_order,1.0,N,t->1.0)
+    A = UpwindDifference(d_order,approx_order,1.0,N,1.0)
 
     @test convert_by_multiplication(Array,A,N) ≈ correct atol=10.0^(-4)
     @test Array(A) ≈ second_derivative_stencil(N) atol=10.0^(-4)
@@ -126,7 +126,7 @@ end
     N = 20
     d_order = 4
     approx_order = 4
-    A = UpwindDifference(d_order,approx_order,1.0,N,t->1.0)
+    A = UpwindDifference(d_order,approx_order,1.0,N,1.0)
     correct = convert_by_multiplication(Array,A,N)
 
     @test Array(A) ≈ correct
@@ -136,7 +136,7 @@ end
     N = 100
     d_order = 8
     approx_order = 8
-    A = UpwindDifference(d_order,approx_order,1.0,N,t->1.0)
+    A = UpwindDifference(d_order,approx_order,1.0,N,1.0)
     correct = convert_by_multiplication(Array,A,N)
 
     @test Array(A) ≈ correct
@@ -150,7 +150,7 @@ end
     y = collect(1:1.0:N+2).^4 - 2*collect(1:1.0:N+2).^3 + collect(1:1.0:N+2).^2;
     y = convert(Array{BigFloat, 1}, y)
 
-    A = UpwindDifference(d_order,approx_order,one(BigFloat),N,t->1.0)
+    A = UpwindDifference(d_order,approx_order,one(BigFloat),N,1.0)
     correct = convert_by_multiplication(Array,A,N)
     @test Array(A) ≈ correct
     @test sparse(correct) ≈ correct
@@ -163,7 +163,7 @@ end
     d_order = 4
     approx_order = 10
 
-    A = UpwindDifference(d_order,approx_order,1.0,N,t->1.0)
+    A = UpwindDifference(d_order,approx_order,1.0,N,1.0)
     @test A[1,1] == Array(A)[1,1]
     @test A[10,20] == 0.0
 
@@ -177,7 +177,7 @@ end
     d_order = 2
     approx_order = 2
 
-    A = UpwindDifference(d_order,approx_order,1.0,N,t->1.0)
+    A = UpwindDifference(d_order,approx_order,1.0,N,1.0)
     M = Array(A,N)
     @test A[1,1] == M[1,1]
     @test A[1:4,1] == M[1:4,1]
@@ -187,7 +187,7 @@ end
     d_order = 4
     approx_order = 10
 
-    A = UpwindDifference(d_order,approx_order,1.0,N,t->1.0)
+    A = UpwindDifference(d_order,approx_order,1.0,N,1.0)
     M = Array(A,N)
     @test A[1,1] == M[1,1]
     @test A[1:4,1] == M[1:4,1]
@@ -208,8 +208,8 @@ end
     dy = yarr[2]-yarr[1]
     F = [x^2+y for x = xarr, y = yarr]
 
-    A = UpwindDifference(d_order,approx_order,dx,length(xarr)-2,t->1.0)
-    B = UpwindDifference(d_order,approx_order,dy,length(yarr),t->1.0)
+    A = UpwindDifference(d_order,approx_order,dx,length(xarr)-2,1.0)
+    B = UpwindDifference(d_order,approx_order,dy,length(yarr),1.0)
 
     @test A*F ≈ 2*ones(N-2,M)
     F*B

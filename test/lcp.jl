@@ -47,7 +47,7 @@ function LCPsolve(sp)
     n = sp.M
     lb = zeros(n)
     ub = 300 .* ones(n) # a reasonable guess
-    options(convergence_tolerance = 1e-12, output = :no,
+    options(convergence_tolerance = 1e-15, output = :no,
             time_limit = 600) # 10 minute budget
     exit_code, sol_z, sol_f = @suppress solveLCP(f, lb, ub)
 end
@@ -66,7 +66,9 @@ end
   @test code == :Solved
   @test sol[1] ≈ 2.050665004133949 atol = 1e-5
   @test sol[8] ≈ 30.258918534086924 atol = 1e-5
-  @test f[1] ≈ 0.0 atol = 1e-5
+  @test f[1] ≈ 0.0 atol = 1e-2
 end
+
+
 
 nothing

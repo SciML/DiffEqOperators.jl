@@ -318,7 +318,7 @@ end
 end
 
 @testset "Scalar multiplication with operators" begin
-    A = CenteredDifference(2, 2, 3.5, 3)
+    A = CenteredDifference(2, 2, 10., 3)
 
     scalar_ans = [0.033 -0.066 0.033  0.     0.;
                   0.    0.033  -0.066 0.033  0.;

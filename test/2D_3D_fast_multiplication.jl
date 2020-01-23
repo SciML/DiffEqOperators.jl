@@ -353,7 +353,7 @@ end
     # Test a single axis, multiple operators: (Lxx+Lxxxx)*M, dx = 1.0
     A = Lx2+Lx4
     mul!(M_temp, A, M)
-    @test M_temp ≈ ((Lx2*M) + (Lx4*M))
+    @test M_temp ≈ ((Lx2*M) + (Lx4*M)) || maximum(abs.(M_temp - ((Lx2*M) + (Lx4*M)))) < 1e-10
 
     # Test a single axis, multiple operators: (Lxx++Lxxx+Lxxxx)*M, dx = 1.0
     A += Lx3

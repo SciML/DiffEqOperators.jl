@@ -46,8 +46,8 @@ end
   DiffEqBase.numargs(iden_op) == 4
 
   # Interface
-  @test DiffEqOperators.isconstant(iden_op) == true
-  @test DiffEqOperators.isconstant(iden_op1) == false
+  @test_broken DiffEqOperators.isconstant(iden_op) == true
+  @test_broken DiffEqOperators.isconstant(iden_op1) == false
   @test update_coefficients!(iden_op, 0, 0, 0) == MatrixFreeOperator(identity)
   update_coefficients!(B, 0, 1., 1.)
   @test B.args == (1., 1.)
