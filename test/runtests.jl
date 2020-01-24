@@ -1,7 +1,7 @@
 using SafeTestsets
 import Base: isapprox
 
-#=
+
 @time @safetestset "Robin Boundary Condition Operators" begin include("robin.jl") end
 @time @safetestset "JacVec Operators Interface" begin include("jacvec_operators.jl") end
 @time @safetestset "Composite Operators Interface" begin include("composite_operators_interface.jl") end
@@ -18,5 +18,4 @@ import Base: isapprox
 @time @safetestset "Differentiation Dimension" begin include("differentiation_dimension.jl") end
 @time @safetestset "2D and 3D fast multiplication" begin include("2D_3D_fast_multiplication.jl") end
 @time @safetestset "Higher Dimensional Concretization" begin include("concretization.jl") end
-=#
 @time @safetestset "Correct Upwind Operator Tests" begin include("upwind_correct_tests.jl") end

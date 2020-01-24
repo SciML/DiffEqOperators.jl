@@ -175,7 +175,7 @@ end
 
       # Test convolutions against bpv,
       bpv = PeriodicBC(Float64)*x[1:N]
-      @test L*bpv ≈ Array(L)*bpv
+      @test L*bpv ≈ analyticL*bpv
 
 end
 
@@ -205,7 +205,7 @@ end
 
       # Test convolutions against bpv
       bpv = PeriodicBC(Float64)*x[1:N]
-      @test L*bpv ≈ Array(L)*bpv
+      @test L*bpv ≈ analyticL*bpv
 
 end
 
@@ -235,7 +235,7 @@ end
 
       # Test convolutions against bpv
       bpv = PeriodicBC(Float64)*x[1:N]
-      @test L*bpv ≈ Array(L)*bpv
+      @test L*bpv ≈ analyticL*bpv
 
 end
 
@@ -265,7 +265,7 @@ end
 
       # Test convolutions against bpv
       bpv = PeriodicBC(Float64)*x[1:N]
-      @test L*bpv ≈ Array(L)*bpv
+      @test L*bpv ≈ analyticL*bpv
 
 end
 
@@ -295,7 +295,7 @@ end
 
       # Test convolutions against bpv
       bpv = PeriodicBC(Float64)*x[1:N]
-      @test L*bpv ≈ Array(L)*bpv
+      @test L*bpv ≈ analyticL*bpv
 
 end
 
@@ -325,7 +325,7 @@ end
 
       # Test convolutions against bpv
       bpv = PeriodicBC(Float64)*x[1:N]
-      @test L*bpv ≈ Array(L)*bpv
+      @test L*bpv ≈ analyticL*bpv
 
 end
 
@@ -357,7 +357,7 @@ end
 
       # Test convolutions against bpv
       bpv = PeriodicBC(Float64)*x[1:N]
-      @test L*bpv ≈ Array(L)*bpv
+      @test L*bpv ≈ analyticL*bpv
 
 end
 
@@ -387,7 +387,7 @@ end
 
       # Test convolutions against bpv
       bpv = PeriodicBC(Float64)*x[1:N]
-      @test L*bpv ≈ Array(L)*bpv
+      @test L*bpv ≈ analyticL*bpv
 
 end
 
