@@ -208,8 +208,6 @@ function convolve_BC_right!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::
                 xtempi += cur_coeff*cur_stencil[idx]*x[i-stl+1+idx]
             end
             x_temp[i] = xtempi + !overwrite*x_temp[i]
-
-            # L[i,i-stl+2:i+1] = cur_coeff * A.high_boundary_coefs[2,i-len+bpc]
         else
             xtempi = zero(T)
             cur_stencil = A.high_boundary_coefs[1,i-len+bpc]
@@ -217,8 +215,6 @@ function convolve_BC_right!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::
                 xtempi += cur_coeff*cur_stencil[idx]*x[len-bstl+2+idx]
             end
             x_temp[i] = xtempi + !overwrite*x_temp[i]
-
-            # L[i,len-bstl+3:len+2] = cur_coeff * A.high_boundary_coefs[1,i-len+bpc]
         end
     end
 end
@@ -484,5 +480,105 @@ function convolve_BC_right!(x_temp::AbstractVector{T}, _x::BoundaryPaddedVector,
             end
         end
         x_temp[x_temp_len-A.boundary_point_count+i] = xtempi + !overwrite*x_temp[x_temp_len-A.boundary_point_count+i]
+    end
+end
+
+################################################################################
+# Non-uniform grid Upwind convolutions
+# Against A BC-padded vector, specialize the computation to explicitly use the left, right, and middle parts
+################################################################################
+function convolve_interior!(x_temp::AbstractVector{T}, _x::BoundaryPaddedVector, A::DerivativeOperator{T,N,true,M}; overwrite = true) where {T<:Real,N,M<:AbstractArray{T}}
+    @assert length(x_temp)+2 == length(_x)
+
+    len = A.len
+    bpc = A.boundary_point_count
+    stl = A.stencil_length
+    coeff   = A.coefficients
+    x = _x.u
+    _x_len = length(_x)
+
+
+    for i in bpc+1:len-bpc
+        cur_coeff   = coeff[i]
+        if cur_coeff >= 0
+            xtempi = zero(T)
+            cur_stencil = A.stencil_coefs[1,i-bpc]
+            for idx in 1:stl
+                x_idx = i+idx < _x_len ? x[i+idx-1] : _x.r
+                xtempi += cur_coeff * cur_stencil[idx]*x_idx
+            end
+            x_temp[i] = xtempi + !overwrite*x_temp[i]
+        else
+            xtempi = zero(T)
+            cur_stencil = A.stencil_coefs[2,i-bpc]
+            for idx in 1:stl
+                x_idx = i-stl+1+idx > 1 ? x[i-stl+idx] : _x.l
+                xtempi += cur_coeff * cur_stencil[idx]*x_idx
+            end
+            x_temp[i] = xtempi + !overwrite*x_temp[i]
+        end
+    end
+end
+
+function convolve_BC_left!(x_temp::AbstractVector{T}, _x::BoundaryPaddedVector, A::DerivativeOperator{T,N,true,M}; overwrite = true) where {T<:Real,N,M<:AbstractArray{T}}
+
+    bpc = A.boundary_point_count
+    stl = A.stencil_length
+    bstl = A.boundary_stencil_length
+    coeff   = A.coefficients
+    x = _x.u
+    _x_len = length(_x)
+
+    for i in 1:bpc
+        cur_coeff   = coeff[i]
+        if cur_coeff >= 0
+            xtempi = zero(T)
+            cur_stencil = A.low_boundary_coefs[1,i]
+            for idx in 1:stl
+                x_idx = i+idx < _x_len ? x[i+idx-1] : _x.r
+                xtempi += cur_coeff * cur_stencil[idx]*x_idx
+            end
+            x_temp[i] = xtempi + !overwrite*x_temp[i]
+        else
+            xtempi = zero(T)
+            cur_stencil = A.low_boundary_coefs[2,i]
+            for idx in 1:bstl
+                x_idx = idx > 1 ? x[idx-1] : _x.l
+                xtempi += cur_coeff*cur_stencil[idx]*x_idx
+            end
+            x_temp[i] = xtempi + !overwrite*x_temp[i]
+        end
+    end
+end
+
+function convolve_BC_right!(x_temp::AbstractVector{T}, _x::BoundaryPaddedVector, A::DerivativeOperator{T,N,true,M}; overwrite = true) where {T<:Real,N,M<:AbstractArray{T}}
+
+    len = A.len
+    bpc = A.boundary_point_count
+    stl = A.stencil_length
+    bstl = A.boundary_stencil_length
+    coeff   = A.coefficients
+    x = _x.u
+    _x_len = length(_x)
+
+    for i in len-bpc+1:len
+        cur_coeff   = coeff[i]
+        if cur_coeff < 0
+            xtempi = zero(T)
+            cur_stencil = A.high_boundary_coefs[2,i-len+bpc]
+            for idx in 1:stl
+                x_idx = i-stl+1+idx > 1 ? x[i-stl+idx] : _x.l
+                xtempi += cur_coeff*cur_stencil[idx]*x_idx
+            end
+            x_temp[i] = xtempi + !overwrite*x_temp[i]
+        else
+            xtempi = zero(T)
+            cur_stencil = A.high_boundary_coefs[1,i-len+bpc]
+            for idx in 1:bstl
+                x_idx = len-bstl+2+idx < _x_len ? x[len-bstl+1+idx] : _x.r
+                xtempi += cur_coeff*cur_stencil[idx]*x_idx
+            end
+            x_temp[i] = xtempi + !overwrite*x_temp[i]
+        end
     end
 end
