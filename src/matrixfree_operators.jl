@@ -44,15 +44,15 @@ end
 DiffEqBase.numargs(::MatrixFreeOperator) = 4
 
 # Interface
-is_constant(M::MatrixFreeOperator) = length(M.args) == 1
+isconstant(M::MatrixFreeOperator) = length(M.args) == 1
 function update_coefficients!(M::MatrixFreeOperator, u, p, t)
-  !is_constant(M) && (M.args = (p, t))
+  !isconstant(M) && (M.args = (p, t))
   return M
 end
 
 function (M::MatrixFreeOperator{F,N})(du, u, p, t) where {F,N}
   update_coefficients!(M,u,p,t)
-  if is_constant(M)
+  if isconstant(M)
     M.f(du, u, p)
   else
     M.f(du, u, p, t)
@@ -63,7 +63,7 @@ end
 function (M::MatrixFreeOperator{F,N})(u, p, t) where {F,N}
   update_coefficients!(M,u,p,t)
   du = similar(u)
-  if is_constant(M)
+  if isconstant(M)
     M.f(du, u, p)
   else
     M.f(du, u, p, t)
@@ -72,7 +72,7 @@ function (M::MatrixFreeOperator{F,N})(u, p, t) where {F,N}
 end
 
 @inline function mul!(y::AbstractVector, A::MatrixFreeOperator{F,N}, x::AbstractVector) where {F,N}
-  if is_constant(A)
+  if isconstant(A)
     A.f(y, x, A.args[1])
   else
     A.f(y, x, A.args[1], A.args[2])

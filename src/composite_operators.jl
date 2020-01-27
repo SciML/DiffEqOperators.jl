@@ -9,7 +9,7 @@ function update_coefficients!(L::AbstractDiffEqCompositeOperator,u,p,t)
   end
   L
 end
-is_constant(L::AbstractDiffEqCompositeOperator) = all(is_constant, getops(L))
+isconstant(L::AbstractDiffEqCompositeOperator) = all(isconstant, getops(L))
 
 # Scaled operator (α * A)
 struct DiffEqScaledOperator{T,F,OpType<:AbstractDiffEqLinearOperator{T}} <: AbstractDiffEqCompositeOperator{T}

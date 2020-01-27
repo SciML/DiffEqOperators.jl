@@ -3,8 +3,9 @@ module DiffEqOperators
 import Base: +, -, *, /, \, size, getindex, setindex!, Matrix, convert
 using DiffEqBase, StaticArrays, LinearAlgebra
 import LinearAlgebra: mul!, ldiv!, lmul!, rmul!, axpy!, opnorm, factorize, I
-import DiffEqBase: AbstractDiffEqLinearOperator, update_coefficients!, is_constant
+import DiffEqBase: AbstractDiffEqLinearOperator, update_coefficients!, isconstant
 using SparseArrays, ForwardDiff, BandedMatrices, NNlib, LazyArrays, BlockBandedMatrices
+using ModelingToolkit
 
 abstract type AbstractDerivativeOperator{T} <: AbstractDiffEqLinearOperator{T} end
 abstract type AbstractDiffEqCompositeOperator{T} <: AbstractDiffEqLinearOperator{T} end
@@ -34,9 +35,12 @@ include("derivative_operators/ghost_derivative_operator.jl")
 include("derivative_operators/derivative_operator_functions.jl")
 include("derivative_operators/coefficient_functions.jl")
 
-
 ### Composite Operators
 include("composite_operators.jl")
+
+include("MOL_discretization.jl")
+
+include("docstrings.jl")
 
 # The (u,p,t) and (du,u,p,t) interface
 for T in [DiffEqScaledOperator, DiffEqOperatorCombination, DiffEqOperatorComposition]
@@ -45,12 +49,12 @@ for T in [DiffEqScaledOperator, DiffEqOperatorCombination, DiffEqOperatorComposi
 end
 
 export MatrixFreeOperator
-export JacVecOperator, getops
+export AnalyticalJacVecOperator, JacVecOperator, getops
 export AbstractDerivativeOperator, DerivativeOperator,
        CenteredDifference, UpwindDifference
 export DirichletBC, Dirichlet0BC, NeumannBC, Neumann0BC, RobinBC, GeneralBC, MultiDimBC, PeriodicBC,
        MultiDimDirectionalBC, ComposedMultiDimBC,
        compose, decompose, perpsize
-
 export GhostDerivativeOperator
+export MOLFiniteDifference
 end # module

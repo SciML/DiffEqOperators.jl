@@ -1,5 +1,7 @@
 using LinearAlgebra, DiffEqOperators, Random, Test, BandedMatrices, SparseArrays
 
+@show "2D"
+
 @testset "2D Multiplication with no boundary points and dx = 1.0" begin
 
     # Test (Lxx + Lyy)*M, dx = 1.0, no coefficient
@@ -450,6 +452,8 @@ end
     @test M_temp ≈ ((Lx2*M)[1:N,2:N+1]+(Ly2*M)[2:N+1,1:N]+(Lx3*M)[1:N,2:N+1] +(Ly3*M)[2:N+1,1:N] + (Lx4*M)[1:N,2:N+1] +(Ly4*M)[2:N+1,1:N])
 end
 
+@show "irregular"
+
 @testset "x and y are both irregular grids" begin
 
     N = 100
@@ -630,6 +634,8 @@ end
 ################################################################################
 # 3D Multiplication Tests
 ################################################################################
+
+@show "3D"
 
 @testset "3D Multiplication with no boundary points and dx = dy = dz = 1.0" begin
 
@@ -843,6 +849,8 @@ end
     @test M_temp ≈ ((Lx3*M)[1:N,2:N+1,2:N+1] + (Ly3*M)[2:N+1,1:N,2:N+1] +(Lz3*M)[2:N+1,2:N+1,1:N] + (Lx4*M)[1:N,2:N+1,2:N+1] + (Ly4*M)[2:N+1,1:N,2:N+1] +(Lz4*M)[2:N+1,2:N+1,1:N])
 
 end
+
+@show "3D BPC"
 
 @testset "3D Multiplication with differing bpc and dx = dy = dz = 1.0" begin
 
@@ -1177,6 +1185,8 @@ end
 
 end
 
+@show "3D with coefficients"
+
 # This is the same test set as the above test set with the addition of coefficients
 @testset "3D Multiplication with coefficients" begin
 
@@ -1278,6 +1288,8 @@ end
      + (Lz3*M)[2:N+1,2:N+1,1:N] + (Lx4*M)[1:N,2:N+1,2:N+1] +(Ly4*M)[2:N+1,1:N,2:N+1])+(Lz4*M)[2:N+1,2:N+1,1:N]
 
 end
+
+@show "3D irregular"
 
 @testset "x, y, and z are all irregular grids" begin
 

@@ -1,3 +1,14 @@
+# 
+# The types and constructors for derivative operators.
+# 
+# The type of the operator objects is DerivativeOperator.  This is a
+# dumb data structure.  It is initialized by the constructors for
+# CenteredDifference and UpwindDifference, which call the calculate_weights
+# routine in fornberg.jl to generate the stencils.  The derivatives
+# are computed by the mul! methods defined in
+# derivative_operator_functions.jl.
+# 
+
 index(i::Int, N::Int) = i + div(N, 2) + 1
 
 struct DerivativeOperator{T<:Real,N,Wind,T2,S1,S2<:SArray,T3,F} <: AbstractDerivativeOperator{T}
@@ -29,7 +40,7 @@ function CenteredDifference{N}(derivative_order::Int,
 
     boundary_point_count    = div(stencil_length,2) - 1 # -1 due to the ghost point
     # Because it's a N x (N+2) operator, the last stencil on the sides are the [b,0,x,x,x,x] stencils, not the [0,x,x,x,x,x] stencils, since we're never solving for the derivative at the boundary point.
-    deriv_spots             = (-div(stencil_length,2)+1) : -1
+    deriv_spots             = (-div(stencil_length,2)+1) : -1  # unused
     L_boundary_deriv_spots  = left_boundary_x[2:div(stencil_length,2)]
     R_boundary_deriv_spots  = right_boundary_x[2:div(stencil_length,2)]
 

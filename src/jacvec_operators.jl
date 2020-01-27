@@ -5,14 +5,16 @@ struct JacVecTag end
 
 # J(f(x))*v
 function auto_jacvec!(du, f, x, v,
-                 cache1 = ForwardDiff.Dual{JacVecTag}.(x, v),
-                 cache2 = ForwardDiff.Dual{JacVecTag}.(x, v))
-    cache1 .= ForwardDiff.Dual{JacVecTag}.(x, v)
+                 cache1 = ForwardDiff.Dual{JacVecTag}.(x, x), # this won't alias
+                 cache2 = similar(cache1))
+    cache1 .= ForwardDiff.Dual{JacVecTag}.(x, reshape(v, size(x)))
     f(cache2,cache1)
-    du .= ForwardDiff.partials.(cache2, 1)
+    du .= vec(ForwardDiff.partials.(cache2, 1))
 end
+
 function auto_jacvec(f, x, v)
-    ForwardDiff.partials.(f(ForwardDiff.Dual{JacVecTag}.(x, v)), 1)
+    vv = reshape(v, axes(x))
+    ForwardDiff.partials.(vec(f(ForwardDiff.Dual{JacVecTag}.(x, vv))), 1)
 end
 
 function num_jacvec!(du,f,x,v,cache1 = similar(v),
@@ -22,17 +24,22 @@ function num_jacvec!(du,f,x,v,cache1 = similar(v),
     T = eltype(x)
     # Should it be min? max? mean?
     ϵ = sqrt(eps(real(T))) * max(one(real(T)), abs(norm(x)))
-    @. x += ϵ*v
+    vv = reshape(v, size(x))
+    @. x += ϵ*vv
     f(cache2,x)
-    @. x -= ϵ*v
+    @. x -= ϵ*vv # restore x
+    cache1 = vec(cache1)
+    cache2 = vec(cache2)
     @. du = (cache2 - cache1)/ϵ
 end
+
 function num_jacvec(f,x,v,f0=nothing)
+    vv = reshape(v, axes(x))
     f0 === nothing ? _f0 = f(x) : _f0 = f0
     T = eltype(x)
     # Should it be min? max? mean?
     ϵ = sqrt(eps(real(T))) * max(one(real(T)), abs(norm(x)))
-    (f(x.+ϵ.*v) .- f(x))./ϵ
+    (f(x.+ϵ.*vv) .- f(x))./ϵ |> vec
 end
 
 
@@ -131,4 +138,54 @@ function LinearAlgebra.mul!(du::AbstractVector,L::JacVecOperator,x::AbstractVect
             end
         end
     end
+end
+
+### AnalyticalOperator Implementation
+
+mutable struct AnalyticalJacVecOperator{T,F,uType,P,tType,O} <: DiffEqBase.AbstractDiffEqLinearOperator{T}
+    f::F
+    u::uType
+    p::P
+    t::tType
+    ishermitian::Bool
+    opnorm::O
+    function AnalyticalJacVecOperator{T}(f,u=nothing,p=nothing,t::Union{Nothing,Number}=nothing;ishermitian=false,opnorm=true) where T
+        u===nothing ? uType = Any : uType = typeof(u)
+        p===nothing ? P = Any : P = typeof(p)
+        t===nothing ? tType = Any : tType = typeof(t)
+        new{T,typeof(f),uType,P,tType,typeof(opnorm)}(f,u,p,t,ishermitian,opnorm)
+    end
+    function AnalyticalJacVecOperator(f,u,args...;kwargs...)
+        AnalyticalJacVecOperator{eltype(u)}(f,u,args...;kwargs...)
+    end
+end
+
+LinearAlgebra.opnorm(L::AnalyticalJacVecOperator, p::Real=2) = L.opnorm
+LinearAlgebra.ishermitian(L::AnalyticalJacVecOperator) = L.ishermitian
+
+Base.size(L::AnalyticalJacVecOperator) = (length(L.u),length(L.u))
+Base.size(L::AnalyticalJacVecOperator,i::Int) = length(L.u)
+function update_coefficients!(L::AnalyticalJacVecOperator,u,p,t)
+    L.u = u
+    L.p = p
+    L.t = t
+    return L
+end
+
+# Interpret the call as df/du * u
+
+function (L::AnalyticalJacVecOperator)(u,p,t::Number)
+    update_coefficients!(L,u,p,t)
+    L*u
+end
+
+function (L::AnalyticalJacVecOperator)(du,u,p,t::Number)
+    update_coefficients!(L,u,p,t)
+    mul!(du,L,u)
+end
+
+Base.:*(L::AnalyticalJacVecOperator,x::AbstractVector) = L.f(x,L.u,L.p,L.t)
+
+function LinearAlgebra.mul!(du::AbstractVector,L::AnalyticalJacVecOperator,x::AbstractVector)
+    L.f(du,x,L.u,L.p,L.t)
 end

@@ -234,10 +234,10 @@ function DEO_Solve_KFE(params)
     dx = params.x[2] - params.x[1]
 
     L1 = UpwindDifference(1,1,dx,params.M,-params.μ)
-    L2l = UpwindDifference(2,2,dx,params.M,
-                             vcat(-1.,zeros(params.M-1)))
-    L2r = UpwindDifference(2,2,dx,params.M,
-                             vcat(zeros(params.M-1),1.))
+    # L2l = UpwindDifference(2,2,dx,params.M,
+    #                          vcat(-1.,zeros(params.M-1)))
+    # L2r = UpwindDifference(2,2,dx,params.M,
+    #                          vcat(zeros(params.M-1),1.))
     L2 = CenteredDifference(2,2,dx,params.M)
 
     ξ_lb = ξ_ub = -2 * params.μ / params.σ^2
@@ -248,10 +248,11 @@ function DEO_Solve_KFE(params)
 
     # use SimpleDifferentialOperators.jl to construct the operator on the interior
     # Only difference is handling of L2, we may need to upwind for boundary
-    iden = Matrix(1.0*I, params.M, params.M)
     L_KFE_with_drift = Array(L1*Q)[1] + Array(params.σ^2/2 *L2*Q)[1]
-    L_KFE_without = (params.σ^2 / 2) .* ([0., 1., 0.] .* Array(L2 * Q)[1] +
-        -(L2l * Q * iden) + L2r * Q * iden)
+    L_KFE_without = (params.σ^2 / 2) .* Array(L2 * Q)[1]
+    # L_KFE_without = (params.σ^2 / 2) .* ([0., 1., 0.] .* Array(L2 * Q)[1] +
+    #     -(Array(L2l * Q)) + Array(L2r * Q))
+
     return (L_KFE_with_drift = L_KFE_with_drift, L_KFE_without = L_KFE_without)
 end
 

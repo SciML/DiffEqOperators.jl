@@ -1,4 +1,5 @@
 using Test, LinearAlgebra
+using DiffEqBase: isconstant
 using DiffEqOperators, OrdinaryDiffEq
 
 @testset "Matrix Free Operator constructors" begin
@@ -46,8 +47,8 @@ end
   DiffEqBase.numargs(iden_op) == 4
 
   # Interface
-  @test_broken DiffEqOperators.isconstant(iden_op) == true
-  @test_broken DiffEqOperators.isconstant(iden_op1) == false
+  @test DiffEqOperators.isconstant(iden_op) == true
+  @test DiffEqOperators.isconstant(iden_op1) == false
   @test update_coefficients!(iden_op, 0, 0, 0) == MatrixFreeOperator(identity)
   update_coefficients!(B, 0, 1., 1.)
   @test B.args == (1., 1.)
@@ -72,14 +73,14 @@ end
   p = 1.
   A = MatrixFreeOperator(f, (p,), size=(5,5), opnorm=5)
   b = rand(5)
-  @test is_constant(A)
+  @test isconstant(A)
   prob = ODEProblem(A, b, (0,1.), p)
   @test_nowarn solve(prob, Tsit5())
 
   f = (du, u, p, t) -> cumsum!(du, u)
   args = (1, 1)
   A = MatrixFreeOperator(f,args, size=(5,5), opnorm=(p)->5)
-  @test is_constant(A) == false
+  @test isconstant(A) == false
   b = rand(5)
   @test_nowarn solve(prob, LawsonEuler(krylov=true, m=5), dt=0.1)
 
