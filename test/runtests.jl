@@ -8,6 +8,7 @@ const is_TRAVIS = haskey(ENV,"TRAVIS")
 
 @time begin
 if GROUP == "All" || GROUP == "Interface"
+    @time @safetestset "Utilities Tests" begin include("utils.jl") end
     @time @safetestset "Poisson example" begin include("../examples/poisson.jl") end
     @time @safetestset "Heat equation example" begin include("../examples/heat_equation.jl") end
     @time @safetestset "Robin Boundary Condition Operators" begin include("robin.jl") end
@@ -26,8 +27,11 @@ if GROUP == "All" || GROUP == "Interface"
     @time @safetestset "Convolutions" begin include("convolutions.jl") end
     @time @safetestset "Differentiation Dimension" begin include("differentiation_dimension.jl") end
     @time @safetestset "Higher Dimensional Concretization" begin include("concretization.jl") end
+    @time @safetestset "Coefficient Functions" begin include("coefficient_functions.jl") end
     @time @safetestset "Upwind Operator Interface" begin include("upwind_operators_interface.jl") end
     @time @safetestset "MOLFiniteDifference Interface" begin include("MOLtest.jl") end
+    @time @safetestset "Basic SDO Examples" begin include("BasicSDOExamples.jl") end
+    # @time @safetestset "Linear Complementarity Problem Examples" begin include("lcp.jl"); include("lcp_split.jl") end
 end
 
 if !is_APPVEYOR && (GROUP == "All" || GROUP == "Multithreading")

@@ -119,9 +119,11 @@ Base.size(A::AbstractDerivativeOperator,i::Integer) = size(A)[i]
 Base.length(A::AbstractDerivativeOperator) = reduce(*, size(A))
 
 #=
-    For the evenly spaced grid we have a symmetric matrix
+    For the evenly spaced grid we have a symmetric matrix.
+    If it is not evenly spaced (i.e. dx is a vector), then
+    we throw an error (TODO: implement a proper transpose).
 =#
-Base.transpose(A::DerivativeOperator) = A
+Base.transpose(A::DerivativeOperator) = typeof(A.dx)<:Real ? A : error("Transpose for DerivativeOperator with non-uniform grid has yet to be implemented.")
 Base.adjoint(A::DerivativeOperator) = A
 LinearAlgebra.issymmetric(::DerivativeOperator) = true
 
@@ -164,7 +166,12 @@ end
 ################################################################################
 
 function *(coeff_func::Function, A::DerivativeOperator{T,N,Wind}) where {T,N,Wind}
-    coefficients = A.coefficients === nothing ? Vector{T}(undef,A.len) : A.coefficients
+    if hasmethod(coeff_func, (Float64,)) || hasmethod(coeff_func, (Vector{Float64},))
+        coefficients = compute_coeffs(coeff_func, A.coefficients === nothing ? Vector{T}(undef, A.len) : A.coefficients)
+    else
+        coefficients = A.coefficients === nothing ? Vector{T}(undef, A.len) : A.coefficients
+    end
+
     DerivativeOperator{T,N,Wind,typeof(A.dx),typeof(A.stencil_coefs),
                        typeof(A.low_boundary_coefs),typeof(coefficients),
                        typeof(coeff_func)}(

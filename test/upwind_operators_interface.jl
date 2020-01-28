@@ -1,223 +1,750 @@
 using SparseArrays, DiffEqOperators, LinearAlgebra, Random,
       Test, BandedMatrices, FillArrays
 
-function second_derivative_stencil(N)
-  A = zeros(N,N+2)
-  A[1,1:5] = [0.916667,   -1.66667,    0.5,   0.333333,  -0.0833333]
-  A[2,1:5] = [-0.0833333,   1.33333,   -2.5,   1.33333,   -0.0833333]
-  A[3,1:5] = [-0.0833333,   0.333333,   0.5,  -1.66667,    0.916667]
-  A[4,1:5] = [0.916667,   -4.66667,    9.5,  -8.66667,    2.91667]
-  for i in 5:N-4, j in 5:N-2
-      (j-i==0 || j-i==2) && (A[i,j]=1)
-      j-i==1 && (A[i,j]=-2)
-  end
-  A[end,end-4:end] = reverse(A[1,1:5])
-  A[end-1,end-4:end] = reverse(A[2,1:5])
-  A[end-2,end-4:end] = reverse(A[3,1:5])
-  A[end-3,end-4:end] = reverse(A[4,1:5])
 
-  return A
+# These functions create analytic solutions to upwind operators. In the function name,
+# the first number indicates the derivative order, the second number indicates
+# the approximation order,and the last three characters "Pos" or "Neg" indicating
+# the winding direction. For instance analyticOneTwoPos corresponds to the positive
+# upwind second order approximation of the first derivative.
+
+function analyticOneOnePos()
+      A = zeros(5,7)
+      for i in 1:5
+            A[i,i+1:i+2] = [-1 1]
+      end
+      return A
 end
 
-# Analytic solutions to higher order operators.
-# Do not modify unless you are completely certain of the changes.
-function fourth_deriv_approx_stencil(N)
-    A = zeros(N,N+2)
-    A[1,1:8] = [3.5 -56/3 42.5 -54.0 251/6 -20.0 5.5 -2/3]
-    A[2,1:8] = [2/3 -11/6 0.0 31/6 -22/3 4.5 -4/3 1/6]
-    A[N-1,N-5:end] = reverse([2/3 -11/6 0.0 31/6 -22/3 4.5 -4/3 1/6], dims=2)
-    A[N,N-5:end] = reverse([3.5 -56/3 42.5 -54.0 251/6 -20.0 5.5 -2/3], dims=2)
-    for i in 3:N-2
-        A[i,i-2:i+4] = [-1/6 2.0 -13/2 28/3 -13/2 2.0 -1/6]
-    end
-    return A
+function analyticOneOneNeg()
+      A = zeros(5,7)
+      for i in 1:5
+            A[i,i:i+1] = [-1 1]
+      end
+      return A
 end
 
-function second_deriv_fourth_approx_stencil(N)
-    A = zeros(N,N+2)
-    A[1,1:6] = [5/6 -1.25 -1/3 7/6 -0.5 5/60]
-    A[N,N-3:end] = reverse([5/6 -1.25 -1/3 7/6 -0.5 5/60], dims=2)
-    for i in 2:N-1
-        A[i,i-1:i+3] = [-1/12 4/3 -5/2 4/3 -1/12]
-    end
-    return A
+function analyticOneTwoPos()
+      A = zeros(5,7)
+      for i in 1:4
+            A[i,i+1:i+3] = [-3/2 2 -1/2]
+      end
+      A[5,5:7] = [-1/2 0 1/2]
+      return A
 end
 
-function convert_by_multiplication(::Type{Array}, A::AbstractDerivativeOperator{T}, N::Int=A.dimension) where T
-    @assert N >= A.stencil_length # stencil must be able to fit in the matrix
-    mat = zeros(T, (N, N+2))
-    v = zeros(T, N+2)
-    for i=1:N+2
-        v[i] = one(T)
-        #=
-            calculating the effect on a unit vector to get the matrix of transformation
-            to get the vector in the new vector space.
-        =#
-        mul!(view(mat,:,i), A, v)
-        v[i] = zero(T)
-    end
-    return mat
+function analyticOneTwoNeg()
+      A = zeros(5,7)
+      A[1,1:3] = [-1/2 0 1/2]
+      for i in 2:5
+            A[i,i-1:i+1] = [1/2 -2 3/2]
+      end
+      return A
 end
 
-# Tests the corrrectness of stencils, along with concretization.
-# Do not modify the following test-set unless you are completely certain of your changes.
-@testset "Correctness of Stencils" begin
-    N = 20
-    L1 = UpwindDifference(1,2, 1.0, N, t->1.0)
-    correct = [-3/2, 2.0, -1/2]
-    @test L1.stencil_coefs ≈ correct
-
-    L1 = UpwindDifference(1,3, 1.0, N, t->1.0)
-    correct = [-2/6, -3/6, 6/6, -1/6]
-    @test L1.stencil_coefs ≈ correct
+function analyticTwoTwoPos()
+      A = zeros(5,7)
+      for i in 1:3
+            A[i,i+1:i+4] = [2 -5 4 -1]
+      end
+      A[4,4:7] = [1 -2 1 0]
+      A[5, 4:7] = [0 1 -2 1]
+      return A
 end
 
-@testset "Taking derivatives" begin
-    N = 20
-    x = 0:1/(N-1):1
-    y = 2x.^2 .- 3x .+2
-    y_ = y[2:end-1]
-    dx = x[2] - x[1]
-    # y = x.^2
-
-    # Dirichlet BC with fixed end points
-    Q = RobinBC((1.0, 0.0, y[1]), (1.0, 0.0, y[end]), 1.0)
-    U = UpwindDifference(1,2, dx, N-2, t->1.0)
-    A = CenteredDifference(1,2, dx, N-2)
-    D1 = CenteredDifference(1,2, dx, N-4) # For testing whether the array is constant
-
-    res1 = U*Q*y_
-    res2 = A*Q*y_
-
-    @test res1[3:end-2] ≈ res2[1:end-4] # shifted due to upwind operators
-    # It is shifted by a constant value so its first derivative has to be 0
-    @test D1*(res1[3:end-2] - res2[3:end-2]) ≈ zeros(12) atol=10.0^(-6)
-
-    # @test res3[3:end-2] ≈ res4[1:end-4] # shifted due to upwind operators
-    # It is shifted by a constant value so its first derivative has to be 0
-    # @test D1*(res4[3:end-2] - res4[3:end-2]) ≈ zeros(12) atol=10.0^(-6)
-
-
-    y = 3x.^3 .- 4x.^2 .+ 2x .+ 1
-    y_ = y[2:end-1]
-    Q = RobinBC((1.0, 0.0, y[1]), (1.0, 0.0, y[end]), 1.0)
-    U = UpwindDifference(2,2, 1.0, N-2, t->1.0)
-    A = CenteredDifference(2,2, 1.0, N-2)
-    res1 = U*Q*y_
-    res2 = A*Q*y_
-
-    @test res1 ≈ res2 # shifted due to upwind operators
+function analyticTwoTwoNeg()
+      A = zeros(5,7)
+      A[1,1:4] = [1 -2 1 0]
+      A[2,1:4] = [0 1 -2 1]
+      for i in 3:5
+            A[i,i-2:i+1] = [-1 4 -5 2]
+      end
+      return A
 end
 
-@testset "Full and Sparse functions:" begin
-    N = 10
-    d_order = 2
-    approx_order = 2
-    correct = second_derivative_stencil(N)
-    A = UpwindDifference(d_order,approx_order,1.0,N,t->1.0)
-
-    @test convert_by_multiplication(Array,A,N) ≈ correct atol=10.0^(-4)
-    @test Array(A) ≈ second_derivative_stencil(N) atol=10.0^(-4)
-    @test sparse(A) ≈ second_derivative_stencil(N) atol=10.0^(-4)
-    @test BandedMatrix(A) ≈ second_derivative_stencil(N) atol=10.0^(-4)
-    @test_broken opnorm(A, Inf) ≈ opnorm(correct, Inf) atol=10.0^(-4)
-
-    # testing higher derivative and approximation concretization
-    N = 20
-    d_order = 4
-    approx_order = 4
-    A = UpwindDifference(d_order,approx_order,1.0,N,t->1.0)
-    correct = convert_by_multiplication(Array,A,N)
-
-    @test Array(A) ≈ correct
-    @test sparse(A) ≈ correct
-    @test BandedMatrix(A) ≈ correct
-
-    N = 100
-    d_order = 8
-    approx_order = 8
-    A = UpwindDifference(d_order,approx_order,1.0,N,t->1.0)
-    correct = convert_by_multiplication(Array,A,N)
-
-    @test Array(A) ≈ correct
-    @test sparse(A) ≈ correct
-    @test BandedMatrix(A) ≈ correct
-
-    # testing correctness of multiplication
-    N = 1000
-    d_order = 4
-    approx_order = 10
-    y = collect(1:1.0:N+2).^4 - 2*collect(1:1.0:N+2).^3 + collect(1:1.0:N+2).^2;
-    y = convert(Array{BigFloat, 1}, y)
-
-    A = UpwindDifference(d_order,approx_order,one(BigFloat),N,t->1.0)
-    correct = convert_by_multiplication(Array,A,N)
-    @test Array(A) ≈ correct
-    @test sparse(correct) ≈ correct
-    @test BandedMatrix(A) ≈ correct
-    @test A*y ≈ Array(A)*y
+function analyticTwoThreePos()
+      A = zeros(7,9)
+      for i in 1:4
+            A[i,i+1:i+5] = [35/12 -104/12 114/12 -56/12 11/12]
+      end
+      A[5,5:9] = [11/12 -20/12 6/12 4/12 -1/12]
+      A[6,5:9] = [-1/12 16/12 -30/12 16/12 -1/12]
+      A[7,5:9] = [-1/12 4/12 6/12 -20/12 11/12]
+      return A
 end
 
-@testset "Indexing tests" begin
-    N = 1000
-    d_order = 4
-    approx_order = 10
-
-    A = UpwindDifference(d_order,approx_order,1.0,N,t->1.0)
-    @test A[1,1] == Array(A)[1,1]
-    @test A[10,20] == 0.0
-
-    correct = Array(A)
-    for i in 1:N
-        @test A[i,i] ≈ correct[i,i] atol=10^-9
-    end
-
-    # Indexing Tests
-    N = 1000
-    d_order = 2
-    approx_order = 2
-
-    A = UpwindDifference(d_order,approx_order,1.0,N,t->1.0)
-    M = Array(A,N)
-    @test A[1,1] == M[1,1]
-    @test A[1:4,1] == M[1:4,1]
-    @test A[5,2:10] == M[5,2:10]
-    @test A[60:100,500:600] == M[60:100,500:600]
-
-    d_order = 4
-    approx_order = 10
-
-    A = UpwindDifference(d_order,approx_order,1.0,N,t->1.0)
-    M = Array(A,N)
-    @test A[1,1] == M[1,1]
-    @test A[1:4,1] == M[1:4,1]
-    @test A[5,2:10] == M[5,2:10]
-    @test A[524,:] == M[524,:]
-    @test A[60:100,500:600] == M[60:100,500:600]
+function analyticTwoThreeNeg()
+      A = zeros(7,9)
+      A[1,1:5] = [11/12 -20/12 6/12 4/12 -1/12]
+      A[2,1:5] = [-1/12 16/12 -30/12 16/12 -1/12]
+      A[3,1:5] = [-1/12 4/12 6/12 -20/12 11/12]
+      for i in 4:7
+            A[i,i-3:i+1] = [11/12 -56/12 114/12 -104/12 35/12]
+      end
+      return A
 end
 
-@testset begin "Operations on matrices"
-    N = 51
-    M = 101
-    d_order = 2
-    approx_order = 2
+# analytically derived upwind operators for the irregular grid:
+# [0.0, 0.08, 0.1, 0.15, 0.19, 0.26, 0.29], and spacing:
+# dx = [0.08, 0.02, 0.05, 0.04, 0.07, 0.03]
 
-    xarr = range(0,stop=1,length=N)
-    yarr = range(0,stop=1,length=M)
-    dx = xarr[2]-xarr[1]
-    dy = yarr[2]-yarr[1]
-    F = [x^2+y for x = xarr, y = yarr]
+function analyticOneOnePosIrr()
+      A = zeros(5,7)
+      A[1,2:3] = [-50, 50]
+      A[2,3:4] = [-20, 20]
+      A[3,4:5] = [-25, 25]
+      A[4,5:6] = [-100/7, 100/7]
+      A[5,6:7] = [-100/3, 100/3]
+      return A
+end
 
-    A = UpwindDifference(d_order,approx_order,dx,length(xarr)-2,t->1.0)
-    B = UpwindDifference(d_order,approx_order,dy,length(yarr),t->1.0)
+function analyticOneOneNegIrr()
+      A = zeros(5,7)
+      A[1,1:2] = [-25/2, 25/2]
+      A[2,2:3] = [-50, 50]
+      A[3,3:4] = [-20, 20]
+      A[4,4:5] = [-25, 25]
+      A[5,5:6] = [-100/7, 100/7]
+      return A
+end
 
-    @test A*F ≈ 2*ones(N-2,M)
-    F*B
-    # A*F*B
+function analyticOneTwoPosIrr()
+      A = zeros(5,7)
+      A[1,2:4] = [-450/7, 490/7, -40/7]
+      A[2,3:5] = [-280/9, 405/9, -125/9]
+      A[3,4:6] = [-2625/77, 3025/77, -400/77]
+      A[4,5:7] = [-510/21, 1000/21, -490/21]
+      A[5,5:7] = [-90/21, -400/21, 490/21]
+      return A
+end
 
-    G = [x^2+y^2 for x = xarr, y = yarr]
+function analyticOneTwoNegIrr()
+      A = zeros(5,7)
+      A[1,1:3] = [-5/2, -75/2, 80/2]
+      A[2,1:3] = [5/2, -125/2, 120/2]
+      A[3, 2:4] = [250/7, -490/7, 240/7]
+      A[4, 3:5] = [80/9, -405/9, 325/9]
+      A[5, 4:6] = [1225/77, -3025/77, 1800/77]
+      return A
+end
 
-    @test A*G ≈ 2*ones(N-2,M) atol=1e-2
-    G*B
-    # A*G*B
+function analyticTwoTwoPosIrr()
+      A = zeros(5,7)
+      A[1,2:5] = [200000/77, -308000/77, 143000/77, -35000/77]
+      A[2,3:6] = [27500/33, -75000/33, 55000/33, -7500/33]
+      A[3,4:7] = [72500/77, -137500/77, 120000/77, -55000/77]
+      A[4,4:7] = [42500/77, -71500/77, 40000/77, -11000/77]
+      A[5,4:7] = [-10000/77, 44000/77, -100000/77, 66000/77]
+      return A
+end
+
+function analyticTwoTwoNegIrr()
+      A = zeros(5,7)
+      A[1,1:4] = [1050/7, -1250/7, -1400/7, 1600/7]
+      A[2,1:4] = [350/7, 6250/7, -9800/7, 3200/7]
+      A[3,1:4] = [-1400/7, 25000/7, -30800/7, 7200/7]
+      A[4,2:5] = [-390000/231, 770000/231, -660000/231, 280000/231]
+      A[5,3:6] = [-38500/77, 161000/77, -165000/77, 42500/77]
+      return A
+end
+
+@testset "Test: Derivative Order = 1, Approx Order = 1, Winding = Positive" begin
+      N = 5
+      L = UpwindDifference(1,1, 1.0, N, 1.0)
+      analyticL = analyticOneOnePos()
+      x = rand(7)
+
+      # Test that multiplication agrees with analytic multiplication
+      @test L*x ≈ analyticL*x
+
+      # Test that concretized multiplication agrees with analytic multiplication
+      @test Array(L)*x ≈ analyticL*x
+
+      # Test that matrix-free multiplication agrees with concretized multiplication
+      @test L*x ≈ Array(L)*x
+
+      # Test that concretized matrix agrees with analytic matrix
+      @test Array(L) == analyticL
+
+      # Test Banded and Sparse concretizations
+      @test Array(L) == BandedMatrix(L)
+      @test Array(L) == SparseMatrixCSC(L)
+      @test typeof(BandedMatrix(L)) <: BandedMatrix
+      @test typeof(SparseMatrixCSC(L)) <: SparseMatrixCSC
+
+end
+
+@testset "Test: Derivative Order = 1, Approx Order = 1, Winding = Negative" begin
+      N = 5
+      L = UpwindDifference(1,1, 1.0, N, -1.0)
+      analyticL = -1*analyticOneOneNeg()
+      x = rand(7)
+
+      # Test that multiplication agrees with analytic multiplication
+      @test L*x ≈ analyticL*x
+
+      # Test that concretized multiplication agrees with analytic multiplication
+      @test Array(L)*x ≈ analyticL*x
+
+      # Test that matrix-free multiplication agrees with concretized multiplication
+      @test L*x ≈ Array(L)*x
+
+      # Test that concretized matrix agrees with analytic matrix
+      @test Array(L) == analyticL
+
+      # Test Banded and Sparse concretizations
+      @test Array(L) == BandedMatrix(L)
+      @test Array(L) == SparseMatrixCSC(L)
+      @test typeof(BandedMatrix(L)) <: BandedMatrix
+      @test typeof(SparseMatrixCSC(L)) <: SparseMatrixCSC
+
+end
+
+@testset "Test: Derivative Order = 1, Approx Order = 2, Winding = Positive" begin
+      N = 5
+      L = UpwindDifference(1,2, 1.0, N, 1.0)
+      analyticL = analyticOneTwoPos()
+      x = rand(7)
+
+      # Test that multiplication agrees with analytic multiplication
+      @test L*x ≈ analyticL*x
+
+      # Test that concretized multiplication agrees with analytic multiplication
+      @test Array(L)*x ≈ analyticL*x
+
+      # Test that matrix-free multiplication agrees with concretized multiplication
+      @test L*x ≈ Array(L)*x
+
+      # Test that concretized matrix agrees with analytic matrix
+      @test Array(L) == analyticL
+
+      # Test Banded and Sparse concretizations
+      @test Array(L) == BandedMatrix(L)
+      @test Array(L) == SparseMatrixCSC(L)
+      @test typeof(BandedMatrix(L)) <: BandedMatrix
+      @test typeof(SparseMatrixCSC(L)) <: SparseMatrixCSC
+
+end
+
+@testset "Test: Derivative Order = 1, Approx Order = 2, Winding = Negative" begin
+      N = 5
+      L = UpwindDifference(1,2, 1.0, N, -1.0)
+      analyticL = -1*analyticOneTwoNeg()
+      x = rand(7)
+
+      # Test that multiplication agrees with analytic multiplication
+      @test L*x ≈ analyticL*x
+
+      # Test that concretized multiplication agrees with analytic multiplication
+      @test Array(L)*x ≈ analyticL*x
+
+      # Test that matrix-free multiplication agrees with concretized multiplication
+      @test L*x ≈ Array(L)*x
+
+      # Test that concretized matrix agrees with analytic matrix
+      @test Array(L) == analyticL
+
+      # Test Banded and Sparse concretizations
+      @test Array(L) == BandedMatrix(L)
+      @test Array(L) == SparseMatrixCSC(L)
+      @test typeof(BandedMatrix(L)) <: BandedMatrix
+      @test typeof(SparseMatrixCSC(L)) <: SparseMatrixCSC
+
+end
+
+@testset "Test: Derivative Order = 2, Approx Order = 2, Winding = Positive" begin
+      N = 5
+      L = UpwindDifference(2,2, 1.0, N, 1.0)
+      analyticL = analyticTwoTwoPos()
+      x = rand(7)
+
+      # Test that multiplication agrees with analytic multiplication
+      @test L*x ≈ analyticL*x
+
+      # Test that concretized multiplication agrees with analytic multiplication
+      @test Array(L)*x ≈ analyticL*x
+
+      # Test that matrix-free multiplication agrees with concretized multiplication
+      @test L*x ≈ Array(L)*x
+
+      # Test that concretized matrix agrees with analytic matrix
+      @test Array(L) == analyticL
+
+      # Test Banded and Sparse concretizations
+      @test Array(L) == BandedMatrix(L)
+      @test Array(L) == SparseMatrixCSC(L)
+      @test typeof(BandedMatrix(L)) <: BandedMatrix
+      @test typeof(SparseMatrixCSC(L)) <: SparseMatrixCSC
+
+end
+
+@testset "Test: Derivative Order = 2, Approx Order = 2, Winding = Negative" begin
+      N = 5
+      L = UpwindDifference(2,2, 1.0, N, -1.0)
+      analyticL = -1*analyticTwoTwoNeg()
+      x = rand(7)
+
+      # Test that multiplication agrees with analytic multiplication
+      @test L*x ≈ analyticL*x
+
+      # Test that concretized multiplication agrees with analytic multiplication
+      @test Array(L)*x ≈ analyticL*x
+
+      # Test that matrix-free multiplication agrees with concretized multiplication
+      @test L*x ≈ Array(L)*x
+
+      # Test that concretized matrix agrees with analytic matrix
+      @test Array(L) == analyticL
+
+      # Test Banded and Sparse concretizations
+      @test Array(L) == BandedMatrix(L)
+      @test Array(L) == SparseMatrixCSC(L)
+      @test typeof(BandedMatrix(L)) <: BandedMatrix
+      @test typeof(SparseMatrixCSC(L)) <: SparseMatrixCSC
+
+end
+
+# Here the operators are too big for five grid points, so weird corner cases must be accounted for
+# We should be able to assume that users will not have cases like this.
+@testset "Test: Derivative Order = 2, Approx Order = 3, Winding = Positive" begin
+      N = 7
+      L = UpwindDifference(2,3, 1.0, N, 1.0)
+      analyticL = analyticTwoThreePos()
+      x = rand(9)
+
+      # Test that multiplication agrees with analytic multiplication
+      @test L*x ≈ analyticL*x
+
+      # Test that concretized multiplication agrees with analytic multiplication
+      @test Array(L)*x ≈ analyticL*x
+
+      # Test that matrix-free multiplication agrees with concretized multiplication
+      @test L*x ≈ Array(L)*x
+
+      # Test that concretized matrix agrees with analytic matrix
+      @test Array(L) ≈ analyticL
+
+      # Test Banded and Sparse concretizations
+      @test Array(L) == BandedMatrix(L)
+      @test Array(L) == SparseMatrixCSC(L)
+      @test typeof(BandedMatrix(L)) <: BandedMatrix
+      @test typeof(SparseMatrixCSC(L)) <: SparseMatrixCSC
+
+end
+
+@testset "Test: Derivative Order = 2, Approx Order = 3, Winding = Negative" begin
+      N = 7
+      L = UpwindDifference(2,3, 1.0, N, -1.0)
+      analyticL = -1*analyticTwoThreeNeg()
+      x = rand(9)
+
+      # Test that multiplication agrees with analytic multiplication
+      @test L*x ≈ analyticL*x
+
+      # Test that concretized multiplication agrees with analytic multiplication
+      @test Array(L)*x ≈ analyticL*x
+
+      # Test that matrix-free multiplication agrees with concretized multiplication
+      @test L*x ≈ Array(L)*x
+
+      # Test that concretized matrix agrees with analytic matrix
+      @test Array(L) ≈ analyticL
+
+      # Test Banded and Sparse concretizations
+      @test Array(L) == BandedMatrix(L)
+      @test Array(L) == SparseMatrixCSC(L)
+      @test typeof(BandedMatrix(L)) <: BandedMatrix
+      @test typeof(SparseMatrixCSC(L)) <: SparseMatrixCSC
+
+end
+
+@testset "Test: Derivative Order = 1, Approx Order = 1, Winding = Positive, Grid = Irregular" begin
+      N = 5
+      # constructor throws an error at the moment
+      L = UpwindDifference(1,1, [0.08, 0.02, 0.05, 0.04, 0.07, 0.03], N, 1.0)
+      analyticL = analyticOneOnePosIrr()
+      x = rand(7)
+
+      # Test that multiplication agrees with analytic multiplication
+      @test L*x ≈ analyticL*x
+
+      # Test that concretized multiplication agrees with analytic multiplication
+      @test Array(L)*x ≈ analyticL*x
+
+      # Test that matrix-free multiplication agrees with concretized multiplication
+      @test L*x ≈ Array(L)*x
+
+      # Test that concretized matrix agrees with analytic matrix
+      @test Array(L) ≈ analyticL
+
+      # Test Banded and Sparse concretizations
+      @test Array(L) == BandedMatrix(L)
+      @test Array(L) == SparseMatrixCSC(L)
+      @test typeof(BandedMatrix(L)) <: BandedMatrix
+      @test typeof(SparseMatrixCSC(L)) <: SparseMatrixCSC
+end
+
+@testset "Test: Derivative Order = 1, Approx Order = 1, Winding = Negative, Grid = Irregular" begin
+      N = 5
+      # constructor throws an error at the moment
+      L = UpwindDifference(1,1, [0.08, 0.02, 0.05, 0.04, 0.07, 0.03], N, -1.0)
+      analyticL = -1*analyticOneOneNegIrr()
+      x = rand(7)
+
+      # Test that multiplication agrees with analytic multiplication
+      @test L*x ≈ analyticL*x
+
+      # Test that concretized multiplication agrees with analytic multiplication
+      @test Array(L)*x ≈ analyticL*x
+
+      # Test that matrix-free multiplication agrees with concretized multiplication
+      @test L*x ≈ Array(L)*x
+
+      # Test that concretized matrix agrees with analytic matrix
+      @test Array(L) ≈ analyticL
+
+      # Test Banded and Sparse concretizations
+      @test Array(L) == BandedMatrix(L)
+      @test Array(L) == SparseMatrixCSC(L)
+      @test typeof(BandedMatrix(L)) <: BandedMatrix
+      @test typeof(SparseMatrixCSC(L)) <: SparseMatrixCSC
+end
+
+@testset "Test: Derivative Order = 1, Approx Order = 2, Winding = Positive, Grid = Irregular" begin
+      N = 5
+      # constructor throws an error at the moment
+      L = UpwindDifference(1,2, [0.08, 0.02, 0.05, 0.04, 0.07, 0.03], N, 1.0)
+      analyticL = analyticOneTwoPosIrr()
+      x = rand(7)
+
+      # Test that multiplication agrees with analytic multiplication
+      @test L*x ≈ analyticL*x
+
+      # Test that concretized multiplication agrees with analytic multiplication
+      @test Array(L)*x ≈ analyticL*x
+
+      # Test that matrix-free multiplication agrees with concretized multiplication
+      @test L*x ≈ Array(L)*x
+
+      # Test that concretized matrix agrees with analytic matrix
+      @test Array(L) ≈ analyticL
+
+      # Test Banded and Sparse concretizations
+      @test Array(L) == BandedMatrix(L)
+      @test Array(L) == SparseMatrixCSC(L)
+      @test typeof(BandedMatrix(L)) <: BandedMatrix
+      @test typeof(SparseMatrixCSC(L)) <: SparseMatrixCSC
+end
+
+@testset "Test: Derivative Order = 1, Approx Order = 2, Winding = Negative, Grid = Irregular" begin
+      N = 5
+      # constructor throws an error at the moment
+      L = UpwindDifference(1,2, [0.08, 0.02, 0.05, 0.04, 0.07, 0.03], N, -1.0)
+      analyticL = -1*analyticOneTwoNegIrr()
+      x = rand(7)
+
+      # Test that multiplication agrees with analytic multiplication
+      @test L*x ≈ analyticL*x
+
+      # Test that concretized multiplication agrees with analytic multiplication
+      @test Array(L)*x ≈ analyticL*x
+
+      # Test that matrix-free multiplication agrees with concretized multiplication
+      @test L*x ≈ Array(L)*x
+
+      # Test that concretized matrix agrees with analytic matrix
+      @test Array(L) ≈ analyticL
+
+      # Test Banded and Sparse concretizations
+      @test Array(L) == BandedMatrix(L)
+      @test Array(L) == SparseMatrixCSC(L)
+      @test typeof(BandedMatrix(L)) <: BandedMatrix
+      @test typeof(SparseMatrixCSC(L)) <: SparseMatrixCSC
+end
+
+@testset "Test: Derivative Order = 2, Approx Order = 2, Winding = Positive, Grid = Irregular" begin
+      N = 5
+      # constructor throws an error at the moment
+      L = UpwindDifference(2,2, [0.08, 0.02, 0.05, 0.04, 0.07, 0.03], N, 1.0)
+      analyticL = analyticTwoTwoPosIrr()
+      x = rand(7)
+
+      # Test that multiplication agrees with analytic multiplication
+      @test L*x ≈ analyticL*x
+
+      # Test that concretized multiplication agrees with analytic multiplication
+      @test Array(L)*x ≈ analyticL*x
+
+      # Test that matrix-free multiplication agrees with concretized multiplication
+      @test L*x ≈ Array(L)*x
+
+      # Test that concretized matrix agrees with analytic matrix
+      @test Array(L) ≈ analyticL
+
+      # Test Banded and Sparse concretizations
+      @test Array(L) == BandedMatrix(L)
+      @test Array(L) == SparseMatrixCSC(L)
+      @test typeof(BandedMatrix(L)) <: BandedMatrix
+      @test typeof(SparseMatrixCSC(L)) <: SparseMatrixCSC
+end
+
+@testset "Test: Derivative Order = 2, Approx Order = 2, Winding = Negative, Grid = Irregular" begin
+      N = 5
+      # constructor throws an error at the moment
+      L = UpwindDifference(2,2, [0.08, 0.02, 0.05, 0.04, 0.07, 0.03], N, -1.0)
+      analyticL = -1*analyticTwoTwoNegIrr()
+      x = rand(7)
+
+      # Test that multiplication agrees with analytic multiplication
+      @test L*x ≈ analyticL*x
+
+      # Test that concretized multiplication agrees with analytic multiplication
+      @test Array(L)*x ≈ analyticL*x
+
+      # Test that matrix-free multiplication agrees with concretized multiplication
+      @test L*x ≈ Array(L)*x
+
+      # Test that concretized matrix agrees with analytic matrix
+      @test Array(L) ≈ analyticL
+
+      # Test Banded and Sparse concretizations
+      @test Array(L) == BandedMatrix(L)
+      @test Array(L) == SparseMatrixCSC(L)
+      @test typeof(BandedMatrix(L)) <: BandedMatrix
+      @test typeof(SparseMatrixCSC(L)) <: SparseMatrixCSC
+
+end
+
+@testset "Test: Scaling by dx and Derivative Order in Uniform Case" begin
+      N = 5
+      # constructor throws an error at the moment
+      L = UpwindDifference(1,2, 0.1, N, 1.0)
+      analyticL = 10.0*analyticOneTwoPos()
+      x = rand(7)
+
+      # Test that multiplication agrees with analytic multiplication
+      @test L*x ≈ analyticL*x
+
+      # Test that concretized multiplication agrees with analytic multiplication
+      @test Array(L)*x ≈ analyticL*x
+
+      # Test that matrix-free multiplication agrees with concretized multiplication
+      @test L*x ≈ Array(L)*x
+
+      # Test that concretized matrix agrees with analytic matrix
+      @test Array(L) ≈ analyticL
+
+      # Test Banded and Sparse concretizations
+      @test Array(L) == BandedMatrix(L)
+      @test Array(L) == SparseMatrixCSC(L)
+      @test typeof(BandedMatrix(L)) <: BandedMatrix
+      @test typeof(SparseMatrixCSC(L)) <: SparseMatrixCSC
+
+      L = UpwindDifference(1,2, 0.1, N, -1.0)
+      analyticL = -10.0*analyticOneTwoNeg()
+
+      # Test that multiplication agrees with analytic multiplication
+      @test L*x ≈ analyticL*x
+
+      # Test that concretized multiplication agrees with analytic multiplication
+      @test Array(L)*x ≈ analyticL*x
+
+      # Test that matrix-free multiplication agrees with concretized multiplication
+      @test L*x ≈ Array(L)*x
+
+      # Test that concretized matrix agrees with analytic matrix
+      @test Array(L) ≈ analyticL
+
+      # Test Banded and Sparse concretizations
+      @test Array(L) == BandedMatrix(L)
+      @test Array(L) == SparseMatrixCSC(L)
+      @test typeof(BandedMatrix(L)) <: BandedMatrix
+      @test typeof(SparseMatrixCSC(L)) <: SparseMatrixCSC
+
+      L = UpwindDifference(2,2, 0.1, N, 1.0)
+      analyticL = 100.0*analyticTwoTwoPos()
+
+      # Test that multiplication agrees with analytic multiplication
+      @test L*x ≈ analyticL*x
+
+      # Test that concretized multiplication agrees with analytic multiplication
+      @test Array(L)*x ≈ analyticL*x
+
+      # Test that matrix-free multiplication agrees with concretized multiplication
+      @test L*x ≈ Array(L)*x
+
+      # Test that concretized matrix agrees with analytic matrix
+      @test Array(L) ≈ analyticL
+
+      # Test Banded and Sparse concretizations
+      @test Array(L) == BandedMatrix(L)
+      @test Array(L) == SparseMatrixCSC(L)
+      @test typeof(BandedMatrix(L)) <: BandedMatrix
+      @test typeof(SparseMatrixCSC(L)) <: SparseMatrixCSC
+
+      L = UpwindDifference(2,2, 0.1, N, -1.0)
+      analyticL = -100.0*analyticTwoTwoNeg()
+
+      # Test that multiplication agrees with analytic multiplication
+      @test L*x ≈ analyticL*x
+
+      # Test that concretized multiplication agrees with analytic multiplication
+      @test Array(L)*x ≈ analyticL*x
+
+      # Test that matrix-free multiplication agrees with concretized multiplication
+      @test L*x ≈ Array(L)*x
+
+      # Test that concretized matrix agrees with analytic matrix
+      @test Array(L) ≈ analyticL
+
+      # Test Banded and Sparse concretizations
+      @test Array(L) == BandedMatrix(L)
+      @test Array(L) == SparseMatrixCSC(L)
+      @test typeof(BandedMatrix(L)) <: BandedMatrix
+      @test typeof(SparseMatrixCSC(L)) <: SparseMatrixCSC
+
+end
+
+@testset "Test: Non-Trivial Coefficient Handling in Uniform Grid Case" begin
+      N = 5
+      # constructor throws an error at the moment
+      L = UpwindDifference(2,2, 1.0, N, 4.56)
+      analyticL = 4.56*analyticTwoTwoPos()
+      x = rand(7)
+
+      # Test that multiplication agrees with analytic multiplication
+      @test L*x ≈ analyticL*x
+
+      # Test that concretized multiplication agrees with analytic multiplication
+      @test Array(L)*x ≈ analyticL*x
+
+      # Test that matrix-free multiplication agrees with concretized multiplication
+      @test L*x ≈ Array(L)*x
+
+      # Test that concretized matrix agrees with analytic matrix
+      @test Array(L) ≈ analyticL
+
+      # Test Banded and Sparse concretizations
+      @test Array(L) == BandedMatrix(L)
+      @test Array(L) == SparseMatrixCSC(L)
+      @test typeof(BandedMatrix(L)) <: BandedMatrix
+      @test typeof(SparseMatrixCSC(L)) <: SparseMatrixCSC
+
+      L = UpwindDifference(2,2, 1.0, N, -4.56)
+      analyticL = -4.56*analyticTwoTwoNeg()
+
+      # Test that multiplication agrees with analytic multiplication
+      @test L*x ≈ analyticL*x
+
+      # Test that concretized multiplication agrees with analytic multiplication
+      @test Array(L)*x ≈ analyticL*x
+
+      # Test that matrix-free multiplication agrees with concretized multiplication
+      @test L*x ≈ Array(L)*x
+
+      # Test that concretized matrix agrees with analytic matrix
+      @test Array(L) ≈ analyticL
+
+      # Test Banded and Sparse concretizations
+      @test Array(L) == BandedMatrix(L)
+      @test Array(L) == SparseMatrixCSC(L)
+      @test typeof(BandedMatrix(L)) <: BandedMatrix
+      @test typeof(SparseMatrixCSC(L)) <: SparseMatrixCSC
+
+end
+
+@testset "Test: dx and Derivative Order Scaling and Non-Trivial Coefficient Handling in Uniform Grid Case" begin
+      N = 5
+      # constructor throws an error at the moment
+      L = UpwindDifference(2,2, 0.1, N, 4.56)
+      analyticL = 4.56*100.0*analyticTwoTwoPos()
+      x = rand(7)
+
+      # Test that multiplication agrees with analytic multiplication
+      @test L*x ≈ analyticL*x
+
+      # Test that concretized multiplication agrees with analytic multiplication
+      @test Array(L)*x ≈ analyticL*x
+
+      # Test that matrix-free multiplication agrees with concretized multiplication
+      @test L*x ≈ Array(L)*x
+
+      # Test that concretized matrix agrees with analytic matrix
+      @test Array(L) ≈ analyticL
+
+      # Test Banded and Sparse concretizations
+      @test Array(L) == BandedMatrix(L)
+      @test Array(L) == SparseMatrixCSC(L)
+      @test typeof(BandedMatrix(L)) <: BandedMatrix
+      @test typeof(SparseMatrixCSC(L)) <: SparseMatrixCSC
+
+      L = UpwindDifference(2,2, 0.1, N, -4.56)
+      analyticL = -4.56*100.0*analyticTwoTwoNeg()
+
+      # Test that multiplication agrees with analytic multiplication
+      @test L*x ≈ analyticL*x
+
+      # Test that concretized multiplication agrees with analytic multiplication
+      @test Array(L)*x ≈ analyticL*x
+
+      # Test that matrix-free multiplication agrees with concretized multiplication
+      @test L*x ≈ Array(L)*x
+
+      # Test that concretized matrix agrees with analytic matrix
+      @test Array(L) ≈ analyticL
+
+      # Test Banded and Sparse concretizations
+      @test Array(L) == BandedMatrix(L)
+      @test Array(L) == SparseMatrixCSC(L)
+      @test typeof(BandedMatrix(L)) <: BandedMatrix
+      @test typeof(SparseMatrixCSC(L)) <: SparseMatrixCSC
+
+end
+
+@testset "Test: Coefficient Handling in Non-Uniform Grid Case" begin
+      N = 5
+      # constructor throws an error at the moment
+      L = UpwindDifference(2,2, [0.08, 0.02, 0.05, 0.04, 0.07, 0.03], N, 4.56)
+      analyticL = 4.56*analyticTwoTwoPosIrr()
+      x = rand(7)
+
+      # Test that multiplication agrees with analytic multiplication
+      @test L*x ≈ analyticL*x
+
+      # Test that concretized multiplication agrees with analytic multiplication
+      @test Array(L)*x ≈ analyticL*x
+
+      # Test that matrix-free multiplication agrees with concretized multiplication
+      @test L*x ≈ Array(L)*x
+
+      # Test that concretized matrix agrees with analytic matrix
+      @test Array(L) ≈ analyticL
+
+      # Test Banded and Sparse concretizations
+      @test Array(L) == BandedMatrix(L)
+      @test Array(L) == SparseMatrixCSC(L)
+      @test typeof(BandedMatrix(L)) <: BandedMatrix
+      @test typeof(SparseMatrixCSC(L)) <: SparseMatrixCSC
+
+      L = UpwindDifference(2,2, [0.08, 0.02, 0.05, 0.04, 0.07, 0.03], N, -4.56)
+      analyticL = -4.56*analyticTwoTwoNegIrr()
+
+      # Test that multiplication agrees with analytic multiplication
+      @test L*x ≈ analyticL*x
+
+      # Test that concretized multiplication agrees with analytic multiplication
+      @test Array(L)*x ≈ analyticL*x
+
+      # Test that matrix-free multiplication agrees with concretized multiplication
+      @test L*x ≈ Array(L)*x
+
+      # Test that concretized matrix agrees with analytic matrix
+      @test Array(L) ≈ analyticL
+
+      # Test Banded and Sparse concretizations
+      @test Array(L) == BandedMatrix(L)
+      @test Array(L) == SparseMatrixCSC(L)
+      @test typeof(BandedMatrix(L)) <: BandedMatrix
+      @test typeof(SparseMatrixCSC(L)) <: SparseMatrixCSC
+
 end
