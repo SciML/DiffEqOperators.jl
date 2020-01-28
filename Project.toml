@@ -32,6 +32,7 @@ FillArrays = "1a297f60-69ca-5386-bcde-b61e274b549b"
 OrdinaryDiffEq = "1dea7af3-3e70-54e6-95c3-0bf5283fa5ed"
 Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 SafeTestsets = "1bc83da4-3b8d-516f-aca4-4fe02f6d838f"
+SimpleDifferentialOperators = "7ccca996-40d6-5c2f-be7f-4eb2934af9c4"
 SpecialFunctions = "276daf66-3868-5448-9aa4-cd146d93841b"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
