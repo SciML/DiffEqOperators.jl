@@ -1,5 +1,5 @@
 using LinearAlgebra, SimpleDifferentialOperators, DiffEqOperators, Test, Parameters
-using Arpack
+# using Arpack
 #parameters
 params = @with_kw (
     μ = -0.1, # constant negative drift
