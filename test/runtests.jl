@@ -28,8 +28,7 @@ if GROUP == "All" || GROUP == "Interface"
     @time @safetestset "Differentiation Dimension" begin include("differentiation_dimension.jl") end
     @time @safetestset "Higher Dimensional Concretization" begin include("concretization.jl") end
     @time @safetestset "Coefficient Functions" begin include("coefficient_functions.jl") end
-    @time @safetestset "Correct Upwind Operator Tests" begin include("upwind_correct_tests.jl") end
-    # @time @safetestset "Upwind Operator Interface" begin include("upwind_operators_interface.jl") end
+    @time @safetestset "Upwind Operator Interface" begin include("upwind_operators_interface.jl") end
     @time @safetestset "MOLFiniteDifference Interface" begin include("MOLtest.jl") end
     @time @safetestset "Basic SDO Examples" begin include("BasicSDOExamples.jl") end
     # @time @safetestset "Linear Complementarity Problem Examples" begin include("lcp.jl"); include("lcp_split.jl") end
