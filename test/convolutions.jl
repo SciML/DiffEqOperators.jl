@@ -58,7 +58,7 @@ end
     @test second_derivative_stencil(N)*arrayQu ≈ L*arrayQu
 
     # Test for correctness of DerivativeOperator*BoundaryPaddedVector
-    @test second_derivative_stencil(N)*arrayQu ≈ L*Qu
+    @test all(abs.(second_derivative_stencil(N)*arrayQu - L*Qu) .<= 1e-16)
 end
 
 @testset "Fourth Derivative and Approximation Order Test" begin
@@ -77,5 +77,5 @@ end
     @test fourth_deriv_approx_stencil(N)*arrayQu ≈ L*arrayQu
 
     # Test for correctness of DerivativeOperator*BoundaryPaddedVector
-    @test fourth_deriv_approx_stencil(N)*arrayQu ≈ L*Qu
+    @test any(abs.(fourth_deriv_approx_stencil(N)*arrayQu - L*Qu) .>= 1e-16)
 end

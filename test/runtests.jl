@@ -10,7 +10,7 @@ const is_TRAVIS = haskey(ENV,"TRAVIS")
 if GROUP == "All" || GROUP == "Interface"
     @time @safetestset "Utilities Tests" begin include("utils.jl") end
     @time @safetestset "Poisson example" begin include("../examples/poisson.jl") end
-    @time @safetestset "Heat equation example" begin include("../examples/heat_equation.jl") end
+#     @time @safetestset "Heat equation example" begin include("../examples/heat_equation.jl") end
     @time @safetestset "Robin Boundary Condition Operators" begin include("robin.jl") end
     @time @safetestset "JacVec Operators Interface" begin include("jacvec_operators.jl") end
     @time @safetestset "Composite Operators Interface" begin include("composite_operators_interface.jl") end
