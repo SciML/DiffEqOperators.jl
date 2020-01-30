@@ -1,6 +1,6 @@
 module DiffEqOperators
 
-import Base: +, -, *, /, \, size, getindex, setindex!, Matrix, convert
+import Base: +, -, *, /, \, size, getindex, setindex!, Matrix, convert, ==
 using DiffEqBase, StaticArrays, LinearAlgebra
 import LinearAlgebra: mul!, ldiv!, lmul!, rmul!, axpy!, opnorm, factorize, I
 import DiffEqBase: AbstractDiffEqLinearOperator, update_coefficients!, isconstant

@@ -88,19 +88,39 @@ end
     L1 = CenteredDifference(2, 2, 1., 3)
     L2 = UpwindDifference(1, 1, 1., 3, 1.)
     L3 = UpwindDifference(1, 1, 1., 3, [0., 1.5, π])
-    for (fcn, fcn_ans) in zip(vec_fcn, func_mul_op_ans1)
+
+    for (i, (fcn, fcn_ans)) in enumerate(zip(vec_fcn, func_mul_op_ans1))
         tmp = fcn * L1
-        @test tmp.coefficients + ones(3) - ones(3) ≈ fcn_ans
+        if i == 1
+            @test_throws MethodError DiffEqOperators.update_coefficients!(tmp)
+        else
+            DiffEqOperators.update_coefficients!(tmp)
+            @test tmp.coefficients - ones(3) + ones(3) ≈ fcn_ans
+        end
     end
-    for (fcn, fcn_ans) in zip(vec_fcn, func_mul_op_ans2)
+    for (i,(fcn, fcn_ans)) in enumerate(zip(vec_fcn, func_mul_op_ans2))
         tmp = fcn * L2
-        @test tmp.coefficients ≈ fcn_ans
+        if i == 1
+            @test_throws MethodError DiffEqOperators.update_coefficients!(tmp)
+        else
+            DiffEqOperators.update_coefficients!(tmp)
+            @test tmp.coefficients ≈ fcn_ans
+        end
     end
-    for (fcn, fcn_ans) in zip(vec_fcn, func_mul_op_ans3)
+    for (i,(fcn, fcn_ans)) in enumerate(zip(vec_fcn, func_mul_op_ans3))
         tmp = fcn * L3
-        @test tmp.coefficients ≈ fcn_ans
+        if i == 1
+            @test_throws MethodError DiffEqOperators.update_coefficients!(tmp)
+        else
+            DiffEqOperators.update_coefficients!(tmp)
+            @test tmp.coefficients ≈ fcn_ans
+        end
     end
 
+    L1 = CenteredDifference(2, 2, 1., 3)
+    @test_logs (:warn, "No coeff_func found. No updating performed.") DiffEqOperators.update_coefficients!(L1)
+    L2 = UpwindDifference(1, 1, 1., 3, 1.)
+    @test_logs (:warn, "coeff_func is not a function. No updating performed.") DiffEqOperators.update_coefficients!(L2)
 end
 
 nothing
