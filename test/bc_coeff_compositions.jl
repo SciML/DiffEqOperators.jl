@@ -72,7 +72,7 @@ end
     u = rand(N)
     A = L*Q
     # Test for consistency of GhostDerivativeOperator*u with L*(Q*u)
-    @test_broken A*u ≈ L*(Q*u)
+    @test A*u ≈ L*(Q*u)
 
     # Test for consistency of GhostDerivativeOperator*M with L*(Q*M)
     M = rand(N,10)
