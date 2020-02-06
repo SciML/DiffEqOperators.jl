@@ -10,7 +10,7 @@ params = @with_kw (
     x = interiornodes(x̄), # i.e., x̄[2:end-1]
     S = 3.0
 )
-p = params();
+p = params()
 
 #----------------------------------
 #Testing For Negative Drifts

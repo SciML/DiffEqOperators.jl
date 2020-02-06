@@ -166,11 +166,7 @@ end
 ################################################################################
 
 function *(coeff_func::Function, A::DerivativeOperator{T,N,Wind}) where {T,N,Wind}
-    # if hasmethod(coeff_func, (Float64,)) || hasmethod(coeff_func, (Vector{Float64},))
-    #     coefficients = compute_coeffs(coeff_func, A.coefficients === nothing ? Vector{T}(undef, A.len) : A.coefficients)
-    # else
-        coefficients = A.coefficients === nothing ? Vector{T}(undef, A.len) : A.coefficients
-    # end
+    coefficients = A.coefficients === nothing ? Vector{T}(undef, A.len) : A.coefficients
 
     DerivativeOperator{T,N,Wind,typeof(A.dx),typeof(A.stencil_coefs),
                        typeof(A.low_boundary_coefs),typeof(coefficients),
@@ -196,7 +192,7 @@ function DiffEqBase.update_coefficients!(A::AbstractDerivativeOperator,u,p,t)
 end
 function DiffEqBase.update_coefficients!(A::AbstractDerivativeOperator) where {T<:Number}
     if A.coeff_func !== nothing
-        if typeof(A.coeff_func)<:Function
+        if typeof(A.coeff_func) <: Function
             A.coefficients[:] = A.coeff_func(A.coefficients)
         else
             @warn "coeff_func is not a function. No updating performed."

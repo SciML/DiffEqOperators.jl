@@ -71,8 +71,44 @@ end
     # Test GhostDerivativeOperator constructor by *
     u = rand(N)
     A = L*Q
+
     # Test for consistency of GhostDerivativeOperator*u with L*(Q*u)
+    @test A == L * Q
     @test A*u ≈ L*(Q*u)
+
+    # Test for consistency of c*GhostDerivativeOperator*u with alternative methods
+    c = 2.1
+    @test c * A == (c * L) * Q == c * (L * Q)
+    @test c * A * u ≈ (c * L) * (Q * u) ≈ c * (L * Q) * u
+
+    # check A + B, where A and B are GhostDerivativeOperators
+    B = c * A
+    @test (A + B) * u == (A + c * A) * u == (B + A) * u == (c * A + A) * u
+    @test (A + B) * u == A * u + B * u
+
+    # Test for consistency of c*GhostDerivativeOperator*u when c is a vector
+    c = rand(N)
+    L1 = UpwindDifference(1, 1, 1., N, 1.)
+    A1 = L1 * Q
+    cA = c * A
+    cL = c * L
+    cLQ = (c * L) * Q
+    cA1 = c * A1
+    cL1 = c * L1
+    cLQ1 = (c * L1) * Q
+    @test_broken cA.L == cL
+    @test cA.L.coefficients == cL.coefficients == cLQ.L.coefficients
+    @test_broken c * A == (c * L) * Q == c * (L * Q)
+    @test c * A * u ≈ (c * L) * (Q * u) ≈ c * (L * Q) * u
+    @test cA1.L.coefficients == cL1.coefficients == cLQ1.L.coefficients
+    @test_broken c * A1 == (c * L1) * Q == c * (L1 * Q)
+    @test c * A1 * u ≈ (c * L1) * (Q * u) ≈ c * (L1 * Q) * u
+
+    # check A + B, where A and B are GhostDerivativeOperators
+    B = c * A
+    @test_broken (A + B) == A + c * A == B + A == c * A + A
+    @test (A + B) * u == (A + c * A) * u == (B + A) * u == (c * A + A) * u
+    @test (A + B) * u == A * u + B * u
 
     # Test for consistency of GhostDerivativeOperator*M with L*(Q*M)
     M = rand(N,10)
@@ -99,8 +135,10 @@ end
 
     # Test that concretization works with multiplication
     u = rand(20)
-    @test_broken Array(A)[1]*u + Array(A)[2] - L*(Q*u) ≈ A*u
-    @test_broken sparse(A)[1]*u + sparse(A)[2] ≈ L*(Q*u) - A*u
+    @test_broken Array(A)[1]*u + Array(A)[2] ≈ L*(Q*u) ≈ A*u
+    @test_broken sparse(A)[1]*u + sparse(A)[2] ≈ L*(Q*u) ≈ A*u
+    # @test_broken Array(A)[1]*u + Array(A)[2] ≈ A*u
+    # @test_broken sparse(A)[1]*u + sparse(A)[2] ≈ A*u
 end
 
 @testset "Test Left Division L2 (second order)" begin
