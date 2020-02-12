@@ -172,6 +172,10 @@ end
       @test typeof(BandedMatrix(L)) <: BandedMatrix
       @test typeof(SparseMatrixCSC(L)) <: SparseMatrixCSC
 
+      # Test convolutions against bpv
+      bpv = PeriodicBC(Float64)*x[1:N]
+      @test L*bpv ≈ analyticL*bpv
+
 end
 
 @testset "Test: Derivative Order = 1, Approx Order = 1, Winding = Negative" begin
@@ -197,6 +201,10 @@ end
       @test Array(L) == SparseMatrixCSC(L)
       @test typeof(BandedMatrix(L)) <: BandedMatrix
       @test typeof(SparseMatrixCSC(L)) <: SparseMatrixCSC
+
+      # Test convolutions against bpv
+      bpv = PeriodicBC(Float64)*x[1:N]
+      @test L*bpv ≈ analyticL*bpv
 
 end
 
@@ -224,6 +232,14 @@ end
       @test typeof(BandedMatrix(L)) <: BandedMatrix
       @test typeof(SparseMatrixCSC(L)) <: SparseMatrixCSC
 
+      # Test convolutions against bpv
+      bpv = PeriodicBC(Float64)*x[1:N]
+      @test L*bpv ≈ analyticL*bpv
+
+      # Test convolutions against bpv
+      bpv = PeriodicBC(Float64)*x[1:N]
+      @test L*bpv ≈ analyticL*bpv
+
 end
 
 @testset "Test: Derivative Order = 1, Approx Order = 2, Winding = Negative" begin
@@ -249,6 +265,10 @@ end
       @test Array(L) == SparseMatrixCSC(L)
       @test typeof(BandedMatrix(L)) <: BandedMatrix
       @test typeof(SparseMatrixCSC(L)) <: SparseMatrixCSC
+
+      # Test convolutions against bpv
+      bpv = PeriodicBC(Float64)*x[1:N]
+      @test L*bpv ≈ analyticL*bpv
 
 end
 
@@ -276,6 +296,10 @@ end
       @test typeof(BandedMatrix(L)) <: BandedMatrix
       @test typeof(SparseMatrixCSC(L)) <: SparseMatrixCSC
 
+      # Test convolutions against bpv
+      bpv = PeriodicBC(Float64)*x[1:N]
+      @test L*bpv ≈ analyticL*bpv
+
 end
 
 @testset "Test: Derivative Order = 2, Approx Order = 2, Winding = Negative" begin
@@ -301,6 +325,10 @@ end
       @test Array(L) == SparseMatrixCSC(L)
       @test typeof(BandedMatrix(L)) <: BandedMatrix
       @test typeof(SparseMatrixCSC(L)) <: SparseMatrixCSC
+
+      # Test convolutions against bpv
+      bpv = PeriodicBC(Float64)*x[1:N]
+      @test L*bpv ≈ analyticL*bpv
 
 end
 
@@ -330,6 +358,10 @@ end
       @test typeof(BandedMatrix(L)) <: BandedMatrix
       @test typeof(SparseMatrixCSC(L)) <: SparseMatrixCSC
 
+      # Test convolutions against bpv
+      bpv = PeriodicBC(Float64)*x[1:N]
+      @test L*bpv ≈ analyticL*bpv
+
 end
 
 @testset "Test: Derivative Order = 2, Approx Order = 3, Winding = Negative" begin
@@ -355,6 +387,10 @@ end
       @test Array(L) == SparseMatrixCSC(L)
       @test typeof(BandedMatrix(L)) <: BandedMatrix
       @test typeof(SparseMatrixCSC(L)) <: SparseMatrixCSC
+
+      # Test convolutions against bpv
+      bpv = PeriodicBC(Float64)*x[1:N]
+      @test L*bpv ≈ analyticL*bpv
 
 end
 
@@ -382,6 +418,10 @@ end
       @test Array(L) == SparseMatrixCSC(L)
       @test typeof(BandedMatrix(L)) <: BandedMatrix
       @test typeof(SparseMatrixCSC(L)) <: SparseMatrixCSC
+
+      # Test convolutions against bpv
+      bpv = PeriodicBC(Float64)*x[1:N]
+      @test L*bpv ≈ analyticL*bpv
 end
 
 @testset "Test: Derivative Order = 1, Approx Order = 1, Winding = Negative, Grid = Irregular" begin
@@ -408,6 +448,10 @@ end
       @test Array(L) == SparseMatrixCSC(L)
       @test typeof(BandedMatrix(L)) <: BandedMatrix
       @test typeof(SparseMatrixCSC(L)) <: SparseMatrixCSC
+
+      # Test convolutions against bpv
+      bpv = PeriodicBC(Float64)*x[1:N]
+      @test L*bpv ≈ analyticL*bpv
 end
 
 @testset "Test: Derivative Order = 1, Approx Order = 2, Winding = Positive, Grid = Irregular" begin
@@ -434,6 +478,11 @@ end
       @test Array(L) == SparseMatrixCSC(L)
       @test typeof(BandedMatrix(L)) <: BandedMatrix
       @test typeof(SparseMatrixCSC(L)) <: SparseMatrixCSC
+
+      # Test convolutions against bpv
+      bpv = PeriodicBC(Float64)*x[1:N]
+      @test L*bpv ≈ analyticL*bpv
+
 end
 
 @testset "Test: Derivative Order = 1, Approx Order = 2, Winding = Negative, Grid = Irregular" begin
@@ -460,6 +509,11 @@ end
       @test Array(L) == SparseMatrixCSC(L)
       @test typeof(BandedMatrix(L)) <: BandedMatrix
       @test typeof(SparseMatrixCSC(L)) <: SparseMatrixCSC
+
+      # Test convolutions against bpv
+      bpv = PeriodicBC(Float64)*x[1:N]
+      @test L*bpv ≈ analyticL*bpv
+
 end
 
 @testset "Test: Derivative Order = 2, Approx Order = 2, Winding = Positive, Grid = Irregular" begin
@@ -486,6 +540,11 @@ end
       @test Array(L) == SparseMatrixCSC(L)
       @test typeof(BandedMatrix(L)) <: BandedMatrix
       @test typeof(SparseMatrixCSC(L)) <: SparseMatrixCSC
+
+      # Test convolutions against bpv
+      bpv = PeriodicBC(Float64)*x[1:N]
+      @test L*bpv ≈ analyticL*bpv
+
 end
 
 @testset "Test: Derivative Order = 2, Approx Order = 2, Winding = Negative, Grid = Irregular" begin
@@ -512,6 +571,10 @@ end
       @test Array(L) == SparseMatrixCSC(L)
       @test typeof(BandedMatrix(L)) <: BandedMatrix
       @test typeof(SparseMatrixCSC(L)) <: SparseMatrixCSC
+
+      # Test convolutions against bpv
+      bpv = PeriodicBC(Float64)*x[1:N]
+      @test L*bpv ≈ analyticL*bpv
 
 end
 
@@ -540,6 +603,10 @@ end
       @test typeof(BandedMatrix(L)) <: BandedMatrix
       @test typeof(SparseMatrixCSC(L)) <: SparseMatrixCSC
 
+      # Test convolutions against bpv
+      bpv = PeriodicBC(Float64)*x[1:N]
+      @test L*bpv ≈ analyticL*bpv
+
       L = UpwindDifference(1,2, 0.1, N, -1.0)
       analyticL = -10.0*analyticOneTwoNeg()
 
@@ -560,6 +627,10 @@ end
       @test Array(L) == SparseMatrixCSC(L)
       @test typeof(BandedMatrix(L)) <: BandedMatrix
       @test typeof(SparseMatrixCSC(L)) <: SparseMatrixCSC
+
+      # Test convolutions against bpv
+      bpv = PeriodicBC(Float64)*x[1:N]
+      @test L*bpv ≈ analyticL*bpv
 
       L = UpwindDifference(2,2, 0.1, N, 1.0)
       analyticL = 100.0*analyticTwoTwoPos()
@@ -582,6 +653,10 @@ end
       @test typeof(BandedMatrix(L)) <: BandedMatrix
       @test typeof(SparseMatrixCSC(L)) <: SparseMatrixCSC
 
+      # Test convolutions against bpv
+      bpv = PeriodicBC(Float64)*x[1:N]
+      @test L*bpv ≈ analyticL*bpv
+
       L = UpwindDifference(2,2, 0.1, N, -1.0)
       analyticL = -100.0*analyticTwoTwoNeg()
 
@@ -602,6 +677,10 @@ end
       @test Array(L) == SparseMatrixCSC(L)
       @test typeof(BandedMatrix(L)) <: BandedMatrix
       @test typeof(SparseMatrixCSC(L)) <: SparseMatrixCSC
+
+      # Test convolutions against bpv
+      bpv = PeriodicBC(Float64)*x[1:N]
+      @test L*bpv ≈ analyticL*bpv
 
 end
 
@@ -630,6 +709,10 @@ end
       @test typeof(BandedMatrix(L)) <: BandedMatrix
       @test typeof(SparseMatrixCSC(L)) <: SparseMatrixCSC
 
+      # Test convolutions against bpv
+      bpv = PeriodicBC(Float64)*x[1:N]
+      @test L*bpv ≈ analyticL*bpv
+
       L = UpwindDifference(2,2, 1.0, N, -4.56)
       analyticL = -4.56*analyticTwoTwoNeg()
 
@@ -650,6 +733,10 @@ end
       @test Array(L) == SparseMatrixCSC(L)
       @test typeof(BandedMatrix(L)) <: BandedMatrix
       @test typeof(SparseMatrixCSC(L)) <: SparseMatrixCSC
+
+      # Test convolutions against bpv
+      bpv = PeriodicBC(Float64)*x[1:N]
+      @test L*bpv ≈ analyticL*bpv
 
 end
 
@@ -678,6 +765,10 @@ end
       @test typeof(BandedMatrix(L)) <: BandedMatrix
       @test typeof(SparseMatrixCSC(L)) <: SparseMatrixCSC
 
+      # Test convolutions against bpv
+      bpv = PeriodicBC(Float64)*x[1:N]
+      @test L*bpv ≈ analyticL*bpv
+
       L = UpwindDifference(2,2, 0.1, N, -4.56)
       analyticL = -4.56*100.0*analyticTwoTwoNeg()
 
@@ -698,6 +789,10 @@ end
       @test Array(L) == SparseMatrixCSC(L)
       @test typeof(BandedMatrix(L)) <: BandedMatrix
       @test typeof(SparseMatrixCSC(L)) <: SparseMatrixCSC
+
+      # Test convolutions against bpv
+      bpv = PeriodicBC(Float64)*x[1:N]
+      @test L*bpv ≈ analyticL*bpv
 
 end
 
@@ -726,6 +821,10 @@ end
       @test typeof(BandedMatrix(L)) <: BandedMatrix
       @test typeof(SparseMatrixCSC(L)) <: SparseMatrixCSC
 
+      # Test convolutions against bpv
+      bpv = PeriodicBC(Float64)*x[1:N]
+      @test L*bpv ≈ analyticL*bpv
+
       L = UpwindDifference(2,2, [0.08, 0.02, 0.05, 0.04, 0.07, 0.03], N, -4.56)
       analyticL = -4.56*analyticTwoTwoNegIrr()
 
@@ -746,5 +845,9 @@ end
       @test Array(L) == SparseMatrixCSC(L)
       @test typeof(BandedMatrix(L)) <: BandedMatrix
       @test typeof(SparseMatrixCSC(L)) <: SparseMatrixCSC
+
+      # Test convolutions against bpv
+      bpv = PeriodicBC(Float64)*x[1:N]
+      @test L*bpv ≈ analyticL*bpv
 
 end
