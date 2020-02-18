@@ -16,6 +16,7 @@ if GROUP == "All" || GROUP == "Interface"
     @time @safetestset "Composite Operators Interface" begin include("composite_operators_interface.jl") end
     @time @safetestset "BC and Coefficient Compositions" begin include("bc_coeff_compositions.jl") end
     @time @safetestset "Derivative Operators Interface" begin include("derivative_operators_interface.jl") end
+    @time @safetestset "Validate Regular Derivative Operators" begin include("regular_operator_validation.jl") end
     @time @safetestset "Validate and Compare Generic Operators" begin include("generic_operator_validation.jl") end
     @time @safetestset "Validate Boundary Padded Array Concretization" begin include("boundary_padded_array.jl") end
     @time @safetestset "Validate Higher Dimensional Boundary Extension" begin include("MultiDimBC_test.jl") end
