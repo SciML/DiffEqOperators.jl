@@ -1,6 +1,8 @@
 using SparseArrays, DiffEqOperators, LinearAlgebra, Random,
       Test, BandedMatrices, FillArrays
 
+Random.seed!(1234)
+
 
 # These functions create analytic solutions to upwind operators. In the function name,
 # the first number indicates the derivative order, the second number indicates
