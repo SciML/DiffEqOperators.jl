@@ -28,7 +28,7 @@ function Base.copyto!(L::AbstractMatrix{T}, A::DerivativeOperator{T}, N::Int) wh
 
     for i in bl+1:N-bl
         cur_coeff   = get_coeff(i)
-        stencil     = eltype(A.stencil_coefs) <: AbstractVector ? A.stencil_coefs[i] : A.stencil_coefs
+        stencil     = eltype(A.stencil_coefs) <: AbstractVector ? A.stencil_coefs[i-bl] : A.stencil_coefs
         cur_stencil = use_winding(A) && cur_coeff < 0 ? reverse(stencil) : stencil
         L[i,i+1-stencil_pivot:i-stencil_pivot+stencil_length] = cur_coeff * cur_stencil
     end
