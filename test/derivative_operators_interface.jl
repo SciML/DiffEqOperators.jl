@@ -146,55 +146,56 @@ end
 
 @testset "Correctness of Non-Uniform Stencils" begin
     x = [0., 0.08, 0.1, 0.15, 0.19, 0.26, 0.29]
+    nx = length(x)
     dx = diff(x)
 
     # Second-Order First Derivative
-    L = CenteredDifference(1, 2, dx, 5)
+    L = CenteredDifference(1, 2, dx, nx-2)
     correct = analyticCtrOneTwoIrr()
 
     # Check that stencils agree with correct
     for (i,coefs) in enumerate(L.stencil_coefs)
         @test Array(coefs) ≈ correct[i,correct[i,:] .!= 0.]
     end
-    @test_broken Array(L) ≈ correct # All of these concretizations
-    @test_broken sparse(L) ≈ correct # only give the first three
-    @test_broken BandedMatrix(L) ≈ correct # rows of the computed stencil coefficients
+    @test Array(L) ≈ correct
+    @test sparse(L) ≈ correct
+    @test BandedMatrix(L) ≈ correct
 
     # Second-Order Second Derivative
-    L = CenteredDifference(2, 2, dx, 5)
+    L = CenteredDifference(2, 2, dx, nx-2)
     correct = analyticCtrTwoTwoIrr()
 
     # Check that stencils agree with correct
     for (i,coefs) in enumerate(L.stencil_coefs)
         @test Array(coefs) ≈ correct[i,correct[i,:] .!= 0.]
     end
-    @test_broken Array(L) ≈ correct # same issue as previous derivative
-    @test_broken sparse(L) ≈ correct
-    @test_broken BandedMatrix(L) ≈ correct
+    @test Array(L) ≈ correct
+    @test sparse(L) ≈ correct
+    @test BandedMatrix(L) ≈ correct
 
     # Fourth-Order Second Derivative
-    L = CenteredDifference(2, 4, dx, 5)
+    L = CenteredDifference(2, 4, dx, nx-2)
     correct = analyticCtrTwoFourIrr()
 
     # Check that stencils agree with correct
     for (i,coefs) in enumerate(L.stencil_coefs)
         @test Array(coefs) ≈ correct[i,correct[i,:] .!= 0.]
     end
-    @test_broken Array(L) ≈ correct # L.stencil_coefs is populated, but the concretization doesn't work. It appears to be an issue of improper calculation of indexing from the various lengths computed during construction (e.g. boundary_stencil_length, len) and potentially the fact that "len" doesn't seem to specify the number of grid points at which we compute finite differences but appears to specify the location of the last grid point at which we compute finite differences (so if X is a 5-length vector, entering len = 2 means computing FDs for X[2] and X[3])
-    @test_broken sparse(L) ≈ correct
-    @test_broken BandedMatrix(L) ≈ correct
+    @test Array(L)[2:end-1,:] ≈ correct
+    @test sparse(L)[2:end-1,:] ≈ correct
+    @test BandedMatrix(L)[2:end-1,:] ≈ correct
 
     # Second-Order Fourth Derivative
-    L = CenteredDifference(4, 2, dx, 5)
+    L = CenteredDifference(4, 2, dx, nx-2)
     correct = analyticCtrFourTwoIrr()
 
     # Check that stencils agree with correct
     for (i,coefs) in enumerate(L.stencil_coefs)
         @test Array(coefs) ≈ correct[i,correct[i,:] .!= 0.]
     end
-    @test_broken Array(L) ≈ correct
-    @test_broken sparse(L) ≈ correct
-    @test_broken BandedMatrix(L) ≈ correct
+    @test Array(L)[2:end-1,:] ≈ correct
+    @test sparse(L)[2:end-1,:] ≈ correct
+    @test BandedMatrix(L)[2:end-1,:] ≈ correct
 end
 
 # tests for full and sparse function
