@@ -86,6 +86,10 @@ end
     @test (A + B) * u == (A + c * A) * u == (B + A) * u == (c * A + A) * u
     @test (A + B) * u == A * u + B * u
 
+    # Check (L + L) * Q works
+    LLQ = (L + L) * Q
+    @test LLQ * u == A * u + A * u == (A + A) * u
+
     # Test for consistency of c*GhostDerivativeOperator*u when c is a vector
     c = rand(N)
     L1 = UpwindDifference(1, 1, 1., N, 1.)

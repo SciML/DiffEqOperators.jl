@@ -7,6 +7,10 @@ function *(L::AbstractDerivativeOperator{T}, Q::AbstractBC{T}) where{T}
     return GhostDerivativeOperator{T, typeof(L), typeof(Q)}(L,Q)
 end
 
+function *(L::AbstractDiffEqCompositeOperator{T}, Q::AbstractBC{T}) where{T}
+    return sum(map(op -> op * Q, L.ops))
+end
+
 function LinearAlgebra.mul!(x::AbstractVector, A::GhostDerivativeOperator, u::AbstractVector)
     @assert length(u) == A.L.len == length(x)
     LinearAlgebra.mul!(x, A.L, A.Q*u)
