@@ -83,11 +83,11 @@ function CenteredDifference{N}(derivative_order::Int,
     boundary_deriv_spots    = boundary_x[2:div(stencil_length,2)]
 
     function generate_coordinates(i, stencil_x, dummy_x, dx)
-        len = length(stencil_x)
+        _n = length(stencil_x)
         stencil_x .= stencil_x.*zero(T)
-        for idx in 1:div(len,2)
-            shifted_idx1 = index(idx, len)
-            shifted_idx2 = index(-idx, len)
+        for idx in 1:div(_n,2)
+            shifted_idx1 = index(idx, _n)
+            shifted_idx2 = index(-idx, _n)
             stencil_x[shifted_idx1] = stencil_x[shifted_idx1-1] + dx[i+idx-1]
             stencil_x[shifted_idx2] = stencil_x[shifted_idx2+1] - dx[i-idx]
         end
@@ -232,3 +232,6 @@ CenteredDifference(args...) = CenteredDifference{1}(args...)
 UpwindDifference(args...) = UpwindDifference{1}(args...)
 use_winding(A::DerivativeOperator{T,N,Wind}) where {T,N,Wind} = Wind
 diff_axis(A::DerivativeOperator{T,N}) where {T,N} = N
+function ==(A1::DerivativeOperator, A2::DerivativeOperator)
+    return all([eval(:($A1.$name == $A2.$name)) for name in fieldnames(DerivativeOperator)])
+end

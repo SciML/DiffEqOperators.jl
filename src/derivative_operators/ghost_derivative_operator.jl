@@ -110,3 +110,5 @@ end
 function SparseArrays.sparse(A::GhostDerivativeOperator,N::Int=A.L.len)
     return SparseMatrixCSC(A,N)
 end
+
+@inline ==(A1::GhostDerivativeOperator, A2::GhostDerivativeOperator) = A1.L == A2.L && A1.Q == A2.Q

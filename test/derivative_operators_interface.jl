@@ -156,9 +156,9 @@ end
     for (i,coefs) in enumerate(L.stencil_coefs)
         @test Array(coefs) ≈ correct[i,correct[i,:] .!= 0.]
     end
-    @test_broken Array(L) ≈ correct # All of these concretizations
-    @test_broken sparse(L) ≈ correct # only give the first three
-    @test_broken BandedMatrix(L) ≈ correct # rows of the computed stencil coefficients
+    @test Array(L) ≈ correct # All of these concretizations
+    @test sparse(L) ≈ correct # only give the first three
+    @test BandedMatrix(L) ≈ correct # rows of the computed stencil coefficients
 
     # Second-Order Second Derivative
     L = CenteredDifference(2, 2, dx, 5)
@@ -168,9 +168,9 @@ end
     for (i,coefs) in enumerate(L.stencil_coefs)
         @test Array(coefs) ≈ correct[i,correct[i,:] .!= 0.]
     end
-    @test_broken Array(L) ≈ correct # same issue as previous derivative
-    @test_broken sparse(L) ≈ correct
-    @test_broken BandedMatrix(L) ≈ correct
+    @test Array(L) ≈ correct # same issue as previous derivative
+    @test sparse(L) ≈ correct
+    @test BandedMatrix(L) ≈ correct
 
     # Fourth-Order Second Derivative
     L = CenteredDifference(2, 4, dx, 5)
