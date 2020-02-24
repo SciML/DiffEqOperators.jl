@@ -36,7 +36,7 @@ struct RobinBC{T, V<:AbstractVector{T}} <: AffineBC{T}
 
         return new{T, typeof(a_l)}(a_l, b_l, a_r, b_r)
     end
-    function RobinBC(l::AbstractVector{T}, r::AbstractVector{T}, dx::AbstractVector{T}, order = 1) where {T}
+    function RobinBC(l::Union{NTuple{3,T},AbstractVector{T}}, r::Union{NTuple{3,T},AbstractVector{T}}, dx::AbstractVector{T}, order = 1) where {T}
         αl, βl, γl = l
         αr, βr, γr = r
 
