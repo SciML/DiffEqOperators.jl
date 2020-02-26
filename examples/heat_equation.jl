@@ -34,3 +34,11 @@ sol = solve(prob, alg)
 
 using Test
 @test u_analytic.(knots, t1) ≈ sol[end] rtol=1e-3
+
+# Because the creation of boundary conditions is cheap, we can 
+# implement time-dependent boundary conditions as follows:
+# function step(u,p,t)
+#    bc = DirichletBC(cos(t*1.5), sin(t))
+#    Δ*bc*u
+# end
+
