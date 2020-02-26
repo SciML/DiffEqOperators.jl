@@ -128,10 +128,10 @@ end
     # check A + B, where A and B are GhostDerivativeOperators
     B = c * A
     B1 = c * A1
-    @test_broken (A + B) == A + c * A == B + A == c * A + A
+    # @test (A + B) == A + c * A == B + A == c * A + A # uncomment if we want to implement and test for equality of linear combinations of operators
     @test (A + B) * u == (A + c * A) * u == (B + A) * u == (c * A + A) * u
     @test (A + B) * u == A * u + B * u
-    @test_broken (A1 + B1) == A + c * A1 == B1 + A1 == c * A1 + A1
+    # @test (A1 + B1) == A + c * A1 == B1 + A1 == c * A1 + A1
     @test (A1 + B1) * u == (A1 + c * A1) * u == (B1 + A1) * u == (c * A1 + A1) * u
     @test (A1 + B1) * u == A1 * u + B1 * u
 
@@ -142,7 +142,7 @@ end
         mul!(view(LQM,:,i), L, Q*M[:,i])
     end
     ghost_LQM = A*M
-    @test_broken ghost_LQM ≈ LQM
+    @test ghost_LQM ≈ LQM
 
     u = rand(N + 2)
     @test (L + L2) * u ≈ convert(AbstractMatrix,L + L2) * u ≈ (BandedMatrix(L) + BandedMatrix(L2)) * u
@@ -154,14 +154,14 @@ end
     @test SparseMatrixCSC(A)[2] ≈ (SparseMatrixCSC(L)*SparseMatrixCSC(Q,N)[1], SparseMatrixCSC(L)*SparseMatrixCSC(Q,N)[2])[2]
     @test sparse(A)[1] ≈ (sparse(L)*sparse(Q,N)[1], sparse(L)*sparse(Q,N)[2])[1]
     @test sparse(A)[2] ≈ (sparse(L)*sparse(Q,N)[1], sparse(L)*sparse(Q,N)[2])[2]
-    # BandedMatrix not implemeted for boundary operator
+    # BandedMatrix not implemented for boundary operator
     @test_broken BandedMatrix(A)[1] ≈ (BandedMatrix(L)*BandedMatrix(Q,N)[1], BandedMatrix(L)*BandedMatrix(Q,N)[2])[1]
     @test_broken BandedMatrix(A)[2] ≈ (BandedMatrix(L)*BandedMatrix(Q,N)[1], BandedMatrix(L)*BandedMatrix(Q,N)[2])[2]
 
     # Test that concretization works with multiplication
     u = rand(N)
-    @test_broken Array(A)[1]*u + Array(A)[2] ≈ L*(Q*u) ≈ A*u
-    @test_broken sparse(A)[1]*u + sparse(A)[2] ≈ L*(Q*u) ≈ A*u
+    @test Array(A)[1]*u + Array(A)[2] ≈ L*(Q*u) ≈ A*u
+    @test sparse(A)[1]*u + sparse(A)[2] ≈ L*(Q*u) ≈ A*u
 end
 
 @testset "Test Constructor, Multiplication, and Concretization (Non-uniform grid)" begin
@@ -218,7 +218,7 @@ end
     @test A == L * Q
     @test A*u ≈ L*(Q*u)
     @test A2 == L2 * Q
-    @test_broken A2*u2 ≈ L2*(Q*u2) # conversion error of StaticArrays to a Float64 in convolution
+    @test A2*u2 ≈ L2*(Q*u2)
     @test A4 == L4 * Q
     @test A4*u4 ≈ L4*(Q*u4)
 
@@ -226,10 +226,10 @@ end
     c = 2.1
     cA = c * A
     cL = c * L
-    @test c * A == (c * L) * Q == c * (L * Q) # conversion error of StaticArrays to a Float64 in convolution
+    @test c * A == (c * L) * Q == c * (L * Q)
     @test c * A * u ≈ (c * L) * (Q * u) ≈ c * (L * Q) * u
     @test c * A2 == (c * L2) * Q == c * (L2 * Q)
-    @test_broken c * A2 * u2 ≈ (c * L2) * (Q * u2) ≈ c * (L2 * Q) * u2 # conversion error of StaticArrays to a Float64 in convolution
+    @test c * A2 * u2 ≈ (c * L2) * (Q * u2) ≈ c * (L2 * Q) * u2
     @test c * A4 == (c * L4) * Q == c * (L4 * Q)
     @test c * A4 * u4 ≈ (c * L4) * (Q * u4) ≈ c * (L4 * Q) * u4
 
@@ -239,8 +239,8 @@ end
     B4 = c * A4
     @test (A + B) * u == (A + c * A) * u == (B + A) * u == (c * A + A) * u
     @test (A + B) * u == A * u + B * u
-    @test_broken (A2 + B2) * u2 == (A2 + c * A2) * u2 == (B2 + A2) * u2 == (c * A2 + A2) * u2 # conversion error of StaticArrays to a Float64 in convolution
-    @test_broken (A2 + B2) * u2 == A2 * u2 + B2 * u2 # conversion error of StaticArrays to a Float64 in convolution
+    @test (A2 + B2) * u2 == (A2 + c * A2) * u2 == (B2 + A2) * u2 == (c * A2 + A2) * u2
+    @test (A2 + B2) * u2 == A2 * u2 + B2 * u2
     @test (A4 + B4) * u4 == (A4 + c * A4) * u4 == (B4 + A4) * u4 == (c * A4 + A4) * u4
     @test (A4 + B4) * u4 == A4 * u4 + B4 * u4
 
@@ -249,7 +249,7 @@ end
     LLQ2 = (L2 + L2) * Q
     LLQ4 = (L4 + L4) * Q
     @test LLQ * u == A * u + A * u == (A + A) * u
-    @test_broken LLQ2 * u2 == A2 * u2 + A2 * u2 == (A2 + A2) * u2 # this comparison fails, even though the operators seem alike
+    @test LLQ2 * u2 == A2 * u2 + A2 * u2 == (A2 + A2) * u2 # this comparison fails, even though the operators seem alike
     @test LLQ4 * u4 == A4 * u4 + A4 * u4 == (A4 + A4) * u4
 
     # Test for consistency of c*GhostDerivativeOperator*u when c is a vector
@@ -272,7 +272,7 @@ end
 
     # check A + B, where A and B are GhostDerivativeOperators
     B = c * A
-    @test_broken (A + B) == A + c * A == B + A == c * A + A
+    # @test (A + B) == A + c * A == B + A == c * A + A # uncomment if implement equality of combinations of linear operators
     @test (A + B) * u == (A + c * A) * u == (B + A) * u == (c * A + A) * u
     @test (A + B) * u == A * u + B * u
 
@@ -315,8 +315,8 @@ end
 
     # Test that concretization works with multiplication, CenteredDifference
     u = rand(N)
-    @test_broken Array(A2)[1]*u + Array(A2)[2] ≈ L2*(Q*u) ≈ A2*u
-    @test_broken sparse(A2)[1]*u + sparse(A2)[2] ≈ L2*(Q*u) ≈ A2*u
+    @test Array(A2)[1]*u + Array(A2)[2] ≈ L2*(Q*u) ≈ A2*u
+    @test sparse(A2)[1]*u + sparse(A2)[2] ≈ L2*(Q*u) ≈ A2*u
 end
 
 @testset "Test Left Division L2 (second order)" begin
