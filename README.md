@@ -6,7 +6,7 @@
 [![Coverage Status](https://coveralls.io/repos/JuliaDiffEq/DiffEqOperators.jl/badge.svg?branch=master&service=github)](https://coveralls.io/github/JuliaDiffEq/DiffEqOperators.jl?branch=master)
 [![codecov.io](http://codecov.io/github/shivin9/DiffEqOperators.jl/coverage.svg?branch=master)](http://codecov.io/github/JuliaDiffEq/DiffEqOperators.jl?branch=master)
 
-Construct finite-difference operators to discretize a partial
+Construct high order finite-difference operators to discretize a partial
 differential equation and its boundary conditions by the method of
 lines.  This reduces it to a system of ordinary differential
 equations that can be solved by [`DifferentialEquations.jl`](https://juliadiffeq.org/).
