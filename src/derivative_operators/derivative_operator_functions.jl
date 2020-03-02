@@ -115,7 +115,7 @@ function *(A::DerivativeOperator{T,N},M::AbstractArray{T}) where {T<:Real,N}
 end
 
 function *(c::Number, A::DerivativeOperator{T,N,Wind}) where {T,N,Wind}
-    coefficients = A.coefficients === nothing ? one(T) .* c : c .* A.coefficients
+    coefficients = A.coefficients === nothing ? c : c .* A.coefficients
     DerivativeOperator{T,N,Wind,typeof(A.dx),typeof(A.stencil_coefs),
                        typeof(A.low_boundary_coefs),typeof(coefficients),
                        typeof(A.coeff_func)}(
@@ -129,7 +129,10 @@ function *(c::Number, A::DerivativeOperator{T,N,Wind}) where {T,N,Wind}
 end
 
 function *(c::AbstractVector{<:Number}, A::DerivativeOperator{T,N,Wind}) where {T,N,Wind}
-    coefficients = A.coefficients === nothing ? c .* ones(T, A.len) : c .* A.coefficients
+    if length(c) != A.len
+        throw(DimensionMismatch("length of c ($(length(c))) must match length of A ($A.len)"))
+    end
+    coefficients = A.coefficients === nothing ? c : c .* A.coefficients
     DerivativeOperator{T,N,Wind,typeof(A.dx),typeof(A.stencil_coefs),
                        typeof(A.low_boundary_coefs),typeof(coefficients),
                        typeof(A.coeff_func)}(

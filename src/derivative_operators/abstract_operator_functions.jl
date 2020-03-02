@@ -186,19 +186,6 @@ end
 function DiffEqBase.update_coefficients!(A::AbstractDerivativeOperator,u,p,t)
     if A.coeff_func !== nothing
         A.coeff_func(A.coefficients,u,p,t)
-    else
-        @warn "No coeff_func found. No updating performed."
-    end
-end
-function DiffEqBase.update_coefficients!(A::AbstractDerivativeOperator) where {T<:Number}
-    if A.coeff_func !== nothing
-        if typeof(A.coeff_func) <: Function
-            A.coefficients[:] = A.coeff_func(A.coefficients)
-        else
-            @warn "coeff_func is not a function. No updating performed."
-        end
-    else
-        @warn "No coeff_func found. No updating performed."
     end
 end
 
