@@ -5,7 +5,7 @@ compute_coeffs(coeff_func, current_coeffs)
 calculates the coefficients for the stencil of UpwindDifference operators.
 """
 function compute_coeffs!(coeff_func::Number, current_coeffs::AbstractVector{T}) where {T<:Number}
-    return current_coeffs[:] .+= coeff_func
+    return current_coeffs .+= coeff_func
 end
 
 function compute_coeffs!(coeff_func::AbstractVector{T}, current_coeffs::AbstractVector{T}) where {T<:Number}

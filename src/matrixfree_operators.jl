@@ -1,5 +1,3 @@
-import LinearAlgebra: mul!
-import Base.==
 mutable struct MatrixFreeOperator{F,N,S,O} <: AbstractMatrixFreeOperator{F}
   f::F
   args::N

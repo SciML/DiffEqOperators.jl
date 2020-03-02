@@ -82,9 +82,10 @@ function convolve_BC_right!(x_temp::AbstractVector{T1}, x::AbstractVector{T2}, A
     end
 end
 
-# Against a standard vector, assume already padded and just apply the stencil
-function convolve_interior!(x_temp::AbstractVector{T1}, x::AbstractVector{T2}, A::DerivativeOperator{T3,N,true}; overwrite = true) where {T1, T2, T3, N}
-    T = promote_type(T1,T2,T3)
+################################################################################
+# Uniform grid Upwind convolutions
+################################################################################
+function convolve_interior!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::DerivativeOperator{T,N,true}; overwrite = true) where {T<:Real, N}
     @assert length(x_temp)+2 == length(x)
     stencil = A.stencil_coefs
     coeff   = A.coefficients
@@ -225,8 +226,6 @@ function convolve_BC_right!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::
                 xtempi += cur_coeff*cur_stencil[idx]*x[i-stl+1+idx]
             end
             x_temp[i] = xtempi + !overwrite*x_temp[i]
-
-            # L[i,i-stl+2:i+1] = cur_coeff * A.high_boundary_coefs[2,i-len+bpc]
         else
             xtempi = zero(T)
             cur_stencil = A.high_boundary_coefs[1,i-len+bpc]
@@ -234,8 +233,6 @@ function convolve_BC_right!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::
                 xtempi += cur_coeff*cur_stencil[idx]*x[len-bstl+2+idx]
             end
             x_temp[i] = xtempi + !overwrite*x_temp[i]
-
-            # L[i,len-bstl+3:len+2] = cur_coeff * A.high_boundary_coefs[1,i-len+bpc]
         end
     end
 end
@@ -316,6 +313,10 @@ function convolve_BC_right!(x_temp::AbstractVector{T1}, _x::BoundaryPaddedVector
     end
 end
 
+################################################################################
+# Uniform grid Upwind convolutions
+# Against A BC-padded vector, specialize the computation to explicitly use the left, right, and middle parts
+################################################################################
 ################################################################################
 # Uniform grid Upwind convolutions
 # Against A BC-padded vector, specialize the computation to explicitly use the left, right, and middle parts

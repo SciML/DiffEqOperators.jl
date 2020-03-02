@@ -1,10 +1,14 @@
-struct GhostDerivativeOperator{T<:Real, E<:AbstractDerivativeOperator{T}, F<:AbstractBC{T}}
+struct GhostDerivativeOperator{T<:Real, E<:AbstractDerivativeOperator{T}, F<:AbstractBC{T}} <: AbstractDiffEqLinearOperator{T}
     L :: E
     Q :: F
 end
 
 function *(L::AbstractDerivativeOperator{T}, Q::AbstractBC{T}) where{T}
     return GhostDerivativeOperator{T, typeof(L), typeof(Q)}(L,Q)
+end
+
+function *(L::AbstractDiffEqCompositeOperator{T}, Q::AbstractBC{T}) where{T}
+    return sum(map(op -> op * Q, L.ops))
 end
 
 function LinearAlgebra.mul!(x::AbstractVector, A::GhostDerivativeOperator, u::AbstractVector)
@@ -62,17 +66,26 @@ function \(A::GhostDerivativeOperator{T1}, M::AbstractMatrix{T2}) where {T1,T2}
     return M_temp
 end
 
+# # Interface with other GhostDerivativeOperator and with
+# # AbstractDiffEqCompositeOperator
+
 # update coefficients
 function DiffEqBase.update_coefficients!(A::GhostDerivativeOperator,u,p,t)
     DiffEqBase.update_coefficients!(A.L,u,p,t)
 end
 
+# Implement multiplication for coefficients
+function *(c::Number, A::GhostDerivativeOperator)
+    (c * A.L) * A.Q
+end
+
+function *(c::Vector{<:Number}, A::GhostDerivativeOperator)
+    (c * A.L) * A.Q
+end
+
 function *(coeff_func::Function, A::GhostDerivativeOperator)
     (coeff_func*A.L)*A.Q
 end
-
-
-
 
 # length and sizes
 Base.ndims(A::GhostDerivativeOperator) = 2
@@ -97,3 +110,5 @@ end
 function SparseArrays.sparse(A::GhostDerivativeOperator,N::Int=A.L.len)
     return SparseMatrixCSC(A,N)
 end
+
+@inline ==(A1::GhostDerivativeOperator, A2::GhostDerivativeOperator) = A1.L == A2.L && A1.Q == A2.Q

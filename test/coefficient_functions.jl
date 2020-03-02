@@ -83,24 +83,6 @@ end
     for i = 1:2
         push!(func_mul_op_ans3, [0., sin(1.5), 0.])
     end
-
-    # Check coeff_func * L
-    L1 = CenteredDifference(2, 2, 1., 3)
-    L2 = UpwindDifference(1, 1, 1., 3, 1.)
-    L3 = UpwindDifference(1, 1, 1., 3, [0., 1.5, π])
-    for (fcn, fcn_ans) in zip(vec_fcn, func_mul_op_ans1)
-        tmp = fcn * L1
-        @test tmp.coefficients + ones(3) - ones(3) ≈ fcn_ans
-    end
-    for (fcn, fcn_ans) in zip(vec_fcn, func_mul_op_ans2)
-        tmp = fcn * L2
-        @test tmp.coefficients ≈ fcn_ans
-    end
-    for (fcn, fcn_ans) in zip(vec_fcn, func_mul_op_ans3)
-        tmp = fcn * L3
-        @test tmp.coefficients ≈ fcn_ans
-    end
-
 end
 
 nothing

@@ -327,6 +327,30 @@ end
     @test Array(3.3 * A) ≈ scalar_ans
 end
 
+@testset "Left-multiplying operators with a vector of coefficients" begin
+    A = CenteredDifference(2, 2, 1., 3)
+    B = UpwindDifference(1, 1, 1., 3, 1.)
+    C = UpwindDifference(1, 1, 1., 3, [2., 3., 4.])
+    c = [1., 1., 3.]
+    cA =  c * A
+    cB =  c * B
+    cC =  c * C
+
+    @test cA.coefficients == c
+    @test cB.coefficients == c
+    @test cC.coefficients == [2., 3., 12.]
+
+    x = [1., 2., 3., 4., 5.]
+    @test (A * x) .* c ≈ cA * x
+    @test (B * x) .* c ≈ cB * x
+    @test (C * x) .* c ≈ cC * x
+
+    @test_throws DimensionMismatch ones(10) * A
+    @test_throws DimensionMismatch ones(10) * cA
+    @test_throws DimensionMismatch ones(10) * B
+    @test_throws DimensionMismatch ones(10) * C
+end
+
 # These tests are broken due to the implementation 2.2*LD creating a DerivativeOperator
 # rather than an Array
 #=

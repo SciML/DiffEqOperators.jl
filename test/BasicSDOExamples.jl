@@ -10,23 +10,23 @@ params = @with_kw (
     x = interiornodes(x̄), # i.e., x̄[2:end-1]
     S = 3.0
 )
-p = params();
+p = params()
 
 #----------------------------------
 #Testing For Negative Drifts
 #----------------------------------
 # payoff function
-π(x) = x^2
+pi_profit(x) = x^2
 # SimpleDifferentialOperators setup
-function SDO_negative_drift(π, params)
+function SDO_negative_drift(pi_profit, params)
     bc = (Reflecting(), Reflecting())
     Lₓ = params.μ*L₁₋bc(params.x̄, bc) + params.σ^2 / 2 * L₂bc(params.x̄, bc)
     L_bc = I * params.ρ - Lₓ
-    v = L_bc \ π.(params.x);
+    v = L_bc \ pi_profit.(params.x);
     return (v = v, L_bc = L_bc, Lₓ = Lₓ, L₁₋bc = L₁₋bc(params.x̄, bc), L₂bc = L₂bc(params.x̄, bc))
 end
 # DiffEqOperators Setup
-function DEO_negative_drift(π, params)
+function DEO_negative_drift(pi_profit, params)
     dx = params.x[2] - params.x[1]
     # discretize L = ρ - μ D_x - σ^2 / 2 D_xx
     # subject to reflecting barriers at 0 and 1
@@ -42,30 +42,30 @@ function DEO_negative_drift(π, params)
     L_bc = I * params.ρ - Lₓ
 
     # solve the value function
-    v = L_bc \ π.(params.x);
+    v = L_bc \ pi_profit.(params.x);
     return (v = v, L_bc = L_bc, Lₓ = Lₓ, L₁₋bc = L₁₋bc, L₂bc = Array(L2*Q)[1] )
 end
 @testset "Constant Negative Drifts" begin
-    @test DEO_negative_drift(π, p).v ≈ SDO_negative_drift(π, p).v
-    @test DEO_negative_drift(π, p).L_bc ≈ SDO_negative_drift(π, p).L_bc
-    @test DEO_negative_drift(π, p).Lₓ ≈ SDO_negative_drift(π, p).Lₓ
-    @test DEO_negative_drift(π, p).L₁₋bc ≈ SDO_negative_drift(π, p).L₁₋bc
-    @test DEO_negative_drift(π, p).L₂bc ≈ SDO_negative_drift(π, p).L₂bc
+    @test DEO_negative_drift(pi_profit, p).v ≈ SDO_negative_drift(pi_profit, p).v
+    @test DEO_negative_drift(pi_profit, p).L_bc ≈ SDO_negative_drift(pi_profit, p).L_bc
+    @test DEO_negative_drift(pi_profit, p).Lₓ ≈ SDO_negative_drift(pi_profit, p).Lₓ
+    @test DEO_negative_drift(pi_profit, p).L₁₋bc ≈ SDO_negative_drift(pi_profit, p).L₁₋bc
+    @test DEO_negative_drift(pi_profit, p).L₂bc ≈ SDO_negative_drift(pi_profit, p).L₂bc
 end
 p = params(μ = 0.1);
 #----------------------------------
 #Testing For Positive Drifts
 #----------------------------------
 # SimpleDifferentialOperators setup
-function SDO_positive_drift(π, params)
+function SDO_positive_drift(pi_profit, params)
     bc = (Reflecting(), Reflecting())
     Lₓ = params.μ*L₁₊bc(params.x̄, bc) + params.σ^2 / 2 * L₂bc(params.x̄, bc)
     L_bc = I * params.ρ - Lₓ
-    v = L_bc \ π.(params.x);
+    v = L_bc \ pi_profit.(params.x);
     return (v = v, L_bc = L_bc, Lₓ = Lₓ, L₁₊bc = L₁₊bc(params.x̄, bc), L₂bc = L₂bc(params.x̄, bc))
 end
 # DiffEqOperators Setup
-function DEO_positive_drift(π, params)
+function DEO_positive_drift(pi_profit, params)
     dx = params.x[2] - params.x[1]
     # discretize L = ρ - μ D_x - σ^2 / 2 D_xx
     # subject to reflecting barriers at 0 and 1
@@ -79,16 +79,16 @@ function DEO_positive_drift(π, params)
     L_bc = I * params.ρ - Lₓ
 
     # solve the value function
-    v = L_bc \ π.(params.x);
+    v = L_bc \ pi_profit.(params.x);
     return (v = v, L_bc = L_bc, Lₓ = Lₓ, L₁₊bc = Array(L1*Q)[1], L₂bc = Array(L2*Q)[1] )
 end
 
 @testset "Constant Positive Drifts" begin
-    @test DEO_positive_drift(π, p).v ≈ SDO_positive_drift(π, p).v
-    @test DEO_positive_drift(π, p).L_bc ≈ SDO_positive_drift(π, p).L_bc
-    @test DEO_positive_drift(π, p).Lₓ ≈ SDO_positive_drift(π, p).Lₓ
-    @test DEO_positive_drift(π, p).L₁₊bc ≈ SDO_positive_drift(π, p).L₁₊bc
-    @test DEO_positive_drift(π, p).L₂bc ≈ SDO_positive_drift(π, p).L₂bc
+    @test DEO_positive_drift(pi_profit, p).v ≈ SDO_positive_drift(pi_profit, p).v
+    @test DEO_positive_drift(pi_profit, p).L_bc ≈ SDO_positive_drift(pi_profit, p).L_bc
+    @test DEO_positive_drift(pi_profit, p).Lₓ ≈ SDO_positive_drift(pi_profit, p).Lₓ
+    @test DEO_positive_drift(pi_profit, p).L₁₊bc ≈ SDO_positive_drift(pi_profit, p).L₁₊bc
+    @test DEO_positive_drift(pi_profit, p).L₂bc ≈ SDO_positive_drift(pi_profit, p).L₂bc
 end
 
 
@@ -97,16 +97,16 @@ end
 #----------------------------------
 μ(x) = -x
 # SimpleDifferentialOperators setup
-function SDO_state_dependent_drift(π, μ, params)
+function SDO_state_dependent_drift(pi_profit, μ, params)
     bc = (Reflecting(), Reflecting())
     L₁ = Diagonal(min.(μ.(params.x), 0.0)) * L₁₋bc(params.x̄, bc) + Diagonal(max.(μ.(params.x), 0.0)) * L₁₊bc(params.x̄, bc)
     Lₓ = L₁ - params.σ^2 / 2 * L₂bc(params.x̄, bc)
     L_bc = I * params.ρ - Lₓ
-    v = L_bc \ π.(params.x)
+    v = L_bc \ pi_profit.(params.x)
     return (v = v, L_bc = L_bc,  Lₓ = Lₓ, L₁ = L₁, L₂bc = L₂bc(params.x̄, bc))
 end
 # DiffEqOperators Setup
-function DEO_state_dependent_drift(π, μ, params)
+function DEO_state_dependent_drift(pi_profit, μ, params)
     dx = params.x[2] - params.x[1]
     # discretize L = ρ - μ D_x - σ^2 / 2 D_xx
     # subject to reflecting barriers at 0 and 1
@@ -122,16 +122,16 @@ function DEO_state_dependent_drift(π, μ, params)
     L_bc = I * params.ρ - Lₓ
 
     # solve the value function
-    v = L_bc \ π.(params.x);
+    v = L_bc \ pi_profit.(params.x);
     return (v = v, L_bc = L_bc, Lₓ = Lₓ, L₁ = L₁, L₂bc = Array(L2*Q)[1] )
 end
 
 @testset "State Dependent Drifts" begin
-    @test DEO_state_dependent_drift(π, μ, p).v ≈ SDO_state_dependent_drift(π, μ, p).v
-    @test DEO_state_dependent_drift(π, μ, p).L_bc ≈ SDO_state_dependent_drift(π, μ, p).L_bc
-    @test DEO_state_dependent_drift(π, μ, p).Lₓ ≈ SDO_state_dependent_drift(π, μ, p).Lₓ
-    @test DEO_state_dependent_drift(π, μ, p).L₁ ≈ SDO_state_dependent_drift(π, μ, p).L₁
-    @test DEO_state_dependent_drift(π, μ, p).L₂bc ≈ SDO_state_dependent_drift(π, μ, p).L₂bc
+    @test DEO_state_dependent_drift(pi_profit, μ, p).v ≈ SDO_state_dependent_drift(pi_profit, μ, p).v
+    @test DEO_state_dependent_drift(pi_profit, μ, p).L_bc ≈ SDO_state_dependent_drift(pi_profit, μ, p).L_bc
+    @test DEO_state_dependent_drift(pi_profit, μ, p).Lₓ ≈ SDO_state_dependent_drift(pi_profit, μ, p).Lₓ
+    @test DEO_state_dependent_drift(pi_profit, μ, p).L₁ ≈ SDO_state_dependent_drift(pi_profit, μ, p).L₁
+    @test DEO_state_dependent_drift(pi_profit, μ, p).L₂bc ≈ SDO_state_dependent_drift(pi_profit, μ, p).L₂bc
 end
 
 
@@ -142,26 +142,26 @@ end
 
 
 # payoff function
-π(x) = x^2
+pi_profit(x) = x^2
 # SimpleDifferentialOperators setup
-function SDO_absorbing_bc(π, params)
+function SDO_absorbing_bc(pi_profit, params)
     bc = (NonhomogeneousAbsorbing(params.S), Reflecting())
     Lₓbc = params.μ*L₁₋bc(params.x̄, bc) + params.σ^2 / 2 * L₂bc(params.x̄ , bc)
     L_bc = I * params.ρ - Lₓbc
 
     # construct the RHS with affine boundary
-    π_star = π.(params.x) + L₀affine(params.x̄, π.(params.x), bc)
+    pi_profit_star = pi_profit.(params.x) + L₀affine(params.x̄, pi_profit.(params.x), bc)
 
     # solve the value function
-    v = L_bc \ π_star
+    v = L_bc \ pi_profit_star
 
     return (v = v, L_bc = L_bc, Lₓbc = Lₓbc, L₁₋bc = L₁₋bc(params.x̄, bc), L₂bc = L₂bc(params.x̄, bc),
-        π_star = π_star, π = π.(params.x))
+        pi_profit_star = pi_profit_star, pi_profit = pi_profit.(params.x))
 end
 
 
 # DiffEqOperators Setup
-function DEO_absorbing_bc(π, params)
+function DEO_absorbing_bc(pi_profit, params)
     dx = params.x[2] - params.x[1]
 
     L1 = UpwindDifference(1,1,dx,params.M,params.μ)
@@ -178,21 +178,21 @@ function DEO_absorbing_bc(π, params)
     L_bc = I * params.ρ - Lₓbc
 
     # solve the value function
-    v = L_bc \ π.(params.x)
+    v = L_bc \ pi_profit.(params.x)
     return (v = v, L_bc = L_bc, Lₓbc = Lₓbc, L₁₋bc = Array(L1*Q)[1] ./ params.μ, L₂bc = Array(L2*Q)[1],
-        π_star = π.(params.x), π = π.(params.x))
+        pi_profit_star = pi_profit.(params.x), pi_profit = pi_profit.(params.x))
 end
 
 p = params(x̄ = range(0.0, 1.0, length = (p.M+2)))
 
 @testset "Absorbing BC" begin
-    @test DEO_absorbing_bc(π, p).v ≈ SDO_absorbing_bc(π, p).v
-    @test DEO_absorbing_bc(π, p).L_bc ≈ SDO_absorbing_bc(π, p).L_bc
-    @test DEO_absorbing_bc(π, p).Lₓbc ≈ SDO_absorbing_bc(π, p).Lₓbc
-    @test DEO_absorbing_bc(π, p).L₁₋bc ≈ SDO_absorbing_bc(π, p).L₁₋bc
-    @test DEO_absorbing_bc(π, p).L₂bc ≈ SDO_absorbing_bc(π, p).L₂bc
-    @test DEO_absorbing_bc(π, p).π_star ≈ SDO_absorbing_bc(π, p).π_star
-    @test DEO_absorbing_bc(π, p).π ≈ SDO_absorbing_bc(π, p).π
+    @test DEO_absorbing_bc(pi_profit, p).v ≈ SDO_absorbing_bc(pi_profit, p).v
+    @test DEO_absorbing_bc(pi_profit, p).L_bc ≈ SDO_absorbing_bc(pi_profit, p).L_bc
+    @test DEO_absorbing_bc(pi_profit, p).Lₓbc ≈ SDO_absorbing_bc(pi_profit, p).Lₓbc
+    @test DEO_absorbing_bc(pi_profit, p).L₁₋bc ≈ SDO_absorbing_bc(pi_profit, p).L₁₋bc
+    @test DEO_absorbing_bc(pi_profit, p).L₂bc ≈ SDO_absorbing_bc(pi_profit, p).L₂bc
+    @test DEO_absorbing_bc(pi_profit, p).pi_profit_star ≈ SDO_absorbing_bc(pi_profit, p).pi_profit_star
+    @test DEO_absorbing_bc(pi_profit, p).pi_profit ≈ SDO_absorbing_bc(pi_profit, p).pi_profit
 end
 
 
