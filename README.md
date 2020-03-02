@@ -21,10 +21,6 @@ unnecessary allocations.
 Any operator can be concretised as an `Array`, a `BandedMatrix` or
 a sparse matrix.
 
-**This package is still experimental and may not work for all
-documented cases.  The docstrings might be more current than this
-README.**
-
 ## The simplest case
 
 As shown in the figure, the operators act on a set of samples
