@@ -115,7 +115,7 @@ function *(A::DerivativeOperator{T,N},M::AbstractArray{T}) where {T<:Real,N}
 end
 
 function *(c::Number, A::DerivativeOperator{T,N,Wind}) where {T,N,Wind}
-    coefficients = A.coefficients === nothing ? c : c .* A.coefficients
+    coefficients = A.coefficients === nothing ? oneunit(T) .* c : c .* A.coefficients
     DerivativeOperator{T,N,Wind,typeof(A.dx),typeof(A.stencil_coefs),
                        typeof(A.low_boundary_coefs),typeof(coefficients),
                        typeof(A.coeff_func)}(
