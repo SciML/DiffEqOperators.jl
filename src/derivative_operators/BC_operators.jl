@@ -137,7 +137,7 @@ end
 
 #implement Neumann and Dirichlet as special cases of RobinBC
 NeumannBC(α::NTuple{2,T}, dx::Union{AbstractVector{T}, T}, order = 1) where T = RobinBC((zero(T), one(T), α[1]), (zero(T), one(T), α[2]), dx, order)
-DirichletBC(αl::T, αr::T) where T = RobinBC((one(T), zero(T), αl), (one(T), zero(T), αr), 1.0, 2.0 )
+DirichletBC(αl::T, αr::T) where T = RobinBC((one(T), zero(T), αl), (one(T), zero(T), αr), one(T), 2one(T) )
 #specialized constructors for Neumann0 and Dirichlet0
 Dirichlet0BC(T::Type) = DirichletBC(zero(T), zero(T))
 Neumann0BC(dx::Union{AbstractVector{T}, T}, order = 1) where T = NeumannBC((zero(T), zero(T)), dx, order)
