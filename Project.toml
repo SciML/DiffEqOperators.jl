@@ -17,7 +17,7 @@ StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 SuiteSparse = "4607b0f0-06f3-5cda-b6b1-a6196a1729e9"
 
 [compat]
-BandedMatrices = "0.12, 0.13, 0.14"
+BandedMatrices = "0.12, 0.13, 0.14, 0.15"
 BlockBandedMatrices = "0.6, 0.7"
 DiffEqBase = "6.4.1"
 ForwardDiff = "0.10"
