@@ -1,33 +1,41 @@
 name = "DiffEqOperators"
 uuid = "9fdde737-9c7f-55bf-ade8-46b3f136cc48"
 authors = ["Chris Rackauckas <accounts@chrisrackauckas.com>"]
-version = "4.1.0"
+version = "4.10.0"
 
 [deps]
 BandedMatrices = "aae01518-5342-5314-be14-df237901396f"
 BlockBandedMatrices = "ffab5731-97b5-5995-9138-79e8c1846df0"
 DiffEqBase = "2b5f629d-d688-5b77-993f-72d75c75574e"
 ForwardDiff = "f6369f11-7733-5829-9624-2563aa707210"
-LazyArrays =  "5078a376-72f3-5289-bfd5-ec5146d43c02"
+LazyArrays = "5078a376-72f3-5289-bfd5-ec5146d43c02"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
-NNlib = "872c559c-99b0-510c-b3b7-b6c96a88d5cd"
 ModelingToolkit = "961ee093-0014-501f-94e3-6117800e7a78"
+NNlib = "872c559c-99b0-510c-b3b7-b6c96a88d5cd"
 SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 SuiteSparse = "4607b0f0-06f3-5cda-b6b1-a6196a1729e9"
 
 [compat]
-DiffEqBase = "6"
-ModelingToolkit = "0.8.0"
+BandedMatrices = "0.12, 0.13, 0.14, 0.15"
+BlockBandedMatrices = "0.6, 0.7, 0.8"
+DiffEqBase = "6.4.1"
+ForwardDiff = "0.10"
+LazyArrays = "0.14, 0.15, 0.16"
+ModelingToolkit = "0.10.0, 1.0, 2.0, 3.0"
+NNlib = "0.6"
+StaticArrays = "0.10, 0.11, 0.12"
 julia = "1"
 
 [extras]
 FillArrays = "1a297f60-69ca-5386-bcde-b61e274b549b"
 OrdinaryDiffEq = "1dea7af3-3e70-54e6-95c3-0bf5283fa5ed"
+Parameters = "d96e819e-fc66-5662-9728-84c9c7592b0a"
 Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 SafeTestsets = "1bc83da4-3b8d-516f-aca4-4fe02f6d838f"
+SimpleDifferentialOperators = "7ccca996-40d6-5c2f-be7f-4eb2934af9c4"
 SpecialFunctions = "276daf66-3868-5448-9aa4-cd146d93841b"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
-test = ["FillArrays", "OrdinaryDiffEq", "Random", "SafeTestsets", "SpecialFunctions", "Test"]
+test = ["FillArrays", "OrdinaryDiffEq", "Parameters", "Random", "SafeTestsets", "SimpleDifferentialOperators", "SpecialFunctions", "Test"]

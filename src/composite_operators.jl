@@ -9,7 +9,7 @@ function update_coefficients!(L::AbstractDiffEqCompositeOperator,u,p,t)
   end
   L
 end
-is_constant(L::AbstractDiffEqCompositeOperator) = all(is_constant, getops(L))
+isconstant(L::AbstractDiffEqCompositeOperator) = all(isconstant, getops(L))
 
 # Scaled operator (α * A)
 struct DiffEqScaledOperator{T,F,OpType<:AbstractDiffEqLinearOperator{T}} <: AbstractDiffEqCompositeOperator{T}
@@ -25,7 +25,7 @@ convert(::Type{AbstractMatrix}, L::DiffEqScaledOperator) = L.coeff * convert(Abs
 size(L::DiffEqScaledOperator, args...) = size(L.op, args...)
 opnorm(L::DiffEqScaledOperator, p::Real=2) = abs(L.coeff) * opnorm(L.op, p)
 getindex(L::DiffEqScaledOperator, i::Int) = L.coeff * L.op[i]
-getindex(L::DiffEqScaledOperator, I::Vararg{Int, N}) where {N} = 
+getindex(L::DiffEqScaledOperator, I::Vararg{Int, N}) where {N} =
   L.coeff * L.op[I...]
 *(L::DiffEqScaledOperator, x::AbstractVecOrMat) = L.coeff * (L.op * x)
 *(x::AbstractVecOrMat, L::DiffEqScaledOperator) = (L.op * x) * L.coeff
@@ -38,9 +38,9 @@ mul!(Y::AbstractVecOrMat, L::DiffEqScaledOperator, B::AbstractVecOrMat) =
 ldiv!(Y::AbstractVecOrMat, L::DiffEqScaledOperator, B::AbstractVecOrMat) =
   lmul!(1/L.coeff, ldiv!(Y, L.op, B))
 factorize(L::DiffEqScaledOperator) = L.coeff * factorize(L.op)
-for fact in (:lu, :lu!, :qr, :qr!, :cholesky, :cholesky!, :ldlt, :ldlt!, 
+for fact in (:lu, :lu!, :qr, :qr!, :cholesky, :cholesky!, :ldlt, :ldlt!,
   :bunchkaufman, :bunchkaufman!, :lq, :lq!, :svd, :svd!)
-  @eval LinearAlgebra.$fact(L::DiffEqScaledOperator, args...) = 
+  @eval LinearAlgebra.$fact(L::DiffEqScaledOperator, args...) =
     L.coeff * fact(L.op, args...)
 end
 
@@ -140,8 +140,8 @@ function ldiv!(y::AbstractVector, L::DiffEqOperatorComposition, b::AbstractVecto
   ldiv!(y, L.ops[1], L.caches[1])
 end
 factorize(L::DiffEqOperatorComposition) = prod(factorize, reverse(L.ops))
-for fact in (:lu, :lu!, :qr, :qr!, :cholesky, :cholesky!, :ldlt, :ldlt!, 
+for fact in (:lu, :lu!, :qr, :qr!, :cholesky, :cholesky!, :ldlt, :ldlt!,
   :bunchkaufman, :bunchkaufman!, :lq, :lq!, :svd, :svd!)
-  @eval LinearAlgebra.$fact(L::DiffEqOperatorComposition, args...) = 
+  @eval LinearAlgebra.$fact(L::DiffEqOperatorComposition, args...) =
     prod(op -> $fact(op, args...), reverse(L.ops))
 end

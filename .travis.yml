@@ -3,8 +3,13 @@ language: julia
 os:
   - linux
 #  - osx
+branches:
+  only:
+    - master
 julia:
-  - 1.0
+  - 1
+env:
+  - GROUP=Interface
 allow_failures:
     - julia: nightly
 notifications:

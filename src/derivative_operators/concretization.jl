@@ -1,9 +1,16 @@
+#
+# Casting to normal matrix types.
+#
+# This implements the casts described in README.md, and the cast from
+# BoundaryPaddedArray to Array.
+#
+
 function Base.copyto!(L::AbstractMatrix{T}, A::DerivativeOperator{T}, N::Int) where T
     bl = A.boundary_point_count
     stencil_length = A.stencil_length
-    stencil_pivot = use_winding(A) ? (1 + stencil_length%2) : div(stencil_length,2)    
+    stencil_pivot = use_winding(A) ? (1 + stencil_length%2) : div(stencil_length,2)
     bstl = A.boundary_stencil_length
-    
+
     coeff   = A.coefficients
     get_coeff = if coeff isa AbstractVector
         i -> coeff[i]
@@ -21,7 +28,7 @@ function Base.copyto!(L::AbstractMatrix{T}, A::DerivativeOperator{T}, N::Int) wh
 
     for i in bl+1:N-bl
         cur_coeff   = get_coeff(i)
-        stencil     = eltype(A.stencil_coefs) <: AbstractVector ? A.stencil_coefs[i] : A.stencil_coefs
+        stencil     = eltype(A.stencil_coefs) <: AbstractVector ? A.stencil_coefs[i-bl] : A.stencil_coefs
         cur_stencil = use_winding(A) && cur_coeff < 0 ? reverse(stencil) : stencil
         L[i,i+1-stencil_pivot:i-stencil_pivot+stencil_length] = cur_coeff * cur_stencil
     end
@@ -31,7 +38,7 @@ function Base.copyto!(L::AbstractMatrix{T}, A::DerivativeOperator{T}, N::Int) wh
         cur_stencil = use_winding(A) && cur_coeff < 0 ? reverse(A.high_boundary_coefs[i-N+bl]) : A.high_boundary_coefs[i-N+bl]
         L[i,N-bstl+3:N+2] = cur_coeff * cur_stencil
     end
-    
+
     L
 end
 
@@ -160,7 +167,7 @@ end
 """
 Returns a tuple, the first element of which is an array of the shape of the boundary,
 filled with the linear operator parts of the respective Atomic BCs.
-the second element is a simularly sized array of the affine parts.
+the second element is a similarly sized array of the affine parts.
 """
 function LinearAlgebra.Array(Q::MultiDimDirectionalBC{T, B, D, N, K}, M) where {T, B, D,N,K}
     bc_tuples = Array.(Q.BCs, fill(M, size(Q.BCs)))
@@ -175,7 +182,7 @@ end
 """
 Returns a tuple, the first element of which is a sparse array of the shape of the boundary,
 filled with the linear operator parts of the respective Atomic BCs.
-the second element is a simularly sized array of the affine parts.
+the second element is a similarly sized array of the affine parts.
 """
 function SparseArrays.SparseMatrixCSC(Q::MultiDimDirectionalBC{T, B, D, N, K}, M) where {T, B, D,N,K}
     bc_tuples = sparse.(Q.BCs, fill(M, size(Q.BCs)))
@@ -213,25 +220,16 @@ BandedMatrices.BandedMatrix(Q::ComposedMultiDimBC, Ns) = Tuple(BandedMatrix.(Q.B
 function LinearAlgebra.Array(A::DerivativeOperator{T,N}, Mshape) where {T,N}
     # Case where A is not differentiating along the first dimension
     if N != 1
-        n = 1
-        for M_i in Mshape[1:N-1]
-            n *= M_i
-        end
+        n = prod(Mshape[1:N-1])
         B = Kron(Array(A), Eye(n))
         if N != length(Mshape)
-            n = 1
-            for M_i in Mshape[N+1:end]
-                n *= M_i
-            end
+            n = prod(Mshape[N+1:end])
             B = Kron(Eye(n), B)
         end
 
-    # Case where A is differentiating along hte first dimension
+    # Case where A is differentiating along the first dimension
     else
-        n = 1
-        for M_i in Mshape[2:end]
-            n *= M_i
-        end
+        n = prod(Mshape[2:end])
         B = Kron(Eye(n), Array(A))
     end
     return Array(B)
@@ -240,25 +238,16 @@ end
 function SparseArrays.SparseMatrixCSC(A::DerivativeOperator{T,N}, Mshape) where {T,N}
     # Case where A is not differentiating along the first dimension
     if N != 1
-        n = 1
-        for M_i in Mshape[1:N-1]
-            n *= M_i
-        end
+        n = prod(Mshape[1:N-1])
         B = Kron(sparse(A), sparse(I,n,n))
         if N != length(Mshape)
-            n = 1
-            for M_i in Mshape[N+1:end]
-                n *= M_i
-            end
+            n = prod(Mshape[N+1:end])
             B = Kron(sparse(I,n,n), B)
         end
 
-    # Case where A is differentiating along hte first dimension
+    # Case where A is differentiating along the first dimension
     else
-        n = 1
-        for M_i in Mshape[2:end]
-            n *= M_i
-        end
+        n = prod(Mshape[2:end])
         B = Kron(sparse(I,n,n), sparse(A))
     end
     return sparse(B)
@@ -271,25 +260,16 @@ end
 function BandedMatrices.BandedMatrix(A::DerivativeOperator{T,N}, Mshape) where {T,N}
     # Case where A is not differentiating along the first dimension
     if N != 1
-        n = 1
-        for M_i in Mshape[1:N-1]
-            n *= M_i
-        end
+        n = prod(Mshape[1:N-1])
         B = Kron(BandedMatrix(A), Eye(n))
         if N != length(Mshape)
-            n = 1
-            for M_i in Mshape[N+1:end]
-                n *= M_i
-            end
+            n = prod(Mshape[N+1:end])
             B = Kron(Eye(n), B)
         end
 
-    # Case where A is differentiating along hte first dimension
+    # Case where A is differentiating along the first dimension
     else
-        n = 1
-        for M_i in Mshape[2:end]
-            n *= M_i
-        end
+        n = prod(Mshape[2:end])
         B = Kron(BandedMatrix(Eye(n)), BandedMatrix(A))
     end
     return BandedMatrix(B)
@@ -298,26 +278,289 @@ end
 function BlockBandedMatrices.BandedBlockBandedMatrix(A::DerivativeOperator{T,N}, Mshape) where {T,N}
     # Case where A is not differentiating along the first dimension
     if N != 1
-        n = 1
-        for M_i in Mshape[1:N-1]
-            n *= M_i
-        end
+        n = prod(Mshape[1:N-1])
         B = Kron(BandedMatrix(A), Eye(n))
         if N != length(Mshape)
-            n = 1
-            for M_i in Mshape[N+1:end]
-                n *= M_i
-            end
+            n = prod(Mshape[N+1:end])
             B = Kron(Eye(n), B)
         end
 
-    # Case where A is differentiating along hte first dimension
+    # Case where A is differentiating along the first dimension
     else
-        n = 1
-        for M_i in Mshape[2:end]
-            n *= M_i
-        end
+        n = prod(Mshape[2:end])
         B = Kron(BandedMatrix(Eye(n)), BandedMatrix(A))
     end
     return BandedBlockBandedMatrix(B)
+end
+
+################################################################################
+# Upwind Operator Concretization
+################################################################################
+
+# Array Concretizations
+# Uniform grid case
+function LinearAlgebra.Array(A::DerivativeOperator{T,N,true}, len::Int=A.len) where {T,N}
+    L = zeros(T, len, len+2)
+    bpc = A.boundary_point_count
+    stl = A.stencil_length
+    bstl = A.boundary_stencil_length
+    coeff   = A.coefficients
+
+    # downwind stencils at low boundary
+    downwind_stencils = A.low_boundary_coefs
+    # upwind stencils at upper boundary
+    upwind_stencils = A.high_boundary_coefs
+    # interior stencils
+    stencils = A.stencil_coefs
+
+    for i in 1:bpc
+        cur_coeff   = coeff[i]
+        if cur_coeff >= 0
+            cur_stencil = stencils
+            L[i,i+1:i+stl] = cur_coeff*cur_stencil
+        else
+            cur_stencil = downwind_stencils[i]
+            L[i,1:bstl] = cur_coeff * cur_stencil
+        end
+    end
+
+    for i in bpc+1:len-bpc
+        cur_coeff   = coeff[i]
+        cur_stencil = stencils
+        cur_stencil = cur_coeff >= 0 ? cur_stencil : ((-1)^A.derivative_order)*reverse(cur_stencil)
+        if cur_coeff >= 0
+            L[i,i+1:i+stl] = cur_coeff * cur_stencil
+        else
+            L[i,i-stl+2:i+1] = cur_coeff * cur_stencil
+        end
+    end
+
+    for i in len-bpc+1:len
+        cur_coeff   = coeff[i]
+        if cur_coeff < 0
+            cur_stencil = stencils
+            cur_stencil = ((-1)^A.derivative_order)*reverse(cur_stencil)
+            L[i,i-stl+2:i+1] = cur_coeff * cur_stencil
+        else
+            cur_stencil = upwind_stencils[i-len+bpc]
+            L[i,len-bstl+3:len+2] = cur_coeff * cur_stencil
+        end
+    end
+    return L
+end
+
+# Non-uniform grid case
+function LinearAlgebra.Array(A::DerivativeOperator{T,N,true,M}, len::Int=A.len) where {T,N,M<:AbstractArray{T}}
+    L = zeros(T, len, len+2)
+    bpc = A.boundary_point_count
+    stl = A.stencil_length
+    bstl = A.boundary_stencil_length
+    coeff   = A.coefficients
+
+    for i in 1:bpc
+        cur_coeff   = coeff[i]
+        if cur_coeff >= 0
+            L[i,i+1:i+stl] = cur_coeff * A.low_boundary_coefs[1,i]
+        else
+            L[i,1:bstl] = cur_coeff * A.low_boundary_coefs[2,i]
+        end
+    end
+
+    for i in bpc+1:len-bpc
+        cur_coeff   = coeff[i]
+        if cur_coeff >= 0
+            L[i,i+1:i+stl] = cur_coeff * A.stencil_coefs[1,i-bpc]
+        else
+            L[i,i-stl+2:i+1] = cur_coeff * A.stencil_coefs[2,i-bpc]
+        end
+    end
+
+    for i in len-bpc+1:len
+        cur_coeff   = coeff[i]
+        if cur_coeff < 0
+            L[i,i-stl+2:i+1] = cur_coeff * A.high_boundary_coefs[2,i-len+bpc]
+        else
+            L[i,len-bstl+3:len+2] = cur_coeff * A.high_boundary_coefs[1,i-len+bpc]
+        end
+    end
+    return L
+end
+
+# Sparse Concretizations
+# Uniform grid case
+function SparseArrays.SparseMatrixCSC(A::DerivativeOperator{T,N,true}, len::Int=A.len) where {T,N}
+    L = spzeros(T, len, len+2)
+    bpc = A.boundary_point_count
+    stl = A.stencil_length
+    bstl = A.boundary_stencil_length
+    coeff   = A.coefficients
+
+    # downwind stencils at low boundary
+    downwind_stencils = A.low_boundary_coefs
+    # upwind stencils at upper boundary
+    upwind_stencils = A.high_boundary_coefs
+    # interior stencils
+    stencils = A.stencil_coefs
+
+    for i in 1:bpc
+        cur_coeff   = coeff[i]
+        if cur_coeff >= 0
+            cur_stencil = stencils
+            L[i,i+1:i+stl] = cur_coeff*cur_stencil
+        else
+            cur_stencil = downwind_stencils[i]
+            L[i,1:bstl] = cur_coeff * cur_stencil
+        end
+    end
+
+    for i in bpc+1:len-bpc
+        cur_coeff   = coeff[i]
+        cur_stencil = stencils
+        cur_stencil = cur_coeff >= 0 ? cur_stencil : ((-1)^A.derivative_order)*reverse(cur_stencil)
+        if cur_coeff >= 0
+            L[i,i+1:i+stl] = cur_coeff * cur_stencil
+        else
+            L[i,i-stl+2:i+1] = cur_coeff * cur_stencil
+        end
+    end
+
+    for i in len-bpc+1:len
+        cur_coeff   = coeff[i]
+        if cur_coeff < 0
+            cur_stencil = stencils
+            cur_stencil = ((-1)^A.derivative_order)*reverse(cur_stencil)
+            L[i,i-stl+2:i+1] = cur_coeff * cur_stencil
+        else
+            cur_stencil = upwind_stencils[i-len+bpc]
+            L[i,len-bstl+3:len+2] = cur_coeff * cur_stencil
+        end
+    end
+    return L
+end
+
+# Non-uniform grid case
+function SparseArrays.SparseMatrixCSC(A::DerivativeOperator{T,N,true,M}, len::Int=A.len) where {T,N,M<:AbstractArray{T}}
+    L = spzeros(T, len, len+2)
+    bpc = A.boundary_point_count
+    stl = A.stencil_length
+    bstl = A.boundary_stencil_length
+    coeff   = A.coefficients
+
+    for i in 1:bpc
+        cur_coeff   = coeff[i]
+        if cur_coeff >= 0
+            L[i,i+1:i+stl] = cur_coeff * A.low_boundary_coefs[1,i]
+        else
+            L[i,1:bstl] = cur_coeff * A.low_boundary_coefs[2,i]
+        end
+    end
+
+    for i in bpc+1:len-bpc
+        cur_coeff   = coeff[i]
+        if cur_coeff >= 0
+            L[i,i+1:i+stl] = cur_coeff * A.stencil_coefs[1,i-bpc]
+        else
+            L[i,i-stl+2:i+1] = cur_coeff * A.stencil_coefs[2,i-bpc]
+        end
+    end
+
+    for i in len-bpc+1:len
+        cur_coeff   = coeff[i]
+        if cur_coeff < 0
+            L[i,i-stl+2:i+1] = cur_coeff * A.high_boundary_coefs[2,i-len+bpc]
+        else
+            L[i,len-bstl+3:len+2] = cur_coeff * A.high_boundary_coefs[1,i-len+bpc]
+        end
+    end
+    return L
+end
+
+# Banded Concretizations
+# Uniform grid case
+function BandedMatrices.BandedMatrix(A::DerivativeOperator{T,N,true}, len::Int=A.len) where {T,N}
+    bpc = A.boundary_point_count
+    stl = A.stencil_length
+    bstl = A.boundary_stencil_length
+    coeff   = A.coefficients
+    L = BandedMatrix{T}(Zeros(len, len+2), (stl-2, stl))
+
+    # downwind stencils at low boundary
+    downwind_stencils = A.low_boundary_coefs
+    # upwind stencils at upper boundary
+    upwind_stencils = A.high_boundary_coefs
+    # interior stencils
+    stencils = A.stencil_coefs
+
+    for i in 1:bpc
+        cur_coeff   = coeff[i]
+        if cur_coeff >= 0
+            cur_stencil = stencils
+            L[i,i+1:i+stl] = cur_coeff*cur_stencil
+        else
+            cur_stencil = downwind_stencils[i]
+            L[i,1:bstl] = cur_coeff * cur_stencil
+        end
+    end
+
+    for i in bpc+1:len-bpc
+        cur_coeff   = coeff[i]
+        cur_stencil = stencils
+        cur_stencil = cur_coeff >= 0 ? cur_stencil : ((-1)^A.derivative_order)*reverse(cur_stencil)
+        if cur_coeff >= 0
+            L[i,i+1:i+stl] = cur_coeff * cur_stencil
+        else
+            L[i,i-stl+2:i+1] = cur_coeff * cur_stencil
+        end
+    end
+
+    for i in len-bpc+1:len
+        cur_coeff   = coeff[i]
+        if cur_coeff < 0
+            cur_stencil = stencils
+            cur_stencil = ((-1)^A.derivative_order)*reverse(cur_stencil)
+            L[i,i-stl+2:i+1] = cur_coeff * cur_stencil
+        else
+            cur_stencil = upwind_stencils[i-len+bpc]
+            L[i,len-bstl+3:len+2] = cur_coeff * cur_stencil
+        end
+    end
+    return L
+end
+
+
+# Non-uniform grid case
+function BandedMatrices.BandedMatrix(A::DerivativeOperator{T,N,true,M}, len::Int=A.len) where {T,N,M<:AbstractArray{T}}
+    bpc = A.boundary_point_count
+    stl = A.stencil_length
+    bstl = A.boundary_stencil_length
+    coeff   = A.coefficients
+    L = BandedMatrix{T}(Zeros(len, len+2), (stl-2, stl))
+
+    for i in 1:bpc
+        cur_coeff   = coeff[i]
+        if cur_coeff >= 0
+            L[i,i+1:i+stl] = cur_coeff * A.low_boundary_coefs[1,i]
+        else
+            L[i,1:bstl] = cur_coeff * A.low_boundary_coefs[2,i]
+        end
+    end
+
+    for i in bpc+1:len-bpc
+        cur_coeff   = coeff[i]
+        if cur_coeff >= 0
+            L[i,i+1:i+stl] = cur_coeff * A.stencil_coefs[1,i-bpc]
+        else
+            L[i,i-stl+2:i+1] = cur_coeff * A.stencil_coefs[2,i-bpc]
+        end
+    end
+
+    for i in len-bpc+1:len
+        cur_coeff   = coeff[i]
+        if cur_coeff < 0
+            L[i,i-stl+2:i+1] = cur_coeff * A.high_boundary_coefs[2,i-len+bpc]
+        else
+            L[i,len-bstl+3:len+2] = cur_coeff * A.high_boundary_coefs[1,i-len+bpc]
+        end
+    end
+    return L
 end

@@ -119,9 +119,11 @@ Base.size(A::AbstractDerivativeOperator,i::Integer) = size(A)[i]
 Base.length(A::AbstractDerivativeOperator) = reduce(*, size(A))
 
 #=
-    For the evenly spaced grid we have a symmetric matrix
+    For the evenly spaced grid we have a symmetric matrix.
+    If it is not evenly spaced (i.e. dx is a vector), then
+    we throw an error (TODO: implement a proper transpose).
 =#
-Base.transpose(A::DerivativeOperator) = A
+Base.transpose(A::DerivativeOperator) = typeof(A.dx)<:Real ? A : error("Transpose for DerivativeOperator with non-uniform grid has yet to be implemented.")
 Base.adjoint(A::DerivativeOperator) = A
 LinearAlgebra.issymmetric(::DerivativeOperator) = true
 
@@ -135,7 +137,7 @@ Base.:/(A::AbstractVecOrMat, B::AbstractDerivativeOperator) = A / convert(Array,
 Base.:/(A::AbstractDerivativeOperator, B::AbstractVecOrMat) = Array(A) / B
 
 #=
-    The Inf opnorm can be calculated easily using the stencil coeffiicents, while other opnorms
+    The Inf opnorm can be calculated easily using the stencil coefficients, while other opnorms
     default to compute from the full matrix form.
 =#
 function LinearAlgebra.opnorm(A::DerivativeOperator, p::Real=2)
@@ -164,7 +166,8 @@ end
 ################################################################################
 
 function *(coeff_func::Function, A::DerivativeOperator{T,N,Wind}) where {T,N,Wind}
-    coefficients = A.coefficients === nothing ? Vector{T}(undef,A.len) : A.coefficients
+    coefficients = A.coefficients === nothing ? Vector{T}(undef, A.len) : A.coefficients
+
     DerivativeOperator{T,N,Wind,typeof(A.dx),typeof(A.stencil_coefs),
                        typeof(A.low_boundary_coefs),typeof(coefficients),
                        typeof(coeff_func)}(

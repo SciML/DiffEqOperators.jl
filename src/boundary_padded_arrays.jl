@@ -1,9 +1,14 @@
+#
 # Boundary Padded Arrays
+#
+# These are returned by boundary condition operators.
+#
+
 abstract type AbstractBoundaryPaddedArray{T, N} <: AbstractArray{T, N} end
 abstract type AbstractDirectionalBoundaryPaddedArray{T, N, D} <: AbstractBoundaryPaddedArray{T, N} end
 abstract type AbstractComposedBoundaryPaddedArray{T, N} <: AbstractBoundaryPaddedArray{T,N} end
 """
-A vector type that extends a vector u with ghost points at either end
+A vector type that extends a vector u with one ghost point at each end.
 """
 struct BoundaryPaddedVector{T,T2 <: AbstractVector{T}} <: AbstractBoundaryPaddedArray{T, 1}
     l::T

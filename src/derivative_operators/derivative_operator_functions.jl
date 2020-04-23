@@ -1,3 +1,19 @@
+#
+# The mul! methods that contract derivative operators with arrays.
+#
+# These methods handle the {N} dimension type parameter.
+#
+# There are four methods.  One is a general method for multidimensional
+# arrays, and the others are short cuts for 1, 2 and 3 dimensions.  The 1 dimensional
+# method for AbstractVector is defined in convolutions.jl, and the
+# others are defined here.
+#
+# At the interior points of an evenly spaced grid, a finite difference
+# operator is a convolution.  Where possible, the heavy lifting is
+# done by the efficient conv!  routine from NNlib.  The routines
+# defined in convolutions.jl cover the cases where that isn't possible.
+#
+
 # Fallback mul! implementation for a single DerivativeOperator operating on an AbstractArray
 function LinearAlgebra.mul!(x_temp::AbstractArray{T}, A::DerivativeOperator{T,N}, M::AbstractArray{T}; overwrite = true) where {T,N}
 
@@ -99,7 +115,7 @@ function *(A::DerivativeOperator{T,N},M::AbstractArray{T}) where {T<:Real,N}
 end
 
 function *(c::Number, A::DerivativeOperator{T,N,Wind}) where {T,N,Wind}
-    coefficients = A.coefficients === nothing ? one(T)*c : c*A.coefficients
+    coefficients = A.coefficients === nothing ? oneunit(T) .* c : c .* A.coefficients
     DerivativeOperator{T,N,Wind,typeof(A.dx),typeof(A.stencil_coefs),
                        typeof(A.low_boundary_coefs),typeof(coefficients),
                        typeof(A.coeff_func)}(
@@ -112,6 +128,22 @@ function *(c::Number, A::DerivativeOperator{T,N,Wind}) where {T,N,Wind}
         A.high_boundary_coefs,coefficients,A.coeff_func)
 end
 
+function *(c::AbstractVector{<:Number}, A::DerivativeOperator{T,N,Wind}) where {T,N,Wind}
+    if length(c) != A.len
+        throw(DimensionMismatch("length of c ($(length(c))) must match length of A ($A.len)"))
+    end
+    coefficients = A.coefficients === nothing ? c : c .* A.coefficients
+    DerivativeOperator{T,N,Wind,typeof(A.dx),typeof(A.stencil_coefs),
+                       typeof(A.low_boundary_coefs),typeof(coefficients),
+                       typeof(A.coeff_func)}(
+        A.derivative_order, A.approximation_order,
+        A.dx, A.len, A.stencil_length,
+        A.stencil_coefs,
+        A.boundary_stencil_length,
+        A.boundary_point_count,
+        A.low_boundary_coefs,
+        A.high_boundary_coefs,coefficients,A.coeff_func)
+end
 
 ###########################################
 

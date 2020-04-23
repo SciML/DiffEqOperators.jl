@@ -1,4 +1,3 @@
-import LinearAlgebra: mul!
 mutable struct MatrixFreeOperator{F,N,S,O} <: AbstractMatrixFreeOperator{F}
   f::F
   args::N
@@ -14,6 +13,7 @@ mutable struct MatrixFreeOperator{F,N,S,O} <: AbstractMatrixFreeOperator{F}
 end
 MatrixFreeOperator(f) = MatrixFreeOperator(f, (nothing,))
 
+# Overloading Base functions
 function Base.size(M::MatrixFreeOperator)
   M.size === nothing && error("M.size is nothing, please define size as a tuple of integers")
   return M.size
@@ -23,6 +23,10 @@ end
   n <= 0 && error("dimension out of range")
   return n <= length(M.size) ? M.size[n] : 1
 end
+@inline ==(M1::MatrixFreeOperator, M2::MatrixFreeOperator) = M1.f == M2.f && M1.args == M2.args && M1.size == M2.size && M1.opnorm == M2.opnorm && M1.ishermitian == M2.ishermitian
+@inline Base.:*(A::MatrixFreeOperator, X::AbstractVecOrMat) = mul!(similar(X), A, X)
+
+# Overloading LinearAlgebra functions
 LinearAlgebra.ishermitian(M::MatrixFreeOperator) = M.ishermitian
 function LinearAlgebra.opnorm(M::MatrixFreeOperator, p::Real)
   M.opnorm === nothing && error("""
@@ -34,16 +38,19 @@ function LinearAlgebra.opnorm(M::MatrixFreeOperator, p::Real)
   return opn isa Number ? opn : M.opnorm(p)
 end
 
+# DiffEqBase
+DiffEqBase.numargs(::MatrixFreeOperator) = 4
+
 # Interface
-is_constant(M::MatrixFreeOperator) = length(M.args) == 1
+isconstant(M::MatrixFreeOperator) = length(M.args) == 1
 function update_coefficients!(M::MatrixFreeOperator, u, p, t)
-  !is_constant(M) && (M.args = (p, t))
+  !isconstant(M) && (M.args = (p, t))
   return M
 end
 
 function (M::MatrixFreeOperator{F,N})(du, u, p, t) where {F,N}
   update_coefficients!(M,u,p,t)
-  if is_constant(M)
+  if isconstant(M)
     M.f(du, u, p)
   else
     M.f(du, u, p, t)
@@ -54,7 +61,7 @@ end
 function (M::MatrixFreeOperator{F,N})(u, p, t) where {F,N}
   update_coefficients!(M,u,p,t)
   du = similar(u)
-  if is_constant(M)
+  if isconstant(M)
     M.f(du, u, p)
   else
     M.f(du, u, p, t)
@@ -63,7 +70,7 @@ function (M::MatrixFreeOperator{F,N})(u, p, t) where {F,N}
 end
 
 @inline function mul!(y::AbstractVector, A::MatrixFreeOperator{F,N}, x::AbstractVector) where {F,N}
-  if is_constant(A)
+  if isconstant(A)
     A.f(y, x, A.args[1])
   else
     A.f(y, x, A.args[1], A.args[2])
@@ -84,6 +91,3 @@ end
   end
   Y
 end
-@inline Base.:*(A::MatrixFreeOperator, X::AbstractVecOrMat) = mul!(similar(X), A, X)
-
-DiffEqBase.numargs(::MatrixFreeOperator) = 4
