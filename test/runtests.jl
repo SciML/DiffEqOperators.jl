@@ -33,7 +33,7 @@ if GROUP == "All" || GROUP == "Interface"
     @time @safetestset "Upwind Operator Interface" begin include("upwind_operators_interface.jl") end
     @time @safetestset "MOLFiniteDifference Interface" begin include("MOLtest.jl") end
     @time @safetestset "Basic SDO Examples" begin include("BasicSDOExamples.jl") end
-    @time @savetestset "3D laplacian Test" begin include("3D_laplacian.jl") end
+    @time @safetestset "3D laplacian Test" begin include("3D_laplacian.jl") end
     # @time @safetestset "Linear Complementarity Problem Examples" begin include("lcp.jl"); include("lcp_split.jl") end
 end
 

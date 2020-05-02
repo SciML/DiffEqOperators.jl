@@ -136,20 +136,6 @@ end
     @test (A1 + B1) * u == (A1 + c * A1) * u == (B1 + A1) * u == (c * A1 + A1) * u
     @test (A1 + B1) * u == A1 * u + B1 * u
 
-<<<<<<< HEAD
-    # Test for consistency of GhostDerivativeOperator*M with L*(Q*M)
-    M = rand(N,10)
-    LQM = zeros(N,10)
-    for i in 1:10
-        mul!(view(LQM,:,i), L, Q*M[:,i])
-    end
-    ghost_LQM = A*M
-    @test ghost_LQM ≈ LQM
-
-<<<<<<< HEAD
-    u = rand(N + 2)
-=======
-=======
     # Test for consistency of GhostDerivativeOperator*M with L*(Q*M)
 
     M = rand(N,10)
@@ -162,9 +148,7 @@ end
     ghost_LQM = Am*M
     @test ghost_LQM ≈ LQM
 
->>>>>>> a4e4012... GhostDerivativeOperator general dimensional methods and combination concretizations
-    u = rand(22)
->>>>>>> ae15d0f... Working full matrix concretization for multi dim bc
+    u = rand(N + 2)
     @test (L + L2) * u ≈ convert(AbstractMatrix,L + L2) * u ≈ (BandedMatrix(L) + BandedMatrix(L2)) * u
 
     # Test concretization
