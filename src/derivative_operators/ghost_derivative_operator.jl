@@ -27,7 +27,8 @@ function \(A::GhostDerivativeOperator, u::AbstractArray) # FIXME should have T1,
     return reshape(x, s)
 end
 
-function \(A::GhostDerivativeOperator{T,E,F}, u::AbstractVector{T}) where {T,E,F}
+function \(A::GhostDerivativeOperator, u::AbstractVector) # FIXME as above, should promote_type(T1,T2)
+    # TODO: is this specialization to u::AbstractVector really any faster?
     @assert length(u) == size(A.L, 1)
     (A_l,A_b) = sparse(A,length(u))
     A_l \ Vector(u .- A_b)
