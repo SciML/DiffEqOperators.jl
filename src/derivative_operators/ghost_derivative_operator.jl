@@ -57,3 +57,6 @@ Base.ndims(A::GhostDerivativeOperator) = 2
 Base.size(A::GhostDerivativeOperator) = (size(A.L, 2), size(A.L, 2))
 Base.size(A::GhostDerivativeOperator,i::Integer) = size(A)[i]
 Base.length(A::GhostDerivativeOperator) = reduce(*, size(A))
+
+@inline ==(A1::GhostDerivativeOperator, A2::GhostDerivativeOperator) = A1.L == A2.L && A1.Q == A2.Q
+
