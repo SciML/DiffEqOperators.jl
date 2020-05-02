@@ -117,7 +117,6 @@ GeneralBC{dim}(αl::AbstractVector{T}, αr::AbstractVector{T}, dx, order, s) whe
 GeneralBC(αl::AbstractVector{T}, αr::AbstractVector{T}, dxyz, order, s) where {T} = Tuple([MultiDimDirectionalBC{T, GeneralBC{T}, dim, length(s), length(s)-1}(fill(GeneralBC(αl, αr, dxyz[dim], order),perpindex(s,dim))) for dim in 1:length(s)])
 
 
-
 """
 Q = compose(BCs...)
 
@@ -159,6 +158,8 @@ getaxis(Q::MultiDimDirectionalBC{T, B, D, N, K}) where {T, B, D, N, K} = D
 getboundarytype(Q::MultiDimDirectionalBC{T, B, D, N, K}) where {T, B, D, N, K} = B
 
 Base.ndims(Q::MultiDimensionalBC{T,N}) where {T,N} = N
+
+Base.:*(BC::AtomicBC, u::AbstractArray) = MultiDimBC{1}(BC, size(u)) * u  
 
 function Base.:*(Q::MultiDimDirectionalBC{T, B, D, N, K}, u::AbstractArray{T, N}) where {T, B, D, N, K}
     @assert perpsize(u, D) == size(Q.BCs) "Size of the BCs array in the MultiDimBC is incorrect, needs to be $(perpsize(u,D)) to extend dimension $D, got $(size(Q.BCs))"
