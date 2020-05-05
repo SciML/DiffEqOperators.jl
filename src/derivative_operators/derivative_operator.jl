@@ -161,13 +161,13 @@ function UpwindDifference{N}(derivative_order::Int,
 
     low_boundary_x         = 0.0:(boundary_stencil_length-1)
     L_boundary_deriv_spots = 1.0:boundary_stencil_length - 2.0
-    _low_boundary_coefs     = SVector{boundary_stencil_length, T}[convert(SVector{boundary_stencil_length, T}, (1/dx^derivative_order) * calculate_weights(derivative_order, oneunit(T)*x0, low_boundary_x)) for x0 in L_boundary_deriv_spots]
-    low_boundary_coefs      = convert(SVector{boundary_point_count},_low_boundary_coefs)
+    _low_boundary_coefs    = SVector{boundary_stencil_length, T}[convert(SVector{boundary_stencil_length, T}, (1/dx^derivative_order) * calculate_weights(derivative_order, oneunit(T)*x0, low_boundary_x)) for x0 in L_boundary_deriv_spots]
+    low_boundary_coefs     = convert(SVector{boundary_point_count},_low_boundary_coefs)
 
-    high_boundary_x         = 0.0:-1.0:-(boundary_stencil_length-1.0)
+    high_boundary_x        = 0.0:-1.0:-(boundary_stencil_length-1.0)
     R_boundary_deriv_spots = -1.0:-1.0:-(boundary_stencil_length-2.0)
-    _high_boundary_coefs     = SVector{boundary_stencil_length, T}[convert(SVector{boundary_stencil_length, T}, ((-1/dx)^derivative_order) * calculate_weights(derivative_order, oneunit(T)*x0, high_boundary_x)) for x0 in R_boundary_deriv_spots]
-    high_boundary_coefs = convert(SVector{boundary_point_count},_high_boundary_coefs)
+    _high_boundary_coefs   = SVector{boundary_stencil_length, T}[convert(SVector{boundary_stencil_length, T}, ((-1/dx)^derivative_order) * calculate_weights(derivative_order, oneunit(T)*x0, high_boundary_x)) for x0 in R_boundary_deriv_spots]
+    high_boundary_coefs    = convert(SVector{boundary_point_count},_high_boundary_coefs)
 
     coefficients = Vector{T}(undef,len)
     if coeff_func != nothing
