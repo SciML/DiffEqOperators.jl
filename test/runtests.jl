@@ -29,7 +29,6 @@ if GROUP == "All" || GROUP == "Interface"
     @time @safetestset "Convolutions" begin include("convolutions.jl") end
     @time @safetestset "Differentiation Dimension" begin include("differentiation_dimension.jl") end
     @time @safetestset "Higher Dimensional Concretization" begin include("concretization.jl") end
-    @time @safetestset "Coefficient Functions" begin include("coefficient_functions.jl") end
     @time @safetestset "Upwind Operator Interface" begin include("upwind_operators_interface.jl") end
     @time @safetestset "MOLFiniteDifference Interface" begin include("MOLtest.jl") end
     @time @safetestset "Basic SDO Examples" begin include("BasicSDOExamples.jl") end
