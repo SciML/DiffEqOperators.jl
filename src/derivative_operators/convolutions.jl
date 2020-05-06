@@ -355,7 +355,7 @@ function convolve_BC_left!(x_temp::AbstractVector{T}, _x::BoundaryPaddedVector, 
     x = _x.u
 
     for i in 1:A.boundary_point_count
-        cur_coeff = coeff[i]
+        cur_coeff = get_coefficient(coeff, i)
         xtempi = 0.0
         if cur_coeff >= 0 && i+A.stencil_length <= length(_x)
             cur_stencil = eltype(upwind_stencils) <: AbstractVector ? upwind_stencils[i] : upwind_stencils
@@ -383,7 +383,7 @@ function convolve_BC_right!(x_temp::AbstractVector{T}, _x::BoundaryPaddedVector,
     _x_len = length(_x)
 
     for i in 1:A.boundary_point_count
-        cur_coeff = coeff[x_temp_len-A.boundary_point_count+i]
+        cur_coeff = get_coefficient(coeff, x_temp_len-A.boundary_point_count+i)
         xtempi = 0.0
         if cur_coeff < 0 && _x_len-A.stencil_length - A.boundary_point_count + i >= 1
             cur_stencil = eltype(downwind_stencils) <: AbstractVector ? downwind_stencils[i] : downwind_stencils
