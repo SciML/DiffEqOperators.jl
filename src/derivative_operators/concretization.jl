@@ -13,7 +13,7 @@ function Base.copyto!(L::AbstractMatrix{T}, A::DerivativeOperator{T}, N::Int) wh
 
     coeff   = A.coefficients
     get_coeff = if coeff isa AbstractVector
-        i -> coeff[i]
+        i = get_coefficient(coeff, i)
     elseif coeff isa Number
         i -> coeff
     else
@@ -314,7 +314,7 @@ function LinearAlgebra.Array(A::DerivativeOperator{T,N,true}, len::Int=A.len) wh
     stencils = A.stencil_coefs
 
     for i in 1:bpc
-        cur_coeff   = coeff[i]
+        cur_coeff = get_coefficient(coeff, i)
         if cur_coeff >= 0
             cur_stencil = stencils
             L[i,i+1:i+stl] = cur_coeff*cur_stencil
@@ -325,7 +325,7 @@ function LinearAlgebra.Array(A::DerivativeOperator{T,N,true}, len::Int=A.len) wh
     end
 
     for i in bpc+1:len-bpc
-        cur_coeff   = coeff[i]
+        cur_coeff = get_coefficient(coeff, i)
         cur_stencil = stencils
         cur_stencil = cur_coeff >= 0 ? cur_stencil : ((-1)^A.derivative_order)*reverse(cur_stencil)
         if cur_coeff >= 0
@@ -336,7 +336,7 @@ function LinearAlgebra.Array(A::DerivativeOperator{T,N,true}, len::Int=A.len) wh
     end
 
     for i in len-bpc+1:len
-        cur_coeff   = coeff[i]
+        cur_coeff = get_coefficient(coeff, i)
         if cur_coeff < 0
             cur_stencil = stencils
             cur_stencil = ((-1)^A.derivative_order)*reverse(cur_stencil)
@@ -358,7 +358,7 @@ function LinearAlgebra.Array(A::DerivativeOperator{T,N,true,M}, len::Int=A.len) 
     coeff   = A.coefficients
 
     for i in 1:bpc
-        cur_coeff   = coeff[i]
+        cur_coeff = get_coefficient(coeff, i)
         if cur_coeff >= 0
             L[i,i+1:i+stl] = cur_coeff * A.low_boundary_coefs[1,i]
         else
@@ -367,7 +367,7 @@ function LinearAlgebra.Array(A::DerivativeOperator{T,N,true,M}, len::Int=A.len) 
     end
 
     for i in bpc+1:len-bpc
-        cur_coeff   = coeff[i]
+        cur_coeff = get_coefficient(coeff, i)
         if cur_coeff >= 0
             L[i,i+1:i+stl] = cur_coeff * A.stencil_coefs[1,i-bpc]
         else
@@ -376,7 +376,7 @@ function LinearAlgebra.Array(A::DerivativeOperator{T,N,true,M}, len::Int=A.len) 
     end
 
     for i in len-bpc+1:len
-        cur_coeff   = coeff[i]
+        cur_coeff = get_coefficient(coeff, i)
         if cur_coeff < 0
             L[i,i-stl+2:i+1] = cur_coeff * A.high_boundary_coefs[2,i-len+bpc]
         else
@@ -403,7 +403,7 @@ function SparseArrays.SparseMatrixCSC(A::DerivativeOperator{T,N,true}, len::Int=
     stencils = A.stencil_coefs
 
     for i in 1:bpc
-        cur_coeff   = coeff[i]
+        cur_coeff = get_coefficient(coeff, i)
         if cur_coeff >= 0
             cur_stencil = stencils
             L[i,i+1:i+stl] = cur_coeff*cur_stencil
@@ -414,7 +414,7 @@ function SparseArrays.SparseMatrixCSC(A::DerivativeOperator{T,N,true}, len::Int=
     end
 
     for i in bpc+1:len-bpc
-        cur_coeff   = coeff[i]
+        cur_coeff = get_coefficient(coeff, i)
         cur_stencil = stencils
         cur_stencil = cur_coeff >= 0 ? cur_stencil : ((-1)^A.derivative_order)*reverse(cur_stencil)
         if cur_coeff >= 0
@@ -425,7 +425,7 @@ function SparseArrays.SparseMatrixCSC(A::DerivativeOperator{T,N,true}, len::Int=
     end
 
     for i in len-bpc+1:len
-        cur_coeff   = coeff[i]
+        cur_coeff = get_coefficient(coeff, i)
         if cur_coeff < 0
             cur_stencil = stencils
             cur_stencil = ((-1)^A.derivative_order)*reverse(cur_stencil)
@@ -447,7 +447,7 @@ function SparseArrays.SparseMatrixCSC(A::DerivativeOperator{T,N,true,M}, len::In
     coeff   = A.coefficients
 
     for i in 1:bpc
-        cur_coeff   = coeff[i]
+        cur_coeff = get_coefficient(coeff, i)
         if cur_coeff >= 0
             L[i,i+1:i+stl] = cur_coeff * A.low_boundary_coefs[1,i]
         else
@@ -456,7 +456,7 @@ function SparseArrays.SparseMatrixCSC(A::DerivativeOperator{T,N,true,M}, len::In
     end
 
     for i in bpc+1:len-bpc
-        cur_coeff   = coeff[i]
+        cur_coeff = get_coefficient(coeff, i)
         if cur_coeff >= 0
             L[i,i+1:i+stl] = cur_coeff * A.stencil_coefs[1,i-bpc]
         else
@@ -465,7 +465,7 @@ function SparseArrays.SparseMatrixCSC(A::DerivativeOperator{T,N,true,M}, len::In
     end
 
     for i in len-bpc+1:len
-        cur_coeff   = coeff[i]
+        cur_coeff = get_coefficient(coeff, i)
         if cur_coeff < 0
             L[i,i-stl+2:i+1] = cur_coeff * A.high_boundary_coefs[2,i-len+bpc]
         else
@@ -492,7 +492,7 @@ function BandedMatrices.BandedMatrix(A::DerivativeOperator{T,N,true}, len::Int=A
     stencils = A.stencil_coefs
 
     for i in 1:bpc
-        cur_coeff   = coeff[i]
+        cur_coeff = get_coefficient(coeff, i)
         if cur_coeff >= 0
             cur_stencil = stencils
             L[i,i+1:i+stl] = cur_coeff*cur_stencil
@@ -503,7 +503,7 @@ function BandedMatrices.BandedMatrix(A::DerivativeOperator{T,N,true}, len::Int=A
     end
 
     for i in bpc+1:len-bpc
-        cur_coeff   = coeff[i]
+        cur_coeff = get_coefficient(coeff, i)
         cur_stencil = stencils
         cur_stencil = cur_coeff >= 0 ? cur_stencil : ((-1)^A.derivative_order)*reverse(cur_stencil)
         if cur_coeff >= 0
@@ -514,7 +514,7 @@ function BandedMatrices.BandedMatrix(A::DerivativeOperator{T,N,true}, len::Int=A
     end
 
     for i in len-bpc+1:len
-        cur_coeff   = coeff[i]
+        cur_coeff = get_coefficient(coeff, i)
         if cur_coeff < 0
             cur_stencil = stencils
             cur_stencil = ((-1)^A.derivative_order)*reverse(cur_stencil)
@@ -537,7 +537,7 @@ function BandedMatrices.BandedMatrix(A::DerivativeOperator{T,N,true,M}, len::Int
     L = BandedMatrix{T}(Zeros(len, len+2), (stl-2, stl))
 
     for i in 1:bpc
-        cur_coeff   = coeff[i]
+        cur_coeff = get_coefficient(coeff, i)
         if cur_coeff >= 0
             L[i,i+1:i+stl] = cur_coeff * A.low_boundary_coefs[1,i]
         else
@@ -546,7 +546,7 @@ function BandedMatrices.BandedMatrix(A::DerivativeOperator{T,N,true,M}, len::Int
     end
 
     for i in bpc+1:len-bpc
-        cur_coeff   = coeff[i]
+        cur_coeff = get_coefficient(coeff, i)
         if cur_coeff >= 0
             L[i,i+1:i+stl] = cur_coeff * A.stencil_coefs[1,i-bpc]
         else
@@ -555,7 +555,7 @@ function BandedMatrices.BandedMatrix(A::DerivativeOperator{T,N,true,M}, len::Int
     end
 
     for i in len-bpc+1:len
-        cur_coeff   = coeff[i]
+        cur_coeff = get_coefficient(coeff, i)
         if cur_coeff < 0
             L[i,i-stl+2:i+1] = cur_coeff * A.high_boundary_coefs[2,i-len+bpc]
         else
