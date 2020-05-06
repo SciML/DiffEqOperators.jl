@@ -33,7 +33,7 @@ function convolve_interior!(x_temp::AbstractVector{T1}, x::AbstractVector{T2}, A
         for i in (1+A.boundary_point_count) : (length(x_temp)-A.boundary_point_count)
             xtempi = zero(T)
             cur_stencil = eltype(stencil) <: AbstractVector ? stencil[i-A.boundary_point_count] : stencil
-            cur_coeff   = typeof(coeff)   <: AbstractVector ? coeff[i] : coeff isa Number ? coeff : true
+            cur_coeff = get_coefficient(coeff, i)
             for idx in 1:A.stencil_length
                 xtempi += cur_coeff * cur_stencil[idx] * x[i - mid + idx]
             end
@@ -43,7 +43,7 @@ function convolve_interior!(x_temp::AbstractVector{T1}, x::AbstractVector{T2}, A
         for i in [(1+A.boundary_point_count):(A.boundary_point_count+offset); (length(x_temp)-A.boundary_point_count-offset+1):(length(x_temp)-A.boundary_point_count)]
             xtempi = zero(T)
             cur_stencil = eltype(stencil) <: AbstractVector ? stencil[i-A.boundary_point_count] : stencil
-            cur_coeff   = typeof(coeff)   <: AbstractVector ? coeff[i] : coeff isa Number ? coeff : true
+            cur_coeff = get_coefficient(coeff, i)
             for idx in 1:A.stencil_length
                 xtempi += cur_coeff * cur_stencil[idx] * x[i - mid + idx]
             end
@@ -58,7 +58,7 @@ function convolve_BC_left!(x_temp::AbstractVector{T1}, x::AbstractVector{T2}, A:
     coeff   = A.coefficients
     for i in 1 : A.boundary_point_count
         cur_stencil = stencil[i]
-        cur_coeff   = typeof(coeff)   <: AbstractVector ? coeff[i] : coeff isa Number ? coeff : true
+        cur_coeff = get_coefficient(coeff, i)
         xtempi = cur_coeff*stencil[i][1]*x[1]
         for idx in 2:A.boundary_stencil_length
             xtempi += cur_coeff * cur_stencil[idx] * x[idx]
@@ -73,7 +73,7 @@ function convolve_BC_right!(x_temp::AbstractVector{T1}, x::AbstractVector{T2}, A
     coeff   = A.coefficients
     for i in 1 : A.boundary_point_count
         cur_stencil = stencil[i]
-        cur_coeff   = typeof(coeff)   <: AbstractVector ? coeff[i] : coeff isa Number ? coeff : true
+        cur_coeff = get_coefficient(coeff, i)
         xtempi = cur_coeff*stencil[i][end]*x[end]
         for idx in (A.boundary_stencil_length-1):-1:1
             xtempi += cur_coeff * cur_stencil[end-idx] * x[end-idx]
@@ -93,7 +93,7 @@ function convolve_interior!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::
     for i in (1+A.boundary_point_count) : (length(x_temp)-A.boundary_point_count)
         xtempi = zero(T)
         cur_stencil = eltype(stencil) <: AbstractVector ? stencil[i-A.boundary_point_count] : stencil
-        cur_coeff   = typeof(coeff)   <: AbstractVector ? coeff[i] : coeff isa Number ? coeff : true
+        cur_coeff = get_coefficient(coeff, i)
         cur_stencil = cur_coeff >= 0 ? cur_stencil : A.derivative_order % 2 == 0 ? reverse(cur_stencil) : -1*reverse(cur_stencil)
         for idx in 1:A.stencil_length
             x_idx = cur_coeff < 0 ? x[i - A.stencil_length + 1 + idx] : x[i + idx]
@@ -163,7 +163,7 @@ function convolve_interior!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::
     coeff   = A.coefficients
 
     for i in bpc+1:len-bpc
-        cur_coeff   = coeff[i]
+        cur_coeff = get_coefficient(i)
         if cur_coeff >= 0
             xtempi = zero(T)
             cur_stencil = A.stencil_coefs[1,i-bpc]
@@ -190,7 +190,7 @@ function convolve_BC_left!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::D
     coeff   = A.coefficients
 
     for i in 1:bpc
-        cur_coeff   = coeff[i]
+        cur_coeff = get_coefficient(i)
         if cur_coeff >= 0
             xtempi = zero(T)
             cur_stencil = A.low_boundary_coefs[1,i]
@@ -218,7 +218,7 @@ function convolve_BC_right!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::
     coeff   = A.coefficients
 
     for i in len-bpc+1:len
-        cur_coeff   = coeff[i]
+        cur_coeff = get_coefficient(i)
         if cur_coeff < 0
             xtempi = zero(T)
             cur_stencil = A.high_boundary_coefs[2,i-len+bpc]
@@ -250,7 +250,7 @@ function convolve_interior!(x_temp::AbstractVector{T1}, _x::BoundaryPaddedVector
     for i in (2+A.boundary_point_count) : (length(x_temp)-A.boundary_point_count)-1
         xtempi = zero(T)
         cur_stencil = eltype(stencil) <: AbstractVector ? stencil[i-A.boundary_point_count] : stencil
-        cur_coeff   = typeof(coeff)   <: AbstractVector ? coeff[i-A.boundary_point_count] : coeff isa Number ? coeff : true
+        cur_coeff = get_coefficient(coeff, i - A.boundary_point_count)
         @inbounds for idx in 1:A.stencil_length
             xtempi += cur_coeff * cur_stencil[idx] * x[(i-1) - (mid-idx) + 1]
         end
@@ -264,7 +264,7 @@ function convolve_BC_left!(x_temp::AbstractVector{T1}, _x::BoundaryPaddedVector,
     coeff   = A.coefficients
     for i in 1 : A.boundary_point_count
         cur_stencil = stencil[i]
-        cur_coeff   = typeof(coeff)   <: AbstractVector ? coeff[i] : coeff isa Number ? coeff : true
+        cur_coeff = get_coefficient(coeff, i)
         xtempi = cur_coeff*cur_stencil[1]*_x.l
         @inbounds for idx in 2:A.boundary_stencil_length
             xtempi += cur_coeff * cur_stencil[idx] * _x.u[idx-1]
@@ -277,7 +277,7 @@ function convolve_BC_left!(x_temp::AbstractVector{T1}, _x::BoundaryPaddedVector,
     i = 1 + A.boundary_point_count
     xtempi = zero(T)
     cur_stencil = eltype(A.stencil_coefs) <: AbstractVector ? A.stencil_coefs[i-A.boundary_point_count] : A.stencil_coefs
-    cur_coeff   = typeof(coeff)   <: AbstractVector ? coeff[i-A.boundary_point_count] : coeff isa Number ? coeff : true
+    cur_coeff = get_coefficient(coeff, i - A.boundary_point_count)
     xtempi = cur_coeff*cur_stencil[1]*_x.l
     @inbounds for idx in 2:A.stencil_length
         xtempi += cur_coeff * cur_stencil[idx] * x[(i-1) - (mid-idx) + 1]
@@ -296,7 +296,7 @@ function convolve_BC_right!(x_temp::AbstractVector{T1}, _x::BoundaryPaddedVector
     i = length(x_temp)-A.boundary_point_count
     xtempi = zero(T)
     cur_stencil = eltype(A.stencil_coefs) <: AbstractVector ? A.stencil_coefs[i-A.boundary_point_count] : A.stencil_coefs
-    cur_coeff   = typeof(coeff)   <: AbstractVector ? coeff[i-A.boundary_point_count] : coeff isa Number ? coeff : true
+    cur_coeff = get_coefficient(coeff, i - A.boundary_point_count)
     xtempi = cur_coeff*cur_stencil[end]*_x.r
     @inbounds for idx in 1:A.stencil_length-1
         xtempi += cur_coeff * cur_stencil[idx] * x[(i-1) - (mid-idx) + 1]
@@ -304,7 +304,7 @@ function convolve_BC_right!(x_temp::AbstractVector{T1}, _x::BoundaryPaddedVector
     x_temp[i] = xtempi + !overwrite*x_temp[i]
     for i in 1 : A.boundary_point_count
         cur_stencil = stencil[i]
-        cur_coeff   = typeof(coeff)   <: AbstractVector ? coeff[bc_start + i] : coeff isa Number ? coeff : true
+        cur_coeff = get_coefficient(coeff, bc_start + i)
         xtempi = cur_coeff*cur_stencil[end]*_x.r
         @inbounds for idx in A.stencil_length:-1:1
             xtempi += cur_coeff * cur_stencil[end-idx] * _x.u[end-idx+1]
@@ -331,7 +331,7 @@ function convolve_interior!(x_temp::AbstractVector{T}, _x::BoundaryPaddedVector,
     for i in (1+A.boundary_point_count) : (length(x_temp)-A.boundary_point_count)
         xtempi = zero(T)
         cur_stencil = eltype(stencil) <: AbstractVector ? stencil[i-A.boundary_point_count] : stencil
-        cur_coeff   = typeof(coeff)   <: AbstractVector ? coeff[i] : coeff isa Number ? coeff : true
+        cur_coeff = get_coefficient(coeff, i)
         cur_stencil = cur_coeff >= 0 ? cur_stencil : A.derivative_order % 2 == 0 ? reverse(cur_stencil) : -1*reverse(cur_stencil)
         for idx in 1:A.stencil_length
             index = cur_coeff < 0 ? i - A.stencil_length + 1 + idx : i + idx
@@ -419,7 +419,7 @@ function convolve_interior!(x_temp::AbstractVector{T}, _x::BoundaryPaddedVector,
 
 
     for i in bpc+1:len-bpc
-        cur_coeff   = coeff[i]
+        cur_coeff = get_coefficient(i)
         if cur_coeff >= 0
             xtempi = zero(T)
             cur_stencil = A.stencil_coefs[1,i-bpc]
@@ -450,7 +450,7 @@ function convolve_BC_left!(x_temp::AbstractVector{T}, _x::BoundaryPaddedVector, 
     _x_len = length(_x)
 
     for i in 1:bpc
-        cur_coeff   = coeff[i]
+        cur_coeff = get_coefficient(i)
         if cur_coeff >= 0
             xtempi = zero(T)
             cur_stencil = A.low_boundary_coefs[1,i]
@@ -482,7 +482,7 @@ function convolve_BC_right!(x_temp::AbstractVector{T}, _x::BoundaryPaddedVector,
     _x_len = length(_x)
 
     for i in len-bpc+1:len
-        cur_coeff   = coeff[i]
+        cur_coeff = get_coefficient(i)
         if cur_coeff < 0
             xtempi = zero(T)
             cur_stencil = A.high_boundary_coefs[2,i-len+bpc]

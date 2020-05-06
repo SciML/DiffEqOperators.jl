@@ -26,19 +26,6 @@ struct DerivativeOperator{T<:Real,N,Wind,T2,S1,S2<:SArray,T3,F} <: AbstractDeriv
     coeff_func              :: F
 end
 
-init_coefficients(coeff_func::Nothing, len::Int) = nothing
-
-init_coefficients(coeff_func::Number, len::Int) = coeff_func * ones(typeof(coeff_func), len)
-
-function init_coefficients(coeff_func::AbstractVector{T}, len::Int) where T <: Number
-    coeff_func
-end
-
-function init_coefficients(coeff_func::Function, len::Int)
-    ones(Float64, len)
-end
-
-
 struct CenteredDifference{N} end
 
 function CenteredDifference{N}(derivative_order::Int,
