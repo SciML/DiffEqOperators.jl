@@ -26,6 +26,18 @@ struct DerivativeOperator{T<:Real,N,Wind,T2,S1,S2<:SArray,T3,F} <: AbstractDeriv
     coeff_func              :: F
 end
 
+init_coefficients(coeff_func::Nothing, len::Int) = nothing
+
+init_coefficients(coeff_func::Number, len::Int) = coeff_func * ones(typeof(coeff_func), len)
+
+function init_coefficients(coeff_func::AbstractVector{T}, len::Int) where T <: Number
+    coeff_func
+end
+
+function init_coefficients(coeff_func::Function, len::Int)
+    ones(Float64, len)
+end
+
 
 struct CenteredDifference{N} end
 
@@ -54,7 +66,7 @@ function CenteredDifference{N}(derivative_order::Int,
 
     high_boundary_coefs      = convert(SVector{boundary_point_count},reverse(map(reverse, _low_boundary_coefs*(-1)^derivative_order)))
 
-    coefficients            = coeff_func isa Nothing ? nothing : ones(T, len)
+    coefficients            = init_coefficients(coeff_func, len)
 
     DerivativeOperator{T,N,false,T,typeof(stencil_coefs),
         typeof(low_boundary_coefs),typeof(coefficients),
@@ -104,7 +116,7 @@ function CenteredDifference{N}(derivative_order::Int,
                                                                   calculate_weights(derivative_order, high_boundary_x[end-i], high_boundary_x)) for i in boundary_point_count:-1:1]
     high_boundary_coefs      = convert(SVector{boundary_point_count},_high_boundary_coefs)
 
-    coefficients            = coeff_func isa Nothing ? nothing : ones(T, len)
+    coefficients            = init_coefficients(coeff_func, len)
 
     DerivativeOperator{T,N,false,typeof(dx),typeof(stencil_coefs),
         typeof(low_boundary_coefs),typeof(coefficients),
@@ -170,7 +182,7 @@ function UpwindDifference{N}(derivative_order::Int,
     _high_boundary_coefs   = SVector{boundary_stencil_length, T}[convert(SVector{boundary_stencil_length, T}, ((-1/dx)^derivative_order) * calculate_weights(derivative_order, oneunit(T)*x0, high_boundary_x)) for x0 in R_boundary_deriv_spots]
     high_boundary_coefs    = convert(SVector{boundary_point_count},_high_boundary_coefs)
 
-    coefficients           = coeff_func isa Nothing ? nothing : ones(T, len)
+    coefficients           = init_coefficients(coeff_func, len)
 
     DerivativeOperator{T,N,true,T,typeof(stencil_coefs),
         typeof(low_boundary_coefs),typeof(coefficients),
@@ -212,7 +224,7 @@ function UpwindDifference{N}(derivative_order::Int,
     _downwind_coefs = SMatrix{1,boundary_point_count}([convert(SVector{boundary_stencil_length,T}, calculate_weights(derivative_order, x[i+1], x[i-stencil_length+2:i+1])) for i in len-boundary_point_count+1:len])
     high_boundary_coefs = [_upwind_coefs ; _downwind_coefs]
 
-    coefficients = coeff_func isa Nothing ? nothing : ones(T, len)
+    coefficients = init_coefficients(coeff_func, len)
 
     DerivativeOperator{T,N,true,typeof(dx),typeof(stencil_coefs),
         typeof(low_boundary_coefs),typeof(coefficients),
