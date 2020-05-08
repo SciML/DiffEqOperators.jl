@@ -23,7 +23,7 @@ init_coefficients(coeff_func::Function, len::Int) = ones(Float64, len)
 get_coefficient(coefficients, index)
 ```
 """
-get_coefficient(coefficients::AbstractVector, index::Int) = coeff[i]
+get_coefficient(coefficients::AbstractVector, index::Int) = coefficients[index]
 
 # FIXME: I don't think this case is used anymore
 get_coefficient(coefficients::Number, index::Int) = coefficients

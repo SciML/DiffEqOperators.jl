@@ -163,7 +163,7 @@ function convolve_interior!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::
     coeff   = A.coefficients
 
     for i in bpc+1:len-bpc
-        cur_coeff = get_coefficient(i)
+        cur_coeff = get_coefficient(coeff, i)
         if cur_coeff >= 0
             xtempi = zero(T)
             cur_stencil = A.stencil_coefs[1,i-bpc]
@@ -190,7 +190,7 @@ function convolve_BC_left!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::D
     coeff   = A.coefficients
 
     for i in 1:bpc
-        cur_coeff = get_coefficient(i)
+        cur_coeff = get_coefficient(coeff, i)
         if cur_coeff >= 0
             xtempi = zero(T)
             cur_stencil = A.low_boundary_coefs[1,i]
@@ -218,7 +218,7 @@ function convolve_BC_right!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::
     coeff   = A.coefficients
 
     for i in len-bpc+1:len
-        cur_coeff = get_coefficient(i)
+        cur_coeff = get_coefficient(coeff, i)
         if cur_coeff < 0
             xtempi = zero(T)
             cur_stencil = A.high_boundary_coefs[2,i-len+bpc]
@@ -419,7 +419,7 @@ function convolve_interior!(x_temp::AbstractVector{T}, _x::BoundaryPaddedVector,
 
 
     for i in bpc+1:len-bpc
-        cur_coeff = get_coefficient(i)
+        cur_coeff = get_coefficient(coeff, i)
         if cur_coeff >= 0
             xtempi = zero(T)
             cur_stencil = A.stencil_coefs[1,i-bpc]
@@ -450,7 +450,7 @@ function convolve_BC_left!(x_temp::AbstractVector{T}, _x::BoundaryPaddedVector, 
     _x_len = length(_x)
 
     for i in 1:bpc
-        cur_coeff = get_coefficient(i)
+        cur_coeff = get_coefficient(coeff, i)
         if cur_coeff >= 0
             xtempi = zero(T)
             cur_stencil = A.low_boundary_coefs[1,i]
@@ -482,7 +482,7 @@ function convolve_BC_right!(x_temp::AbstractVector{T}, _x::BoundaryPaddedVector,
     _x_len = length(_x)
 
     for i in len-bpc+1:len
-        cur_coeff = get_coefficient(i)
+        cur_coeff = get_coefficient(coeff, i)
         if cur_coeff < 0
             xtempi = zero(T)
             cur_stencil = A.high_boundary_coefs[2,i-len+bpc]
