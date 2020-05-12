@@ -4,6 +4,13 @@ abstract type AbstractBC{T} <: AbstractDiffEqAffineOperator{T} end
 abstract type AtomicBC{T} <: AbstractBC{T} end
 
 """
+abstract type AffineBC{T} <: AtomicBC{T} end
+
+struct NeumannBC{N} end
+struct Neumann0BC{N} end
+struct DirichletBC{N} end
+struct Dirichlet0BC{N} end
+
 Robin, General, and in general Neumann, Dirichlet and Bridge BCs
 are not necessarily linear operators.  Instead, they are affine
 operators, with a constant term Q*x = Qa*x + Qb.
