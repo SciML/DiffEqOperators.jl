@@ -10,7 +10,7 @@ A = rand(n,m)
 
 #Create atomic BC
 q1 = RobinBC((1.0, 2.0, 3.0), (0.0, -1.0, 2.0), 0.1, 4.0)
-q2 = PeriodicBC{Float64}()
+q2 = PeriodicBC(Float64)
 
 BCx = vcat(fill(q1, div(m,2)), fill(q2, m-div(m,2)))  #The size of BCx has to be all size components *except* for x
 BCy = vcat(fill(q1, div(n,2)), fill(q2, n-div(n,2)))
@@ -45,7 +45,7 @@ A = rand(n,m, o)
 
 #Create atomic BC
 q1 = RobinBC((1.0, 2.0, 3.0), (0.0, -1.0, 2.0), 0.1, 4.0)
-q2 = PeriodicBC{Float64}()
+q2 = PeriodicBC(Float64)
 
 BCx = vcat(fill(q1, (div(m,2), o)), fill(q2, (m-div(m,2), o)))  #The size of BCx has to be all size components *except* for x
 BCy = vcat(fill(q1, (div(n,2), o)), fill(q2, (n-div(n,2), o)))
