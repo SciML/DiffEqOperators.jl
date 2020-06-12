@@ -71,11 +71,11 @@ function DiffEqBase.discretize(pdesys::PDESystem,discretization::MOLFiniteDiffer
     (u_t0,u_x0,u_x1) = extract_bc(pdesys.bcs,tdomain,domain)
     Q = DirichletBC(u_x0,u_x1)
     function f(du,u,p,t)
-        mul!(du,L,Array(Q*u))
+        mul!(du,L,Q*u)
+
     end
     t = 0.0
     u0 = eval_expr(u_t0,interior,t)
     PDEProblem(ODEProblem(f,u0,(tdomain.lower,tdomain.upper),nothing),Q,X)
 end
-
 
