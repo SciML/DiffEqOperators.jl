@@ -1,7 +1,7 @@
 # 1D diffusion problem
 
 # Packages and inclusions
-using ModelingToolkit,DiffEqOperators,DiffEqBase,LinearAlgebra
+using ModelingToolkit,DiffEqOperators,DiffEqBase,LinearAlgebra,Test
 
 # Parameters, variables, and derivatives
 @parameters t x
@@ -34,10 +34,15 @@ prob = discretize(pdesys,discretization)
 using OrdinaryDiffEq
 sol = solve(prob,Tsit5(),saveat=0.1)
 
+# Test
+n = size(sol)[1]
+t_f = size(sol)[2]
+@test sol[t_f] ≈ zeros(n) atol = 0.001;
+
 # Plot and save results
-using Plots
-plot(prob.space,Array(prob.extrapolation*sol[1]))
-plot!(prob.space,Array(prob.extrapolation*sol[2]))
-plot!(prob.space,Array(prob.extrapolation*sol[3]))
-plot!(prob.space,Array(prob.extrapolation*sol[4]))
-savefig("MOL_1D_Linear_Difufusion.png")
+#using Plots
+#plot(prob.space,Array(prob.extrapolation*sol[1]))
+#plot!(prob.space,Array(prob.extrapolation*sol[2]))
+#plot!(prob.space,Array(prob.extrapolation*sol[3]))
+#plot!(prob.space,Array(prob.extrapolation*sol[4]))
+#savefig("MOL_1D_Linear_Diffusion.png")
