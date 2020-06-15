@@ -187,16 +187,16 @@ end
       x = rand(7)
 
       # Test that multiplication agrees with analytic multiplication
-      @test_broken L*x ≈ analyticL*x
+      @test L*x ≈ analyticL*x
 
       # Test that concretized multiplication agrees with analytic multiplication
-      @test_broken Array(L)*x ≈ analyticL*x
+      @test Array(L)*x ≈ analyticL*x
 
       # Test that matrix-free multiplication agrees with concretized multiplication
       @test L*x ≈ Array(L)*x
 
       # Test that concretized matrix agrees with analytic matrix
-      @test_broken Array(L) == analyticL
+      @test Array(L) == analyticL
 
       # Test Banded and Sparse concretizations
       @test Array(L) == BandedMatrix(L)
@@ -206,7 +206,7 @@ end
 
       # Test convolutions against bpv
       bpv = PeriodicBC(Float64)*x[1:N]
-      @test_broken L*bpv ≈ analyticL*bpv
+      @test L*bpv ≈ analyticL*bpv
 
 end
 
