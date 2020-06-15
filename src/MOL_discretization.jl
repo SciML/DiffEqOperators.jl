@@ -66,7 +66,7 @@ function DiffEqBase.discretize(pdesys::PDESystem,discretization::MOLFiniteDiffer
     dx = discretization.dxs[1]
     interior = domain.lower+dx:dx:domain.upper-dx
     X = domain.lower:dx:domain.upper
-    m = size(X)[1]-2
+    m = size(X, 1)-2
     L = calc_coeff_mat(pdesys.eq.rhs,pdesys.indvars[2],0,discretization.order,dx,m)
     (u_t0,u_x0,u_x1) = extract_bc(pdesys.bcs,tdomain,domain)
     Q = DirichletBC(u_x0,u_x1)
