@@ -18,7 +18,7 @@ function extract_bc(bcs,tdomain,domain)
     u_x1 = 0.0
     n = size(bcs)[1]
     for i = 1:n
-        if isa(bcs[i].lhs.op,Variable)
+        if bcs[i].lhs.op isa Variable
             if isequal(bcs[i].lhs.args[1],tdomain.lower) # u(t=0,x)
                 u_t0 = Expr(bcs[i].rhs)
             elseif isequal(bcs[i].lhs.args[2],domain.lower) # u(t,x=x_init)
@@ -77,4 +77,3 @@ function DiffEqBase.discretize(pdesys::PDESystem,discretization::MOLFiniteDiffer
     u0 = eval_expr(u_t0,interior,t)
     PDEProblem(ODEProblem(f,u0,(tdomain.lower,tdomain.upper),nothing),Q,X)
 end
-
