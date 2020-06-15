@@ -16,7 +16,7 @@ function extract_bc(bcs,tdomain,domain)
     u_t0 = 0.0
     u_x0 = 0.0
     u_x1 = 0.0
-    n = size(bcs)[1]
+    n = size(bcs, 1)
     for i = 1:n
         if bcs[i].lhs.op isa Variable
             if isequal(bcs[i].lhs.args[1],tdomain.lower) # u(t=0,x)
