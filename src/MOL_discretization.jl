@@ -35,7 +35,7 @@ end
 function calc_coeff_mat(input,iv,grade,order,dx,m)
     if isa(input,ModelingToolkit.Constant)
             return input.value
-    elseif isa(input,Operation)
+    elseif input isa Operation
         if isa(input.op,Variable)
             if grade == 1
                 L = UpwindDifference(grade,order,dx,m,-1)
