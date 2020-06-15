@@ -77,4 +77,3 @@ function DiffEqBase.discretize(pdesys::PDESystem,discretization::MOLFiniteDiffer
     u0 = eval_expr(u_t0,interior,t)
     PDEProblem(ODEProblem(f,u0,(tdomain.lower,tdomain.upper),nothing),Q,X)
 end
-
