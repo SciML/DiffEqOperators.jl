@@ -33,7 +33,7 @@ end
 
 # Calculate coefficient matrix of the finite-difference scheme
 function calc_coeff_mat(input,iv,grade,order,dx,m)
-    if isa(input,ModelingToolkit.Constant)
+    if input isa Constant
             return input.value
     elseif input isa Operation
         if isa(input.op,Variable)
