@@ -16,9 +16,9 @@ function extract_bc(bcs,tdomain,domain)
     u_t0 = 0.0
     u_x0 = 0.0
     u_x1 = 0.0
-    n = size(bcs)[1]
+    n = size(bcs,1)
     for i = 1:n
-        if isa(bcs[i].lhs.op,Variable)
+        if bcs[i].lhs.op isa Variable
             if isequal(bcs[i].lhs.args[1],tdomain.lower) # u(t=0,x)
                 u_t0 = Expr(bcs[i].rhs)
             elseif isequal(bcs[i].lhs.args[2],domain.lower) # u(t,x=x_init)
@@ -33,20 +33,20 @@ end
 
 # Calculate coefficient matrix of the finite-difference scheme
 function calc_coeff_mat(input,iv,grade,order,dx,m)
-    if isa(input,ModelingToolkit.Constant)
+    if input isa ModelingToolkit.Constant
             return input.value
-    elseif isa(input,Operation)
-        if isa(input.op,Variable)
+    elseif input isa Operation
+        if input.op isa Variable
             if grade == 1
                 L = UpwindDifference(grade,order,dx,m,-1)
             else
                 L = CenteredDifference(grade,order,dx,m)
             end
             return L
-        elseif isa(input.op,Differential)
+        elseif input.op isa Differential
             grade += 1
             calc_coeff_mat(input.args[1],input.op.x,grade,order,dx,m)
-        elseif isa(input.op,typeof(*))
+        elseif input.op isa typeof(*)
             n = size(input.args)[1]
             output = calc_coeff_mat(input.args[1],iv,grade,order,dx,m) 
             for i = 2:n
@@ -66,7 +66,7 @@ function DiffEqBase.discretize(pdesys::PDESystem,discretization::MOLFiniteDiffer
     dx = discretization.dxs[1]
     interior = domain.lower+dx:dx:domain.upper-dx
     X = domain.lower:dx:domain.upper
-    m = size(X)[1]-2
+    m = size(X,1)-2
     L = calc_coeff_mat(pdesys.eq.rhs,pdesys.indvars[2],0,discretization.order,dx,m)
     (u_t0,u_x0,u_x1) = extract_bc(pdesys.bcs,tdomain,domain)
     Q = DirichletBC(u_x0,u_x1)
