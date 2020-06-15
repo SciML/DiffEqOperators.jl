@@ -1,6 +1,6 @@
 # DiffEqOperators.jl
 
-[![Build Status](https://travis-ci.org/JuliaDiffEq/DiffEqOperators.jl.svg?branch=master)](https://travis-ci.org/JuliaDiffEq/DiffEqOperators.jl)
+[![Build Status](https://travis-ci.org/SciML/DiffEqOperators.jl.svg?branch=master)](https://travis-ci.org/SciML/DiffEqOperators.jl)
 [![Build status](https://ci.appveyor.com/api/projects/status/au9knv63u9oh1aie?svg=true)](https://ci.appveyor.com/project/ChrisRackauckas/diffeqoperators-jl)
 [![GitlabCI](https://gitlab.com/JuliaGPU/DiffEqOperators.jl/badges/master/pipeline.svg)](https://gitlab.com/JuliaGPU/DiffEqOperators.jl/pipelines)
 [![Coverage Status](https://coveralls.io/repos/JuliaDiffEq/DiffEqOperators.jl/badge.svg?branch=master&service=github)](https://coveralls.io/github/JuliaDiffEq/DiffEqOperators.jl?branch=master)
