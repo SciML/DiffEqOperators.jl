@@ -34,11 +34,11 @@ end
 # Calculate coefficient matrix of the finite-difference scheme
 function calc_coeff_mat(input,iv,grade,order,dx,m)
     if input isa ModelingToolkit.Constant
-            return input.value
+        return input.value
     elseif input isa Operation
         if input.op isa Variable
             if grade == 1
-                L = UpwindDifference(grade,order,dx,m,-1)
+                L = UpwindDifference(grade,order,dx,m,1)
             else
                 L = CenteredDifference(grade,order,dx,m)
             end
@@ -46,6 +46,8 @@ function calc_coeff_mat(input,iv,grade,order,dx,m)
         elseif input.op isa Differential
             grade += 1
             return calc_coeff_mat(input.args[1],input.op.x,grade,order,dx,m)
+        elseif input.op isa typeof(-)
+            return -1 * calc_coeff_mat(input.args[1],iv,grade,order,dx,m)
         elseif input.op isa typeof(*)
             output = prod(i -> calc_coeff_mat(input.args[i],iv,grade,order,dx,m),
                           eachindex(input.args))

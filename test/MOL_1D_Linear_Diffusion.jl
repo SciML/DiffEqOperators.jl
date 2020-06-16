@@ -12,7 +12,7 @@ using ModelingToolkit,DiffEqOperators,DiffEqBase,LinearAlgebra,Test
     @derivatives Dxx''~x
 
     # 1D PDE and boundary conditions
-    eq  = Dt(u(t,x)) ~ Dxx(u(t,x))
+    eq  = Dt(u(t,x)) ~ -Dxx(u(t,x))
     bcs = [u(0,x) ~ -x*(x-1)*sin(x),
            u(t,0) ~ 0.0,
            u(t,1) ~ 0.0]
@@ -60,7 +60,7 @@ end
     D = 1.1
 
     # 1D PDE and boundary conditions
-    eq  = Dt(u(t,x)) ~ D*Dxx(u(t,x))
+    eq  = Dt(u(t,x)) ~ -D*Dxx(u(t,x))
     bcs = [u(0,x) ~ -x*(x-1)*sin(x),
            u(t,0) ~ 0.0,
            u(t,1) ~ 0.0]
@@ -108,7 +108,7 @@ end
     D = 1.2
 
     # 1D PDE and boundary conditions
-    eq  = Dt(u(t,x)) ~ Dxx(D*u(t,x))
+    eq  = Dt(u(t,x)) ~ -Dxx(D*u(t,x))
     bcs = [u(0,x) ~ -x*(x-1)*sin(x),
            u(t,0) ~ 0.0,
            u(t,1) ~ 0.0]
