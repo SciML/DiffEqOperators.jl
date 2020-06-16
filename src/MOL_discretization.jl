@@ -45,13 +45,10 @@ function calc_coeff_mat(input,iv,grade,order,dx,m)
             return L
         elseif input.op isa Differential
             grade += 1
-            calc_coeff_mat(input.args[1],input.op.x,grade,order,dx,m)
+            return calc_coeff_mat(input.args[1],input.op.x,grade,order,dx,m)
         elseif input.op isa typeof(*)
-            n = size(input.args)[1]
-            output = calc_coeff_mat(input.args[1],iv,grade,order,dx,m) 
-            for i = 2:n
-                output *= calc_coeff_mat(input.args[i],iv,grade,order,dx,m) 
-            end
+            output = prod(i -> calc_coeff_mat(input.args[i],iv,grade,order,dx,m),
+                          eachindex(input.args))
             return output
         end
     end
@@ -63,7 +60,7 @@ function DiffEqBase.discretize(pdesys::PDESystem,discretization::MOLFiniteDiffer
     domain = pdesys.domain[2].domain
     @assert domain isa IntervalDomain
     len = domain.upper-domain.lower
-    dx = discretization.dxs[1]
+    dx = discretization.dxs
     interior = domain.lower+dx:dx:domain.upper-dx
     X = domain.lower:dx:domain.upper
     m = size(X,1)-2
