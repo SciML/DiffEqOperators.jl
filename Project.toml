@@ -25,7 +25,7 @@ ForwardDiff = "0.10"
 LazyArrays = "0.16.12"
 LazyBandedMatrices = "0.2.11"
 ModelingToolkit = "0.10.0, 1.0, 2.0, 3.0"
-NNlib = "0.6"
+NNlib = "0.6, 0.7"
 StaticArrays = "0.10, 0.11, 0.12"
 julia = "1"
 
