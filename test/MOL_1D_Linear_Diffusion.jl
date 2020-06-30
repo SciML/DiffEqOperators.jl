@@ -1,5 +1,7 @@
 # 1D diffusion problem
 
+# TODO: Add more complex tests.
+
 # Packages and inclusions
 using ModelingToolkit,DiffEqOperators,DiffEqBase,LinearAlgebra,Test
 
@@ -151,12 +153,12 @@ end
     @parameters t x
     @variables u(..) D(..)
     @derivatives Dt'~t
-    @derivatives Dxx''~x
+    @derivatives Dx'~x
 
     # 1D PDE and boundary conditions
     # TODO: use D(t,x) ~ t*x
-    eq  = [ Dt(u(t,x)) ~ Dxx(D(t,x)*u(t,x)),
-            D(t,x) ~ x ]
+    eq  = [ Dt(u(t,x)) ~ Dx(D(t,x)*Dx(u(t,x))),
+            D(t,x) ~ 1/(1+exp(-x*t)) ]
     bcs = [u(0,x) ~ -x*(x-1)*sin(x),
            u(t,0) ~ 0.0,
            u(t,1) ~ 0.0]
@@ -191,7 +193,7 @@ end
     # Test
     n = size(sol)[1]
     t_f = size(sol)[2]
-    @test sol[t_f] ≈ zeros(n) atol = 0.001;
+    @test sol[t_f] ≈ zeros(n) atol = 0.01;
 end
 
 

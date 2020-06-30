@@ -1,4 +1,4 @@
-using Reduce
+#using Reduce
 
 # Method of lines discretization scheme
 struct MOLFiniteDifference{T} <: DiffEqBase.AbstractDiscretization
@@ -44,9 +44,11 @@ function calc_coeff_mat(input,iv,grade,order,dx,m,nonderiv_depvars)
     elseif input isa Operation
         if input.op isa Variable
             if haskey(nonderiv_depvars,input.op)
-                # TODO: fix this substitution, it does not work for :x=>:($j*$dx)
-                # TODO: use D(t,x) = t*x in tests
-                L = [ j==k ? Algebra.sub(:x=>:($j),nonderiv_depvars[input.op]) : :(0) for j=1:m, k=1:m ]
+                # TODO: Here, evaluate expression w.r.t space (x,y,z).
+                #       Then, in the "f" ODE function (in DiffEqBase.discretize),
+                #       evaluate expression w.r.t. time (t).
+                expr = Expr(nonderiv_depvars[input.op])
+                L = :(Diagonal([ (x=i*$dx;eval($expr)) for i=1:$m ]))
             elseif grade == 1
                 L = :($(UpwindDifference(grade,order,dx,m,1)))
             else
@@ -132,10 +134,10 @@ function DiffEqBase.discretize(pdesys::PDESystem,discretization::MOLFiniteDiffer
     ### Define the discretized PDE as an ODE function ##########################
     function f(du,u,p,t)
         for L in values(L_expr)
-            # TODO: the eval will probably change when the substitution in 
-            # calc_coeff_mat is fixed
-            LL = eval(L)
-            mul!(du,LL,Q*u)
+            # TODO: there is probably a fancier way to eval time
+            g = eval(:((t) -> $L))
+            L = @eval $g.($t)
+            mul!(du,L,Q*u)
         end
     end
 
