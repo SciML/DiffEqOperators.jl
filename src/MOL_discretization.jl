@@ -40,17 +40,23 @@ end
 #            =>  Dx(u(t,x))=t*x*Dx(u(t,x))
 function calc_coeff_mat(input,iv,grade,order,dx,m,nonderiv_depvars)
     if input isa ModelingToolkit.Constant
-        return :($input.value)
+        x = abs(input.value)
+        return :($x)
     elseif input isa Operation
         if input.op isa Variable
             if haskey(nonderiv_depvars,input.op)
-                # TODO: Here, evaluate expression w.r.t space (x,y,z).
-                #       Then, in the "f" ODE function (in DiffEqBase.discretize),
-                #       evaluate expression w.r.t. time (t).
-                expr = Expr(nonderiv_depvars[input.op])
-                L = :(Diagonal([ (x=i*$dx;eval($expr)) for i=1:$m ]))
+                x = nonderiv_depvars[input.op]
+                if x isa ModelingToolkit.Constant
+                    L = :($x.value)
+                else
+                    # TODO: Here, evaluate expression w.r.t space (x,y,z).
+                    #       Then, in the "f" ODE function (in DiffEqBase.discretize),
+                    #       evaluate expression w.r.t. time (t).
+                    expr = Expr(x)
+                    L = :(Diagonal([ (x=i*$dx;eval($expr)) for i=1:$m ]))
+                end
             elseif grade == 1
-                L = :($(UpwindDifference(grade,order,dx,m,1)))
+                L = :($(UpwindDifference(grade,order,dx,m,-1)))
             else
                 L = :($(CenteredDifference(grade,order,dx,m)))
             end
@@ -60,7 +66,7 @@ function calc_coeff_mat(input,iv,grade,order,dx,m,nonderiv_depvars)
             return calc_coeff_mat(input.args[1],input.op.x,grade,order,dx,m,nonderiv_depvars)
         elseif input.op isa typeof(-)
             L = calc_coeff_mat(input.args[1],iv,grade,order,dx,m,nonderiv_depvars)
-            return Expr(:call, :*, :(-1), L)
+            return L
         elseif input.op isa typeof(*)
             # TODO: probably the code below can be shortened
             expr1 = calc_coeff_mat(input.args[1],iv,grade,order,dx,m,nonderiv_depvars)
