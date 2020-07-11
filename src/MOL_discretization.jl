@@ -7,12 +7,6 @@ struct MOLFiniteDifference{T} <: DiffEqBase.AbstractDiscretization
 end
 MOLFiniteDifference(args...;order=2) = MOLFiniteDifference(args,order)
 
-# Evaluate expression
-# TODO: replace this eval with proper substitution
-function eval_expr(expr,x,y)
-   f = eval(:((x,y) -> $expr))
-   return @eval $f.($x,$y)
-end
 
 # Get boundary conditions from an array
 function get_bcs(bcs,tdomain,domain)
@@ -40,8 +34,7 @@ end
 #            =>  Dx(u(t,x))=t*x*Dx(u(t,x))
 function calc_coeff_mat(input,iv,grade,order,dx,m,nonderiv_depvars)
     if input isa ModelingToolkit.Constant
-        x = abs(input.value)
-        return :($x)
+        return :($input.value)
     elseif input isa Operation
         if input.op isa Variable
             if haskey(nonderiv_depvars,input.op)
@@ -53,10 +46,10 @@ function calc_coeff_mat(input,iv,grade,order,dx,m,nonderiv_depvars)
                     #       Then, in the "f" ODE function (in DiffEqBase.discretize),
                     #       evaluate expression w.r.t. time (t).
                     expr = Expr(x)
-                    L = :(Diagonal([ (x=i*$dx;eval($expr)) for i=1:$m ]))
+                    L = :([ (x=i*$dx;eval($expr)) for i=1:$m ])
                 end
             elseif grade == 1
-                L = :($(UpwindDifference(grade,order,dx,m,-1)))
+                L = :($(UpwindDifference(grade,order,dx,m,1.)))
             else
                 L = :($(CenteredDifference(grade,order,dx,m)))
             end
@@ -66,17 +59,12 @@ function calc_coeff_mat(input,iv,grade,order,dx,m,nonderiv_depvars)
             return calc_coeff_mat(input.args[1],input.op.x,grade,order,dx,m,nonderiv_depvars)
         elseif input.op isa typeof(-)
             L = calc_coeff_mat(input.args[1],iv,grade,order,dx,m,nonderiv_depvars)
-            return L
+            return Expr(:call,:*,:(-1),L)
         elseif input.op isa typeof(*)
-            # TODO: probably the code below can be shortened
+            #TODO: verificar si hay más de un argumento en input
             expr1 = calc_coeff_mat(input.args[1],iv,grade,order,dx,m,nonderiv_depvars)
             expr2 = calc_coeff_mat(input.args[2],iv,grade,order,dx,m,nonderiv_depvars)
-            expr1 = Expr(:call, :*, expr1, expr2)
-            for i = 3:size(input.args,1)
-                expr2 = calc_coeff_mat(input.args[i],iv,grade,order,dx,m,nonderiv_depvars)
-                expr1 = Expr(:call, :*, expr1, expr2)
-            end
-            return expr1
+            return Expr(:call,:*,expr1,expr2)
         end
     end
 end
@@ -131,16 +119,18 @@ function DiffEqBase.discretize(pdesys::PDESystem,discretization::MOLFiniteDiffer
 
     ### Get boundary conditions ################################################
     # TODO: generalize to N equations
-    # TODO: eval issue
     (u_t0,u_x0,u_x1) = get_bcs(pdesys.bcs,tdomain,domain)
+    # TODO: is there a better way to use eval here?
     t = 0.0
-    u0 = eval_expr(u_t0,interior,t)
+    g = eval(:((x,t) -> $u_t0))
+    u0 = @eval $g.($interior,$t)
     Q = DirichletBC(u_x0,u_x1)
 
     ### Define the discretized PDE as an ODE function ##########################
     function f(du,u,p,t)
         for L in values(L_expr)
             # TODO: there is probably a fancier way to eval time
+            # TODO: is there a better way to use eval here?
             g = eval(:((t) -> $L))
             L = @eval $g.($t)
             mul!(du,L,Q*u)
