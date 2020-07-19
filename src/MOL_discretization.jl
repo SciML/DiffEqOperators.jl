@@ -49,7 +49,9 @@ function calc_coeff_mat(input,iv,grade,order,dx,m,nonderiv_depvars)
                     L = :([ (x=i*$dx;eval($expr)) for i=1:$m ])
                 end
             elseif grade == 1
-                L = :($(UpwindDifference(grade,order,dx,m,1.)))
+                # TODO: the discretization order should not be the same for
+                #       first derivatives and second derivarives
+                L = :($(UpwindDifference(grade,1,dx,m,1.)))
             else
                 L = :($(CenteredDifference(grade,order,dx,m)))
             end
@@ -57,14 +59,28 @@ function calc_coeff_mat(input,iv,grade,order,dx,m,nonderiv_depvars)
         elseif input.op isa Differential
             grade += 1
             return calc_coeff_mat(input.args[1],input.op.x,grade,order,dx,m,nonderiv_depvars)
-        elseif input.op isa typeof(-)
-            L = calc_coeff_mat(input.args[1],iv,grade,order,dx,m,nonderiv_depvars)
-            return Expr(:call,:*,:(-1),L)
         elseif input.op isa typeof(*)
-            #TODO: verificar si hay más de un argumento en input
             expr1 = calc_coeff_mat(input.args[1],iv,grade,order,dx,m,nonderiv_depvars)
             expr2 = calc_coeff_mat(input.args[2],iv,grade,order,dx,m,nonderiv_depvars)
             return Expr(:call,:*,expr1,expr2)
+        elseif input.op isa typeof(-)
+            if size(input.args,1) == 2
+                expr1 = calc_coeff_mat(input.args[1],iv,grade,order,dx,m,nonderiv_depvars)
+                expr2 = calc_coeff_mat(input.args[2],iv,grade,order,dx,m,nonderiv_depvars)
+                return Expr(:call,:-,expr1,expr2)
+            else #if size(input.args,1) == 1
+                expr1 = calc_coeff_mat(input.args[1],iv,grade,order,dx,m,nonderiv_depvars)
+                return Expr(:call,:*,:(-1),expr1)
+            end
+        elseif input.op isa typeof(+)
+            if size(input.args,1) == 2
+                expr1 = calc_coeff_mat(input.args[1],iv,grade,order,dx,m,nonderiv_depvars)
+                expr2 = calc_coeff_mat(input.args[2],iv,grade,order,dx,m,nonderiv_depvars)
+                return Expr(:call,:+,expr1,expr2)
+            else #if size(input.args,1) == 1
+                expr1 = calc_coeff_mat(input.args[1],iv,grade,order,dx,m,nonderiv_depvars)
+                return Expr(expr1)
+            end
         end
     end
 end
@@ -126,14 +142,19 @@ function DiffEqBase.discretize(pdesys::PDESystem,discretization::MOLFiniteDiffer
     u0 = @eval $g.($interior,$t)
     Q = DirichletBC(u_x0,u_x1)
 
+    # TODO: see TODO below related to "mul!(du,L,Q*u)"
+    Id = [ i==j ? 1 : 0 for i = 1:m+2, j = 1:m+2 ]
+
     ### Define the discretized PDE as an ODE function ##########################
     function f(du,u,p,t)
         for L in values(L_expr)
-            # TODO: there is probably a fancier way to eval time
             # TODO: is there a better way to use eval here?
             g = eval(:((t) -> $L))
             L = @eval $g.($t)
-            mul!(du,L,Q*u)
+
+            # TODO: mul!(du,L,Q*u) should work when L is a DiffEqOperatorCombination
+            #       L*Id should not be needed
+            mul!(du,L*Id,Q*u)
         end
     end
 
