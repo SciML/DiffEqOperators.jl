@@ -7,7 +7,6 @@ struct MOLFiniteDifference{T} <: DiffEqBase.AbstractDiscretization
 end
 MOLFiniteDifference(args...;order=2) = MOLFiniteDifference(args,order)
 
-
 # Get boundary conditions from an array
 function get_bcs(bcs,tdomain,domain)
     u_t0 = 0.0
@@ -88,19 +87,50 @@ end
 # Convert a PDE problem into an ODE problem
 function DiffEqBase.discretize(pdesys::PDESystem,discretization::MOLFiniteDifference)
 
-    ### Get spatial and temporal domains #######################################
+    # TODO: discretize the following cases
+    #
+    #   1) PDE System
+    #        1.a) Transient
+    #                There is more than one indep. variable, including  't'
+    #                E.g. du/dt = d2u/dx2 + d2u/dy2 + f(t,x,y)
+    #        1.b) Stationary
+    #                There is more than one indep. variable, 't' is not included
+    #                E.g. 0 = d2u/dx2 + d2u/dy2 + f(x,y)
+    #   2) ODE System
+    #        't' is the only independent variable
+    #        The ODESystem is packed inside a PDESystem
+    #        E.g. du/dt = f(t)
+    #
+    #   Note: regarding input format, lhs must be "du/dt" or "0".
+    #
+
+    # The following code deals with 1.a case for 1D,
+    # i.e. only considering 't' and 'x'
+
+    ### Get domains (typically temporal and spatial) ###########################
+    # TODO: here it is assumed that the time domain is the first in the array.
+    #       It can be in any order.
+
     tdomain = pdesys.domain[1].domain
-    domain = pdesys.domain[2].domain
     @assert tdomain isa IntervalDomain
-    @assert domain isa IntervalDomain
-    dx = discretization.dxs
-    interior = domain.lower+dx:dx:domain.upper-dx
-    X = domain.lower:dx:domain.upper
+
+    no_iv = size(pdesys.domain,1)
+    domain = []
+    dx = []
+    X = []
+    xx = []
+    for i = 1:no_iv-1
+        domain = vcat(domain,pdesys.domain[i+1].domain)
+        dx = vcat(dx,discretization.dxs)
+        X = vcat(X,domain[i].lower:dx[i]:domain[i].upper)
+        xx = vcat(xx,size(X,1)-2)
+    end
+
+    # TODO: specify order for each derivative
     order = discretization.order
-    m = size(X,1)-2
 
     ### Calculate coefficient matrices #########################################
-    # Each coeff. matrix (L_expr[x]) is an expression which is then evaluated 
+    # Each coeff. matrix (L_expr[x]) is an expression which is then evaluated
     # in the ODE function (f)
 
     # TODO: improve the code below using index arrays instead of Dicts?
@@ -110,8 +140,7 @@ function DiffEqBase.discretize(pdesys::PDESystem,discretization::MOLFiniteDiffer
     # if there is only one equation
     if pdesys.eq isa Equation
         x = pdesys.eq.lhs.op
-        L_expr[x] = calc_coeff_mat(pdesys.eq.rhs,pdesys.indvars[2],0,
-                                   order,dx,m,Dict())
+        L_expr[x] = calc_coeff_mat(pdesys.eq.rhs,0,0,order,dx[1],xx[1],Dict())
     # if there are many equations (pdesys.eq isa Array)
     else
         # Store 'non-derived' dependent variables (e.g. v(t,x)=t*x)
@@ -128,22 +157,23 @@ function DiffEqBase.discretize(pdesys::PDESystem,discretization::MOLFiniteDiffer
 
         # Calc. coeff. matrix for each differential equation
         for (x,rhs) in deriv_depvars
-            L_expr[x] = calc_coeff_mat(rhs,pdesys.indvars[2],0,order,
-                                       dx,m,nonderiv_depvars)
+            L_expr[x] = calc_coeff_mat(rhs,0,0,order,dx[1],xx[1],nonderiv_depvars)
         end
     end
 
     ### Get boundary conditions ################################################
     # TODO: generalize to N equations
-    (u_t0,u_x0,u_x1) = get_bcs(pdesys.bcs,tdomain,domain)
+    (u_t0,u_x0,u_x1) = get_bcs(pdesys.bcs,tdomain,domain[1])
     # TODO: is there a better way to use eval here?
     t = 0.0
     g = eval(:((x,t) -> $u_t0))
+    interior = domain[1].lower+dx[1]:dx[1]:domain[1].upper-dx[1]
+
     u0 = @eval $g.($interior,$t)
     Q = DirichletBC(u_x0,u_x1)
 
     # TODO: see TODO below related to "mul!(du,L,Q*u)"
-    Id = [ i==j ? 1 : 0 for i = 1:m+2, j = 1:m+2 ]
+    Id = [ i==j ? 1 : 0 for i = 1:xx[1]+2, j = 1:xx[1]+2 ]
 
     ### Define the discretized PDE as an ODE function ##########################
     function f(du,u,p,t)
@@ -161,5 +191,3 @@ function DiffEqBase.discretize(pdesys::PDESystem,discretization::MOLFiniteDiffer
     # Return problem ###########################################################
     return PDEProblem(ODEProblem(f,u0,(tdomain.lower,tdomain.upper),nothing),Q,X)
 end
-
-
