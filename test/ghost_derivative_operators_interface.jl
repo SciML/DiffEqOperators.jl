@@ -7,7 +7,7 @@ using DiffEqOperators, Test
     A = L * Q
 
     @test ndims(A) == 2
-    @test_broken size(A) == (10, 10)
-    @test_broken size(A, 1) == 10
-    @test_broken length(A) == 100
+    @test size(A) == (10, 10)
+    @test size(A, 1) == 10
+    @test length(A) == 100
 end

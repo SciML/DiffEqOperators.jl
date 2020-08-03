@@ -54,7 +54,7 @@ end
 
 # length and sizes
 Base.ndims(A::GhostDerivativeOperator) = 2
-Base.size(A::GhostDerivativeOperator) = (size(A.L, 2), size(A.L, 2))
+Base.size(A::GhostDerivativeOperator) = (A.L.len, A.L.len)
 Base.size(A::GhostDerivativeOperator,i::Integer) = size(A)[i]
 Base.length(A::GhostDerivativeOperator) = reduce(*, size(A))
 
