@@ -179,7 +179,9 @@ function Base.:*(Q::ComposedMultiDimBC{T, B, N, K}, u::AbstractArray{T, N}) wher
         @assert perpsize(u, dim) == size(Q.BCs[dim]) "Size of the BCs array for dimension $dim in the MultiDimBC is incorrect, needs to be $(perpsize(u,dim)), got $(size(Q.BCs[dim]))"
     end
     out = slice_rmul.(Q.BCs, fill(u, N), 1:N)
-    return ComposedBoundaryPaddedArray{T, N, K, typeof(u), Union{typeof.(lower)..., typeof.(upper)...}}([A[1] for A in out], [A[2] for A in out], u)
+    lower = [A[1] for A in out]
+    upper = [A[2] for A in out]
+    return ComposedBoundaryPaddedArray{T, N, K, typeof(u), Union{typeof.(lower)..., typeof.(upper)...}}(lower, upper, u)
 end
 
 function Base.:*(Q::ComposedMultiDimBC{T, PeriodicBC{T}, N, K}, u::AbstractArray{T, N}) where {T, B, N, K}
