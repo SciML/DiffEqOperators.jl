@@ -136,16 +136,19 @@ end
 
 
 #implement Neumann and Dirichlet as special cases of RobinBC
-NeumannBC(α::NTuple{2,T}, dx::Union{AbstractVector{T}, T}, order = 1) where T = RobinBC((zero(T), one(T), α[1]), (zero(T), one(T), α[2]), dx, order)
-DirichletBC(αl::T, αr::T) where T = RobinBC((one(T), zero(T), αl), (one(T), zero(T), αr), one(T), 2one(T) )
+NeumannBC(α::NTuple{2,T}, dx::Union{AbstractVector{U}, U}, order = 1) where {T<:Number,U<:Real} = RobinBC((zero(T), one(T), α[1]), (zero(T), one(T), α[2]), dx, order)
+DirichletBC(αl::T, αr::T) where {T<:Real} = RobinBC((one(T), zero(T), αl), (one(T), zero(T), αr), one(T), 2one(T) )
+DirichletBC(U::Type,αl::T, αr::T) where {T<:Number,U<:Real} = RobinBC((one(T), zero(T), αl), (one(T), zero(T), αr), one(U), 2one(U) )
 #specialized constructors for Neumann0 and Dirichlet0
 Dirichlet0BC(T::Type) = DirichletBC(zero(T), zero(T))
-Neumann0BC(dx::Union{AbstractVector{T}, T}, order = 1) where T = NeumannBC((zero(T), zero(T)), dx, order)
+Neumann0BC(dx::Union{AbstractVector{T}, T}, order = 1) where {T<:Real} = NeumannBC((zero(T), zero(T)), dx, order)
+Neumann0BC(U::Type,dx::Union{AbstractVector{T}, T}, order = 1) where {T<:Real,U<:Number} = NeumannBC((zero(U), zero(U)), dx, order)
 
 # other acceptable argument signatures
 #RobinBC(al::T, bl::T, cl::T, dx_l::T, ar::T, br::T, cr::T, dx_r::T, order = 1) where T = RobinBC([al,bl, cl], [ar, br, cr], dx_l, order)
 
-Base.:*(Q::AffineBC, u::AbstractVector) = BoundaryPaddedVector(Q.a_l'⋅ u[1:length(Q.a_l)] + Q.b_l, Q.a_r' ⋅ u[(end-length(Q.a_r)+1):end] + Q.b_r, u)
+Base.:*(Q::AffineBC, u::AbstractVector) = BoundaryPaddedVector( Q.a_l'⋅ u[1:length(Q.a_l)] + Q.b_l, Q.a_r' ⋅ u[(end-length(Q.a_r)+1):end] + Q.b_r, u )
+
 Base.:*(Q::PeriodicBC, u::AbstractVector) = BoundaryPaddedVector(u[end], u[1], u)
 
 Base.size(Q::AtomicBC) = (Inf, Inf) #Is this nessecary?
