@@ -138,11 +138,11 @@ end
 #implement Neumann and Dirichlet as special cases of RobinBC
 NeumannBC(α::NTuple{2,T}, dx::Union{AbstractVector{U}, U}, order = 1) where {T<:Number,U<:Real} = RobinBC((zero(T), one(T), α[1]), (zero(T), one(T), α[2]), dx, order)
 DirichletBC(αl::T, αr::T) where {T<:Real} = RobinBC((one(T), zero(T), αl), (one(T), zero(T), αr), one(T), 2one(T) )
-DirichletBC(U::Type,αl::T, αr::T) where {T<:Number,U<:Real} = RobinBC((one(T), zero(T), αl), (one(T), zero(T), αr), one(U), 2one(U) )
+DirichletBC(::Type{U},αl::T, αr::T) where {T<:Number,U<:Real} = RobinBC((one(T), zero(T), αl), (one(T), zero(T), αr), one(U), 2one(U) )
 #specialized constructors for Neumann0 and Dirichlet0
 Dirichlet0BC(T::Type) = DirichletBC(zero(T), zero(T))
 Neumann0BC(dx::Union{AbstractVector{T}, T}, order = 1) where {T<:Real} = NeumannBC((zero(T), zero(T)), dx, order)
-Neumann0BC(U::Type,dx::Union{AbstractVector{T}, T}, order = 1) where {T<:Real,U<:Number} = NeumannBC((zero(U), zero(U)), dx, order)
+Neumann0BC(::Type{U},dx::Union{AbstractVector{T}, T}, order = 1) where {T<:Real,U<:Number} = NeumannBC((zero(U), zero(U)), dx, order)
 
 # other acceptable argument signatures
 #RobinBC(al::T, bl::T, cl::T, dx_l::T, ar::T, br::T, cr::T, dx_r::T, order = 1) where T = RobinBC([al,bl, cl], [ar, br, cr], dx_l, order)
