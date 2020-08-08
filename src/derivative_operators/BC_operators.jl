@@ -22,7 +22,7 @@ struct RobinBC{T, V<:AbstractVector{T}} <: AffineBC{T}
     b_l::T
     a_r::V
     b_r::T
-    function RobinBC(l::NTuple{3,T}, r::NTuple{3,T}, dx::U, order = 1) where {T,U}
+    function RobinBC(l::NTuple{3,T}, r::NTuple{3,T}, dx::U, order = 1) where {T<:Number,U<:Real}
         αl, βl, γl = l
         αr, βr, γr = r
 
@@ -36,7 +36,7 @@ struct RobinBC{T, V<:AbstractVector{T}} <: AffineBC{T}
 
         return new{T, typeof(a_l)}(a_l, b_l, a_r, b_r)
     end
-    function RobinBC(l::Union{NTuple{3,T},AbstractVector{T}}, r::Union{NTuple{3,T},AbstractVector{T}}, dx::AbstractVector{U}, order = 1) where {T,U}
+    function RobinBC(l::Union{NTuple{3,T},AbstractVector{T}}, r::Union{NTuple{3,T},AbstractVector{T}}, dx::AbstractVector{U}, order = 1) where {T<:Number,U<:Real}
         αl, βl, γl = l
         αr, βr, γr = r
 
@@ -76,7 +76,7 @@ struct GeneralBC{T, L<:AbstractVector{T}, R<:AbstractVector{T}} <:AffineBC{T}
     b_l::T
     a_r::R
     b_r::T
-    function GeneralBC(αl::AbstractVector{T}, αr::AbstractVector{T}, dx::U, order = 1) where {T,U}
+    function GeneralBC(αl::AbstractVector{T}, αr::AbstractVector{T}, dx::U, order = 1) where {T<:Number,U<:Real}
         nl = length(αl)
         nr = length(αr)
         S_l = zeros(T, (nl-2, order+nl-2))
@@ -103,7 +103,7 @@ struct GeneralBC{T, L<:AbstractVector{T}, R<:AbstractVector{T}} <:AffineBC{T}
         new{T, typeof(a_l), typeof(a_r)}(a_l,b_l,a_r,b_r)
     end
 
-    function GeneralBC(αl::AbstractVector{T}, αr::AbstractVector{T}, dx::AbstractVector{U}, order = 1) where {T,U}
+    function GeneralBC(αl::AbstractVector{T}, αr::AbstractVector{T}, dx::AbstractVector{U}, order = 1) where {T<:Number,U<:Real}
 
         nl = length(αl)
         nr = length(αr)
