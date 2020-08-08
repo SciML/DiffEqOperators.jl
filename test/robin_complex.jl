@@ -3,7 +3,6 @@ using .DiffEqOperators
 using LinearAlgebra, Random, Test
 
 # Generate random parameters
-# Generate random parameters
 al = rand(ComplexF64,5)
 bl = rand(ComplexF64,5)
 cl = rand(ComplexF64,5)
