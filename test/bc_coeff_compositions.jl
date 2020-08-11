@@ -464,20 +464,25 @@ end
     @test As_l ≈ analytic_AL #This is true
     @test As_b ≈  analytic_Ab #This is true
     @test Vector(u .- analytic_Ab) ≈ Vector(u .- As_b) #this is true
-    @test_broken analytic_AL\Vector(u .- analytic_Ab) ≈ As_l\Vector(u .- As_b) #Then why isn't this working?
-    # This test seems to be a problem with sparse vs dense ldiv
+    u_translated = u .- analytic_Ab |> Vector
+    # TODO validate analytic_AL as having reasonable condition (what is reasonable condition?)
+    @test norm(analytic_AL \ u_translated - As_l \ u_translated) / norm(analytic_AL \ u_translated) < cond(analytic_AL)*eps()
 
     sp_u = As_l\Vector(u .- As_b)
     # Check that A\u.(x) is consistent with analytic_AL \ u.(x)
     @test ghost_u ≈ sp_u
-    @test_broken analytic_u ≈ ghost_u #
+    # TODO make cond function in ghost_derivative_operator?
+    # however, note: ArgumentError: 2-norm condition number is not implemented for sparse matrices, try cond(Array(A), 2) instead
+    # so the actual function would probably just propagate that error
+    _cond(A::GhostDerivativeOperator, u) = cond(sparse(A,length(u))[1] |> Array)
+    @test norm(analytic_u - ghost_u) / norm(ghost_u) < _cond(A,u) * eps() #
 
     M2 = [u 2.0*u 10.0*u]
     s = size(M2)
     Qx = MultiDimBC{1}(Q, size(M2))
     Am = L*Qx
     #Somehow the operator is singular
-    @test_broken analytic_M = analytic_Am \ (reshape(M2, prod(s)) .-repeat(analytic_Ab, 3))
+    @test_broken analytic_M = analytic_Am \ (reshape(M2, prod(s)) .- repeat(analytic_Ab, 3))
     @test_broken ghost_M = Am \ M2
     @test_broken reshape(analytic_M, s) ≈ ghost_M
 
