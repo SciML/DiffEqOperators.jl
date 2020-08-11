@@ -465,6 +465,7 @@ end
     @test As_b ≈  analytic_Ab #This is true
     @test Vector(u .- analytic_Ab) ≈ Vector(u .- As_b) #this is true
     @test_broken analytic_AL\Vector(u .- analytic_Ab) ≈ As_l\Vector(u .- As_b) #Then why isn't this working?
+    # This test seems to be a problem with sparse vs dense ldiv
 
     sp_u = As_l\Vector(u .- As_b)
     # Check that A\u.(x) is consistent with analytic_AL \ u.(x)
