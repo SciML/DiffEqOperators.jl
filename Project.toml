@@ -19,7 +19,7 @@ SuiteSparse = "4607b0f0-06f3-5cda-b6b1-a6196a1729e9"
 
 [compat]
 BandedMatrices = "0.15.11"
-BlockBandedMatrices = "0.8.6"
+BlockBandedMatrices = "0.8.6, 0.9"
 DiffEqBase = "6.4.1"
 ForwardDiff = "0.10"
 LazyArrays = "0.16.12"
