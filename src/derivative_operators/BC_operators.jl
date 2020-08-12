@@ -28,8 +28,8 @@ struct RobinBC{T, V<:AbstractVector{T}} <: AffineBC{T}
 
         s = calculate_weights(1, one(U), Array(one(U):convert(U,order+1))) #generate derivative coefficients about the boundary of required approximation order
 
-        a_l = -s[2:end]./(αl*dx/βl + s[1])
-        a_r = s[end:-1:2]./(αr*dx/βr - s[1]) # for other boundary stencil is flippedlr with *opposite sign*
+        a_l = -βl*s[2:end]./(αl*dx + βl*s[1])
+        a_r = βr*s[end:-1:2]./(αr*dx - βr*s[1]) # for other boundary stencil is flippedlr with *opposite sign*
 
         b_l = γl/(αl+βl*s[1]/dx)
         b_r = γr/(αr-βr*s[1]/dx)

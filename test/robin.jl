@@ -152,7 +152,7 @@ for i in 1:5
 	
 end
 
-# Construct 5 arbitrary RobinBC operators w/non-uniform grid
+# Test complex Robin BC, w/non-uniform grid
 al = rand(ComplexF64,5)
 bl = rand(ComplexF64,5)
 cl = rand(ComplexF64,5)
@@ -198,19 +198,21 @@ for j in 1:2
     end
 end
 
-# Test Neumann and Dirichlet as special cases of RobinBC
-dx = [0.121, 0.783, 0.317, 0.518, 0.178]
-αC = (0.539 + 0.653im, 0.842 + 0.47im)
-αR = (0.045, 0.577)
-@test NeumannBC(αC, dx).b_l ≈ -0.065219 - 0.079013im
-@test DirichletBC(αR...).b_r ≈ 0.577
-@test DirichletBC(Float64, αC...) ≈ 0.123 # broken
+# Test NeumannBC, DirichletBC as special cases of RobinBC
+let
+	dx = [0.121, 0.783, 0.317, 0.518, 0.178]
+	αC = (0.539 + 0.653im, 0.842 + 0.47im)
+	αR = (0.045, 0.577)
+	@test NeumannBC(αC, dx).b_l ≈ -0.065219 - 0.079013im
+	@test DirichletBC(αR...).b_r ≈ 0.577
+	@test DirichletBC(Float64, αC...).b_l ≈ 0.539 + 0.653im
+	@test DirichletBC(Float64, αC...).a_r ≈ [-0.0 + 0.0im, 0.0 + 0.0im]
 
-@test Dirichlet0BC(Float64).a_r ≈ [-0.0,0.0]
-@test Neumann0BC(dx).a_r ≈ [0.3436293436293436]
-@test Neumann0BC(ComplexF64,dx).a_l ≈ [0.15453384418901658 + 0.0im]
+	@test Dirichlet0BC(Float64).a_r ≈ [-0.0,0.0]
+	@test Neumann0BC(dx).a_r ≈ [0.3436293436293436]
+	@test Neumann0BC(ComplexF64,dx).a_l ≈ [0.15453384418901658 + 0.0im]
 
-@test NeumannBC(αC, first(dx)).b_r ≈ 0.101882 + 0.05687im
-@test Neumann0BC(first(dx)).a_r ≈ [1.0 - 0.0im]
-@test Neumann0BC(ComplexF64,first(dx)).a_l ≈ [1.0 + 0.0im]
-
+	@test NeumannBC(αC, first(dx)).b_r ≈ 0.101882 + 0.05687im
+	@test Neumann0BC(first(dx)).a_r ≈ [1.0 - 0.0im]
+	@test Neumann0BC(ComplexF64,first(dx)).a_l ≈ [1.0 + 0.0im]
+end
