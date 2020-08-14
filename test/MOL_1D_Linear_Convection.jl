@@ -39,19 +39,19 @@ using ModelingToolkit,DiffEqOperators,DiffEqBase,LinearAlgebra,Test
 
     # Plot and save results
     using Plots
-    plot(prob.space,Array(prob.extrapolation*sol[1]))
-    plot!(prob.space,Array(prob.extrapolation*sol[2]))
-    plot!(prob.space,Array(prob.extrapolation*sol[3]))
-    plot!(prob.space,Array(prob.extrapolation*sol[4]))
-    plot!(prob.space,Array(prob.extrapolation*sol[5]))
-    plot!(prob.space,Array(prob.extrapolation*sol[6]))
+    plot(prob.space,Array(prob.extrapolation[1]*sol[:,1,1]))
+    plot!(prob.space,Array(prob.extrapolation[1]*sol[:,1,2]))
+    plot!(prob.space,Array(prob.extrapolation[1]*sol[:,1,3]))
+    plot!(prob.space,Array(prob.extrapolation[1]*sol[:,1,4]))
+    plot!(prob.space,Array(prob.extrapolation[1]*sol[:,1,5]))
+    plot!(prob.space,Array(prob.extrapolation[1]*sol[:,1,6]))
     savefig("MOL_1D_Linear_Convection_Test00.png")
 
     # Test
     x_interval = domains[2].domain.lower+dx:dx:domains[2].domain.upper-dx
     u = @. (0.5/(0.2*sqrt(2.0*3.1415)))*exp(-(x_interval-(0.75+0.6))^2/(2.0*0.2^2))
-    t_f = size(sol)[2]
-    @test sol[t_f] ≈ u atol = 0.1;
+    t_f = size(sol,3)
+    @test sol[:,1,t_f] ≈ u atol = 0.1;
 
 end
 
@@ -89,20 +89,20 @@ end
     sol = solve(prob,Euler(),dt=.025,saveat=0.1)
 
     # Plot and save results
-    # using Plots
-    # plot(prob.space,Array(prob.extrapolation*sol[1]))
-    # plot!(prob.space,Array(prob.extrapolation*sol[2]))
-    # plot!(prob.space,Array(prob.extrapolation*sol[3]))
-    # plot!(prob.space,Array(prob.extrapolation*sol[4]))
-    # plot!(prob.space,Array(prob.extrapolation*sol[5]))
-    # plot!(prob.space,Array(prob.extrapolation*sol[6]))
-    # savefig("MOL_1D_Linear_Convection_Test01.png")
+    using Plots
+    plot(prob.space,Array(prob.extrapolation[1]*sol[:,1,1]))
+    plot!(prob.space,Array(prob.extrapolation[1]*sol[:,1,2]))
+    plot!(prob.space,Array(prob.extrapolation[1]*sol[:,1,3]))
+    plot!(prob.space,Array(prob.extrapolation[1]*sol[:,1,4]))
+    plot!(prob.space,Array(prob.extrapolation[1]*sol[:,1,5]))
+    plot!(prob.space,Array(prob.extrapolation[1]*sol[:,1,6]))
+    savefig("MOL_1D_Linear_Convection_Test01.png")
 
     # Test
     x_interval = domains[2].domain.lower+dx:dx:domains[2].domain.upper-dx
     u = @. (0.5/(0.2*sqrt(2.0*3.1415)))*exp(-(x_interval-(0.75+0.6))^2/(2.0*0.2^2))
-    t_f = size(sol)[2]
-    @test sol[t_f] ≈ u atol = 0.1;
+    t_f = size(sol,3)
+    @test sol[:,1,t_f] ≈ u atol = 0.1;
 
 end
 
@@ -140,21 +140,21 @@ end
     using OrdinaryDiffEq
     sol = solve(prob,Euler(),dt=.025,saveat=0.1)
 
-#    # Plot and save results
-#    using Plots
-#    plot(prob.space,Array(prob.extrapolation*sol[1]))
-#    plot!(prob.space,Array(prob.extrapolation*sol[2]))
-#    plot!(prob.space,Array(prob.extrapolation*sol[3]))
-#    plot!(prob.space,Array(prob.extrapolation*sol[4]))
-#    plot!(prob.space,Array(prob.extrapolation*sol[5]))
-#    plot!(prob.space,Array(prob.extrapolation*sol[6]))
-#    savefig("MOL_1D_Linear_Convection_Test02.png")
+    # Plot and save results
+    using Plots
+    plot(prob.space,Array(prob.extrapolation[1]*sol[:,1,1]))
+    plot!(prob.space,Array(prob.extrapolation[1]*sol[:,1,2]))
+    plot!(prob.space,Array(prob.extrapolation[1]*sol[:,1,3]))
+    plot!(prob.space,Array(prob.extrapolation[1]*sol[:,1,4]))
+    plot!(prob.space,Array(prob.extrapolation[1]*sol[:,1,5]))
+    plot!(prob.space,Array(prob.extrapolation[1]*sol[:,1,6]))
+    savefig("MOL_1D_Linear_Convection_Test02.png")
 
     # Test
     x_interval = domains[2].domain.lower+dx:dx:domains[2].domain.upper-dx
     u = @. (0.5/(0.2*sqrt(2.0*3.1415)))*exp(-(x_interval-(0.75+v*0.6))^2/(2.0*0.2^2))
-    t_f = size(sol)[2]
-    @test sol[t_f] ≈ u atol = 0.1;
+    t_f = size(sol,3)
+    @test sol[:,1,t_f] ≈ u atol = 0.1;
 end
 
 
@@ -193,20 +193,20 @@ end
     sol = solve(prob,Euler(),dt=.025,saveat=0.1)
 
     #Plot and save results
-#    using Plots
-#    plot(prob.space,Array(prob.extrapolation*sol[1]))
-#    plot!(prob.space,Array(prob.extrapolation*sol[2]))
-#    plot!(prob.space,Array(prob.extrapolation*sol[3]))
-#    plot!(prob.space,Array(prob.extrapolation*sol[4]))
-#    plot!(prob.space,Array(prob.extrapolation*sol[5]))
-#    plot!(prob.space,Array(prob.extrapolation*sol[6]))
-#    savefig("MOL_1D_Linear_Convection_Test03.png")
+    using Plots
+    plot(prob.space,Array(prob.extrapolation[1]*sol[:,1,1]))
+    plot!(prob.space,Array(prob.extrapolation[1]*sol[:,1,2]))
+    plot!(prob.space,Array(prob.extrapolation[1]*sol[:,1,3]))
+    plot!(prob.space,Array(prob.extrapolation[1]*sol[:,1,4]))
+    plot!(prob.space,Array(prob.extrapolation[1]*sol[:,1,5]))
+    plot!(prob.space,Array(prob.extrapolation[1]*sol[:,1,6]))
+    savefig("MOL_1D_Linear_Convection_Test03.png")
 
     # Test
     x_interval = domains[2].domain.lower+dx:dx:domains[2].domain.upper-dx
     u = @. (0.5/(0.2*sqrt(2.0*3.1415)))*exp(-(x_interval-(0.75+v*0.6))^2/(2.0*0.2^2))
-    t_f = size(sol)[2]
-    @test sol[t_f] ≈ u atol = 0.1;
+    t_f = size(sol,3)
+    @test sol[:,1,t_f] ≈ u atol = 0.1;
 end
 
 
@@ -244,21 +244,21 @@ end
     sol = solve(prob,Euler(),dt=.025,saveat=0.1)
 
     #Plot and save results
-#    using Plots
-#    plot(prob.space,Array(prob.extrapolation*sol[1]))
-#    plot!(prob.space,Array(prob.extrapolation*sol[2]))
-#    plot!(prob.space,Array(prob.extrapolation*sol[3]))
-#    plot!(prob.space,Array(prob.extrapolation*sol[4]))
-#    plot!(prob.space,Array(prob.extrapolation*sol[5]))
-#    plot!(prob.space,Array(prob.extrapolation*sol[6]))
-#    savefig("MOL_1D_Linear_Convection_Test04.png")
+    using Plots
+    plot(prob.space,Array(prob.extrapolation[1]*sol[:,1,1]))
+    plot!(prob.space,Array(prob.extrapolation[1]*sol[:,1,2]))
+    plot!(prob.space,Array(prob.extrapolation[1]*sol[:,1,3]))
+    plot!(prob.space,Array(prob.extrapolation[1]*sol[:,1,4]))
+    plot!(prob.space,Array(prob.extrapolation[1]*sol[:,1,5]))
+    plot!(prob.space,Array(prob.extrapolation[1]*sol[:,1,6]))
+    savefig("MOL_1D_Linear_Convection_Test04.png")
 
     # Test
     x_interval = domains[2].domain.lower+dx:dx:domains[2].domain.upper-dx
     u = @. (0.5/(0.2*sqrt(2.0*3.1415)))*exp(-(x_interval-(0.75+1.0*0.6))^2/(2.0*0.2^2))
-    t_f = size(sol)[2]
+    t_f = size(sol,3)
 
-    @test sol[t_f] ≈ u atol = 0.1;
+    @test sol[:,1,t_f] ≈ u atol = 0.1;
 end
 
 @testset "Test 05: Dt(u(t,x)) ~ -Dx(v(t,x)*u(t,x))" begin
@@ -294,20 +294,20 @@ end
     using OrdinaryDiffEq
     sol = solve(prob,Euler(),dt=.025,saveat=0.1)
 
-#    #Plot and save results
-#    using Plots
-#    plot(prob.space,Array(prob.extrapolation*sol[1]))
-#    plot!(prob.space,Array(prob.extrapolation*sol[2]))
-#    plot!(prob.space,Array(prob.extrapolation*sol[3]))
-#    plot!(prob.space,Array(prob.extrapolation*sol[4]))
-#    plot!(prob.space,Array(prob.extrapolation*sol[5]))
-#    plot!(prob.space,Array(prob.extrapolation*sol[6]))
-#    savefig("MOL_1D_Linear_Convection_Test05.png")
+   #Plot and save results
+   using Plots
+   plot(prob.space,Array(prob.extrapolation[1]*sol[:,1,1]))
+   plot!(prob.space,Array(prob.extrapolation[1]*sol[:,1,2]))
+   plot!(prob.space,Array(prob.extrapolation[1]*sol[:,1,3]))
+   plot!(prob.space,Array(prob.extrapolation[1]*sol[:,1,4]))
+   plot!(prob.space,Array(prob.extrapolation[1]*sol[:,1,5]))
+   plot!(prob.space,Array(prob.extrapolation[1]*sol[:,1,6]))
+   savefig("MOL_1D_Linear_Convection_Test05.png")
 
     # Test
     x_interval = domains[2].domain.lower+dx:dx:domains[2].domain.upper-dx
     u = @. (0.5/(0.2*sqrt(2.0*3.1415)))*exp(-(x_interval-(0.75+1.0*0.6))^2/(2.0*0.2^2))
-    t_f = size(sol)[2]
+    t_f = size(sol,3)
 
-    @test sol[t_f] ≈ u atol = 0.1;
+    @test sol[:,1,t_f] ≈ u atol = 0.1;
 end

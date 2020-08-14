@@ -39,21 +39,18 @@ using ModelingToolkit,DiffEqOperators,DiffEqBase,LinearAlgebra,Test
     sol = solve(prob,Tsit5(),saveat=0.1)
 
     # Plot and save results
-    # using Plots
-    # plot(prob.space,Array(prob.extrapolation*sol[1]))
-    # plot!(prob.space,Array(prob.extrapolation*sol[2]))
-    # plot!(prob.space,Array(prob.extrapolation*sol[3]))
-    # plot!(prob.space,Array(prob.extrapolation*sol[4]))
-    # savefig("MOL_1D_Linear_Diffusion_Test00.png")
+    using Plots
+    plot(prob.space,Array(prob.extrapolation[1]*sol[:,1,1]))
+    plot!(prob.space,Array(prob.extrapolation[1]*sol[:,1,2]))
+    plot!(prob.space,Array(prob.extrapolation[1]*sol[:,1,3]))
+    plot!(prob.space,Array(prob.extrapolation[1]*sol[:,1,4]))
+    savefig("MOL_1D_Linear_Diffusion_Test00.png")
 
     # Test
-    n = size(sol)[1]
-    t_f = size(sol)[2]
+    n = size(sol,1)
+    t_f = size(sol,3)
 
-    println("prob.space:",prob.space)
-    println("prob.extrapolation*sol:",prob.extrapolation*sol[t_f])
-
-    @test sol[t_f] ≈ zeros(n) atol = 0.001;
+    @test sol[:,1,t_f] ≈ zeros(n) atol = 0.001;
 end
 
 @testset "Test 01: Dt(u(t,x)) ~ D*Dxx(u(t,x))" begin
@@ -90,18 +87,18 @@ end
     using OrdinaryDiffEq
     sol = solve(prob,Tsit5(),saveat=0.1)
 
-#    # Plot and save results
-#    using Plots
-#    plot(prob.space,Array(prob.extrapolation*sol[1]))
-#    plot!(prob.space,Array(prob.extrapolation*sol[2]))
-#    plot!(prob.space,Array(prob.extrapolation*sol[3]))
-#    plot!(prob.space,Array(prob.extrapolation*sol[4]))
-#    savefig("MOL_1D_Linear_Diffusion_Test01.png")
+    # Plot and save results
+    using Plots
+    plot(prob.space,Array(prob.extrapolation[1]*sol[:,1,1]))
+    plot!(prob.space,Array(prob.extrapolation[1]*sol[:,1,2]))
+    plot!(prob.space,Array(prob.extrapolation[1]*sol[:,1,3]))
+    plot!(prob.space,Array(prob.extrapolation[1]*sol[:,1,4]))
+    savefig("MOL_1D_Linear_Diffusion_Test01.png")
 
     # Test
-    n = size(sol)[1]
-    t_f = size(sol)[2]
-    @test sol[t_f] ≈ zeros(n) atol = 0.001;
+    n = size(sol,1)
+    t_f = size(sol,3)
+    @test sol[:,1,t_f] ≈ zeros(n) atol = 0.001;
 end
 
 @testset "Test 02: Dt(u(t,x)) ~ Dxx(D*u(t,x))" begin
@@ -138,18 +135,18 @@ end
     using OrdinaryDiffEq
     sol = solve(prob,Tsit5(),saveat=0.1)
 
-#    # Plot and save results
-#    using Plots
-#    plot(prob.space,Array(prob.extrapolation*sol[1]))
-#    plot!(prob.space,Array(prob.extrapolation*sol[2]))
-#    plot!(prob.space,Array(prob.extrapolation*sol[3]))
-#    plot!(prob.space,Array(prob.extrapolation*sol[4]))
-#    savefig("MOL_1D_Linear_Diffusion_Test02.png")
+    # Plot and save results
+    using Plots
+    plot(prob.space,Array(prob.extrapolation[1]*sol[:,1,1]))
+    plot!(prob.space,Array(prob.extrapolation[1]*sol[:,1,2]))
+    plot!(prob.space,Array(prob.extrapolation[1]*sol[:,1,3]))
+    plot!(prob.space,Array(prob.extrapolation[1]*sol[:,1,4]))
+    savefig("MOL_1D_Linear_Diffusion_Test02.png")
 
     # Test
-    n = size(sol)[1]
-    t_f = size(sol)[2]
-    @test sol[t_f] ≈ zeros(n) atol = 0.001;
+    n = size(sol,1)
+    t_f = size(sol,3)
+    @test sol[:,1,t_f] ≈ zeros(n) atol = 0.001;
 end
 
 @testset "Test 03: Dt(u(t,x)) ~ Dx(D(t,x)*Dx(u(t,x)))" begin
@@ -187,15 +184,15 @@ end
     sol = solve(prob,Tsit5(),saveat=0.1)
 
     # Plot and save results
-#    using Plots
-#    plot(prob.space,Array(prob.extrapolation*sol[1]))
-#    plot!(prob.space,Array(prob.extrapolation*sol[2]))
-#    plot!(prob.space,Array(prob.extrapolation*sol[3]))
-#    plot!(prob.space,Array(prob.extrapolation*sol[4]))
-#    savefig("MOL_1D_Linear_Diffusion_Test03.png")
+    using Plots
+    plot(prob.space,Array(prob.extrapolation[1]*sol[:,1,1]))
+    plot!(prob.space,Array(prob.extrapolation[1]*sol[:,1,2]))
+    plot!(prob.space,Array(prob.extrapolation[1]*sol[:,1,3]))
+    plot!(prob.space,Array(prob.extrapolation[1]*sol[:,1,4]))
+    savefig("MOL_1D_Linear_Diffusion_Test03.png")
 
     # Test
-    n = size(sol)[1]
-    t_f = size(sol)[2]
-    @test sol[t_f] ≈ zeros(n) atol = 0.01;
+    n = size(sol,1)
+    t_f = size(sol,3)
+    @test sol[:,1,t_f] ≈ zeros(n) atol = 0.01;
 end
