@@ -29,33 +29,13 @@ function get_bcs(bcs,tdomain,domain)
     return lhs_deriv_depvars_bcs
 end
 
-# # Get boundary conditions from an array
-# function get_bcs(bcs,tdomain,domain)
-#     u_t0 = 0.0
-#     u_x0 = 0.0
-#     u_x1 = 0.0
-#     n = size(bcs,1)
-#     for i = 1:n
-#         if bcs[i].lhs.op isa Variable
-#             if isequal(bcs[i].lhs.args[1],tdomain.lower) # u(t=0,x)
-#                 u_t0 = Expr(bcs[i].rhs)
-#             elseif isequal(bcs[i].lhs.args[2],domain.lower) # u(t,x=x_init)
-#                 u_x0 = bcs[i].rhs.value
-#             elseif isequal(bcs[i].lhs.args[2],domain.upper) # u(t,x=x_final)
-#                 u_x1 = bcs[i].rhs.value
-#             end
-#         end
-#     end
-#     return (u_t0,u_x0,u_x1)
-# end
-
 # Recursively traverses the input expression (rhs), replacing derivatives by
 # finite difference schemes. It returns a time dependent expression (expr)
 # that will be evaluated in the "f" ODE function (in DiffEqBase.discretize),
 # Note: 'non-derived' dependent variables are inserted into the diff. equations
 #       E.g. Dx(u(t,x))=v(t,x)*Dx(u(t,x)), v(t,x)=t*x
 #            =>  Dx(u(t,x))=t*x*Dx(u(t,x))
-function discretize_2(input,iv,grade,order,dx,m,lhs_nonderiv_depvars)
+function discretize_2(input,grade,order,dx,lhs_deriv_depvars,lhs_nonderiv_depvars)
     if input isa ModelingToolkit.Constant
         return :($input.value)
     elseif input isa Operation
@@ -71,36 +51,43 @@ function discretize_2(input,iv,grade,order,dx,m,lhs_nonderiv_depvars)
             elseif grade == 1
                 # TODO: the discretization order should not be the same for
                 #       first derivatives and second derivarives
-                expr = :((u[i]-u[i-1])/$dx)
+                j = findfirst(x->x==input.op, lhs_deriv_depvars)
+                expr = :((u[i,$j]-u[i-1,$j])/$dx)
             elseif grade == 2
-                expr = :((u[i+1]-2.0*u[i]+u[i-1])/($dx*$dx))
+                j = findfirst(x->x==input.op, lhs_deriv_depvars)
+                expr = :((u[i+1,$j]-2.0*u[i,$j]+u[i-1,$j])/($dx*$dx))
             else
-                expr = :(u[i])
+                j = findfirst(x->x==input.op, lhs_deriv_depvars)
+                expr = :(u[i,$j])
             end
             return expr
         elseif input.op isa Differential
             grade += 1
-            return discretize_2(input.args[1],input.op.x,grade,order,dx,m,lhs_nonderiv_depvars)
+            return discretize_2(input.args[1],grade,order,dx,lhs_deriv_depvars,lhs_nonderiv_depvars)
         elseif input.op isa typeof(*)
-            expr1 = discretize_2(input.args[1],iv,grade,order,dx,m,lhs_nonderiv_depvars)
-            expr2 = discretize_2(input.args[2],iv,grade,order,dx,m,lhs_nonderiv_depvars)
+            expr1 = discretize_2(input.args[1],grade,order,dx,lhs_deriv_depvars,lhs_nonderiv_depvars)
+            expr2 = discretize_2(input.args[2],grade,order,dx,lhs_deriv_depvars,lhs_nonderiv_depvars)
             return Expr(:call,:*,expr1,expr2)
+        elseif input.op isa typeof(/)
+            expr1 = discretize_2(input.args[1],grade,order,dx,lhs_deriv_depvars,lhs_nonderiv_depvars)
+            expr2 = discretize_2(input.args[2],grade,order,dx,lhs_deriv_depvars,lhs_nonderiv_depvars)
+            return Expr(:call,:/,expr1,expr2)
         elseif input.op isa typeof(-)
             if size(input.args,1) == 2
-                expr1 = discretize_2(input.args[1],iv,grade,order,dx,m,lhs_nonderiv_depvars)
-                expr2 = discretize_2(input.args[2],iv,grade,order,dx,m,lhs_nonderiv_depvars)
+                expr1 = discretize_2(input.args[1],grade,order,dx,lhs_deriv_depvars,lhs_nonderiv_depvars)
+                expr2 = discretize_2(input.args[2],grade,order,dx,lhs_deriv_depvars,lhs_nonderiv_depvars)
                 return Expr(:call,:-,expr1,expr2)
             else #if size(input.args,1) == 1
-                expr1 = discretize_2(input.args[1],iv,grade,order,dx,m,lhs_nonderiv_depvars)
+                expr1 = discretize_2(input.args[1],grade,order,dx,lhs_deriv_depvars,lhs_nonderiv_depvars)
                 return Expr(:call,:*,:(-1),expr1)
             end
         elseif input.op isa typeof(+)
             if size(input.args,1) == 2
-                expr1 = discretize_2(input.args[1],iv,grade,order,dx,m,lhs_nonderiv_depvars)
-                expr2 = discretize_2(input.args[2],iv,grade,order,dx,m,lhs_nonderiv_depvars)
+                expr1 = discretize_2(input.args[1],grade,order,dx,lhs_deriv_depvars,lhs_nonderiv_depvars)
+                expr2 = discretize_2(input.args[2],grade,order,dx,lhs_deriv_depvars,lhs_nonderiv_depvars)
                 return Expr(:call,:+,expr1,expr2)
             else #if size(input.args,1) == 1
-                expr1 = discretize_2(input.args[1],iv,grade,order,dx,m,lhs_nonderiv_depvars)
+                expr1 = discretize_2(input.args[1],grade,order,dx,lhs_deriv_depvars,lhs_nonderiv_depvars)
                 return Expr(expr1)
             end
         end
@@ -163,7 +150,9 @@ function DiffEqBase.discretize(pdesys::PDESystem,discretization::MOLFiniteDiffer
     # if there is only one equation
     if pdesys.eq isa Equation
         var = pdesys.eq.lhs.args[1].op
-        discretization[var] = discretize_2(pdesys.eq.rhs,0,0,order,dx[1],xx[1],Dict())
+        discretization[var] = discretize_2( pdesys.eq.rhs,0,order,dx[1],
+                                            [var],Dict())
+
     # if there are many equations (pdesys.eq isa Array)
     else
         # Store 'non-derived' dependent variables (e.g. v(t,x)=t*x)
@@ -181,8 +170,11 @@ function DiffEqBase.discretize(pdesys::PDESystem,discretization::MOLFiniteDiffer
         end
 
         # Calc. coeff. matrix for each differential equation
+        lhs_deriv_depvars_arr = collect(keys(lhs_deriv_depvars))
         for (var,rhs) in lhs_deriv_depvars
-            discretization[var] = discretize_2(rhs,0,0,order,dx[1],xx[1],lhs_nonderiv_depvars)
+            discretization[var] = discretize_2( rhs,0,order,dx[1],
+                                                lhs_deriv_depvars_arr,
+                                                lhs_nonderiv_depvars)
         end
     end
 
@@ -210,12 +202,16 @@ function DiffEqBase.discretize(pdesys::PDESystem,discretization::MOLFiniteDiffer
     end
 
 
+    Qu = Array{Float64}(undef,xx[1]+2,length(discretization))
+
     ### Define the discretized PDE as an ODE function ##########################
     function f(du,u,p,t)
+        for j in 1:length(discretization)
+            Qu[:,j] = Q[j]*u[:,j]            
+        end
         j = 1
-        for disc in values(discretization)
+        for (var,disc) in discretization
             g = eval(:((u,t,i) -> $disc))
-            Qu = Q[j]*u[:,j]
             for i = 1:xx[1]
                 du[i,j] = @eval $g($(Qu),$t,$(i+1))
             end
