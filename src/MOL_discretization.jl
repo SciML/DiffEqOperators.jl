@@ -29,6 +29,7 @@ function get_bcs(bcs,tdomain,domain)
     return lhs_deriv_depvars_bcs
 end
 
+
 # Recursively traverses the input expression (rhs), replacing derivatives by
 # finite difference schemes. It returns a time dependent expression (expr)
 # that will be evaluated in the "f" ODE function (in DiffEqBase.discretize),
@@ -52,13 +53,13 @@ function discretize_2(input,grade,order,dx,lhs_deriv_depvars,lhs_nonderiv_depvar
                 # TODO: the discretization order should not be the same for
                 #       first derivatives and second derivarives
                 j = findfirst(x->x==input.op, lhs_deriv_depvars)
-                expr = :((u[i,$j]-u[i-1,$j])/$dx)
+                expr = :((u[$j][i]-u[$j][i-1])/$dx)
             elseif grade == 2
                 j = findfirst(x->x==input.op, lhs_deriv_depvars)
-                expr = :((u[i+1,$j]-2.0*u[i,$j]+u[i-1,$j])/($dx*$dx))
+                expr = :((u[$j][i+1]-2.0*u[$j][i]+u[$j][i-1])/($dx*$dx))
             else
                 j = findfirst(x->x==input.op, lhs_deriv_depvars)
-                expr = :(u[i,$j])
+                expr = :(u[$j][i])
             end
             return expr
         elseif input.op isa Differential
@@ -150,9 +151,10 @@ function DiffEqBase.discretize(pdesys::PDESystem,discretization::MOLFiniteDiffer
     # if there is only one equation
     if pdesys.eq isa Equation
         var = pdesys.eq.lhs.args[1].op
-        discretization[var] = discretize_2( pdesys.eq.rhs,0,order,dx[1],
-                                            [var],Dict())
-
+        expr = discretize_2( pdesys.eq.rhs,0,order,dx[1], [var],Dict())
+        # TODO: is there a better way to convert an Expr into a Function?
+        discretization[var] = @eval (u,t,i) -> $expr
+        
     # if there are many equations (pdesys.eq isa Array)
     else
         # Store 'non-derived' dependent variables (e.g. v(t,x)=t*x)
@@ -172,9 +174,11 @@ function DiffEqBase.discretize(pdesys::PDESystem,discretization::MOLFiniteDiffer
         # Calc. coeff. matrix for each differential equation
         lhs_deriv_depvars_arr = collect(keys(lhs_deriv_depvars))
         for (var,rhs) in lhs_deriv_depvars
-            discretization[var] = discretize_2( rhs,0,order,dx[1],
-                                                lhs_deriv_depvars_arr,
-                                                lhs_nonderiv_depvars)
+            expr = discretize_2( rhs,0,order,dx[1],
+                                 lhs_deriv_depvars_arr,
+                                 lhs_nonderiv_depvars)
+            # TODO: is there a better way to convert an Expr into a Function?
+            discretization[var] = @eval (u,t,i) -> $expr
         end
     end
 
@@ -189,31 +193,23 @@ function DiffEqBase.discretize(pdesys::PDESystem,discretization::MOLFiniteDiffer
     i = 1
     for var in keys(discretization)
         bcs = lhs_deriv_depvars_bcs[var]
-
         g = eval(:((x,t) -> $(bcs[1])))
         u0[:,i] = @eval $g.($interior,$t)
-        
         u_x0 = eval(bcs[2])
         u_x1 = eval(bcs[3])
         Q[i] = DirichletBC(u_x0,u_x1)
-
         i = i+1
-
     end
-
-
-    Qu = Array{Float64}(undef,xx[1]+2,length(discretization))
 
     ### Define the discretized PDE as an ODE function ##########################
     function f(du,u,p,t)
-        for j in 1:length(discretization)
-            Qu[:,j] = Q[j]*u[:,j]            
-        end
+        # TODO: is this the correct way of using views?
+        Qu = [view(Q[j]*u[:,j],:) for j=1:length(discretization) ]
         j = 1
         for (var,disc) in discretization
-            g = eval(:((u,t,i) -> $disc))
+            # TODO: is there a better way to invoke disc?
             for i = 1:xx[1]
-                du[i,j] = @eval $g($(Qu),$t,$(i+1))
+                du[i,j] = Base.invokelatest(disc,Qu,t,i+1)
             end
             j = j+1
         end
