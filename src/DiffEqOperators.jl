@@ -5,7 +5,7 @@ using DiffEqBase, StaticArrays, LinearAlgebra
 import LinearAlgebra: mul!, ldiv!, lmul!, rmul!, axpy!, opnorm, factorize, I
 import DiffEqBase: AbstractDiffEqLinearOperator, update_coefficients!, isconstant
 using SparseArrays, ForwardDiff, BandedMatrices, NNlib, LazyArrays, BlockBandedMatrices
-using ModelingToolkit
+using LazyBandedMatrices, ModelingToolkit
 
 abstract type AbstractDerivativeOperator{T} <: AbstractDiffEqLinearOperator{T} end
 abstract type AbstractDiffEqCompositeOperator{T} <: AbstractDiffEqLinearOperator{T} end

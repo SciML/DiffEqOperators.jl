@@ -14,10 +14,7 @@ allow_failures:
     - julia: nightly
 notifications:
   email: false
-# uncomment the following lines to override the default test script
-#script:
-#  - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
-#  - julia -e 'Pkg.clone(pwd()); Pkg.build("DiffEqOperators"); Pkg.test("DiffEqOperators"; coverage=true)'
+script: julia -e 'using Pkg; Pkg.build(); Pkg.test(coverage=false)'
 after_success:
   # push coverage results to Coveralls
   - julia -e 'cd(Pkg.dir("DiffEqOperators")); Pkg.add("Coverage"); using Coverage; Coveralls.submit(Coveralls.process_folder())'

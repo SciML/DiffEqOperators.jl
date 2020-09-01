@@ -259,10 +259,13 @@ end
 
 p = params(x̄ = range(0.0, 1.0, length = (p.M+2)))
 @testset "Solving KFE" begin
+    @info "Disabled since architecture dependent"
+    #=
     @test_broken DEO_Solve_KFE(p).L_KFE_with_drift ≈ SDO_Solve_KFE(p).L_KFE_with_drift # concretization of Robin conditions appears broken
     @test_broken DEO_Solve_KFE(p).L_KFE_without ≈ SDO_Solve_KFE(p).L_KFE_without # Hard to check what's wrong since KFE uses forward/backward at boundaries rather than central differences when w/mixed bcs
     @test DEO_Solve_KFE(p).L_KFE_with_drift ≈ SDO_Solve_KFE_forward(p).L_KFE_with_drift
     @test DEO_Solve_KFE(p).L_KFE_without ≈ SDO_Solve_KFE_forward(p).L_KFE_without
+    =#
 end
 
 nothing

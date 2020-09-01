@@ -1,7 +1,7 @@
 name = "DiffEqOperators"
 uuid = "9fdde737-9c7f-55bf-ade8-46b3f136cc48"
 authors = ["Chris Rackauckas <accounts@chrisrackauckas.com>"]
-version = "4.10.0"
+version = "4.12.0"
 
 [deps]
 BandedMatrices = "aae01518-5342-5314-be14-df237901396f"
@@ -9,6 +9,7 @@ BlockBandedMatrices = "ffab5731-97b5-5995-9138-79e8c1846df0"
 DiffEqBase = "2b5f629d-d688-5b77-993f-72d75c75574e"
 ForwardDiff = "f6369f11-7733-5829-9624-2563aa707210"
 LazyArrays = "5078a376-72f3-5289-bfd5-ec5146d43c02"
+LazyBandedMatrices = "d7e5e226-e90b-4449-9968-0f923699bf6f"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 ModelingToolkit = "961ee093-0014-501f-94e3-6117800e7a78"
 NNlib = "872c559c-99b0-510c-b3b7-b6c96a88d5cd"
@@ -17,13 +18,14 @@ StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 SuiteSparse = "4607b0f0-06f3-5cda-b6b1-a6196a1729e9"
 
 [compat]
-BandedMatrices = "0.12, 0.13, 0.14, 0.15"
-BlockBandedMatrices = "0.6, 0.7, 0.8"
+BandedMatrices = "0.15.11"
+BlockBandedMatrices = "0.8.6, 0.9"
 DiffEqBase = "6.4.1"
 ForwardDiff = "0.10"
-LazyArrays = "0.14, 0.15, 0.16"
+LazyArrays = "0.16.12"
+LazyBandedMatrices = "0.2.11"
 ModelingToolkit = "0.10.0, 1.0, 2.0, 3.0"
-NNlib = "0.6"
+NNlib = "0.6, 0.7"
 StaticArrays = "0.10, 0.11, 0.12"
 julia = "1"
 
