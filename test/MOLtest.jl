@@ -7,7 +7,7 @@ using ModelingToolkit, DiffEqOperators, DiffEqBase, LinearAlgebra
 @derivatives Dxx''~x
 eq  = Dt(u(t,x)) ~ Dxx(u(t,x))
 bcs = [u(0,x) ~ - x * (x-1) * sin(x),
-           u(t,0) ~ 0, u(t,1) ~ 0]
+       u(t,0) ~ 0.0, u(t,1) ~ 0.0]
 
 domains = [t ∈ IntervalDomain(0.0,1.0),
            x ∈ IntervalDomain(0.0,1.0)]

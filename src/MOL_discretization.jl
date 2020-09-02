@@ -132,7 +132,11 @@ function DiffEqBase.discretize(pdesys::PDESystem,discretization::MOLFiniteDiffer
     xx = []
     for i = 1:no_iv-1
         domain = vcat(domain,pdesys.domain[i+1].domain)
-        dx = vcat(dx,discretization.dxs)
+        if discretization.dxs isa Float64
+            dx = vcat(dx,discretization.dxs)
+        else
+            dx = vcat(dx,discretization.dxs[1])
+        end
         X = vcat(X,domain[i].lower:dx[i]:domain[i].upper)
         xx = vcat(xx,size(X,1)-2)
     end
@@ -211,10 +215,11 @@ function DiffEqBase.discretize(pdesys::PDESystem,discretization::MOLFiniteDiffer
             for i = 1:xx[1]
                 du[i,j] = Base.invokelatest(disc,Qu,t,i+1)
             end
-            j = j+1
+            j = j+1 
         end
     end
 
     # Return problem ###########################################################
     return PDEProblem(ODEProblem(f,u0,(tdomain.lower,tdomain.upper),nothing),Q,X)
 end
+
