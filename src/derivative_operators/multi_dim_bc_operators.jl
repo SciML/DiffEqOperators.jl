@@ -16,7 +16,7 @@ slice_rmul lets you multiply each vector like strip of an array `u` with a linea
 """
 function slice_rmul(A::AbstractDiffEqLinearOperator, u::AbstractArray{T,N}, dim::Int) where {T,N}
     @assert N != 1
-    u_temp = similar(u)
+    u_temp = zero(u)
 
     _slice_rmul!(u_temp, A, u, dim, CartesianIndices(axes(u)[1:dim-1]), CartesianIndices(axes(u)[(dim+1):end]))
 
