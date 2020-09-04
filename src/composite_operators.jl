@@ -53,6 +53,7 @@ struct DiffEqOperatorCombination{T,O<:Tuple{Vararg{AbstractDiffEqLinearOperator{
     T = eltype(ops[1])
     if cache == nothing
       cache = Vector{T}(undef, size(ops[1], 1))
+      fill!(cache,0)
     end
     # TODO: safecheck dimensions
     new{T,typeof(ops),typeof(cache)}(ops, cache)
@@ -96,7 +97,9 @@ struct DiffEqOperatorComposition{T,O<:Tuple{Vararg{AbstractDiffEqLinearOperator{
       # Construct a list of caches to be used by mul! and ldiv!
       caches = []
       for op in ops[1:end-1]
-        push!(caches, Vector{T}(undef, size(op, 1)))
+        tmp = Vector{T}(undef, size(op, 1))
+        fill!(tmp,0)
+        push!(caches,tmp)
       end
       caches = tuple(caches...)
     end

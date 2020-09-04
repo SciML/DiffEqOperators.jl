@@ -586,6 +586,7 @@ end
       L = UpwindDifference(1,2, 0.1, N, 1.0)
       analyticL = 10.0*analyticOneTwoPos()
       x = rand(7)
+      @show x
 
       # Test that multiplication agrees with analytic multiplication
       @test L*x ≈ analyticL*x
