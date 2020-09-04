@@ -103,7 +103,7 @@ function CenteredDifference{N}(derivative_order::Int,
                                                                   calculate_weights(derivative_order, high_boundary_x[end-i], high_boundary_x)) for i in boundary_point_count:-1:1]
     high_boundary_coefs      = convert(SVector{boundary_point_count},_high_boundary_coefs)
 
-    coefficients            = coeff_func isa Nothing ? nothing : Vector{T}(undef,len)
+    coefficients            = coeff_func isa Nothing ? nothing : zeros(T,len)
 
     DerivativeOperator{T,N,false,typeof(dx),typeof(stencil_coefs),
         typeof(low_boundary_coefs),typeof(coefficients),
@@ -169,7 +169,7 @@ function UpwindDifference{N}(derivative_order::Int,
     _high_boundary_coefs     = SVector{boundary_stencil_length, T}[convert(SVector{boundary_stencil_length, T}, ((-1/dx)^derivative_order) * calculate_weights(derivative_order, oneunit(T)*x0, high_boundary_x)) for x0 in R_boundary_deriv_spots]
     high_boundary_coefs = convert(SVector{boundary_point_count},_high_boundary_coefs)
 
-    coefficients = Vector{T}(undef,len)
+    coefficients = zeros(T,len)
     if coeff_func != nothing
         compute_coeffs!(coeff_func, coefficients)
     end
@@ -215,7 +215,7 @@ function UpwindDifference{N}(derivative_order::Int,
     high_boundary_coefs = [_upwind_coefs ; _downwind_coefs]
 
     # Compute coefficients
-    coefficients = Vector{T}(undef,len)
+    coefficients = zeros(T,len)
     if coeff_func != nothing
         compute_coeffs!(coeff_func, coefficients)
     end
