@@ -92,8 +92,8 @@ struct GeneralBC{T, L<:AbstractVector{T}, R<:AbstractVector{T}} <:AffineBC{T}
         s0_l = S_l[:,1] ; Sl = S_l[:,2:end]
         s0_r = S_r[:,end] ; Sr = S_r[:,(end-1):-1:1]
 
-        denoml = αl[2] .+ αl[3:end]' ⋅ s0_l
-        denomr = αr[2] .+ αr[3:end]' ⋅ s0_r
+        denoml = αl[2] .+ sum(αl[3:end] .* s0_l) # dot product without complex conjugation
+        denomr = αr[2] .+ sum(αr[3:end] .* s0_r)
 
         a_l = -transpose(transpose(αl[3:end]) * Sl) ./denoml
         a_r = reverse(-transpose(transpose(αr[3:end]) * Sr) ./denomr)
@@ -121,8 +121,8 @@ struct GeneralBC{T, L<:AbstractVector{T}, R<:AbstractVector{T}} <:AffineBC{T}
         s0_l = S_l[:,1] ; Sl = S_l[:,2:end]
         s0_r = S_r[:,end] ; Sr = S_r[:,(end-1):-1:1]
 
-        denoml = αl[2] .+ αl[3:end]' ⋅ s0_l
-        denomr = αr[2] .+ αr[3:end]' ⋅ s0_r
+        denoml = αl[2] .+ sum(αl[3:end] .* s0_l)
+        denomr = αr[2] .+ sum(αr[3:end] .* s0_r)
 
         a_l = -transpose(transpose(αl[3:end]) * Sl) ./denoml
         a_r = reverse(-transpose(transpose(αr[3:end]) * Sr) ./denomr)
@@ -147,7 +147,7 @@ Neumann0BC(::Type{U},dx::Union{AbstractVector{T}, T}, order = 1) where {T<:Real,
 # other acceptable argument signatures
 #RobinBC(al::T, bl::T, cl::T, dx_l::T, ar::T, br::T, cr::T, dx_r::T, order = 1) where T = RobinBC([al,bl, cl], [ar, br, cr], dx_l, order)
 
-Base.:*(Q::AffineBC, u::AbstractVector) = BoundaryPaddedVector( Q.a_l'⋅ u[1:length(Q.a_l)] + Q.b_l, Q.a_r' ⋅ u[(end-length(Q.a_r)+1):end] + Q.b_r, u )
+Base.:*(Q::AffineBC, u::AbstractVector) = BoundaryPaddedVector( sum(Q.a_l .* u[1:length(Q.a_l)]) + Q.b_l, sum(Q.a_r .* u[(end-length(Q.a_r)+1):end]) + Q.b_r, u )
 
 Base.:*(Q::PeriodicBC, u::AbstractVector) = BoundaryPaddedVector(u[end], u[1], u)
 
