@@ -65,6 +65,13 @@ function discretize_2(input,grade,order,dx,lhs_deriv_depvars,lhs_nonderiv_depvar
         elseif input.op isa Differential
             grade += 1
             return discretize_2(input.args[1],grade,order,dx,lhs_deriv_depvars,lhs_nonderiv_depvars)
+        elseif input.op isa typeof(abs)
+            expr = discretize_2(input.args[1],grade,order,dx,lhs_deriv_depvars,lhs_nonderiv_depvars)
+            return Expr(:call,:abs,expr)
+        elseif input.op isa typeof(^)
+            expr1 = discretize_2(input.args[1],grade,order,dx,lhs_deriv_depvars,lhs_nonderiv_depvars)
+            expr2 = discretize_2(input.args[2],grade,order,dx,lhs_deriv_depvars,lhs_nonderiv_depvars)
+            return Expr(:call,:^,expr1,expr2)
         elseif input.op isa typeof(*)
             expr1 = discretize_2(input.args[1],grade,order,dx,lhs_deriv_depvars,lhs_nonderiv_depvars)
             expr2 = discretize_2(input.args[2],grade,order,dx,lhs_deriv_depvars,lhs_nonderiv_depvars)
@@ -154,7 +161,7 @@ function DiffEqBase.discretize(pdesys::PDESystem,discretization::MOLFiniteDiffer
         expr = discretize_2( pdesys.eq.rhs,0,order,dx[1], [var],Dict())
         # TODO: is there a better way to convert an Expr into a Function?
         discretization[var] = @eval (u,t,i) -> $expr
-        
+
     # if there are many equations (pdesys.eq isa Array)
     else
         # Store 'non-derived' dependent variables (e.g. v(t,x)=t*x)
@@ -183,7 +190,7 @@ function DiffEqBase.discretize(pdesys::PDESystem,discretization::MOLFiniteDiffer
     end
 
     ### Get boundary conditions ################################################
-    # TODO: generalize to N equations
+    # TODO: extend to Neumann BCs and Robin BCs
     lhs_deriv_depvars_bcs = get_bcs(pdesys.bcs,tdomain,domain[1])
     t = 0.0
     interior = domain[1].lower+dx[1]:dx[1]:domain[1].upper-dx[1]
@@ -204,14 +211,14 @@ function DiffEqBase.discretize(pdesys::PDESystem,discretization::MOLFiniteDiffer
     ### Define the discretized PDE as an ODE function ##########################
     function f(du,u,p,t)
         # TODO: is this the correct way of using views?
-        Qu = [view(Q[j]*u[:,j],:) for j=1:length(discretization) ]
+        Qu = [view(Q[j]*u[:,j],:) for j=1:length(discretization)]
         j = 1
         for (var,disc) in discretization
             # TODO: is there a better way to invoke disc?
             for i = 1:xx[1]
                 du[i,j] = Base.invokelatest(disc,Qu,t,i+1)
             end
-            j = j+1 
+            j = j+1
         end
     end
 
