@@ -2,10 +2,10 @@
 
 # Method of lines discretization scheme
 struct MOLFiniteDifference{T} <: DiffEqBase.AbstractDiscretization
-  dxs::T
-  order::Int
+    dxs::T
+    order::Int
+    MOLFiniteDifference(args...;order=2) = new{typeof(args[1])}(args[1],order)
 end
-MOLFiniteDifference(args...;order=2) = MOLFiniteDifference(args,order)
 
 # Get boundary conditions from an array
 function get_bcs(bcs,tdomain,domain)
@@ -132,11 +132,7 @@ function DiffEqBase.discretize(pdesys::PDESystem,discretization::MOLFiniteDiffer
     xx = []
     for i = 1:no_iv-1
         domain = vcat(domain,pdesys.domain[i+1].domain)
-        if discretization.dxs isa Float64
-            dx = vcat(dx,discretization.dxs)
-        else
-            dx = vcat(dx,discretization.dxs[1])
-        end
+        dx = vcat(dx,discretization.dxs)
         X = vcat(X,domain[i].lower:dx[i]:domain[i].upper)
         xx = vcat(xx,size(X,1)-2)
     end
