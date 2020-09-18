@@ -142,21 +142,26 @@ PeriodicBC
 
 
 """
-  q = RobinBC(left_coefficients, right_coefficients, dx::T, approximation_order) where T # When this BC extends a dimension with a uniform step size
+    q = RobinBC(l, r, dx::T, approximation_order) where T # When this BC extends a dimension with a uniform step size
 
-  q = RobinBC(left_coefficients, right_coefficients, dx::Vector{T}, approximation_order) where T # When this BC extends a dimension with a non uniform step size. dx should be the vector of step sizes for the whole dimension
+    q = RobinBC(l, r, dx::Vector{T}, approximation_order) where T # When this BC extends a dimension with a non uniform step size. dx should be the vector of step sizes for the whole dimension
 
--------------------------------------------------------------------------------------
+`l` and `r` are the BC coefficients, i.e., `(αl, βl, γl)` and `(αl, βl, γl)` (tuples and vectors work)
+and correspond to BCs of the form 
 
-  The variables in l are [αl, βl, γl], and correspond to a BC of the form αl*u(0) + βl*u'(0) = γl imposed on the lower index boundary.
-  The variables in r are [αl, βl, γl], and correspond to an analogous boundary on the higher index end.
-  Implements a robin boundary condition operator Q that acts on a vector to give an extended vector as a result
-  Referring to (https://github.com/JuliaDiffEq/DiffEqOperators.jl/files/3267835/ghost_node.pdf)
-  Write vector b̄₁ as a vertical concatenation with b0 and the rest of the elements of b̄ ₁, denoted b̄`₁, the same with ū into u0 and ū`. b̄`₁ = b̄`_2 = fill(β/Δx, length(stencil)-1)
-  Pull out the product of u0 and b0 from the dot product. The stencil used to approximate u` is denoted s. b0 = α+(β/Δx)*s[1]
-  Rearrange terms to find a general formula for u0:= -b̄`₁̇⋅ū`/b0 + γ/b0, which is dependent on ū` the robin coefficients and Δx.
-  The non identity part of Qa is qa:= -b`₁/b0 = -β.*s[2:end]/(α+β*s[1]/Δx). The constant part is Qb = γ/(α+β*s[1]/Δx)
-  do the same at the other boundary (amounts to a flip of s[2:end], with the other set of boundary coeffs)
+`αl * u + βl * u' = γl`
+`αr * u + βr * u' = γr`
+
+imposed on the lower (`l`) and higher (`r`) index boundaries, respectively.
+
+`RobinBC` implements a Robin boundary condition operator `Q` that acts on a vector to give an extended
+vector as a result (see https://github.com/JuliaDiffEq/DiffEqOperators.jl/files/3267835/ghost_node.pdf).
+
+Write vector b̄₁ as a vertical concatenation with b0 and the rest of the elements of b̄₁, denoted b̄`₁, the same with ū into u0 and ū`. b̄`₁ = b̄`_2 = fill(β/Δx, length(stencil)-1)
+Pull out the product of u0 and b0 from the dot product. The stencil used to approximate u` is denoted s. b0 = α+(β/Δx)*s[1]
+Rearrange terms to find a general formula for u0:= -b̄`₁̇⋅ū`/b0 + γ/b0, which is dependent on ū` the robin coefficients and Δx.
+The non identity part of Qa is qa:= -b`₁/b0 = -β.*s[2:end]/(α+β*s[1]/Δx). The constant part is Qb = γ/(α+β*s[1]/Δx)
+do the same at the other boundary (amounts to a flip of s[2:end], with the other set of boundary coeffs)
 """
 RobinBC
 @doc (@doc RobinBC) NeumannBC
