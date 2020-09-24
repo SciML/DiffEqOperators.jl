@@ -17,12 +17,18 @@ function get_bcs(bcs,tdomain,domain)
             if !haskey(lhs_deriv_depvars_bcs,var)
                 lhs_deriv_depvars_bcs[var] = Array{Expr}(undef,3)
             end
+            j = 0
             if isequal(bcs[i].lhs.args[1],tdomain.lower) # u(t=0,x) 
-                lhs_deriv_depvars_bcs[var][1] = Expr(bcs[i].rhs)
+                j = 1    
             elseif isequal(bcs[i].lhs.args[2],domain.lower) # u(t,x=x_init)
-                lhs_deriv_depvars_bcs[var][2] = :(var=$(bcs[i].rhs.value))
+                j = 2
             elseif isequal(bcs[i].lhs.args[2],domain.upper) # u(t,x=x_final)
-                lhs_deriv_depvars_bcs[var][3] = :(var=$(bcs[i].rhs.value))
+                j = 3
+            end
+            if bcs[i].rhs isa ModelingToolkit.Constant
+                lhs_deriv_depvars_bcs[var][j] = :(var=$(bcs[i].rhs.value))
+            else    
+                lhs_deriv_depvars_bcs[var][j] = Expr(bcs[i].rhs)
             end
         end
     end
@@ -36,68 +42,40 @@ end
 # Note: 'non-derived' dependent variables are inserted into the diff. equations
 #       E.g. Dx(u(t,x))=v(t,x)*Dx(u(t,x)), v(t,x)=t*x
 #            =>  Dx(u(t,x))=t*x*Dx(u(t,x))
-function discretize_2(input,grade,order,dx,lhs_deriv_depvars,lhs_nonderiv_depvars)
+                            
+function discretize_2(input,deriv_order,approx_order,dx,X,len,index)
     if input isa ModelingToolkit.Constant
-        return :($input.value)
+        return :($(input.value)) 
     elseif input isa Operation
         if input.op isa Variable
-            if haskey(lhs_nonderiv_depvars,input.op)
-                x = lhs_nonderiv_depvars[input.op]
-                if x isa ModelingToolkit.Constant
-                    expr = :($x.value)
-                else
-                    expr = Expr(x)
-                    expr = :(x=i*$dx;eval($expr))
+            expr = :(0.0)
+            if !haskey(index,input.op) # ind. var.
+                expr = :($X)
+            else # dep. var.
+                j = index[input.op]
+                if deriv_order == 0
+                    expr = :(u[:,$j])
+                elseif deriv_order == 1
+                    approx_order = 1
+                    L = UpwindDifference(deriv_order,approx_order,dx[1],len,-1)
+                    expr = :(-1*($L*Q[$j]*u[:,$j]))
+                elseif deriv_order == 2
+                    L = CenteredDifference(deriv_order,approx_order,dx[1],len)
+                    expr = :($L*Q[$j]*u[:,$j])
                 end
-            elseif grade == 1
-                # TODO: the discretization order should not be the same for
-                #       first derivatives and second derivarives
-                j = findfirst(x->x==input.op, lhs_deriv_depvars)
-                expr = :((u[$j][i]-u[$j][i-1])/$dx)
-            elseif grade == 2
-                j = findfirst(x->x==input.op, lhs_deriv_depvars)
-                expr = :((u[$j][i+1]-2.0*u[$j][i]+u[$j][i-1])/($dx*$dx))
-            else
-                j = findfirst(x->x==input.op, lhs_deriv_depvars)
-                expr = :(u[$j][i])
             end
             return expr
         elseif input.op isa Differential
-            grade += 1
-            return discretize_2(input.args[1],grade,order,dx,lhs_deriv_depvars,lhs_nonderiv_depvars)
-        elseif input.op isa typeof(abs)
-            expr = discretize_2(input.args[1],grade,order,dx,lhs_deriv_depvars,lhs_nonderiv_depvars)
-            return Expr(:call,:abs,expr)
-        elseif input.op isa typeof(^)
-            expr1 = discretize_2(input.args[1],grade,order,dx,lhs_deriv_depvars,lhs_nonderiv_depvars)
-            expr2 = discretize_2(input.args[2],grade,order,dx,lhs_deriv_depvars,lhs_nonderiv_depvars)
-            return Expr(:call,:^,expr1,expr2)
-        elseif input.op isa typeof(*)
-            expr1 = discretize_2(input.args[1],grade,order,dx,lhs_deriv_depvars,lhs_nonderiv_depvars)
-            expr2 = discretize_2(input.args[2],grade,order,dx,lhs_deriv_depvars,lhs_nonderiv_depvars)
-            return Expr(:call,:*,expr1,expr2)
-        elseif input.op isa typeof(/)
-            expr1 = discretize_2(input.args[1],grade,order,dx,lhs_deriv_depvars,lhs_nonderiv_depvars)
-            expr2 = discretize_2(input.args[2],grade,order,dx,lhs_deriv_depvars,lhs_nonderiv_depvars)
-            return Expr(:call,:/,expr1,expr2)
-        elseif input.op isa typeof(-)
-            if size(input.args,1) == 2
-                expr1 = discretize_2(input.args[1],grade,order,dx,lhs_deriv_depvars,lhs_nonderiv_depvars)
-                expr2 = discretize_2(input.args[2],grade,order,dx,lhs_deriv_depvars,lhs_nonderiv_depvars)
-                return Expr(:call,:-,expr1,expr2)
-            else #if size(input.args,1) == 1
-                expr1 = discretize_2(input.args[1],grade,order,dx,lhs_deriv_depvars,lhs_nonderiv_depvars)
-                return Expr(:call,:*,:(-1),expr1)
-            end
-        elseif input.op isa typeof(+)
-            if size(input.args,1) == 2
-                expr1 = discretize_2(input.args[1],grade,order,dx,lhs_deriv_depvars,lhs_nonderiv_depvars)
-                expr2 = discretize_2(input.args[2],grade,order,dx,lhs_deriv_depvars,lhs_nonderiv_depvars)
-                return Expr(:call,:+,expr1,expr2)
-            else #if size(input.args,1) == 1
-                expr1 = discretize_2(input.args[1],grade,order,dx,lhs_deriv_depvars,lhs_nonderiv_depvars)
-                return Expr(expr1)
-            end
+            return discretize_2(input.args[1],deriv_order+1,approx_order,dx,X,len,index)
+        else
+            if size(input.args,1) == 1
+                aux = discretize_2(input.args[1],deriv_order,approx_order,dx,X,len,index)
+                return :(broadcast($(input.op), $aux))
+            else
+                aux_1 = discretize_2(input.args[1],deriv_order,approx_order,dx,X,len,index)
+                aux_2 = discretize_2(input.args[2],deriv_order,approx_order,dx,X,len,index)
+                return :(broadcast($(input.op), $aux_1, $aux_2))
+            end    
         end
     end
 end
@@ -143,86 +121,92 @@ function DiffEqBase.discretize(pdesys::PDESystem,discretization::MOLFiniteDiffer
         X = vcat(X,domain[i].lower:dx[i]:domain[i].upper)
         xx = vcat(xx,size(X,1)-2)
     end
+    interior = domain[1].lower+dx[1]:dx[1]:domain[1].upper-dx[1]
 
     # TODO: specify order for each derivative
-    order = discretization.order
+    approx_order = discretization.order
 
     ### Calculate discretization expression ####################################
     # The discretization is an expression which is then evaluated
     # in the ODE function (f)
 
-    # TODO: improve the code below using index arrays instead of Dicts?
-    lhs_nonderiv_depvars = Dict()
-    lhs_deriv_depvars = Dict()
     discretization = Dict()
+    lhs_deriv_depvars = Dict()
+    index = Dict()
+
     # if there is only one equation
     if pdesys.eq isa Equation
-        var = pdesys.eq.lhs.args[1].op
-        expr = discretize_2( pdesys.eq.rhs,0,order,dx[1], [var],Dict())
-        # TODO: is there a better way to convert an Expr into a Function?
-        discretization[var] = @eval (u,t,i) -> $expr
-
-    # if there are many equations (pdesys.eq isa Array)
+        eqs = [pdesys.eq]
     else
-        # Store 'non-derived' dependent variables (e.g. v(t,x)=t*x)
-        # and 'derived' dependent variables (e.g. Dt(u(t,x)))
-        n_eqs = size(pdesys.eq,1)
-        for i = 1:n_eqs
-            input = pdesys.eq[i].lhs
-            if input.op isa Variable
-                var = input.op
-                lhs_nonderiv_depvars[var] = pdesys.eq[i].rhs
-            else #var isa Differential
-                var = input.args[1].op
-                lhs_deriv_depvars[var] = pdesys.eq[i].rhs
-            end
-        end
-
-        # Calc. coeff. matrix for each differential equation
-        lhs_deriv_depvars_arr = collect(keys(lhs_deriv_depvars))
-        for (var,rhs) in lhs_deriv_depvars
-            expr = discretize_2( rhs,0,order,dx[1],
-                                 lhs_deriv_depvars_arr,
-                                 lhs_nonderiv_depvars)
-            # TODO: is there a better way to convert an Expr into a Function?
-            discretization[var] = @eval (u,t,i) -> $expr
-        end
+        eqs = pdesys.eq
     end
 
+    n_eqs = size(eqs,1)
+    for j = 1:n_eqs
+        input = eqs[j].lhs
+        if input.op isa Variable
+            var = input.op
+        else #var isa Differential
+            var = input.args[1].op
+            lhs_deriv_depvars[var] = j
+        end
+        index[var] = j
+    end
+    for (var,j) in index
+        aux = discretize_2( eqs[j].rhs,0,approx_order,
+                            dx[1],interior,xx[1],index)
+        # TODO: is there a better way to convert an Expr into a Function?
+        discretization[var] = @eval (Q,u,t) -> $aux
+    end
+    
     ### Get boundary conditions ################################################
     # TODO: extend to Neumann BCs and Robin BCs
     lhs_deriv_depvars_bcs = get_bcs(pdesys.bcs,tdomain,domain[1])
     t = 0.0
-    interior = domain[1].lower+dx[1]:dx[1]:domain[1].upper-dx[1]
-    u0 = Array{Float64}(undef,length(interior),length(discretization))
+    u_t0 = Array{Float64}(undef,length(interior),length(discretization))
+    u_x0 = Array{Any}(undef,length(discretization))
+    u_x1 = Array{Any}(undef,length(discretization))
     Q = Array{RobinBC}(undef,length(discretization))
     
-    i = 1
     for var in keys(discretization)
+        j = index[var]
         bcs = lhs_deriv_depvars_bcs[var]
+
         g = eval(:((x,t) -> $(bcs[1])))
-        u0[:,i] = @eval $g.($interior,$t)
-        u_x0 = eval(bcs[2])
-        u_x1 = eval(bcs[3])
-        Q[i] = DirichletBC(u_x0,u_x1)
-        i = i+1
+        u_t0[:,j] = @eval $g.($interior,$t)
+
+        u_x0[j] = @eval (x,t) -> $(bcs[2])
+        u_x1[j] = @eval (x,t) -> $(bcs[3])
+
+        a = Base.invokelatest(u_x0[j],X[1],0.0)
+        b = Base.invokelatest(u_x1[j],last(X),0.0)
+        Q[j] = DirichletBC(a,b)
+
     end
 
     ### Define the discretized PDE as an ODE function ##########################
+
     function f(du,u,p,t)
-        # TODO: is this the correct way of using views?
-        Qu = [view(Q[j]*u[:,j],:) for j=1:length(discretization)]
-        j = 1
-        for (var,disc) in discretization
-            # TODO: is there a better way to invoke disc?
-            for i = 1:xx[1]
-                du[i,j] = Base.invokelatest(disc,Qu,t,i+1)
-            end
-            j = j+1
+        
+        for j in 1:length(discretization)
+            a = Base.invokelatest(u_x0[j],X[1],t)
+            b = Base.invokelatest(u_x1[j],last(X),t)
+            Q[j] = DirichletBC(a,b)
         end
+
+        for (var,disc) in discretization
+            j = index[var]
+            res = Base.invokelatest(disc,Q,u,t)
+            if haskey(lhs_deriv_depvars,var)
+                du[:,j] = res
+            else
+                u[:,j] .= res
+            end
+        end
+
     end
 
     # Return problem ###########################################################
-    return PDEProblem(ODEProblem(f,u0,(tdomain.lower,tdomain.upper),nothing),Q,X)
+    return PDEProblem(ODEProblem(f,u_t0,(tdomain.lower,tdomain.upper),nothing),Q,X)
 end
 
