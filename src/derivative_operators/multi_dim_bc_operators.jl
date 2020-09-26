@@ -51,7 +51,7 @@ struct MultiDimDirectionalBC{T<:Number, B<:AtomicBC{T}, D, N, M} <: MultiDimensi
 end
 
 struct ComposedMultiDimBC{T, B<:AtomicBC{T}, N,M} <: MultiDimensionalBC{T, N}
-    BCs::Vector{Array{B, M}}
+    BCs::Vector{Array{B, M}} # Why isn't this a vector of MultiDimBCs?
 end
 
 
@@ -152,7 +152,7 @@ Qx, Qy,... = decompose(Q::ComposedMultiDimBC{T,N,M})
 
 Decomposes a ComposedMultiDimBC in to components that extend along each dimension individually
 """
-decompose(Q::ComposedMultiDimBC) = Tuple([MultiDimBC(Q.BC[i], i) for i in 1:ndims(Q)])
+decompose(Q::ComposedMultiDimBC) = Tuple([MultiDimBC(Q.BCs[i], i) for i in 1:ndims(Q)])
 
 getaxis(Q::MultiDimDirectionalBC{T, B, D, N, K}) where {T, B, D, N, K} = D
 getboundarytype(Q::MultiDimDirectionalBC{T, B, D, N, K}) where {T, B, D, N, K} = B

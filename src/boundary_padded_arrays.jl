@@ -18,6 +18,8 @@ end
 
 Base.length(Q::BoundaryPaddedVector) = length(Q.u) + 2
 Base.size(Q::BoundaryPaddedVector) = (length(Q.u) + 2,)
+unpadded_size(Q::BoundaryPaddedVector) = size(Q.u)
+unpadded_size(Q::AbstractArray) = size(Q)
 Base.lastindex(Q::BoundaryPaddedVector) = Base.length(Q)
 
 function Base.getindex(Q::BoundaryPaddedVector,i)
@@ -47,6 +49,7 @@ function Base.size(Q::BoundaryPaddedArray)
     S[getaxis(Q)] += 2
     return Tuple(S)
 end
+unpadded_size(Q::BoundaryPaddedArray) = size(Q.u)
 
 """
 A = compose(padded_arrays::BoundaryPaddedArray...)
@@ -95,6 +98,7 @@ ComposedBoundaryPaddedMatrix{T,V,B} = ComposedBoundaryPaddedArray{T,2,1,V,B}
 ComposedBoundaryPadded3Tensor{T,V,B} = ComposedBoundaryPaddedArray{T,3,2,V,B}
 
 Base.size(Q::ComposedBoundaryPaddedArray) = size(Q.u).+2
+unpadded_size(Q::ComposedBoundaryPaddedArray) = size(Q.u)
 
 """
 Ax, Ay,... = decompose(A::ComposedBoundaryPaddedArray)
