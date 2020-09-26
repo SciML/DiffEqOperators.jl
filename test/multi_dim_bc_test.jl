@@ -86,17 +86,17 @@ end
 #test compositions to higher dimension
 for N in 2:7
     sizes = rand(4:7, N)
-    A = rand(sizes...)
+    local A = rand(sizes...)
 
     Q1_N = RobinBC(Tuple(rand(3)), Tuple(rand(3)), fill(0.1, N), 4.0, size(A))
 
-    Q = compose(Q1_N...)
+    local Q = compose(Q1_N...)
 
     A1_N = Q1_N.*fill(A, N)
 
-    A_arr = Array(Q*A)
+    local A_arr = Array(Q*A)
     Q_l, Q_b = sparse(Q, size(A))
 
     @test A_arr == Array(compose(A1_N...))
-    @test A_arr == reshape(Q_l*reshape(A, length(A)) .+ Q_b, size(A)) #Test concretization
+    @test A_arr == reshape(Q_l*reshape(A, length(A)) .+ Q_b, size(A_arr)) #Test concretization
 end
