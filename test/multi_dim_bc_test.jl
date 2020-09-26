@@ -84,7 +84,7 @@ for i in 1:n, j in 1:m
 end
 
 #test compositions to higher dimension
-for N in 2:7
+for N in 2:6
     sizes = rand(4:7, N)
     local A = rand(sizes...)
 
