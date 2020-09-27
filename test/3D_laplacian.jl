@@ -1,4 +1,4 @@
-using DiffEqOperators, DifferentialEquations, ProgressMeter
+using DiffEqOperators
 
 s = x, y, z = (-5:0.2:5, -5:0.2:5, -5:0.2:5)
 dx = dy = dz = x[2] - x[1]
