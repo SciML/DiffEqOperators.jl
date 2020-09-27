@@ -3,6 +3,8 @@ using LinearAlgebra, SparseArrays, DiffEqOperators, Random, Test
 # Test 2d extension
 ################################################################################
 
+Random.seed!(7373)
+
 #Create Array
 n = 8
 m = 15
