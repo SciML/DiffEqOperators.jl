@@ -53,7 +53,7 @@ function CenteredDifference{N}(derivative_order::Int,
 
     high_boundary_coefs      = convert(SVector{boundary_point_count},reverse(map(reverse, _low_boundary_coefs*(-1)^derivative_order)))
 
-    coefficients            = coeff_func isa Nothing ? nothing : Vector{T}(undef,len)
+    coefficients            = coeff_func isa Nothing ? nothing : fill!(Vector{T}(undef,len),0)
 
     DerivativeOperator{T,N,false,T,typeof(stencil_coefs),
         typeof(low_boundary_coefs),typeof(coefficients),
