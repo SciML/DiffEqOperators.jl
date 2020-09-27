@@ -17,7 +17,7 @@ Q = compose(Dirichlet0BC(Float64, length.(s))...)
 dt = dx/(sqrt(3)*3e8)
 t = 0.0:dt:10/3e8
 
-f(u,p,t) = (3e8)^2 .*(A*(Q*u))
+f(u,p,t) = (3e8)^2 .*(A*Q*u)
 
 
 
