@@ -135,7 +135,8 @@ end
 ###########################################
 
 function *(A::DerivativeOperator{T,N},M::AbstractArray{T}) where {T<:Real,N}
-    size_x_temp = unpadded_size(M)
+    size_x_temp = [size(M)...]
+    size_x_temp[N] -= 2
     x_temp = zeros(promote_type(eltype(A),eltype(M)), size_x_temp...)
     LinearAlgebra.mul!(x_temp, A, M)
     return x_temp
