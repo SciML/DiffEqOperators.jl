@@ -26,9 +26,12 @@ function steptime(u,uold,uolder)
 end
 let uolder = deepcopy(u0), uold = deepcopy(u0), u = deepcopy(u0)
     u,uold,uolder = steptime(u0,uold,uolder)
-    @gif for ti in t #4th order time stepper
-            u, uold, uolder = steptime(u,uold,uolder)
-            heatmap(u)
+    # @gif for ti in t #4th order time stepper
+    #         u, uold, uolder = steptime(u,uold,uolder)
+    #         heatmap(u)
+    # end
+    for ti in t #4th order time stepper
+        u, uold, uolder = steptime(u,uold,uolder)
     end
 end
 

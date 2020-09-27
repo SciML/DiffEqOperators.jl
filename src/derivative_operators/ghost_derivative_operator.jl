@@ -14,12 +14,6 @@ end
 function *(A::GhostDerivativeOperator{T1}, u::AbstractArray{T2}) where {T1,T2}
     #TODO Implement a function domaincheck(L::AbstractDiffEqLinearOperator, u) to see if components of L along each dimension match the size of u
     x = zeros(promote_type(T1,T2), unpadded_size(u))
-    @show size(x)
-    @show typeof(x)
-    @show size(A.L)
-    @show typeof(A.L)
-    @show size(A.Q*u)
-    @show typeof(A.Q*u)
     LinearAlgebra.mul!(x, A.L, A.Q*u)
     return x
 end
