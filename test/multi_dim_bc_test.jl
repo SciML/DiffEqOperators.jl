@@ -99,8 +99,6 @@ for N in 2:6
     local A_arr = Array(Q*A)
     Q_l, Q_b = sparse(Q, size(A))
 
-    @test A_arr == Array(compose(A1_N...))
-    @show norm(A_arr .- reshape(Q_l*reshape(A, length(A)) .+ Q_b, size(A_arr)))
-    @show maximum(abs.(A_arr .- reshape(Q_l*reshape(A, length(A)) .+ Q_b, size(A_arr))))
-    @test A_arr == reshape(Q_l*reshape(A, length(A)) .+ Q_b, size(A_arr)) #Test concretization
+    @test A_arr ≈ Array(compose(A1_N...))
+    @test A_arr ≈ reshape(Q_l*reshape(A, length(A)) .+ Q_b, size(A_arr)) #Test concretization
 end
