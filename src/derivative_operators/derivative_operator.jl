@@ -53,7 +53,7 @@ function CenteredDifference{N}(derivative_order::Int,
 
     high_boundary_coefs      = convert(SVector{boundary_point_count},reverse(map(reverse, _low_boundary_coefs*(-1)^derivative_order)))
 
-    coefficients            = coeff_func isa Nothing ? nothing : Vector{T}(undef,len)
+    coefficients            = coeff_func isa Nothing ? nothing : fill!(Vector{T}(undef,len),0)
 
     DerivativeOperator{T,N,false,T,typeof(stencil_coefs),
         typeof(low_boundary_coefs),typeof(coefficients),
@@ -238,4 +238,7 @@ use_winding(A::DerivativeOperator{T,N,Wind}) where {T,N,Wind} = Wind
 diff_axis(A::DerivativeOperator{T,N}) where {T,N} = N
 function ==(A1::DerivativeOperator, A2::DerivativeOperator)
     return all([eval(:($A1.$name == $A2.$name)) for name in fieldnames(DerivativeOperator)])
+end
+function Laplacian(aor::Int, dxyz::Union{NTuple{N, T}, NTuple{N,AbstractVector{T}}}, s::NTuple{N,I}, coeff_func=nothing) where {T,N,I<:Int}
+    return sum(CenteredDifference{i}(2, aor, dxyz[i], s[i], coeff_func) for i in 1:N)
 end

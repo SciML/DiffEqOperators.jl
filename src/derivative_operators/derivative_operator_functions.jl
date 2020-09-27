@@ -17,28 +17,43 @@
 # Fallback mul! implementation for a single DerivativeOperator operating on an AbstractArray
 function LinearAlgebra.mul!(x_temp::AbstractArray{T}, A::DerivativeOperator{T,N}, M::AbstractArray{T}; overwrite = true) where {T,N}
 
-    # Check that x_temp has correct dimensions
+    # Check that x_temp has valid dimensions, allowing unnecessary padding in M
     v = zeros(ndims(x_temp))
-    v[N] = 2
-    @assert [size(x_temp)...]+v == [size(M)...]
+    v .= 2
+    @assert all(([size(x_temp)...] .== [size(M)...]) 
+        .| (([size(x_temp)...] .+ v) .== [size(M)...])
+        )
 
     # Check that axis of differentiation is in the dimensions of M and x_temp
-    ndimsM = ndims(M)
-    @assert N <= ndimsM
+    ndims_M = ndims(M)
+    @assert N <= ndims_M
+    @assert size(x_temp, N) + 2 == size(M, N) # differentiated dimension must be padded
 
-    dimsM = [axes(M)...]
     alldims = [1:ndims(M);]
     otherdims = setdiff(alldims, N)
 
     idx = Any[first(ind) for ind in axes(M)]
-    itershape = tuple(dimsM[otherdims]...)
     nidx = length(otherdims)
+
+    dims_M = [axes(M)...]
+    dims_x_temp = [axes(x_temp)...]
+    minimal_padding_indices = map(enumerate(dims_x_temp)) do (dim, val)
+        if dim == N || length(dims_x_temp[dim]) == length(dims_M[dim])
+            Colon()
+        else
+            dims_M[dim][begin+1:end-1]
+        end
+    end
+    minimally_padded_M = view(M, minimal_padding_indices...)
+
+    itershape = tuple(dims_x_temp[otherdims]...)
     indices = Iterators.drop(CartesianIndices(itershape), 0)
 
     setindex!(idx, :, N)
     for I in indices
+        # replace all elements of idx with corresponding elt of I, except at index N
         Base.replace_tuples!(nidx, idx, idx, otherdims, I)
-        mul!(view(x_temp, idx...), A, view(M, idx...), overwrite = overwrite)
+        mul!(view(x_temp, idx...), A, view(minimally_padded_M, idx...), overwrite = overwrite)
     end
 end
 
@@ -48,25 +63,38 @@ for MT in [2,3]
     @eval begin
         function LinearAlgebra.mul!(x_temp::AbstractArray{T,$MT}, A::DerivativeOperator{T,N,false,T2,S1,S2,T3}, M::AbstractArray{T,$MT}) where
                                                                             {T,N,T2,SL,S1<:SArray{Tuple{SL},T,1,SL},S2,T3<:Union{Nothing,Number}}
-            # Check that x_temp has correct dimensions
+            # Check that x_temp has valid dimensions, allowing unnecessary padding in M
             v = zeros(ndims(x_temp))
-            v[N] = 2
-            @assert [size(x_temp)...]+v == [size(M)...]
+            v .= 2
+            @assert all(([size(x_temp)...] .== [size(M)...]) 
+                .| (([size(x_temp)...] .+ v) .== [size(M)...])
+                )
 
             # Check that axis of differentiation is in the dimensions of M and x_temp
-            ndimsM = ndims(M)
-            @assert N <= ndimsM
+            ndims_x_temp = ndims(x_temp)
+            @assert N <= ndims_x_temp
+            @assert size(x_temp, N) + 2 == size(M, N) # differentiated dimension must be padded
 
             # Determine padding for NNlib.conv!
             bpc = A.boundary_point_count
-            pad = zeros(Int64,ndimsM)
+            pad = zeros(Int64, ndims_x_temp)
             pad[N] = bpc
 
             # Reshape x_temp for NNlib.conv!
             _x_temp = reshape(x_temp, (size(x_temp)...,1,1))
 
             # Reshape M for NNlib.conv!
-            _M = reshape(M, (size(M)...,1,1))
+            dims_M = [axes(M)...]
+            dims_x_temp = [axes(x_temp)...]
+            minimal_padding_indices = map(enumerate(dims_x_temp)) do (dim, val)
+                if dim == N || length(dims_x_temp[dim]) == length(dims_M[dim])
+                    Colon()
+                else
+                    dims_M[dim][begin+1:end-1]
+                end
+            end
+            minimally_padded_M = view(M, minimal_padding_indices...)
+            _M = reshape(minimally_padded_M, (size(minimally_padded_M)...,1,1))
 
             # Setup W, the kernel for NNlib.conv!
             s = A.stencil_coefs
@@ -84,20 +112,20 @@ for MT in [2,3]
 
             # Now deal with boundaries
             if bpc > 0
-                dimsM = [axes(M)...]
-                alldims = [1:ndims(M);]
+                dims_minimal_M = [axes(minimally_padded_M)...]
+                alldims = [1:ndims(minimally_padded_M);]
                 otherdims = setdiff(alldims, N)
 
-                idx = Any[first(ind) for ind in axes(M)]
-                itershape = tuple(dimsM[otherdims]...)
+                idx = Any[first(ind) for ind in axes(minimally_padded_M)]
+                itershape = tuple(dims_minimal_M[otherdims]...)
                 nidx = length(otherdims)
                 indices = Iterators.drop(CartesianIndices(itershape), 0)
 
                 setindex!(idx, :, N)
                 for I in indices
                     Base.replace_tuples!(nidx, idx, idx, otherdims, I)
-                    convolve_BC_left!(view(x_temp, idx...), view(M, idx...), A)
-                    convolve_BC_right!(view(x_temp, idx...), view(M, idx...), A)
+                    convolve_BC_left!(view(x_temp, idx...), view(minimally_padded_M, idx...), A)
+                    convolve_BC_right!(view(x_temp, idx...), view(minimally_padded_M, idx...), A)
                 end
             end
         end

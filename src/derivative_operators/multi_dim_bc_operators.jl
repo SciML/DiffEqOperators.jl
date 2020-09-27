@@ -51,7 +51,7 @@ struct MultiDimDirectionalBC{T<:Number, B<:AtomicBC{T}, D, N, M} <: MultiDimensi
 end
 
 struct ComposedMultiDimBC{T, B<:AtomicBC{T}, N,M} <: MultiDimensionalBC{T, N}
-    BCs::Vector{Array{B, M}}
+    BCs::Vector{Array{B, M}} # Why isn't this a vector of MultiDimBCs?
 end
 
 
@@ -102,7 +102,7 @@ NeumannBC{dim}(α::NTuple{2,T}, dx, order, s) where {T,dim} = RobinBC{dim}((zero
 NeumannBC(α::NTuple{2,T}, dxyz, order, s) where T = RobinBC((zero(T), one(T), α[1]), (zero(T), one(T), α[2]), dxyz, order, s)
 
 DirichletBC{dim}(αl::T, αr::T, s) where {T,dim} = RobinBC{dim}((one(T), zero(T), αl), (one(T), zero(T), αr), 1.0, 2.0, s)
-DirichletBC(αl::T, αr::T, s) where T = RobinBC((one(T), zero(T), αl), (one(T), zero(T), αr), [ones(T, si) for si in s], 2.0, s)
+DirichletBC(αl::T, αr::T, s) where T = RobinBC((one(T), zero(T), αl), (one(T), zero(T), αr), fill(one(T), length(s)), 2.0, s)
 
 Dirichlet0BC{dim}(T::Type, s) where {dim} = DirichletBC{dim}(zero(T), zero(T), s)
 Dirichlet0BC(T::Type, s) = DirichletBC(zero(T), zero(T), s)
@@ -115,7 +115,6 @@ RobinBC(l::NTuple{3,T}, r::NTuple{3,T}, dxyz, order, s) where {T} = Tuple([Multi
 
 GeneralBC{dim}(αl::AbstractVector{T}, αr::AbstractVector{T}, dx, order, s) where {T,dim} = MultiDimBC{dim}(GeneralBC(αl, αr, dx, order), s)
 GeneralBC(αl::AbstractVector{T}, αr::AbstractVector{T}, dxyz, order, s) where {T} = Tuple([MultiDimDirectionalBC{T, GeneralBC{T}, dim, length(s), length(s)-1}(fill(GeneralBC(αl, αr, dxyz[dim], order),perpindex(s,dim))) for dim in 1:length(s)])
-
 
 
 """
@@ -153,23 +152,40 @@ Qx, Qy,... = decompose(Q::ComposedMultiDimBC{T,N,M})
 
 Decomposes a ComposedMultiDimBC in to components that extend along each dimension individually
 """
-decompose(Q::ComposedMultiDimBC) = Tuple([MultiDimBC(Q.BC[i], i) for i in 1:ndims(Q)])
+decompose(Q::ComposedMultiDimBC) = Tuple([MultiDimBC(Q.BCs[i], i) for i in 1:ndims(Q)])
 
 getaxis(Q::MultiDimDirectionalBC{T, B, D, N, K}) where {T, B, D, N, K} = D
 getboundarytype(Q::MultiDimDirectionalBC{T, B, D, N, K}) where {T, B, D, N, K} = B
 
 Base.ndims(Q::MultiDimensionalBC{T,N}) where {T,N} = N
 
+Base.:*(BC::AtomicBC, u::AbstractArray) = MultiDimBC{1}(BC, size(u)) * u  
+
 function Base.:*(Q::MultiDimDirectionalBC{T, B, D, N, K}, u::AbstractArray{T, N}) where {T, B, D, N, K}
     @assert perpsize(u, D) == size(Q.BCs) "Size of the BCs array in the MultiDimBC is incorrect, needs to be $(perpsize(u,D)) to extend dimension $D, got $(size(Q.BCs))"
     lower, upper = slice_rmul(Q.BCs, u, D)
-    return BoundaryPaddedArray{T, D, N, K, typeof(u), typeof(lower)}(lower, upper, u)
+    return BoundaryPaddedArray{T, D, N, K, typeof(u), Union{typeof(lower), typeof(upper)}}(lower, upper, u)
 end
+
+function Base.:*(Q::MultiDimDirectionalBC{T, PeriodicBC{T}, D, N, K}, u::AbstractArray{T, N}) where {T, B, D, N, K}
+    lower = selectdim(u, D, 1)
+    upper = selectdim(u, D, size(u,D))
+    return BoundaryPaddedArray{T, D, N, K, typeof(u), Union{typeof(lower), typeof(upper)}}(lower, upper, u)
+end
+
 
 function Base.:*(Q::ComposedMultiDimBC{T, B, N, K}, u::AbstractArray{T, N}) where {T, B, N, K}
     for dim in 1:N
         @assert perpsize(u, dim) == size(Q.BCs[dim]) "Size of the BCs array for dimension $dim in the MultiDimBC is incorrect, needs to be $(perpsize(u,dim)), got $(size(Q.BCs[dim]))"
     end
     out = slice_rmul.(Q.BCs, fill(u, N), 1:N)
-    return ComposedBoundaryPaddedArray{T, N, K, typeof(u), typeof(out[1][1])}([A[1] for A in out], [A[2] for A in out], u)
+    lower = [A[1] for A in out]
+    upper = [A[2] for A in out]
+    return ComposedBoundaryPaddedArray{T, N, K, typeof(u), Union{typeof.(lower)..., typeof.(upper)...}}(lower, upper, u)
+end
+
+function Base.:*(Q::ComposedMultiDimBC{T, PeriodicBC{T}, N, K}, u::AbstractArray{T, N}) where {T, B, N, K}
+    lower = [selectdim(u, d, 1) for d in 1:N]
+    upper = [selectdim(u, d, size(u, d)) for d in 1:N]
+    return ComposedBoundaryPaddedArray{T, N, K, typeof(u), Union{typeof.(lower)..., typeof.(upper)...}}(lower, upper, u)
 end
