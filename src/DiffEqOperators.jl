@@ -57,7 +57,7 @@ export AbstractDerivativeOperator, DerivativeOperator,
        CenteredDifference, UpwindDifference
 export DirichletBC, Dirichlet0BC, NeumannBC, Neumann0BC, RobinBC, GeneralBC, MultiDimBC, PeriodicBC,
        MultiDimDirectionalBC, ComposedMultiDimBC
-export compose, decompose, perpsize, c2l
+export compose, decompose, perpsize
 
 export GhostDerivativeOperator
 export MOLFiniteDifference

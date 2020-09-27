@@ -13,7 +13,7 @@ function unit_indices(N::Int) #create unit CartesianIndex for each dimension
     Tuple(out)
 end
 
-function c2l(I::CartesianIndex, s)  #Not sure if there is a builtin that does this - convert cartesian index to linear index of an array of size s
+function cartesian_to_linear(I::CartesianIndex, s)  #Not sure if there is a builtin that does this - convert cartesian index to linear index of an array of size s
     out = I[1]
     for i in 1:length(s)-1
         out += (I[i+1]-1)*prod(s[1:i])

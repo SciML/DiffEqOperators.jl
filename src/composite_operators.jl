@@ -60,7 +60,7 @@ struct DiffEqOperatorCombination{T,O<:Tuple{Vararg{AbstractDiffEqLinearOperator{
             @assert size(ops[i]) == size(ops[1]) "Operators must be of the same size to be combined! Mismatch between $(ops[i]) and $(ops[i-1]), which are operators $i and $(i-1) respectively"
         end
         if cache == nothing
-            cache = Vector{T}(undef, size(ops[1], 1))
+            cache = zeros(T, size(ops[1], 1))
         end
         new{T,typeof(ops),typeof(cache)}(ops, cache)
     end

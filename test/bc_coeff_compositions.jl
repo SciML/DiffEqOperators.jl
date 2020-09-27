@@ -347,8 +347,8 @@ end
     interior = CartesianIndices(Tuple([2:length(x)+1, 1:2]))
     I1 = CartesianIndex(1,0)
     for I in interior
-        i = c2l(I, (length(x)+2, 2)) #helper function, see utils.jl
-        j = c2l(I-I1, (length(x), 2))
+        i = DiffEqOperators.cartesian_to_linear(I, (length(x)+2, 2)) #helper function, see utils.jl
+        j = DiffEqOperators.cartesian_to_linear(I-I1, (length(x), 2))
         analytic_QM[i,j] = 1.0
     end
     analytic_Am = kron(Diagonal(ones(2)), analytic_L)*analytic_QM
@@ -450,8 +450,8 @@ end
     interior = CartesianIndices(Tuple([2:length(x)+1, 1:3]))
     I1 = CartesianIndex(1,0)
     for I in interior
-        i = c2l(I, (length(x)+2, 3)) #helper function, see utils.jl
-        j = c2l(I-I1, (length(x), 3))
+        i = DiffEqOperators.cartesian_to_linear(I, (length(x)+2, 3)) #helper function, see utils.jl
+        j = DiffEqOperators.cartesian_to_linear(I-I1, (length(x), 3))
         analytic_QM[i,j] = 1.0
     end
     analytic_Am = kron(Diagonal(ones(3)), analytic_L)*analytic_QM
