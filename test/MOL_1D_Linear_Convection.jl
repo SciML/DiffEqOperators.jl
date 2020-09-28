@@ -39,12 +39,12 @@ using ModelingToolkit,DiffEqOperators,DiffEqBase,LinearAlgebra,Test
 
     # Plot and save results
     # using Plots
-    # plot(prob.space,Array(prob.extrapolation[1]*sol[:,1,1]))
-    # plot!(prob.space,Array(prob.extrapolation[1]*sol[:,1,2]))
-    # plot!(prob.space,Array(prob.extrapolation[1]*sol[:,1,3]))
-    # plot!(prob.space,Array(prob.extrapolation[1]*sol[:,1,4]))
-    # plot!(prob.space,Array(prob.extrapolation[1]*sol[:,1,5]))
-    # plot!(prob.space,Array(prob.extrapolation[1]*sol[:,1,6]))
+    # plot(prob.space[2],Array(prob.extrapolation[1]*sol[:,1,1]))
+    # plot!(prob.space[2],Array(prob.extrapolation[1]*sol[:,1,2]))
+    # plot!(prob.space[2],Array(prob.extrapolation[1]*sol[:,1,3]))
+    # plot!(prob.space[2],Array(prob.extrapolation[1]*sol[:,1,4]))
+    # plot!(prob.space[2],Array(prob.extrapolation[1]*sol[:,1,5]))
+    # plot!(prob.space[2],Array(prob.extrapolation[1]*sol[:,1,6]))
     # savefig("MOL_1D_Linear_Convection_Test00.png")
 
     # Test
@@ -92,12 +92,12 @@ end
 
     # Plot and save results
     # using Plots
-    # plot(prob.space,Array(prob.extrapolation[1]*sol[:,1,1]))
-    # plot!(prob.space,Array(prob.extrapolation[1]*sol[:,1,2]))
-    # plot!(prob.space,Array(prob.extrapolation[1]*sol[:,1,3]))
-    # plot!(prob.space,Array(prob.extrapolation[1]*sol[:,1,4]))
-    # plot!(prob.space,Array(prob.extrapolation[1]*sol[:,1,5]))
-    # plot!(prob.space,Array(prob.extrapolation[1]*sol[:,1,6]))
+    # plot(prob.space[2],Array(prob.extrapolation[1]*sol[:,1,1]))
+    # plot!(prob.space[2],Array(prob.extrapolation[1]*sol[:,1,2]))
+    # plot!(prob.space[2],Array(prob.extrapolation[1]*sol[:,1,3]))
+    # plot!(prob.space[2],Array(prob.extrapolation[1]*sol[:,1,4]))
+    # plot!(prob.space[2],Array(prob.extrapolation[1]*sol[:,1,5]))
+    # plot!(prob.space[2],Array(prob.extrapolation[1]*sol[:,1,6]))
     # savefig("MOL_1D_Linear_Convection_Test01.png")
 
     # Test
@@ -144,12 +144,12 @@ end
 
     # Plot and save results
     # using Plots
-    # plot(prob.space,Array(prob.extrapolation[1]*sol[:,1,1]))
-    # plot!(prob.space,Array(prob.extrapolation[1]*sol[:,1,2]))
-    # plot!(prob.space,Array(prob.extrapolation[1]*sol[:,1,3]))
-    # plot!(prob.space,Array(prob.extrapolation[1]*sol[:,1,4]))
-    # plot!(prob.space,Array(prob.extrapolation[1]*sol[:,1,5]))
-    # plot!(prob.space,Array(prob.extrapolation[1]*sol[:,1,6]))
+    # plot(prob.space[2],Array(prob.extrapolation[1]*sol[:,1,1]))
+    # plot!(prob.space[2],Array(prob.extrapolation[1]*sol[:,1,2]))
+    # plot!(prob.space[2],Array(prob.extrapolation[1]*sol[:,1,3]))
+    # plot!(prob.space[2],Array(prob.extrapolation[1]*sol[:,1,4]))
+    # plot!(prob.space[2],Array(prob.extrapolation[1]*sol[:,1,5]))
+    # plot!(prob.space[2],Array(prob.extrapolation[1]*sol[:,1,6]))
     # savefig("MOL_1D_Linear_Convection_Test02.png")
 
     # Test
@@ -198,12 +198,12 @@ end
 
     #Plot and save results
     # using Plots
-    # plot(prob.space,Array(prob.extrapolation[1]*sol[:,1,1]))
-    # plot!(prob.space,Array(prob.extrapolation[1]*sol[:,1,2]))
-    # plot!(prob.space,Array(prob.extrapolation[1]*sol[:,1,3]))
-    # plot!(prob.space,Array(prob.extrapolation[1]*sol[:,1,4]))
-    # plot!(prob.space,Array(prob.extrapolation[1]*sol[:,1,5]))
-    # plot!(prob.space,Array(prob.extrapolation[1]*sol[:,1,6]))
+    # plot(prob.space[2],Array(prob.extrapolation[1]*sol[:,1,1]))
+    # plot!(prob.space[2],Array(prob.extrapolation[1]*sol[:,1,2]))
+    # plot!(prob.space[2],Array(prob.extrapolation[1]*sol[:,1,3]))
+    # plot!(prob.space[2],Array(prob.extrapolation[1]*sol[:,1,4]))
+    # plot!(prob.space[2],Array(prob.extrapolation[1]*sol[:,1,5]))
+    # plot!(prob.space[2],Array(prob.extrapolation[1]*sol[:,1,6]))
     # savefig("MOL_1D_Linear_Convection_Test03.png")
 
     # Test
@@ -250,14 +250,14 @@ end
     using OrdinaryDiffEq
     sol = solve(prob,Euler(),dt=.025,saveat=0.1)
 
-    #Plot and save results
+    # Plot and save results
     # using Plots
-    # plot(prob.space,Array(prob.extrapolation[1]*sol[:,1,1]))
-    # plot!(prob.space,Array(prob.extrapolation[1]*sol[:,1,2]))
-    # plot!(prob.space,Array(prob.extrapolation[1]*sol[:,1,3]))
-    # plot!(prob.space,Array(prob.extrapolation[1]*sol[:,1,4]))
-    # plot!(prob.space,Array(prob.extrapolation[1]*sol[:,1,5]))
-    # plot!(prob.space,Array(prob.extrapolation[1]*sol[:,1,6]))
+    # plot(prob.space[2],Array(prob.extrapolation[1]*sol[:,1,1]))
+    # plot!(prob.space[2],Array(prob.extrapolation[1]*sol[:,1,2]))
+    # plot!(prob.space[2],Array(prob.extrapolation[1]*sol[:,1,3]))
+    # plot!(prob.space[2],Array(prob.extrapolation[1]*sol[:,1,4]))
+    # plot!(prob.space[2],Array(prob.extrapolation[1]*sol[:,1,5]))
+    # plot!(prob.space[2],Array(prob.extrapolation[1]*sol[:,1,6]))
     # savefig("MOL_1D_Linear_Convection_Test04.png")
 
     # Test

@@ -38,14 +38,12 @@ using ModelingToolkit,DiffEqOperators,DiffEqBase,LinearAlgebra,Test
     using OrdinaryDiffEq
     sol = solve(prob,Tsit5(),saveat=0.1)
 
-    #sol = solve(prob,,IDA(),saveat=0.1)
-
     #Plot and save results
     # using Plots
-    # plot(prob.space,Array(prob.extrapolation[1]*sol[:,1,1]))
-    # plot!(prob.space,Array(prob.extrapolation[1]*sol[:,1,2]))
-    # plot!(prob.space,Array(prob.extrapolation[1]*sol[:,1,3]))
-    # plot!(prob.space,Array(prob.extrapolation[1]*sol[:,1,4]))
+    # plot(prob.space[2],Array(prob.extrapolation[1]*sol[:,1,1]))
+    # plot!(prob.space[2],Array(prob.extrapolation[1]*sol[:,1,2]))
+    # plot!(prob.space[2],Array(prob.extrapolation[1]*sol[:,1,3]))
+    # plot!(prob.space[2],Array(prob.extrapolation[1]*sol[:,1,4]))
     # savefig("MOL_1D_Linear_Diffusion_Test00.png")
 
     # Test
@@ -91,10 +89,10 @@ end
 
     # Plot and save results
     # using Plots
-    # plot(prob.space,Array(prob.extrapolation[1]*sol[:,1,1]))
-    # plot!(prob.space,Array(prob.extrapolation[1]*sol[:,1,2]))
-    # plot!(prob.space,Array(prob.extrapolation[1]*sol[:,1,3]))
-    # plot!(prob.space,Array(prob.extrapolation[1]*sol[:,1,4]))
+    # plot(prob.space[2],Array(prob.extrapolation[1]*sol[:,1,1]))
+    # plot!(prob.space[2],Array(prob.extrapolation[1]*sol[:,1,2]))
+    # plot!(prob.space[2],Array(prob.extrapolation[1]*sol[:,1,3]))
+    # plot!(prob.space[2],Array(prob.extrapolation[1]*sol[:,1,4]))
     # savefig("MOL_1D_Linear_Diffusion_Test01.png")
 
     # Test
@@ -144,10 +142,10 @@ end
     
     # Plot and save results
     # using Plots
-    # plot(prob.space,Array(prob.extrapolation[1]*sol[:,1,1]))
-    # plot!(prob.space,Array(prob.extrapolation[1]*sol[:,1,2]))
-    # plot!(prob.space,Array(prob.extrapolation[1]*sol[:,1,3]))
-    # plot!(prob.space,Array(prob.extrapolation[1]*sol[:,1,4]))
+    # plot(prob.space[2],Array(prob.extrapolation[1]*sol[:,1,1]))
+    # plot!(prob.space[2],Array(prob.extrapolation[1]*sol[:,1,2]))
+    # plot!(prob.space[2],Array(prob.extrapolation[1]*sol[:,1,3]))
+    # plot!(prob.space[2],Array(prob.extrapolation[1]*sol[:,1,4]))
     # savefig("MOL_1D_Linear_Diffusion_Test02.png")
 
     # Test
