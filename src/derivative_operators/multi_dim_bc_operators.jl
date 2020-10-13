@@ -101,7 +101,7 @@ PeriodicBC(T,s) = MultiDimBC(PeriodicBC(T), s)
 NeumannBC{dim}(α::NTuple{2,T}, dx, order, s) where {T,dim} = RobinBC{dim}((zero(T), one(T), α[1]), (zero(T), one(T), α[2]), dx, order, s)
 NeumannBC(α::NTuple{2,T}, dxyz, order, s) where T = RobinBC((zero(T), one(T), α[1]), (zero(T), one(T), α[2]), dxyz, order, s)
 
-DirichletBC{dim}(αl::T, αr::T, s) where {T,dim} = RobinBC{dim}((one(T), zero(T), αl), (one(T), zero(T), αr), 1.0, 2.0, s)
+DirichletBC{dim}(αl::T, αr::T, s) where {T,dim} = RobinBC{dim}((one(T), zero(T), αl), (one(T), zero(T), αr), one(T), 2.0, s)
 DirichletBC(αl::T, αr::T, s) where T = RobinBC((one(T), zero(T), αl), (one(T), zero(T), αr), fill(one(T), length(s)), 2.0, s)
 
 Dirichlet0BC{dim}(T::Type, s) where {dim} = DirichletBC{dim}(zero(T), zero(T), s)
