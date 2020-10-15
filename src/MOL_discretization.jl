@@ -17,8 +17,8 @@ function get_bcs(bcs,tdomain,domain)
                 lhs_deriv_depvars_bcs[var] = Array{Expr}(undef,3)
             end
             j = 0
-            if isequal(bcs[i].lhs.args[1],tdomain.lower) # u(t=0,x) 
-                j = 1    
+            if isequal(bcs[i].lhs.args[1],tdomain.lower) # u(t=0,x)
+                j = 1
             elseif isequal(bcs[i].lhs.args[2],domain.lower) # u(t,x=x_init)
                 j = 2
             elseif isequal(bcs[i].lhs.args[2],domain.upper) # u(t,x=x_final)
@@ -26,7 +26,7 @@ function get_bcs(bcs,tdomain,domain)
             end
             if bcs[i].rhs isa ModelingToolkit.Constant
                 lhs_deriv_depvars_bcs[var][j] = :(var=$(bcs[i].rhs.value))
-            else    
+            else
                 lhs_deriv_depvars_bcs[var][j] = Expr(bcs[i].rhs)
             end
         end
@@ -38,14 +38,14 @@ end
 # Recursively traverses the input expression (rhs), replacing derivatives by
 # finite difference schemes. It returns a time dependent expression (expr)
 # that will be evaluated in the "f" ODE function (in DiffEqBase.discretize),
-# Note: 'non-derived' dependent variables are inserted into the diff. equations
-#       E.g. Dx(u(t,x))=v(t,x)*Dx(u(t,x)), v(t,x)=t*x
+# Note: 'non-derived' dependent variables are inserted into the differential equations
+#       E.g., Dx(u(t,x))=v(t,x)*Dx(u(t,x)), v(t,x)=t*x
 #            =>  Dx(u(t,x))=t*x*Dx(u(t,x))
-                            
+
 function discretize_2(input,deriv_order,approx_order,dx,X,len,
                       deriv_var,dep_var_idx,indep_var_idx)
     if input isa ModelingToolkit.Constant
-        return :($(input.value)) 
+        return :($(input.value))
     elseif input isa Operation
         if input.op isa Variable
             expr = :(0.0)
@@ -64,7 +64,7 @@ function discretize_2(input,deriv_order,approx_order,dx,X,len,
                 if deriv_order == 0
                     expr = :(u[:,$j])
                 elseif deriv_order == 1
-                    # TODO: approx_order and forward/backward should be 
+                    # TODO: approx_order and forward/backward should be
                     #       input parameters of each derivative
                     approx_order = 1
                     L = UpwindDifference(deriv_order,approx_order,dx[i],len[i]-2,-1)
@@ -92,7 +92,7 @@ function discretize_2(input,deriv_order,approx_order,dx,X,len,
                 aux_2 = discretize_2(input.args[2],deriv_order,approx_order,dx,X,
                                      len,deriv_var,dep_var_idx,indep_var_idx)
                 return :(broadcast($(input.op), $aux_1, $aux_2))
-            end    
+            end
         end
     end
 end
@@ -105,22 +105,22 @@ function DiffEqBase.discretize(pdesys::PDESystem,discretization::MOLFiniteDiffer
     #   1) PDE System
     #        1.a) Transient
     #                There is more than one indep. variable, including  't'
-    #                E.g. du/dt = d2u/dx2 + d2u/dy2 + f(t,x,y)
+    #                E.g., du/dt = d2u/dx2 + d2u/dy2 + f(t,x,y)
     #        1.b) Stationary
     #                There is more than one indep. variable, 't' is not included
-    #                E.g. 0 = d2u/dx2 + d2u/dy2 + f(x,y)
+    #                E.g., 0 = d2u/dx2 + d2u/dy2 + f(x,y)
     #   2) ODE System
     #        't' is the only independent variable
     #        The ODESystem is packed inside a PDESystem
-    #        E.g. du/dt = f(t)
+    #        E.g., du/dt = f(t)
     #
     #   Note: regarding input format, lhs must be "du/dt" or "0".
     #
 
-    # The following code deals with 1.a case for 1D,
-    # i.e. only considering 't' and 'x'
+    # The following code deals with 1.a case for 1-D,
+    # i.e., only considering 't' and 'x'.
 
-    
+
     ### Declare and define independent-variable data structures ###############
 
     tdomain = 0.0
@@ -155,9 +155,9 @@ function DiffEqBase.discretize(pdesys::PDESystem,discretization::MOLFiniteDiffer
     approx_order = discretization.order
 
     lhs_deriv_depvars = Dict()
-    dep_var_idx = Dict() 
+    dep_var_idx = Dict()
     dep_var_disc = Dict() # expressions evaluated in the ODE function (f)
-    
+
     # if there is only one equation
     if pdesys.eq isa Equation
         eqs = [pdesys.eq]
@@ -181,7 +181,7 @@ function DiffEqBase.discretize(pdesys::PDESystem,discretization::MOLFiniteDiffer
         # TODO: is there a better way to convert an Expr into a Function?
         dep_var_disc[var] = @eval (Q,u,t) -> $aux
     end
-    
+
     ### Declare and define boundary conditions ################################
 
     # TODO: extend to Neumann BCs and Robin BCs
@@ -191,7 +191,7 @@ function DiffEqBase.discretize(pdesys::PDESystem,discretization::MOLFiniteDiffer
     u_x0 = Array{Any}(undef,no_dep_vars)
     u_x1 = Array{Any}(undef,no_dep_vars)
     Q = Array{RobinBC}(undef,no_dep_vars)
-    
+
     for var in keys(dep_var_idx)
         j = dep_var_idx[var]
         bcs = lhs_deriv_depvars_bcs[var]
@@ -210,7 +210,7 @@ function DiffEqBase.discretize(pdesys::PDESystem,discretization::MOLFiniteDiffer
     ### Define the discretized PDE as an ODE function #########################
 
     function f(du,u,p,t)
-        
+
         # Boundary conditions can vary with respect to time
         for j in 1:no_dep_vars
             a = Base.invokelatest(u_x0[j],X[2][1],t)
@@ -233,4 +233,3 @@ function DiffEqBase.discretize(pdesys::PDESystem,discretization::MOLFiniteDiffer
     # Return problem ##########################################################
     return PDEProblem(ODEProblem(f,u_t0,(tdomain.lower,tdomain.upper),nothing),Q,X)
 end
-

@@ -120,7 +120,7 @@ Base.length(A::AbstractDerivativeOperator) = reduce(*, size(A))
 
 #=
     For the evenly spaced grid we have a symmetric matrix.
-    If it is not evenly spaced (i.e. dx is a vector), then
+    If it is not evenly spaced (i.e., dx is a vector), then
     we throw an error (TODO: implement a proper transpose).
 =#
 Base.transpose(A::DerivativeOperator) = typeof(A.dx)<:Real ? A : error("Transpose for DerivativeOperator with non-uniform grid has yet to be implemented.")
