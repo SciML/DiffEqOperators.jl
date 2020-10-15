@@ -1,6 +1,6 @@
 # # Heat Equation
 #
-# This example demonstrates how to combine `OrdinaryDiffEq` with `DiffEqOperators` to solve a time dependent PDE.
+# This example demonstrates how to combine `OrdinaryDiffEq` with `DiffEqOperators` to solve a time-dependent PDE.
 # We consider the heat equation on the unit interval, with Dirichlet boundary conditions:
 # ∂ₜu = Δu
 # u(x=0,t)  = a
@@ -35,10 +35,9 @@ sol = solve(prob, alg)
 using Test
 @test u_analytic.(knots, t1) ≈ sol[end] rtol=1e-3
 
-# Because the creation of boundary conditions is cheap, we can 
+# Because the creation of boundary conditions is cheap, we can
 # implement time-dependent boundary conditions as follows:
 # function step(u,p,t)
 #    bc = DirichletBC(cos(t*1.5), sin(t))
 #    Δ*bc*u
 # end
-

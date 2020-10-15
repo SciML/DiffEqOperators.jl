@@ -1,6 +1,6 @@
 
 """
-A function that creates a tuple of CartesianIndices of unit length and `N` dimensions, one pointing along each dimension
+A function that creates a tuple of CartesianIndices of unit length and `N` dimensions, one pointing along each dimension.
 """
 function unit_indices(N::Int) #create unit CartesianIndex for each dimension
     out = Vector{CartesianIndex{N}}(undef, N)

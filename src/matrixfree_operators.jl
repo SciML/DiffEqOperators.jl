@@ -31,7 +31,7 @@ LinearAlgebra.ishermitian(M::MatrixFreeOperator) = M.ishermitian
 function LinearAlgebra.opnorm(M::MatrixFreeOperator, p::Real)
   M.opnorm === nothing && error("""
     M.opnorm is nothing, please define opnorm as a function that takes one
-    argument. E.g. `(p::Real) -> p == Inf ? 100 : error("only Inf norm is
+    argument. E.g., `(p::Real) -> p == Inf ? 100 : error("only Inf norm is
     defined")`
   """)
   opn = M.opnorm

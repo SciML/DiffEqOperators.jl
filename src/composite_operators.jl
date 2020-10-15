@@ -1,6 +1,6 @@
-# The composite operators are built using basic operators (scalar, array and
+# The composite operators are built using basic operators (scalar, array, and
 # derivative) using arithmetic or other operator compositions. The composite
-# operator types are lazy and maintains the structure used to build them.
+# operator types are lazy and maintain the structure used to build them.
 
 # Recursive routines that use `getops`
 function update_coefficients!(L::AbstractDiffEqCompositeOperator,u,p,t)
@@ -99,7 +99,7 @@ struct DiffEqOperatorComposition{T,O<:Tuple{Vararg{AbstractDiffEqLinearOperator{
   function DiffEqOperatorComposition(ops; caches=nothing)
     T = eltype(ops[1])
     for i in 2:length(ops)
-      @assert size(ops[i-1], 1) == size(ops[i], 2) "Operations do not have compatable sizes! Mismatch between $(ops[i]) and $(ops[i-1]), which are operators $i and $(i-1) respectively."
+      @assert size(ops[i-1], 1) == size(ops[i], 2) "Operations do not have compatible sizes! Mismatch between $(ops[i]) and $(ops[i-1]), which are operators $i and $(i-1) respectively."
     end
 
     if caches == nothing

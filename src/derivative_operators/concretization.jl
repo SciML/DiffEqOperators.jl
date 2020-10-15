@@ -1,7 +1,7 @@
 #
 # Casting to normal matrix types.
 #
-# This implements the casts described in README.md, and the cast from
+# This implements the casts described in README.md and the cast from
 # BoundaryPaddedArray to Array.
 #
 
@@ -136,7 +136,7 @@ end
 LinearAlgebra.Array(Q::PeriodicBC{T}, N::Int) where T = (Array([transpose(zeros(T, N-1)) one(T); Diagonal(ones(T,N)); one(T) transpose(zeros(T, N-1))]), zeros(T, N))
 SparseArrays.SparseMatrixCSC(Q::PeriodicBC{T}, N::Int) where T = ([transpose(zeros(T, N-1)) one(T); Diagonal(ones(T,N)); one(T) transpose(zeros(T, N-1))], zeros(T, N))
 SparseArrays.sparse(Q::PeriodicBC{T}, N::Int) where T = SparseMatrixCSC(Q,N)
-function BandedMatrices.BandedMatrix(Q::PeriodicBC{T}, N::Int) where T #Not reccomended!
+function BandedMatrices.BandedMatrix(Q::PeriodicBC{T}, N::Int) where T #Not recommended!
     Q_array = BandedMatrix{T}(Eye(N), (N-1, N-1))
     Q_array[1, end] = one(T)
     Q_array[1, 1] = zero(T)
@@ -162,7 +162,7 @@ function Base.convert(::Type{AbstractMatrix},A::AbstractBC{T}) where T
     SparseMatrixCSC(A)
 end
 
-# Multi dimensional BC operators
+# Multidimensional BC operators
 _concretize(Q::MultiDimDirectionalBC, M) = _concretize(Q.BCs, M)
 
 function _concretize(Q::AbstractArray{T,N}, M) where {T,N}
@@ -209,14 +209,14 @@ function LinearAlgebra.Array(Q::MultiDimDirectionalBC{T, B, D, N, L}, s::NTuple{
 end
 
 """
-This is confusing, but it does work
+This is confusing, but it does work.
 """
 function LinearAlgebra.Array(Q::ComposedMultiDimBC{T, B, N,M} , s::NTuple{N,G}) where {T, B, N, M, G<:Int}
     for d in 1:N
         @assert size(Q.BCs[d]) == perpindex(s, d) "The size of the BC array in Q along dimension $d, $(size(Q.BCs[d])) is incompatible with s, $s"
     end
     s_pad = s.+2
-    Q = Tuple(_concretize.(Q.BCs, s)) #essentially finding the first and last rows of the matrix part and affine part for every atomic BC
+    Q = Tuple(_concretize.(Q.BCs, s)) #essentially, finding the first and last rows of the matrix part and affine part for every atomic BC
 
     QL = zeros(T, prod(s_pad), prod(s))
     Qb = zeros(T, prod(s_pad))
@@ -225,7 +225,7 @@ function LinearAlgebra.Array(Q::ComposedMultiDimBC{T, B, N,M} , s::NTuple{N,G}) 
     interior = CartesianIndices(Tuple(ranges))
 
     ē = unit_indices(N) #setup unit indices in each direction
-    I1 = CartesianIndex(Tuple(ones(Int64, N))) #setup the ones index
+    I1 = CartesianIndex(Tuple(ones(Int64, N))) #set up the ones index
     for I in interior #loop over interior
         i = cartesian_to_linear(I, s_pad) #find the index on the padded side
         j = cartesian_to_linear(I-I1, s)  #find the index on the unpadded side
@@ -234,7 +234,7 @@ function LinearAlgebra.Array(Q::ComposedMultiDimBC{T, B, N,M} , s::NTuple{N,G}) 
     for dim in 1:N #Loop over boundaries
         r_ = deepcopy(ranges)
         r_[dim] = 1
-        lower = CartesianIndices((Tuple(r_))) #set up upper anmd lower indices
+        lower = CartesianIndices((Tuple(r_))) #set up upper and lower indices
         r_[dim] = s_pad[dim]
         upper = CartesianIndices((Tuple(r_)))
         for K in CartesianIndices(upper) #for every element of the boundaries
@@ -255,7 +255,7 @@ function LinearAlgebra.Array(Q::ComposedMultiDimBC{T, B, N,M} , s::NTuple{N,G}) 
 end
 
 """
-See comments on the `Array` method for this type for an idea of what is going on
+See comments on the `Array` method for this type for an idea of what is going on.
 """
 function SparseArrays.SparseMatrixCSC(Q::MultiDimDirectionalBC{T, B, D, N, L}, s::NTuple{N,G}) where {T, B, D,N,L, G<:Int}
     @assert size(Q.BCs) == perpindex(s, D) "The size of the BC array in Q, $(size(Q.BCs)) is incompatible with s, $s"
@@ -302,7 +302,7 @@ function SparseArrays.SparseMatrixCSC(Q::ComposedMultiDimBC{T, B, N,M}, s::NTupl
         @assert size(Q.BCs[d]) == perpindex(s, d) "The size of the BC array in Q along dimension $d, $(size(Q.BCs[d])) is incompatible with s, $s"
     end
     s_pad = s.+2
-    Q = Tuple(_concretize.(Q.BCs, s)) #essentially finding the first and last rows of the matrix part and affine part for every atomic BC
+    Q = Tuple(_concretize.(Q.BCs, s)) #essentially, finding the first and last rows of the matrix part and affine part for every atomic BC
 
     QL = spzeros(T, prod(s_pad), prod(s))
     Qb = spzeros(T, prod(s_pad))
@@ -311,7 +311,7 @@ function SparseArrays.SparseMatrixCSC(Q::ComposedMultiDimBC{T, B, N,M}, s::NTupl
     interior = CartesianIndices(Tuple(ranges))
 
     ē = unit_indices(N) #setup unit indices in each direction
-    I1 = CartesianIndex(Tuple(ones(Int64, N))) #setup the ones index
+    I1 = CartesianIndex(Tuple(ones(Int64, N))) #set up the ones index
     for I in interior #loop over interior
         i = cartesian_to_linear(I, s_pad) #find the index on the padded side
         j = cartesian_to_linear(I-I1, s)  #find the index on the unpadded side
@@ -320,7 +320,7 @@ function SparseArrays.SparseMatrixCSC(Q::ComposedMultiDimBC{T, B, N,M}, s::NTupl
     for dim in 1:N #Loop over boundaries
         r_ = deepcopy(ranges)
         r_[dim] = 1
-        lower = CartesianIndices((Tuple(r_))) #set up upper anmd lower indices
+        lower = CartesianIndices((Tuple(r_))) #set up upper and lower indices
         r_[dim] = s_pad[dim]
         upper = CartesianIndices((Tuple(r_)))
         for K in CartesianIndices(upper) #for every element of the boundaries
@@ -349,10 +349,10 @@ function BandedMatrices.BandedMatrix(Q:: MultiDimensionalBC, M) where {T, B, D,N
 end
 
 ################################################################################
-# Higher Dimensional DerivativeOperator Concretizations
+# Higher-Dimensional DerivativeOperator Concretizations
 ################################################################################
-# HIgher Dimensional Concretizations. The following concretizations return two dimensional arrays
-# which operate on flattened vectors. Mshape is the size of the unflattened array on which A is operating on.
+# Higher-Dimensional Concretizations. The following concretizations return two-dimensional arrays
+# which operate on flattened vectors. Mshape is the size of the unflattened array on which A is operating.
 
 function LinearAlgebra.Array(A::DerivativeOperator{T,N}, Mshape) where {T,N}
     # Case where A is not differentiating along the first dimension
@@ -745,7 +745,7 @@ function SparseArrays.sparse(A::GhostDerivativeOperator{T, E, F}, s::NTuple{N,I}
 end
 
 ################################################################################
-# Composite Opeartor Concretizations
+# Composite Operator Concretizations
 ################################################################################
 Array(L::DiffEqScaledOperator, s) = L.coeff * Array(L.op, s)
 Array(L::DiffEqOperatorCombination, s) = sum(Array.(L.ops, fill(s, length(L.ops))))

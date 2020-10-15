@@ -1,16 +1,16 @@
 #
 # The mul! methods that contract derivative operators with arrays.
 #
-# These methods handle the {N} dimension type parameter.
+# These methods handle the {N}-dimension type parameter.
 #
-# There are four methods.  One is a general method for multidimensional
-# arrays, and the others are short cuts for 1, 2 and 3 dimensions.  The 1 dimensional
+# There are four methods. One is a general method for multidimensional
+# arrays, and the others are shortcuts for 1, 2 ,and 3 dimensions. The 1-dimensional
 # method for AbstractVector is defined in convolutions.jl, and the
 # others are defined here.
 #
-# At the interior points of an evenly spaced grid, a finite difference
-# operator is a convolution.  Where possible, the heavy lifting is
-# done by the efficient conv!  routine from NNlib.  The routines
+# At the interior points of an evenly spaced grid, a finite-difference
+# operator is a convolution. Where possible, the heavy lifting is
+# done by the efficient conv! routine from NNlib. The routines
 # defined in convolutions.jl cover the cases where that isn't possible.
 #
 
@@ -20,7 +20,7 @@ function LinearAlgebra.mul!(x_temp::AbstractArray{T}, A::DerivativeOperator{T,N}
     # Check that x_temp has valid dimensions, allowing unnecessary padding in M
     v = zeros(ndims(x_temp))
     v .= 2
-    @assert all(([size(x_temp)...] .== [size(M)...]) 
+    @assert all(([size(x_temp)...] .== [size(M)...])
         .| (([size(x_temp)...] .+ v) .== [size(M)...])
         )
 
@@ -58,7 +58,7 @@ function LinearAlgebra.mul!(x_temp::AbstractArray{T}, A::DerivativeOperator{T,N}
 end
 
 # A more efficient mul! implementation for a single, regular-grid, centered difference,
-# scalar coefficient, non-winding, DerivativeOperator operating on a 2D or 3D AbstractArray
+# scalar coefficient, non-winding, DerivativeOperator operating on a 2-D or 3-D AbstractArray
 for MT in [2,3]
     @eval begin
         function LinearAlgebra.mul!(x_temp::AbstractArray{T,$MT}, A::DerivativeOperator{T,N,false,T2,S1,S2,T3}, M::AbstractArray{T,$MT}) where
@@ -66,7 +66,7 @@ for MT in [2,3]
             # Check that x_temp has valid dimensions, allowing unnecessary padding in M
             v = zeros(ndims(x_temp))
             v .= 2
-            @assert all(([size(x_temp)...] .== [size(M)...]) 
+            @assert all(([size(x_temp)...] .== [size(M)...])
                 .| (([size(x_temp)...] .+ v) .== [size(M)...])
                 )
 
@@ -176,7 +176,7 @@ end
 ###########################################
 
 # A more efficient mul! implementation for compositions of operators which may include regular-grid, centered difference,
-# scalar coefficient, non-winding, DerivativeOperator, operating on a 2D or 3D AbstractArray
+# scalar coefficient, non-winding, DerivativeOperator, operating on a 2-D or 3-D AbstractArray
 function LinearAlgebra.mul!(x_temp::AbstractArray{T,2}, A::AbstractDiffEqCompositeOperator, M::AbstractArray{T,2}) where {T}
 
     # opsA operators satisfy conditions for NNlib.conv! call, opsB operators do not
@@ -197,7 +197,7 @@ function LinearAlgebra.mul!(x_temp::AbstractArray{T,2}, A::AbstractDiffEqComposi
         pad = zeros(Int64, ndimsM)
 
         # compute dimensions of interior kernel W
-        # Here we still use A.ops since operators in opsB may indicate that
+        # Here, we still use A.ops since operators in opsB may indicate that
         # we have more padding to account for
         for L in A.ops
             axis = typeof(L).parameters[2]
@@ -327,7 +327,7 @@ function LinearAlgebra.mul!(x_temp::AbstractArray{T,2}, A::AbstractDiffEqComposi
             end
         end
 
-        # Here we compute mul! (additively) for every operator in opsB
+        # Here, we compute mul! (additively) for every operator in opsB
 
         operating_dims = zeros(Int64,2)
         # need to consider all dimensions and operators to determine the truncation
@@ -409,7 +409,7 @@ function LinearAlgebra.mul!(x_temp::AbstractArray{T,2}, A::AbstractDiffEqComposi
 end
 
 # A more efficient mul! implementation for compositions of operators which may include regular-grid, centered difference,
-# scalar coefficient, non-winding, DerivativeOperator, operating on a 2D or 3D AbstractArray
+# scalar coefficient, non-winding, DerivativeOperator, operating on a 2-D or 3-D AbstractArray
 function LinearAlgebra.mul!(x_temp::AbstractArray{T,3}, A::AbstractDiffEqCompositeOperator, M::AbstractArray{T,3}) where {T}
 
     # opsA operators satisfy conditions for NNlib.conv! call, opsB operators do not
@@ -430,7 +430,7 @@ function LinearAlgebra.mul!(x_temp::AbstractArray{T,3}, A::AbstractDiffEqComposi
         pad = zeros(Int64, ndimsM)
 
         # compute dimensions of interior kernel W
-        # Here we still use A.ops since operators in opsB may indicate that
+        # Here, we still use A.ops since operators in opsB may indicate that
         # we have more padding to account for
         for L in A.ops
             axis = typeof(L).parameters[2]
@@ -610,7 +610,7 @@ function LinearAlgebra.mul!(x_temp::AbstractArray{T,3}, A::AbstractDiffEqComposi
             end
         end
 
-        # Here we compute mul! (additively) for every operator in opsB
+        # Here, we compute mul! (additively) for every operator in opsB
 
         operating_dims = zeros(Int64,3)
         # need to consider all dimensions and operators to determine the truncation

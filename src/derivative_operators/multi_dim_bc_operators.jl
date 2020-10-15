@@ -56,7 +56,7 @@ end
 
 
 """
-A multiple dimensional BC, supporting arbitrary BCs at each boundary point.
+A multidimensional BC, supporting arbitrary BCs at each boundary point.
 To construct an arbitrary BC, pass an Array of BCs with dimension `N-1`, if `N` is the dimensionality of your domain `u`
 with a size of `size(u)[setdiff(1:N, dim)]`, where dim is the dimension orthogonal to the boundary that you want to extend.
 
@@ -67,21 +67,21 @@ to use YourBC for the whole boundary orthogonal to that dimension.
 Further, it is possible to call
 Qx, Qy, Qz... = MultiDimBC(YourBC, size(u))
 to use YourBC for the whole boundary for all dimensions. Valid for any number of dimensions greater than 1.
-However this is only valid for Robin/General type BCs (including neummann/dirichlet) when the grid steps are equal in each dimension - including uniform grid case.
+However, this is only valid for Robin/General type BCs (including neummann/dirichlet) when the grid steps are equal in each dimension - including uniform grid case.
 
-In the case where you want to extend the same Robin/GeneralBC to the whole boundary with a non unifrom grid, please use
+In the case where you want to extend the same Robin/GeneralBC to the whole boundary with a non-uniform grid, please use
     Qx, Qy, Qz... = RobinBC(l, r, (dx::Vector, dy::Vector, dz::Vector ...), approximation_order, size(u))
 or
     Qx, Qy, Qz... = GeneralBC(αl, αr, (dx::Vector, dy::Vector, dz::Vector ...), approximation_order, size(u))
 
 There are also constructors for NeumannBC, DirichletBC and Dirichlet0BC. Simply replace `dx` in the call with the tuple dxyz... as above, and append `size(u)`` to the argument signature.
-The order is a required argument in this case.
+The order is a required argument in this case,
 
 where dx, dy, and dz are vectors of grid steps.
 
 For Neumann0BC, please use
     Qx, Qy, Qz... = Neumann0BC(T::Type, (dx::Vector, dy::Vector, dz::Vector ...), approximation_order, size(u))
-where T is the element type of the domain to be extended
+where T is the element type of the domain to be extended.
 """
 struct MultiDimBC{N} end
 
@@ -94,7 +94,7 @@ MultiDimBC{dim}(BC::B, s) where  {B<:AtomicBC, dim} = MultiDimDirectionalBC{gett
 #Only valid in the uniform grid case!
 MultiDimBC(BC::B, s) where {B<:AtomicBC} = Tuple([MultiDimDirectionalBC{gettype(BC), B, dim, length(s), length(s)-1}(fill(BC, s[setdiff(1:length(s), dim)])) for dim in 1:length(s)])
 
-# Additional constructors for cases when the BC is the same for all boundarties
+# Additional constructors for cases when the BC is the same for all boundaries
 PeriodicBC{dim}(T,s) where dim = MultiDimBC{dim}(PeriodicBC(T), s)
 PeriodicBC(T,s) = MultiDimBC(PeriodicBC(T), s)
 
@@ -126,7 +126,7 @@ Example:
 Q = compose(Qx, Qy, Qz) # 3D domain
 Q = compose(Qx, Qy) # 2D Domain
 
-Creates a ComposedMultiDimBC operator, Q, that extends every boundary when applied to a `u` with compatible size and number of dimensions.
+Creates a ComposedMultiDimBC operator, Q, that extends every boundary when applied to a `u` with a compatible size and number of dimensions.
 
 Qx Qy and Qz can be passed in any order, as long as there is exactly one BC operator that extends each dimension.
 """
@@ -159,7 +159,7 @@ getboundarytype(Q::MultiDimDirectionalBC{T, B, D, N, K}) where {T, B, D, N, K} =
 
 Base.ndims(Q::MultiDimensionalBC{T,N}) where {T,N} = N
 
-Base.:*(BC::AtomicBC, u::AbstractArray) = MultiDimBC{1}(BC, size(u)) * u  
+Base.:*(BC::AtomicBC, u::AbstractArray) = MultiDimBC{1}(BC, size(u)) * u
 
 function Base.:*(Q::MultiDimDirectionalBC{T, B, D, N, K}, u::AbstractArray{T, N}) where {T, B, D, N, K}
     @assert perpsize(u, D) == size(Q.BCs) "Size of the BCs array in the MultiDimBC is incorrect, needs to be $(perpsize(u,D)) to extend dimension $D, got $(size(Q.BCs))"
