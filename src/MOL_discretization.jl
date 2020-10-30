@@ -1,3 +1,4 @@
+using ModelingToolkit: operation
 # Method of lines discretization scheme
 struct MOLFiniteDifference{T} <: DiffEqBase.AbstractDiscretization
     dxs::T
@@ -10,8 +11,8 @@ function get_bcs(bcs,tdomain,domain)
     lhs_deriv_depvars_bcs = Dict()
     no_bcs = size(bcs,1)
     for i = 1:no_bcs
-        var = bcs[i].lhs.op
-        if var isa Variable
+        var = operation(bcs[i].lhs)
+        if var isa Sym
             var = var.name
             if !haskey(lhs_deriv_depvars_bcs,var)
                 lhs_deriv_depvars_bcs[var] = Array{Expr}(undef,3)
@@ -24,10 +25,10 @@ function get_bcs(bcs,tdomain,domain)
             elseif isequal(bcs[i].lhs.args[2],domain.upper) # u(t,x=x_final)
                 j = 3
             end
-            if bcs[i].rhs isa ModelingToolkit.Constant
-                lhs_deriv_depvars_bcs[var][j] = :(var=$(bcs[i].rhs.value))
+            if !(bcs[i].rhs isa ModelingToolkit.Symbolic)
+                lhs_deriv_depvars_bcs[var][j] = :(var=$(bcs[i].rhs))
             else
-                lhs_deriv_depvars_bcs[var][j] = Expr(bcs[i].rhs)
+                lhs_deriv_depvars_bcs[var][j] = toexpr(bcs[i].rhs)
             end
         end
     end
@@ -44,12 +45,12 @@ end
 
 function discretize_2(input,deriv_order,approx_order,dx,X,len,
                       deriv_var,dep_var_idx,indep_var_idx)
-    if input isa ModelingToolkit.Constant
-        return :($(input.value))
-    elseif input isa Operation
-        if input.op isa Variable
+    if !(input isa ModelingToolkit.Symbolic)
+        return :($(input))
+    else
+        if input isa Sym || (input isa Term && operation(input) isa Sym)
             expr = :(0.0)
-            var = input.op.name
+            var = nameof(input isa Sym ? input : operation(input))
             if haskey(indep_var_idx,var) # ind. var.
                 if var != :(t)
                     i = indep_var_idx[var]
@@ -75,23 +76,24 @@ function discretize_2(input,deriv_order,approx_order,dx,X,len,
                 end
             end
             return expr
-        elseif input.op isa Differential
-            var = input.op.x.op.name
+        elseif input isa Term && operation(input) isa Differential
+            var = nameof(input.op.x)
             push!(deriv_var,var)
             return discretize_2(input.args[1],deriv_order+1,approx_order,dx,X,
                                 len,deriv_var,dep_var_idx,indep_var_idx)
             pop!(deriv_var,var)
         else
+            name = nameof(operation(input))
             if size(input.args,1) == 1
                 aux = discretize_2(input.args[1],deriv_order,approx_order,dx,X,
                                    len,deriv_var,dep_var_idx,indep_var_idx)
-                return :(broadcast($(input.op), $aux))
+                return :(broadcast($name, $aux))
             else
                 aux_1 = discretize_2(input.args[1],deriv_order,approx_order,dx,X,
                                      len,deriv_var,dep_var_idx,indep_var_idx)
                 aux_2 = discretize_2(input.args[2],deriv_order,approx_order,dx,X,
                                      len,deriv_var,dep_var_idx,indep_var_idx)
-                return :(broadcast($(input.op), $aux_1, $aux_2))
+                return :(broadcast($name, $aux_1, $aux_2))
             end
         end
     end
@@ -132,7 +134,7 @@ function DiffEqBase.discretize(pdesys::PDESystem,discretization::MOLFiniteDiffer
     len = Array{Any}(undef,no_indep_vars)
     k = 0
     for i = 1:no_indep_vars
-        var = pdesys.domain[i].variables.op.name
+        var = nameof(pdesys.domain[i].variables)
         indep_var_idx[var] = i
         domain[i] = pdesys.domain[i].domain
         if var != :(t)
@@ -167,10 +169,11 @@ function DiffEqBase.discretize(pdesys::PDESystem,discretization::MOLFiniteDiffer
     no_dep_vars = size(eqs,1)
     for j = 1:no_dep_vars
         input = eqs[j].lhs
-        if input.op isa Variable
-            var = input.op.name
+        op = operation(input)
+        if op isa Sym
+            var = nameof(op)
         else #var isa Differential
-            var = input.args[1].op.name
+            var = nameof(operation(input.args[1]))
             lhs_deriv_depvars[var] = j
         end
         dep_var_idx[var] = j
