@@ -1,3 +1,4 @@
+using ModelingToolkit: operation
 # Method of lines discretization scheme
 struct MOLFiniteDifference{T} <: DiffEqBase.AbstractDiscretization
     dxs::T
@@ -10,7 +11,7 @@ function get_bcs(bcs,tdomain,domain)
     lhs_deriv_depvars_bcs = Dict()
     no_bcs = size(bcs,1)
     for i = 1:no_bcs
-        var = ModelingToolkit.operation(bcs[i].lhs)
+        var = operation(bcs[i].lhs)
         if var isa Sym
             var = var.name
             if !haskey(lhs_deriv_depvars_bcs,var)
@@ -45,11 +46,11 @@ end
 function discretize_2(input,deriv_order,approx_order,dx,X,len,
                       deriv_var,dep_var_idx,indep_var_idx)
     if !(input isa ModelingToolkit.Symbolic)
-        return :($(input.value))
+        return :($(input))
     else
-        if input isa Sym
+        if input isa Sym || (input isa Term && operation(input) isa Sym)
             expr = :(0.0)
-            var = nameof(input)
+            var = nameof(input isa Sym ? input : operation(input))
             if haskey(indep_var_idx,var) # ind. var.
                 if var != :(t)
                     i = indep_var_idx[var]
@@ -75,18 +76,17 @@ function discretize_2(input,deriv_order,approx_order,dx,X,len,
                 end
             end
             return expr
-        elseif input.op isa Differential
+        elseif input isa Term && operation(input) isa Differential
             var = nameof(input.op.x)
             push!(deriv_var,var)
             return discretize_2(input.args[1],deriv_order+1,approx_order,dx,X,
                                 len,deriv_var,dep_var_idx,indep_var_idx)
             pop!(deriv_var,var)
         else
-            name = ModelingToolkit.operation(input).name
+            name = nameof(operation(input))
             if size(input.args,1) == 1
                 aux = discretize_2(input.args[1],deriv_order,approx_order,dx,X,
                                    len,deriv_var,dep_var_idx,indep_var_idx)
-                @show input.op
                 return :(broadcast($name, $aux))
             else
                 aux_1 = discretize_2(input.args[1],deriv_order,approx_order,dx,X,
@@ -169,10 +169,11 @@ function DiffEqBase.discretize(pdesys::PDESystem,discretization::MOLFiniteDiffer
     no_dep_vars = size(eqs,1)
     for j = 1:no_dep_vars
         input = eqs[j].lhs
-        if input.op isa Sym
-            var = nameof(input)
+        op = operation(input)
+        if op isa Sym
+            var = nameof(op)
         else #var isa Differential
-            var = nameof(ModelingToolkit.operation(input.args[1]))
+            var = nameof(operation(input.args[1]))
             lhs_deriv_depvars[var] = j
         end
         dep_var_idx[var] = j
@@ -181,7 +182,6 @@ function DiffEqBase.discretize(pdesys::PDESystem,discretization::MOLFiniteDiffer
         aux = discretize_2( eqs[j].rhs,0,approx_order,dx,X,len,
                             [],dep_var_idx,indep_var_idx)
         # TODO: is there a better way to convert an Expr into a Function?
-        @show aux
         dep_var_disc[var] = @eval (Q,u,t) -> $aux
     end
 
