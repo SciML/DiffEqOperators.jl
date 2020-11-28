@@ -3,8 +3,8 @@
 [![Build Status](https://travis-ci.org/SciML/DiffEqOperators.jl.svg?branch=master)](https://travis-ci.org/SciML/DiffEqOperators.jl)
 [![Build status](https://ci.appveyor.com/api/projects/status/au9knv63u9oh1aie?svg=true)](https://ci.appveyor.com/project/ChrisRackauckas/diffeqoperators-jl)
 [![GitlabCI](https://gitlab.com/JuliaGPU/DiffEqOperators.jl/badges/master/pipeline.svg)](https://gitlab.com/JuliaGPU/DiffEqOperators.jl/pipelines)
-[![Coverage Status](https://coveralls.io/repos/JuliaDiffEq/DiffEqOperators.jl/badge.svg?branch=master&service=github)](https://coveralls.io/github/JuliaDiffEq/DiffEqOperators.jl?branch=master)
-[![codecov.io](http://codecov.io/github/shivin9/DiffEqOperators.jl/coverage.svg?branch=master)](http://codecov.io/github/JuliaDiffEq/DiffEqOperators.jl?branch=master)
+[![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](http://diffeqoperators.sciml.ai/stable/)
+[![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](http://diffeqoperators.sciml.ai/dev/)
 
 Construct high-order finite-difference operators to discretize a partial
 differential equation and its boundary conditions by the method of
@@ -20,6 +20,11 @@ unnecessary allocations.
 
 Any operator can be concretized as an `Array`, a `BandedMatrix` or
 a sparse matrix.
+
+For information on using the package,
+[see the stable documentation](https://diffeqoperators.sciml.ai/stable/). Use the
+[in-development documentation](https://diffeqoperators.sciml.ai/dev/) for the version of
+the documentation which contains the unreleased features.
 
 ## The simplest case
 
