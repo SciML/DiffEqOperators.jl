@@ -11,10 +11,15 @@ function *(L::AbstractDiffEqCompositeOperator{T}, Q::AbstractBC{T}) where{T}
     return sum(map(op -> op * Q, L.ops))
 end
 
+function LinearAlgebra.mul!(out::AbstractArray, A::GhostDerivativeOperator, u::AbstractArray)
+	padded = A.Q * u  # assume: creates boundary padded array w/o realloc
+	LinearAlgebra.mul!(out, A.L, padded)
+end
+
 function *(A::GhostDerivativeOperator{T1}, u::AbstractArray{T2}) where {T1,T2}
     #TODO Implement a function domaincheck(L::AbstractDiffEqLinearOperator, u) to see if components of L along each dimension match the size of u
     x = zeros(promote_type(T1,T2), unpadded_size(u))
-    LinearAlgebra.mul!(x, A.L, A.Q*u)
+    LinearAlgebra.mul!(x, A, u)
     return x
 end
 
