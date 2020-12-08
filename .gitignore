@@ -5,3 +5,4 @@ deps/deps.jl
 Manifest.toml
 *.png
 docs/build
+.vscode

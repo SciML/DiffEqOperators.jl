@@ -6,6 +6,8 @@ import LinearAlgebra: mul!, ldiv!, lmul!, rmul!, axpy!, opnorm, factorize, I
 import DiffEqBase: AbstractDiffEqLinearOperator, update_coefficients!, isconstant
 using SparseArrays, ForwardDiff, BandedMatrices, NNlib, LazyArrays, BlockBandedMatrices
 using LazyBandedMatrices, ModelingToolkit
+using RuntimeGeneratedFunctions
+RuntimeGeneratedFunctions.init(@__MODULE__)
 
 abstract type AbstractDiffEqAffineOperator{T} end
 abstract type AbstractDerivativeOperator{T} <: AbstractDiffEqLinearOperator{T} end

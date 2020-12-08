@@ -9,8 +9,8 @@ end
 # Get boundary conditions from an array
 function get_bcs(bcs,tdomain,domain)
     lhs_deriv_depvars_bcs = Dict()
-    no_bcs = size(bcs,1)
-    for i = 1:no_bcs
+    num_bcs = size(bcs,1)
+    for i = 1:num_bcs
         var = operation(bcs[i].lhs)
         if var isa Sym
             var = var.name
@@ -69,10 +69,10 @@ function discretize_2(input,deriv_order,approx_order,dx,X,len,
                     #       input parameters of each derivative
                     approx_order = 1
                     L = UpwindDifference(deriv_order,approx_order,dx[i],len[i]-2,-1)
-                    expr = :(-1*($L*Q[$j]*u[:,$j]))
+                    expr = :(-1*($L*all_bcs[$j]*u[:,$j]))
                 elseif deriv_order == 2
                     L = CenteredDifference(deriv_order,approx_order,dx[i],len[i]-2)
-                    expr = :($L*Q[$j]*u[:,$j])
+                    expr = :($L*all_bcs[$j]*u[:,$j])
                 end
             end
             return expr
@@ -127,13 +127,13 @@ function DiffEqBase.discretize(pdesys::PDESystem,discretization::MOLFiniteDiffer
 
     tdomain = 0.0
     indep_var_idx = Dict()
-    no_indep_vars = size(pdesys.domain,1)
-    domain = Array{Any}(undef,no_indep_vars)
-    dx = Array{Any}(undef,no_indep_vars)
-    X = Array{Any}(undef,no_indep_vars)
-    len = Array{Any}(undef,no_indep_vars)
+    num_indep_vars = size(pdesys.domain,1)
+    domain = Array{Any}(undef,num_indep_vars)
+    dx = Array{Any}(undef,num_indep_vars)
+    X = Array{Any}(undef,num_indep_vars)
+    len = Array{Any}(undef,num_indep_vars)
     k = 0
-    for i = 1:no_indep_vars
+    for i = 1:num_indep_vars
         var = nameof(pdesys.domain[i].variables)
         indep_var_idx[var] = i
         domain[i] = pdesys.domain[i].domain
@@ -166,8 +166,8 @@ function DiffEqBase.discretize(pdesys::PDESystem,discretization::MOLFiniteDiffer
     else
         eqs = pdesys.eq
     end
-    no_dep_vars = size(eqs,1)
-    for j = 1:no_dep_vars
+    num_dep_vars = size(eqs,1)
+    for j = 1:num_dep_vars
         input = eqs[j].lhs
         op = operation(input)
         if op isa Sym
@@ -181,8 +181,7 @@ function DiffEqBase.discretize(pdesys::PDESystem,discretization::MOLFiniteDiffer
     for (var,j) in dep_var_idx
         aux = discretize_2( eqs[j].rhs,0,approx_order,dx,X,len,
                             [],dep_var_idx,indep_var_idx)
-        # TODO: is there a better way to convert an Expr into a Function?
-        dep_var_disc[var] = @eval (Q,u,t) -> $aux
+        dep_var_disc[var] = @RuntimeGeneratedFunction(:((all_bcs,u,t) -> $aux))
     end
 
     ### Declare and define boundary conditions ################################
@@ -190,24 +189,22 @@ function DiffEqBase.discretize(pdesys::PDESystem,discretization::MOLFiniteDiffer
     # TODO: extend to Neumann BCs and Robin BCs
     lhs_deriv_depvars_bcs = get_bcs(pdesys.bcs,tdomain,domain[2])
     t = 0.0
-    u_t0 = Array{Float64}(undef,len[2]-2,no_dep_vars)
-    u_x0 = Array{Any}(undef,no_dep_vars)
-    u_x1 = Array{Any}(undef,no_dep_vars)
-    Q = Array{RobinBC}(undef,no_dep_vars)
+    u_ic = Array{Float64}(undef,len[2]-2,num_dep_vars)
+    u_left_bc = Array{Any}(undef,num_dep_vars)
+    u_right_bc = Array{Any}(undef,num_dep_vars)
+    all_bcs = Array{RobinBC}(undef,num_dep_vars)
 
     for var in keys(dep_var_idx)
         j = dep_var_idx[var]
         bcs = lhs_deriv_depvars_bcs[var]
 
-        g = eval(:((x,t) -> $(bcs[1])))
-        u_t0[:,j] = @eval $g.($(X[2][2:len[2]-1]),$t)
+        ic = @RuntimeGeneratedFunction(:((x,t) -> $(bcs[1])))
+        u_ic[:,j] = ic.(X[2][2:len[2]-1],t)
 
-        u_x0[j] = @eval (x,t) -> $(bcs[2])
-        u_x1[j] = @eval (x,t) -> $(bcs[3])
-
-        a = Base.invokelatest(u_x0[j],X[2][1],0.0)
-        b = Base.invokelatest(u_x1[j],last(X[2]),0.0)
-        Q[j] = DirichletBC(a,b)
+        left_bc_fn = :((x, t) -> $(bcs[2]))
+        right_bc_fn = :((x, t) -> $(bcs[3]))
+        u_left_bc[j] = @RuntimeGeneratedFunction(left_bc_fn)
+        u_right_bc[j] = @RuntimeGeneratedFunction(right_bc_fn)
     end
 
     ### Define the discretized PDE as an ODE function #########################
@@ -215,15 +212,15 @@ function DiffEqBase.discretize(pdesys::PDESystem,discretization::MOLFiniteDiffer
     function f(du,u,p,t)
 
         # Boundary conditions can vary with respect to time
-        for j in 1:no_dep_vars
-            a = Base.invokelatest(u_x0[j],X[2][1],t)
-            b = Base.invokelatest(u_x1[j],last(X[2]),t)
-            Q[j] = DirichletBC(a,b)
+        for j in 1:num_dep_vars
+            left_bc_eval = u_left_bc[j](X[2][1],0.0)
+            right_bc_eval = u_right_bc[j](last(X[2]),0.0)
+            all_bcs[j] = DirichletBC(left_bc_eval,right_bc_eval)
         end
 
         for (var,disc) in dep_var_disc
             j = dep_var_idx[var]
-            res = Base.invokelatest(disc,Q,u,t)
+            res = disc(all_bcs,u,t)
             if haskey(lhs_deriv_depvars,var)
                 du[:,j] = res
             else
@@ -234,5 +231,5 @@ function DiffEqBase.discretize(pdesys::PDESystem,discretization::MOLFiniteDiffer
     end
 
     # Return problem ##########################################################
-    return PDEProblem(ODEProblem(f,u_t0,(tdomain.lower,tdomain.upper),nothing),Q,X)
+    return PDEProblem(ODEProblem(f,u_ic,(tdomain.lower,tdomain.upper),nothing),all_bcs,X)
 end
