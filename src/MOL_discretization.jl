@@ -81,7 +81,6 @@ function discretize_2(input,deriv_order,approx_order,dx,X,len,
             push!(deriv_var,var)
             return discretize_2(input.args[1],deriv_order+1,approx_order,dx,X,
                                 len,deriv_var,dep_var_idx,indep_var_idx)
-            pop!(deriv_var,var)
         else
             name = nameof(operation(input))
             if size(input.args,1) == 1
