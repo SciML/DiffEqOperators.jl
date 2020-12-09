@@ -34,15 +34,15 @@ using ModelingToolkit,DiffEqOperators,DiffEqBase,LinearAlgebra,Test
 
     # Solve ODE problem
     using OrdinaryDiffEq
-    
+
     sol = solve(prob,Euler(),dt=0.01,saveat=0.1)
 
     # Plot and save results
-    using Plots
-    time = domains[1].domain.lower:0.1:domains[1].domain.upper
+    #using Plots
+    #time = domains[1].domain.lower:0.1:domains[1].domain.upper
 
-    plot(time,sol[5,1,:])
-    savefig("MOL_0D_Logistic.png")
+    #plot(time,sol[5,1,:])
+    #savefig("MOL_0D_Logistic.png")
 
     # Test
     # x_interval = domains[2].domain.lower+dx:dx:domains[2].domain.upper-dx
