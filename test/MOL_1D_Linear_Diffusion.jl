@@ -38,7 +38,7 @@ using ModelingToolkit,DiffEqOperators,DiffEqBase,LinearAlgebra,Test
     using OrdinaryDiffEq
     sol = solve(prob,Tsit5(),saveat=0.1)
 
-    #Plot and save results
+    # Plot and save results
     # using Plots
     # plot(prob.space[2],Array(prob.extrapolation[1]*sol[:,1,1]))
     # plot!(prob.space[2],Array(prob.extrapolation[1]*sol[:,1,2]))
