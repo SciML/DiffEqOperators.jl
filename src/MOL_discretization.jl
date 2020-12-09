@@ -1,3 +1,4 @@
+using Printf
 using ModelingToolkit: operation
 # Method of lines discretization scheme
 struct MOLFiniteDifference{T} <: DiffEqBase.AbstractDiscretization
@@ -7,28 +8,71 @@ struct MOLFiniteDifference{T} <: DiffEqBase.AbstractDiscretization
 end
 
 # Get boundary conditions from an array
+# The returned boundary conditions will be the three coefficients (α, β, γ)
+# for a RobinBC of the form α*u(0) + β*u'(0) = γ
+# These are created automatically from the form of the boundary condition that is
+# passed, i.e.
+# u(t, 0) ~ γ                           ---> (1, 0, γ)
+# Dx(u(t, 0)) ~ γ                       ---> (0, 1, γ)
+# α * u(t, 0)) + β * Dx(u(t, 0)) ~ γ    ---> (α, β, γ)
+# In general, all of α, β, and γ could be Expr 
+# For now, we restrict to the case where α and β are Float64
 function get_bcs(bcs,tdomain,domain)
     lhs_deriv_depvars_bcs = Dict()
     num_bcs = size(bcs,1)
     for i = 1:num_bcs
-        var = operation(bcs[i].lhs)
-        if var isa Sym
-            var = var.name
-            if !haskey(lhs_deriv_depvars_bcs,var)
-                lhs_deriv_depvars_bcs[var] = Array{Expr}(undef,3)
-            end
-            j = 0
-            if isequal(bcs[i].lhs.args[1],tdomain.lower) # u(t=0,x)
-                j = 1
-            elseif isequal(bcs[i].lhs.args[2],domain.lower) # u(t,x=x_init)
-                j = 2
-            elseif isequal(bcs[i].lhs.args[2],domain.upper) # u(t,x=x_final)
-                j = 3
-            end
-            if !(bcs[i].rhs isa ModelingToolkit.Symbolic)
-                lhs_deriv_depvars_bcs[var][j] = :(var=$(bcs[i].rhs))
-            else
-                lhs_deriv_depvars_bcs[var][j] = toexpr(bcs[i].rhs)
+        lhs = bcs[i].lhs
+        # Extract the variable from the lhs
+        if operation(lhs) isa Sym
+            # Dirichlet boundary condition
+            var = operation(lhs).name
+            α = 1.0
+            β = 0.0
+            bc_args = lhs.args
+        elseif operation(lhs) isa Differential
+            # Neumann boundary condition
+            var = operation(lhs.args[1]).name
+            α = 0.0
+            β = 1.0
+            bc_args = lhs.args[1].args
+        else
+            # TODO: RobinBC
+        end
+        if !haskey(lhs_deriv_depvars_bcs,var)
+            # Initialize dict of boundary conditions for this variable
+            lhs_deriv_depvars_bcs[var] = Dict()
+        end
+        # Create key
+        if isequal(bc_args[1],tdomain.lower) # u(t=0,x)
+            key = "ic"
+        elseif isequal(bc_args[2],domain.lower) # u(t,x=x_init)
+            key = "left bc"
+        elseif isequal(bc_args[2],domain.upper) # u(t,x=x_final)
+            key = "right bc"
+        else
+            throw(BoundaryConditionError(
+                "Boundary condition not recognized. "
+                * "Should be applied at t=0, x=domain.lower, or x=domain.upper"
+            ))
+        end
+        # Create value
+        if !(bcs[i].rhs isa ModelingToolkit.Symbolic)
+            γ = :(var=$(bcs[i].rhs))
+        else
+            γ = toexpr(bcs[i].rhs)
+        end
+        # Assign
+        if key == "ic"
+            lhs_deriv_depvars_bcs[var][key] = γ
+        else
+            lhs_deriv_depvars_bcs[var][key] = (α, β, γ)
+        end
+    end
+    # Check each variable got all boundary conditions
+    for var in keys(lhs_deriv_depvars_bcs)
+        for key in ["ic", "left bc", "right bc"]
+            if !haskey(lhs_deriv_depvars_bcs[var], key)
+                throw(BoundaryConditionError(@sprintf "missing %s for %s" key var))
             end
         end
     end
@@ -43,7 +87,7 @@ end
 #       E.g., Dx(u(t,x))=v(t,x)*Dx(u(t,x)), v(t,x)=t*x
 #            =>  Dx(u(t,x))=t*x*Dx(u(t,x))
 
-function discretize_2(input,deriv_order,approx_order,dx,X,len,
+function discretize_2(input,deriv_order,approx_order,dx,X,len_of_indep_vars,
                       deriv_var,dep_var_idx,indep_var_idx)
     if !(input isa ModelingToolkit.Symbolic)
         return :($(input))
@@ -54,7 +98,7 @@ function discretize_2(input,deriv_order,approx_order,dx,X,len,
             if haskey(indep_var_idx,var) # ind. var.
                 if var != :(t)
                     i = indep_var_idx[var]
-                    expr = :($X[$i][2:$len[$i]-1])
+                    expr = :($X[$i][2:$len_of_indep_vars[$i]-1])
                 else
                     expr = :(t)
                 end
@@ -68,11 +112,11 @@ function discretize_2(input,deriv_order,approx_order,dx,X,len,
                     # TODO: approx_order and forward/backward should be
                     #       input parameters of each derivative
                     approx_order = 1
-                    L = UpwindDifference(deriv_order,approx_order,dx[i],len[i]-2,-1)
-                    expr = :(-1*($L*all_bcs[$j]*u[:,$j]))
+                    L = UpwindDifference(deriv_order,approx_order,dx[i],len_of_indep_vars[i]-2,-1)
+                    expr = :(-1*($L*Q[$j]*u[:,$j]))
                 elseif deriv_order == 2
-                    L = CenteredDifference(deriv_order,approx_order,dx[i],len[i]-2)
-                    expr = :($L*all_bcs[$j]*u[:,$j])
+                    L = CenteredDifference(deriv_order,approx_order,dx[i],len_of_indep_vars[i]-2)
+                    expr = :($L*Q[$j]*u[:,$j])
                 end
             end
             return expr
@@ -80,18 +124,18 @@ function discretize_2(input,deriv_order,approx_order,dx,X,len,
             var = nameof(input.op.x)
             push!(deriv_var,var)
             return discretize_2(input.args[1],deriv_order+1,approx_order,dx,X,
-                                len,deriv_var,dep_var_idx,indep_var_idx)
+                                len_of_indep_vars,deriv_var,dep_var_idx,indep_var_idx)
         else
             name = nameof(operation(input))
             if size(input.args,1) == 1
                 aux = discretize_2(input.args[1],deriv_order,approx_order,dx,X,
-                                   len,deriv_var,dep_var_idx,indep_var_idx)
+                                   len_of_indep_vars,deriv_var,dep_var_idx,indep_var_idx)
                 return :(broadcast($name, $aux))
             else
                 aux_1 = discretize_2(input.args[1],deriv_order,approx_order,dx,X,
-                                     len,deriv_var,dep_var_idx,indep_var_idx)
+                                     len_of_indep_vars,deriv_var,dep_var_idx,indep_var_idx)
                 aux_2 = discretize_2(input.args[2],deriv_order,approx_order,dx,X,
-                                     len,deriv_var,dep_var_idx,indep_var_idx)
+                                     len_of_indep_vars,deriv_var,dep_var_idx,indep_var_idx)
                 return :(broadcast($name, $aux_1, $aux_2))
             end
         end
@@ -130,7 +174,7 @@ function DiffEqBase.discretize(pdesys::PDESystem,discretization::MOLFiniteDiffer
     domain = Array{Any}(undef,num_indep_vars)
     dx = Array{Any}(undef,num_indep_vars)
     X = Array{Any}(undef,num_indep_vars)
-    len = Array{Any}(undef,num_indep_vars)
+    len_of_indep_vars = Array{Any}(undef,num_indep_vars)
     k = 0
     for i = 1:num_indep_vars
         var = nameof(pdesys.domain[i].variables)
@@ -139,11 +183,11 @@ function DiffEqBase.discretize(pdesys::PDESystem,discretization::MOLFiniteDiffer
         if var != :(t)
             dx[i] = discretization.dxs[i-k]
             X[i] = domain[i].lower:dx[i]:domain[i].upper
-            len[i] = size(X[i],1)
+            len_of_indep_vars[i] = size(X[i],1)
         else
             dx[i] = 0.0
             X[i] = 0.0
-            len[i] = 0.0
+            len_of_indep_vars[i] = 0.0
             tdomain = pdesys.domain[1].domain
             @assert tdomain isa IntervalDomain
             k = 1
@@ -178,48 +222,55 @@ function DiffEqBase.discretize(pdesys::PDESystem,discretization::MOLFiniteDiffer
         dep_var_idx[var] = j
     end
     for (var,j) in dep_var_idx
-        aux = discretize_2( eqs[j].rhs,0,approx_order,dx,X,len,
+        aux = discretize_2( eqs[j].rhs,0,approx_order,dx,X,len_of_indep_vars,
                             [],dep_var_idx,indep_var_idx)
-        dep_var_disc[var] = @RuntimeGeneratedFunction(:((all_bcs,u,t) -> $aux))
+        dep_var_disc[var] = @RuntimeGeneratedFunction(:((Q,u,t) -> $aux))
     end
 
     ### Declare and define boundary conditions ################################
 
     # TODO: extend to Neumann BCs and Robin BCs
     lhs_deriv_depvars_bcs = get_bcs(pdesys.bcs,tdomain,domain[2])
-    t = 0.0
-    u_ic = Array{Float64}(undef,len[2]-2,num_dep_vars)
+    u_ic = Array{Float64}(undef,len_of_indep_vars[2]-2,num_dep_vars)
     u_left_bc = Array{Any}(undef,num_dep_vars)
     u_right_bc = Array{Any}(undef,num_dep_vars)
-    all_bcs = Array{RobinBC}(undef,num_dep_vars)
+    Q = Array{RobinBC}(undef,num_dep_vars)
 
     for var in keys(dep_var_idx)
         j = dep_var_idx[var]
         bcs = lhs_deriv_depvars_bcs[var]
 
-        ic = @RuntimeGeneratedFunction(:((x,t) -> $(bcs[1])))
-        u_ic[:,j] = ic.(X[2][2:len[2]-1],t)
+        # Initial condition depends on space but not time
+        ic = @RuntimeGeneratedFunction(:(x -> $(bcs["ic"])))
+        u_ic[:,j] = ic.(X[2][2:len_of_indep_vars[2]-1])
 
-        left_bc_fn = :((x, t) -> $(bcs[2]))
-        right_bc_fn = :((x, t) -> $(bcs[3]))
-        u_left_bc[j] = @RuntimeGeneratedFunction(left_bc_fn)
-        u_right_bc[j] = @RuntimeGeneratedFunction(right_bc_fn)
+        # Boundary conditions depend on time and so will be evaluated at t within the
+        # ODE function for the discretized PDE (below)
+        # We use @RuntimeGeneratedFunction to do this efficiently
+        # For now we restrict to the case where only γ depends on time
+        αl, βl, γl = bcs["left bc"]
+        αr, βr, γr = bcs["right bc"]
+        u_left_bc[j] = (αl, βl, @RuntimeGeneratedFunction(:(t -> $(γl))))
+        u_right_bc[j] =  (αl, βl, @RuntimeGeneratedFunction(:(t -> $(γr))))
     end
 
     ### Define the discretized PDE as an ODE function #########################
 
     function f(du,u,p,t)
 
-        # Boundary conditions can vary with respect to time
+        # Boundary conditions can vary with respect to time (but not space)
+        # For now assume that only γ depends on t
         for j in 1:num_dep_vars
-            left_bc_eval = u_left_bc[j](X[2][1],0.0)
-            right_bc_eval = u_right_bc[j](last(X[2]),0.0)
-            all_bcs[j] = DirichletBC(left_bc_eval,right_bc_eval)
+            αl, βl, γl = u_left_bc[j]
+            αr, βr, γr = u_right_bc[j]
+            # Right now there is only one independent variable, so dx is always dx[2]
+            # i.e. the spatial variable
+            Q[j] = RobinBC((αl, βl, γl(t)), (αr, βr, γr(t)), dx[2])
         end
 
         for (var,disc) in dep_var_disc
             j = dep_var_idx[var]
-            res = disc(all_bcs,u,t)
+            res = disc(Q,u,t)
             if haskey(lhs_deriv_depvars,var)
                 du[:,j] = res
             else
@@ -230,5 +281,5 @@ function DiffEqBase.discretize(pdesys::PDESystem,discretization::MOLFiniteDiffer
     end
 
     # Return problem ##########################################################
-    return PDEProblem(ODEProblem(f,u_ic,(tdomain.lower,tdomain.upper),nothing),all_bcs,X)
+    return PDEProblem(ODEProblem(f,u_ic,(tdomain.lower,tdomain.upper),nothing),Q,X)
 end
