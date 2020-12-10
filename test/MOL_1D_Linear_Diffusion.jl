@@ -7,6 +7,9 @@ using ModelingToolkit,DiffEqOperators,DiffEqBase,LinearAlgebra,Test,OrdinaryDiff
 
 # Tests
 @testset "Test 00: Dt(u(t,x)) ~ Dxx(u(t,x))" begin
+    # Method of Manufactured Solutions
+    u_exact = (x,t) -> exp.(-t) * cos.(x)
+
     # Parameters, variables, and derivatives
     @parameters t x
     @variables u(..)
@@ -15,13 +18,13 @@ using ModelingToolkit,DiffEqOperators,DiffEqBase,LinearAlgebra,Test,OrdinaryDiff
 
     # 1D PDE and boundary conditions
     eq  = Dt(u(t,x)) ~ Dxx(u(t,x))
-    bcs = [u(0,x) ~ -x*(x-1)*sin(x),
-           u(t,0) ~ 0.0,
-           u(t,1) ~ 0.0]
+    bcs = [u(0,x) ~ cos(x),
+           u(t,0) ~ exp(-t),
+           u(t,Float64(pi)) ~ -exp(-t)]
 
     # Space and time domains
     domains = [t ∈ IntervalDomain(0.0,1.0),
-               x ∈ IntervalDomain(0.0,1.0)]
+               x ∈ IntervalDomain(0.0,Float64(pi))]
 
     # PDE system
     pdesys = PDESystem(eq,bcs,domains,[t,x],[u])
@@ -36,20 +39,23 @@ using ModelingToolkit,DiffEqOperators,DiffEqBase,LinearAlgebra,Test,OrdinaryDiff
 
     # Solve ODE problem
     sol = solve(prob,Tsit5(),saveat=0.1)
+    x = prob.space[2]
+    t = sol.t
 
     # Plot and save results
     # using Plots
-    # plot(prob.space[2],Array(prob.extrapolation[1]*sol[:,1,1]))
-    # plot!(prob.space[2],Array(prob.extrapolation[1]*sol[:,1,2]))
-    # plot!(prob.space[2],Array(prob.extrapolation[1]*sol[:,1,3]))
-    # plot!(prob.space[2],Array(prob.extrapolation[1]*sol[:,1,4]))
+    # plot()
+    # for i in 1:4
+    #     plot!(x,Array(prob.extrapolation[1](t[i])*sol.u[i]))
+    #     scatter!(x, u_exact(x, t[i]))
+    # end
     # savefig("MOL_1D_Linear_Diffusion_Test00.png")
 
-    # Test
-    n = size(sol,1)
-    t_f = size(sol,3)
-
-    @test sol[:,1,t_f] ≈ zeros(n) atol = 0.001;
+    # Test against exact solution
+    for i in 1:size(t,1)
+        u_approx = Array(prob.extrapolation[1](t[i])*sol.u[i])
+        @test u_approx ≈ u_exact(x, t[i]) atol=0.01
+    end
 end
 
 @testset "Test 01: Dt(u(t,x)) ~ D*Dxx(u(t,x))" begin
@@ -86,11 +92,14 @@ end
     sol = solve(prob,Tsit5(),saveat=0.1)
 
     # Plot and save results
+    # x = prob.space[2]
+    # t = sol.t
+    
     # using Plots
-    # plot(prob.space[2],Array(prob.extrapolation[1]*sol[:,1,1]))
-    # plot!(prob.space[2],Array(prob.extrapolation[1]*sol[:,1,2]))
-    # plot!(prob.space[2],Array(prob.extrapolation[1]*sol[:,1,3]))
-    # plot!(prob.space[2],Array(prob.extrapolation[1]*sol[:,1,4]))
+    # plot()
+    # for i in 1:4
+    #     plot!(x,Array(prob.extrapolation[1](t[i])*sol.u[i]))
+    # end
     # savefig("MOL_1D_Linear_Diffusion_Test01.png")
 
     # Test
@@ -138,11 +147,14 @@ end
     sol = solve(prob,Tsit5(),saveat=0.1)
     
     # Plot and save results
+    # x = prob.space[2]
+    # t = sol.t
+    
     # using Plots
-    # plot(prob.space[2],Array(prob.extrapolation[1]*sol[:,1,1]))
-    # plot!(prob.space[2],Array(prob.extrapolation[1]*sol[:,1,2]))
-    # plot!(prob.space[2],Array(prob.extrapolation[1]*sol[:,1,3]))
-    # plot!(prob.space[2],Array(prob.extrapolation[1]*sol[:,1,4]))
+    # plot()
+    # for i in 1:4
+    #     plot!(x,Array(prob.extrapolation[1](t[i])*sol.u[i]))
+    # end
     # savefig("MOL_1D_Linear_Diffusion_Test02.png")
 
     # Test
@@ -151,7 +163,10 @@ end
     @test sol[:,1,t_f] ≈ zeros(n) atol = 0.1;
 end
 
-@testset "Test 04: Dt(u(t,x)) ~ Dxx(u(t,x)), Dx(u(t,0)) ~ 0, Dx(u(t,1)) ~ 0" begin
+@testset "Test 03: Dt(u(t,x)) ~ Dxx(u(t,x)), Dx(u(t,0)) ~ 0, Dx(u(t,1)) ~ 0" begin
+    # Method of Manufactured Solutions
+    u_exact = (x,t) -> exp.(-t) * sin.(x)
+
     # Parameters, variables, and derivatives
     @parameters t x
     @variables u(..)
@@ -161,13 +176,13 @@ end
 
     # 1D PDE and boundary conditions
     eq  = Dt(u(t,x)) ~ Dxx(u(t,x))
-    bcs = [u(0,x) ~ 0.5 + sin(2pi*x),
-           Dx(u(t,0)) ~ 0.0,
-           Dx(u(t,1)) ~ 0.0]
+    bcs = [u(0,x) ~ sin(x),
+           Dx(u(t,0)) ~ exp(-t),
+           Dx(u(t,Float64(pi))) ~ -exp(-t)]
 
     # Space and time domains
     domains = [t ∈ IntervalDomain(0.0,1.0),
-               x ∈ IntervalDomain(0.0,1.0)]
+               x ∈ IntervalDomain(0.0,Float64(pi))]
 
     # PDE system
     pdesys = PDESystem(eq,bcs,domains,[t,x],[u])
@@ -182,22 +197,23 @@ end
 
     # Solve ODE problem
     sol = solve(prob,Tsit5(),saveat=0.1)
+    x = prob.space[2]
+    t = sol.t
 
     # Plot and save results
-    # using Plots
-    # plot(prob.space[2],Array(prob.extrapolation[1]*sol[:,1,1]))
-    # plot!(prob.space[2],Array(prob.extrapolation[1]*sol[:,1,2]))
-    # plot!(prob.space[2],Array(prob.extrapolation[1]*sol[:,1,3]))
-    # plot!(prob.space[2],Array(prob.extrapolation[1]*sol[:,1,4]))
-    # savefig("MOL_1D_Linear_Diffusion_Test04.png")
+    using Plots
+    plot()
+    for i in 1:4
+        plot!(x,Array(prob.extrapolation[1](t[i])*sol.u[i]))
+        scatter!(x, u_exact(x, t[i]))
+    end
+    savefig("MOL_1D_Linear_Diffusion_Test03.png")
 
-    # Test
-    # With zero flux at the boundaries, the solution should converge to the average of
-    # its initial condition, 0.5
-    n = size(sol,1)
-    t_f = size(sol,3)
-
-    @test sol[:,1,t_f] ≈ 0.5ones(n) atol = 0.001;
+    # Test against exact solution
+    for i in 1:size(t,1)
+        u_approx = Array(prob.extrapolation[1](t[i])*sol.u[i])
+        @test u_approx ≈ u_exact(x, t[i]) atol=0.01
+    end
 end
 
 @testset "Test errors" begin

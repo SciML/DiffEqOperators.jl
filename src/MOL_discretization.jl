@@ -56,15 +56,13 @@ function get_bcs(bcs,tdomain,domain)
             ))
         end
         # Create value
-        if !(bcs[i].rhs isa ModelingToolkit.Symbolic)
-            γ = :(var=$(bcs[i].rhs))
-        else
-            γ = toexpr(bcs[i].rhs)
-        end
+        γ = toexpr(bcs[i].rhs)
         # Assign
         if key == "ic"
+            # Initial conditions always take the form u(0, x) ~ γ
             lhs_deriv_depvars_bcs[var][key] = γ
         else
+            # Boundary conditions can be more general
             lhs_deriv_depvars_bcs[var][key] = (α, β, γ)
         end
     end
@@ -232,8 +230,7 @@ function DiffEqBase.discretize(pdesys::PDESystem,discretization::MOLFiniteDiffer
     # TODO: extend to Neumann BCs and Robin BCs
     lhs_deriv_depvars_bcs = get_bcs(pdesys.bcs,tdomain,domain[2])
     u_ic = Array{Float64}(undef,len_of_indep_vars[2]-2,num_dep_vars)
-    u_left_bc = Array{Any}(undef,num_dep_vars)
-    u_right_bc = Array{Any}(undef,num_dep_vars)
+    robin_bc_func = Array{Any}(undef,num_dep_vars)
     Q = Array{RobinBC}(undef,num_dep_vars)
 
     for var in keys(dep_var_idx)
@@ -247,11 +244,13 @@ function DiffEqBase.discretize(pdesys::PDESystem,discretization::MOLFiniteDiffer
         # Boundary conditions depend on time and so will be evaluated at t within the
         # ODE function for the discretized PDE (below)
         # We use @RuntimeGeneratedFunction to do this efficiently
-        # For now we restrict to the case where only γ depends on time
         αl, βl, γl = bcs["left bc"]
         αr, βr, γr = bcs["right bc"]
-        u_left_bc[j] = (αl, βl, @RuntimeGeneratedFunction(:(t -> $(γl))))
-        u_right_bc[j] =  (αl, βl, @RuntimeGeneratedFunction(:(t -> $(γr))))
+        # Right now there is only one independent variable, so dx is always dx[2]
+        # i.e. the spatial variable
+        robin_bc_func[j] = @RuntimeGeneratedFunction(:(t -> begin
+            RobinBC(($(αl), $(βl), $(γl)), ($(αr), $(βr), $(γr)), $(dx[2]))
+        end))
     end
 
     ### Define the discretized PDE as an ODE function #########################
@@ -259,13 +258,8 @@ function DiffEqBase.discretize(pdesys::PDESystem,discretization::MOLFiniteDiffer
     function f(du,u,p,t)
 
         # Boundary conditions can vary with respect to time (but not space)
-        # For now assume that only γ depends on t
         for j in 1:num_dep_vars
-            αl, βl, γl = u_left_bc[j]
-            αr, βr, γr = u_right_bc[j]
-            # Right now there is only one independent variable, so dx is always dx[2]
-            # i.e. the spatial variable
-            Q[j] = RobinBC((αl, βl, γl(t)), (αr, βr, γr(t)), dx[2])
+            Q[j] = robin_bc_func[j](t)
         end
 
         for (var,disc) in dep_var_disc
@@ -281,5 +275,13 @@ function DiffEqBase.discretize(pdesys::PDESystem,discretization::MOLFiniteDiffer
     end
 
     # Return problem ##########################################################
-    return PDEProblem(ODEProblem(f,u_ic,(tdomain.lower,tdomain.upper),nothing),Q,X)
+    # The second entry, robin_bc_func, is stored as the "extrapolation" in the
+    # PDEProblem. Since this can in general be time-dependent, it must be evaluated
+    # at the correct time when used, e.g.
+    #   prob.extrapolation[1](t[i])*sol[:,1,i]
+    return PDEProblem(
+        ODEProblem(f,u_ic,(tdomain.lower,tdomain.upper),nothing),
+        robin_bc_func,
+        X
+    )
 end
