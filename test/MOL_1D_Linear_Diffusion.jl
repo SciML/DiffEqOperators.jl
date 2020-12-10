@@ -307,13 +307,13 @@ end
     t = sol.t
 
     # Plot and save results
-    using Plots
-    plot()
-    for i in 1:4
-        plot!(x,Array(prob.extrapolation[1](t[i])*sol.u[i]))
-        scatter!(x, u_exact(x, t[i]))
-    end
-    savefig("MOL_1D_Linear_Diffusion_Test05.png")
+    # using Plots
+    # plot()
+    # for i in 1:4
+    #     plot!(x,Array(prob.extrapolation[1](t[i])*sol.u[i]))
+    #     scatter!(x, u_exact(x, t[i]))
+    # end
+    # savefig("MOL_1D_Linear_Diffusion_Test05.png")
 
     # Test against exact solution
     for i in 1:size(t,1)
