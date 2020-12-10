@@ -1,4 +1,3 @@
-using Printf
 using ModelingToolkit: operation
 # Method of lines discretization scheme
 struct MOLFiniteDifference{T} <: DiffEqBase.AbstractDiscretization
@@ -7,6 +6,11 @@ struct MOLFiniteDifference{T} <: DiffEqBase.AbstractDiscretization
     MOLFiniteDifference(args...;order=2) = new{typeof(args[1])}(args[1],order)
 end
 
+function throw_bc_err(bc)
+    throw(BoundaryConditionError(
+        "Could not not recognize boundary condition '$(bc.lhs) ~ $(bc.rhs)'"
+    ))
+end
 # Get boundary conditions from an array
 # The returned boundary conditions will be the three coefficients (α, β, γ)
 # for a RobinBC of the form α*u(0) + β*u'(0) = γ
@@ -16,7 +20,6 @@ end
 # Dx(u(t, 0)) ~ γ                       ---> (0, 1, γ)
 # α * u(t, 0)) + β * Dx(u(t, 0)) ~ γ    ---> (α, β, γ)
 # In general, all of α, β, and γ could be Expr 
-# For now, we restrict to the case where α and β are Float64
 function get_bcs(bcs,tdomain,domain)
     lhs_deriv_depvars_bcs = Dict()
     num_bcs = size(bcs,1)
@@ -35,8 +38,47 @@ function get_bcs(bcs,tdomain,domain)
             α = 0.0
             β = 1.0
             bc_args = lhs.args[1].args
+        elseif operation(lhs) isa typeof(+)
+            # Robin boundary condition
+            lhs_l, lhs_r = lhs.args
+            # Left side of the expression should be Sym or α * Sym
+            if operation(lhs_l) isa Sym
+                α = 1.0
+                var_l = operation(lhs_l).name
+                bc_args_l = lhs_l.args
+            elseif operation(lhs_l) isa typeof(*)
+                α = lhs_l.args[1]
+                # Convert α to a Float64 if it is an Int, leave unchanged otherwise
+                α = α isa Int ? Float64(α) : α
+                @assert operation(lhs_l.args[2]) isa Sym
+                var_l = operation(lhs_l.args[2]).name
+                bc_args_l = lhs_l.args[2].args
+            else
+                throw_bc_err(bcs[i])
+            end
+            # Right side of the expression should be Differential or β * Differential
+            if operation(lhs_r) isa Differential
+                β = 1.0
+                var_r = operation(lhs_r.args[1]).name
+                bc_args_r = lhs_r.args[1].args
+            elseif operation(lhs_r) isa typeof(*)
+                β = lhs_r.args[1]
+                # Convert β to a Float64 if it is an Int, leave unchanged otherwise
+                β = β isa Int ? Float64(β) : β
+                @assert operation(lhs_r.args[2]) isa Differential
+                var_r = operation(lhs_r.args[2].args[1]).name
+                bc_args_r = lhs_r.args[2].args[1].args
+            else
+                throw_bc_err(bcs[i])
+            end
+            # Check var and bc_args are the same in lhs and rhs, and if so assign 
+            # the unique value
+            @assert var_l == var_r
+            var = var_l
+            @assert bc_args_l == bc_args_r
+            bc_args = bc_args_l
         else
-            # TODO: RobinBC
+            throw_bc_err(bcs[i])
         end
         if !haskey(lhs_deriv_depvars_bcs,var)
             # Initialize dict of boundary conditions for this variable
@@ -52,7 +94,7 @@ function get_bcs(bcs,tdomain,domain)
         else
             throw(BoundaryConditionError(
                 "Boundary condition not recognized. "
-                * "Should be applied at t=0, x=domain.lower, or x=domain.upper"
+                * "Should be applied at t=0, x=$(domain.lower), or x=$(domain.upper)"
             ))
         end
         # Create value
@@ -70,7 +112,7 @@ function get_bcs(bcs,tdomain,domain)
     for var in keys(lhs_deriv_depvars_bcs)
         for key in ["ic", "left bc", "right bc"]
             if !haskey(lhs_deriv_depvars_bcs[var], key)
-                throw(BoundaryConditionError(@sprintf "missing %s for %s" key var))
+                throw(BoundaryConditionError("missing $key for $var"))
             end
         end
     end
