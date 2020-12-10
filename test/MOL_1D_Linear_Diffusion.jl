@@ -160,7 +160,7 @@ end
     # Test
     n = size(sol,1)
     t_f = size(sol,3)
-    @test sol[:,1,t_f] ≈ zeros(n) atol = 0.1;
+    @test sol[:,1,t_f] ≈ zeros(n) atol=0.01;
 end
 
 @testset "Test 03: Dt(u(t,x)) ~ Dxx(u(t,x)), Neumann BCs" begin
@@ -284,7 +284,7 @@ end
     eq  = Dt(u(t,x)) ~ Dxx(u(t,x))
     bcs = [u(0,x) ~ sin(x),
            u(t,-1.0) + 3Dx(u(t,-1.0)) ~ exp(-t) * (sin(-1.0) + 3cos(-1.0)),
-           u(t,1.0) + Dx(u(t,1.0)) ~ exp(-t) * (sin(1.0) + cos(1.0))]
+           4u(t,1.0) + Dx(u(t,1.0)) ~ exp(-t) * (4sin(1.0) + cos(1.0))]
 
     # Space and time domains
     domains = [t ∈ IntervalDomain(0.0,1.0),
@@ -294,7 +294,7 @@ end
     pdesys = PDESystem(eq,bcs,domains,[t,x],[u])
 
     # Method of lines discretization
-    dx = 0.1
+    dx = 0.01
     order = 2
     discretization = MOLFiniteDifference(dx,order)
 
@@ -318,7 +318,60 @@ end
     # Test against exact solution
     for i in 1:size(t,1)
         u_approx = Array(prob.extrapolation[1](t[i])*sol.u[i])
-        @test u_approx ≈ u_exact(x, t[i]) atol=0.1
+        @test u_approx ≈ u_exact(x, t[i]) atol=0.05
+    end
+end
+
+@testset "Test 06: Dt(u(t,x)) ~ Dxx(u(t,x)), time-dependent Robin BCs" begin
+    # Method of Manufactured Solutions
+    u_exact = (x,t) -> exp.(-t) * sin.(x)
+
+    # Parameters, variables, and derivatives
+    @parameters t x
+    @variables u(..)
+    @derivatives Dt'~t
+    @derivatives Dx'~x
+    @derivatives Dxx''~x
+
+    # 1D PDE and boundary conditions
+    eq  = Dt(u(t,x)) ~ Dxx(u(t,x))
+    bcs = [u(0,x) ~ sin(x),
+           t^2 * u(t,-1.0) + 3Dx(u(t,-1.0)) ~ exp(-t) * (t^2 * sin(-1.0) + 3cos(-1.0)),
+           4u(t,1.0) + t * Dx(u(t,1.0)) ~ exp(-t) * (4sin(1.0) + t * cos(1.0))]
+
+    # Space and time domains
+    domains = [t ∈ IntervalDomain(0.0,1.0),
+               x ∈ IntervalDomain(-1.0,1.0)]
+
+    # PDE system
+    pdesys = PDESystem(eq,bcs,domains,[t,x],[u])
+
+    # Method of lines discretization
+    dx = 0.01
+    order = 2
+    discretization = MOLFiniteDifference(dx,order)
+
+    # Convert the PDE problem into an ODE problem
+    prob = discretize(pdesys,discretization)
+
+    # Solve ODE problem
+    sol = solve(prob,Tsit5(),saveat=0.1)
+    x = prob.space[2]
+    t = sol.t
+
+    # Plot and save results
+    # using Plots
+    # plot()
+    # for i in 1:4
+    #     plot!(x,Array(prob.extrapolation[1](t[i])*sol.u[i]))
+    #     scatter!(x, u_exact(x, t[i]))
+    # end
+    # savefig("MOL_1D_Linear_Diffusion_Test06.png")
+
+    # Test against exact solution
+    for i in 1:size(t,1)
+        u_approx = Array(prob.extrapolation[1](t[i])*sol.u[i])
+        @test u_approx ≈ u_exact(x, t[i]) atol=0.05
     end
 end
 

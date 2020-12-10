@@ -19,7 +19,7 @@ end
 # u(t, 0) ~ γ                           ---> (1, 0, γ)
 # Dx(u(t, 0)) ~ γ                       ---> (0, 1, γ)
 # α * u(t, 0)) + β * Dx(u(t, 0)) ~ γ    ---> (α, β, γ)
-# In general, all of α, β, and γ could be Expr 
+# In general, all of α, β, and γ could be Expr (i.e. functions of t)
 function get_bcs(bcs,tdomain,domain)
     lhs_deriv_depvars_bcs = Dict()
     num_bcs = size(bcs,1)
@@ -121,7 +121,7 @@ function get_bcs(bcs,tdomain,domain)
             lhs_deriv_depvars_bcs[var][key] = γ
         else
             # Boundary conditions can be more general
-            lhs_deriv_depvars_bcs[var][key] = (α, β, γ)
+            lhs_deriv_depvars_bcs[var][key] = (toexpr(α), toexpr(β), γ)
         end
     end
     # Check each variable got all boundary conditions
