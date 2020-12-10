@@ -359,11 +359,30 @@ end
            Dx(u(t,0.5)) ~ 0.0]    
     pdesys = PDESystem(eq,bcs,domains,[t,x],[u])
     @test_throws BoundaryConditionError discretize(pdesys,discretization)
+    
+    # Second-order derivative in BC
+    bcs = [u(0,x) ~ 0.5 + sin(2pi*x),
+           Dxx(u(t,0)) ~ 0.0,
+           Dx(u(t,0.5)) ~ 0.0]    
+    pdesys = PDESystem(eq,bcs,domains,[t,x],[u])
+    @test_throws BoundaryConditionError discretize(pdesys,discretization)
    
     # Wrong format for Robin BCs
     bcs = [u(0,x) ~ 0.5 + sin(2pi*x),
            Dx(u(t,0)) ~ 0.0,
            u(t,1) * Dx(u(t,1)) ~ 0.0]    
+    pdesys = PDESystem(eq,bcs,domains,[t,x],[u])
+    @test_throws BoundaryConditionError discretize(pdesys,discretization)
+    
+    bcs = [u(0,x) ~ 0.5 + sin(2pi*x),
+           Dx(u(t,0)) ~ 0.0,
+           u(t,1) + Dxx(u(t,1)) ~ 0.0]    
+    pdesys = PDESystem(eq,bcs,domains,[t,x],[u])
+    @test_throws BoundaryConditionError discretize(pdesys,discretization)
+    
+    bcs = [u(0,x) ~ 0.5 + sin(2pi*x),
+           Dx(u(t,0)) ~ 0.0,
+           u(t,1) + 2Dxx(u(t,1)) ~ 0.0]    
     pdesys = PDESystem(eq,bcs,domains,[t,x],[u])
     @test_throws BoundaryConditionError discretize(pdesys,discretization)
     
@@ -390,13 +409,13 @@ end
     Dx(u(t,0)) ~ 0.0,
     u(t,0) + Dx(u(t,1)) ~ 0.0]    
     pdesys = PDESystem(eq,bcs,domains,[t,x],[u])
-    @test_throws AssertionError discretize(pdesys,discretization)
+    @test_throws BoundaryConditionError discretize(pdesys,discretization)
     
     # Mismatching variables
     bcs = [u(0,x) ~ 0.5 + sin(2pi*x),
-           Dx(u(t,0)) ~ 0.0,
-           u(t,1) + Dx(v(t,1)) ~ 0.0]    
+    Dx(u(t,0)) ~ 0.0,
+    u(t,1) + Dx(v(t,1)) ~ 0.0]    
     pdesys = PDESystem(eq,bcs,domains,[t,x],[u])
-    @test_throws AssertionError discretize(pdesys,discretization)
+    @test_throws BoundaryConditionError discretize(pdesys,discretization)
     
 end

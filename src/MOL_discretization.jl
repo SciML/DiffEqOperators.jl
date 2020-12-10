@@ -8,7 +8,7 @@ end
 
 function throw_bc_err(bc)
     throw(BoundaryConditionError(
-        "Could not recognize boundary condition '$(bc.lhs) ~ $(bc.rhs)'"
+        "Could not read boundary condition '$(bc.lhs) ~ $(bc.rhs)'"
     ))
 end
 # Get boundary conditions from an array
@@ -28,13 +28,16 @@ function get_bcs(bcs,tdomain,domain)
         # Extract the variable from the lhs
         if operation(lhs) isa Sym
             # Dirichlet boundary condition
-            var = operation(lhs).name
+            var = nameof(operation(lhs))
             α = 1.0
             β = 0.0
             bc_args = lhs.args
         elseif operation(lhs) isa Differential
             # Neumann boundary condition
-            var = operation(lhs.args[1]).name
+            # Check that we don't have a second-order derivative in the
+            # boundary condition, by checking that the argument is a Sym
+            @assert operation(lhs.args[1]) isa Sym throw_bc_err(bcs[i])
+            var = nameof(operation(lhs.args[1]))
             α = 0.0
             β = 1.0
             bc_args = lhs.args[1].args
@@ -44,38 +47,50 @@ function get_bcs(bcs,tdomain,domain)
             # Left side of the expression should be Sym or α * Sym
             if operation(lhs_l) isa Sym
                 α = 1.0
-                var_l = operation(lhs_l).name
+                var_l = nameof(operation(lhs_l))
                 bc_args_l = lhs_l.args
             elseif operation(lhs_l) isa typeof(*)
                 α = lhs_l.args[1]
                 # Convert α to a Float64 if it is an Int, leave unchanged otherwise
                 α = α isa Int ? Float64(α) : α
-                @assert operation(lhs_l.args[2]) isa Sym
-                var_l = operation(lhs_l.args[2]).name
+                @assert operation(lhs_l.args[2]) isa Sym throw_bc_err(bcs[i])
+                var_l = nameof(operation(lhs_l.args[2]))
                 bc_args_l = lhs_l.args[2].args
             else
                 throw_bc_err(bcs[i])
             end
             # Right side of the expression should be Differential or β * Differential
             if operation(lhs_r) isa Differential
+                # Check that we don't have a second-order derivative in the
+                # boundary condition
+                @assert operation(lhs_r.args[1]) isa Sym throw_bc_err(bcs[i])
                 β = 1.0
-                var_r = operation(lhs_r.args[1]).name
+                var_r = nameof(operation(lhs_r.args[1]))
                 bc_args_r = lhs_r.args[1].args
             elseif operation(lhs_r) isa typeof(*)
                 β = lhs_r.args[1]
                 # Convert β to a Float64 if it is an Int, leave unchanged otherwise
                 β = β isa Int ? Float64(β) : β
-                @assert operation(lhs_r.args[2]) isa Differential
-                var_r = operation(lhs_r.args[2].args[1]).name
+                # Check that the bc is a derivative
+                @assert operation(lhs_r.args[2]) isa Differential throw_bc_err(bcs[i])
+                # But not second order (argument should be a Sym)
+                @assert operation(lhs_r.args[2].args[1]) isa Sym throw_bc_err(bcs[i])
+                var_r = nameof(operation(lhs_r.args[2].args[1]))
                 bc_args_r = lhs_r.args[2].args[1].args
             else
                 throw_bc_err(bcs[i])
             end
             # Check var and bc_args are the same in lhs and rhs, and if so assign 
             # the unique value
-            @assert var_l == var_r
+            @assert var_l == var_r throw(BoundaryConditionError(
+                "mismatched variables '$var_l' and '$var_r' "
+                * "in Robin BC '$(bcs[i].lhs) ~ $(bcs[i].rhs)'"
+            ))
             var = var_l
-            @assert bc_args_l == bc_args_r
+            @assert bc_args_l == bc_args_r throw(BoundaryConditionError(
+                "mismatched args $bc_args_l and $bc_args_r "
+                * "in Robin BC '$(bcs[i].lhs) ~ $(bcs[i].rhs)'"
+            ))
             bc_args = bc_args_l
         else
             throw_bc_err(bcs[i])
@@ -93,8 +108,9 @@ function get_bcs(bcs,tdomain,domain)
             key = "right bc"
         else
             throw(BoundaryConditionError(
-                "Boundary condition not recognized. "
-                * "Should be applied at t=$(tdomain.lower), x=$(domain.lower), or x=$(domain.upper)"
+                "Boundary condition '$(bcs[i].lhs) ~ $(bcs[i].rhs)' could not be read. "
+                * "BCs should be applied at t=$(tdomain.lower), "
+                * "x=$(domain.lower), or x=$(domain.upper)"
             ))
         end
         # Create value
