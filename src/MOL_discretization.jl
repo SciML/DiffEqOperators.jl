@@ -94,7 +94,7 @@ function get_bcs(bcs,tdomain,domain)
         else
             throw(BoundaryConditionError(
                 "Boundary condition not recognized. "
-                * "Should be applied at t=0, x=$(domain.lower), or x=$(domain.upper)"
+                * "Should be applied at t=$(tdomain.lower), x=$(domain.lower), or x=$(domain.upper)"
             ))
         end
         # Create value
