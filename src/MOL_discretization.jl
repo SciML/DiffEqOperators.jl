@@ -8,7 +8,7 @@ end
 
 function throw_bc_err(bc)
     throw(BoundaryConditionError(
-        "Could not not recognize boundary condition '$(bc.lhs) ~ $(bc.rhs)'"
+        "Could not recognize boundary condition '$(bc.lhs) ~ $(bc.rhs)'"
     ))
 end
 # Get boundary conditions from an array
