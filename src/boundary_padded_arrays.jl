@@ -18,6 +18,8 @@ end
 
 Base.length(Q::BoundaryPaddedVector) = length(Q.u) + 2
 Base.size(Q::BoundaryPaddedVector) = (length(Q.u) + 2,)
+unpadded_size(Q::BoundaryPaddedVector) = size(Q.u)
+unpadded_size(Q::AbstractArray) = size(Q)
 Base.lastindex(Q::BoundaryPaddedVector) = Base.length(Q)
 
 function Base.getindex(Q::BoundaryPaddedVector,i)
@@ -31,7 +33,7 @@ function Base.getindex(Q::BoundaryPaddedVector,i)
 end
 
 """
-Higher dimensional generalization of BoundaryPaddedVector, pads an array of dimension N along the dimension D with 2 Arrays of dimension N-1, stored in lower and upper
+Higher-dimensional generalization of BoundaryPaddedVector pads an array of dimension N along the dimension D with 2 Arrays of dimension N-1, stored in lower and upper
 
 """
 struct BoundaryPaddedArray{T, D, N, M, V<:AbstractArray{T, N}, B<: AbstractArray{T, M}} <: AbstractDirectionalBoundaryPaddedArray{T,N, D}
@@ -47,6 +49,7 @@ function Base.size(Q::BoundaryPaddedArray)
     S[getaxis(Q)] += 2
     return Tuple(S)
 end
+unpadded_size(Q::BoundaryPaddedArray) = size(Q.u)
 
 """
 A = compose(padded_arrays::BoundaryPaddedArray...)
@@ -57,9 +60,9 @@ Example:
 A = compose(Ax, Ay, Az) # 3D domain
 A = compose(Ax, Ay) # 2D Domain
 
-Composes BoundaryPaddedArrays that extend the same u for each different dimension that u has in to a ComposedBoundaryPaddedArray
+Composes BoundaryPaddedArrays that extend the same u for each different dimension that u has in to a ComposedBoundaryPaddedArray.
 
-Ax Ay and Az can be passed in any order, as long as there is exactly one BoundaryPaddedArray that extends each dimension.
+Ax, Ay, and Az can be passed in any order, as long as there is exactly one BoundaryPaddedArray that extends each dimension.
 """
 function compose(padded_arrays::BoundaryPaddedArray...)
     N = ndims(padded_arrays[1])
@@ -95,13 +98,14 @@ ComposedBoundaryPaddedMatrix{T,V,B} = ComposedBoundaryPaddedArray{T,2,1,V,B}
 ComposedBoundaryPadded3Tensor{T,V,B} = ComposedBoundaryPaddedArray{T,3,2,V,B}
 
 Base.size(Q::ComposedBoundaryPaddedArray) = size(Q.u).+2
+unpadded_size(Q::ComposedBoundaryPaddedArray) = size(Q.u)
 
 """
 Ax, Ay,... = decompose(A::ComposedBoundaryPaddedArray)
 
 -------------------------------------------------------------------------------------
 
-Decomposes a ComposedBoundaryPaddedArray in to components that extend along each dimension individually
+Decomposes a ComposedBoundaryPaddedArray in to components that extend along each dimension individually.
 """
 decompose(A::ComposedBoundaryPaddedArray) = Tuple([BoundaryPaddedArray{gettype(A), i, ndims(A), ndims(A)-1, typeof(lower[1])}(A.lower[i], A.upper[i], A.u) for i in 1:ndims(A)])
 

@@ -1,12 +1,12 @@
-abstract type AbstractBC{T} <: AbstractDiffEqLinearOperator{T} end
+abstract type AbstractBC{T} <: AbstractDiffEqAffineOperator{T} end
 
 
 abstract type AtomicBC{T} <: AbstractBC{T} end
 
 """
-Robin, General, and in general Neumann, Dirichlet and Bridge BCs
-are not necessarily linear operators.  Instead, they are affine
-operators, with a constant term Q*x = Qa*x + Qb.
+Robin, General, and, in general, Neumann, Dirichlet, and Bridge BCs
+are not necessarily linear operators. Instead, they are affine
+operators with a constant term Q*x = Qa*x + Qb.
 """
 abstract type AffineBC{T} <: AtomicBC{T} end
 
@@ -14,9 +14,32 @@ struct NeumannBC{N} end
 struct Neumann0BC{N} end
 struct DirichletBC{N} end
 struct Dirichlet0BC{N} end
+
+"""
+q = PeriodicBC{T}()
+Qx, Qy, ... = PeriodicBC{T}(size(u)) #When all dimensions are to be extended with a periodic boundary condition.
+-------------------------------------------------------------------------------------
+Creates a periodic boundary condition, where the lower index end of some u is extended with the upper index end and vice versa.
+It is not recommended to concretize this BC type in to a BandedMatrix, since the vast majority of bands will be all 0s. SpatseMatrix concretization is recommended.
+"""
 struct PeriodicBC{T} <: AtomicBC{T}
     PeriodicBC(T::Type) = new{T}()
 end
+
+"""
+  q = RobinBC(left_coefficients, right_coefficients, dx::T, approximation_order) where T # When this BC extends a dimension with a uniform step size
+  q = RobinBC(left_coefficients, right_coefficients, dx::Vector{T}, approximation_order) where T # When this BC extends a dimension with a non-uniform step size. dx should be the vector of step sizes for the whole dimension
+-------------------------------------------------------------------------------------
+  The variables in l are [αl, βl, γl], and correspond to a BC of the form αl*u(0) + βl*u'(0) = γl imposed on the lower-index boundary.
+  The variables in r are [αl, βl, γl], and correspond to an analogous boundary on the higher-index end.
+  Implements a robin boundary condition operator Q that acts on a vector to give an extended vector as a result.
+  Referring to (https://github.com/JuliaDiffEq/DiffEqOperators.jl/files/3267835/ghost_node.pdf).
+  Write vector b̄₁ as a vertical concatenation with b0 and the rest of the elements of b̄ ₁, denoted b̄`₁, the same with ū into u0 and ū`. b̄`₁ = b̄`_2 = fill(β/Δx, length(stencil)-1).
+  Pull out the product of u0 and b0 from the dot product. The stencil used to approximate u` is denoted s. b0 = α+(β/Δx)*s[1].
+  Rearrange terms to find a general formula for u0:= -b̄`₁̇⋅ū`/b0 + γ/b0, which is dependent on ū` the robin coefficients and Δx.
+  The non-identity part of Qa is qa:= -b`₁/b0 = -β.*s[2:end]/(α+β*s[1]/Δx). The constant part is Qb = γ/(α+β*s[1]/Δx).
+  Do the same at the other boundary (amounts to a flip of s[2:end], with the other set of boundary coefficients).
+"""
 struct RobinBC{T, V<:AbstractVector{T}} <: AffineBC{T}
     a_l::V
     b_l::T
@@ -57,19 +80,22 @@ struct RobinBC{T, V<:AbstractVector{T}} <: AffineBC{T}
     end
 end
 
+stencil(q::AffineBC{T}, N::Int) where T = ([transpose(q.a_l) transpose(zeros(T, N-length(q.a_l)))], [transpose(zeros(T, N-length(q.a_r))) transpose(q.a_r)])
+affine(q::AffineBC) = (q.b_l, q.b_r)
 
-
+stencil(q::PeriodicBC{T}, N::Int) where T= ([transpose(zeros(T, N-1)) one(T)], [one(T) transpose(zeros(T, N-1))])
+affine(q::PeriodicBC{T}) where T = (zero(T), zero(T))
 """
 q = GeneralBC(α_leftboundary, α_rightboundary, dx::T, approximation_order)
 
 -------------------------------------------------------------------------------------
 
 Implements a generalization of the Robin boundary condition, where α is a vector of coefficients.
-Represents a condition of the form α[1] + α[2]u[0] + α[3]u'[0] + α[4]u''[0]+... = 0
+Represents a condition of the form α[1] + α[2]u[0] + α[3]u'[0] + α[4]u''[0]+... = 0.
 Implemented in a similar way to the RobinBC (see above).
-This time there are multiple stencils for multiple derivative orders - these can be written as a matrix S.
-All components that multiply u(0) are factored out, turns out to only involve the first column of S, s̄0. The rest of S is denoted S`. the coeff of u(0) is s̄0⋅ᾱ[3:end] + α[2].
-the remaining components turn out to be ᾱ[3:end]⋅(S`ū`) or equivalently (transpose(ᾱ[3:end])*S`)⋅ū`. Rearranging, a stencil q_a to be dotted with ū` upon extension can readily be found, along with a constant component q_b
+This time, there are multiple stencils for multiple derivative orders - these can be written as a matrix S.
+All components that multiply u(0) are factored out, turns out to only involve the first column of S, s̄0. The rest of S is denoted S`. the coefficient of u(0) is s̄0⋅ᾱ[3:end] + α[2].
+The remaining components turn out to be ᾱ[3:end]⋅(S`ū`) or equivalently (transpose(ᾱ[3:end])*S`)⋅ū`. Rearranging, a stencil q_a to be dotted with ū` upon extension can readily be found, along with a constant component q_b.
 """
 struct GeneralBC{T, L<:AbstractVector{T}, R<:AbstractVector{T}} <:AffineBC{T}
     a_l::L
@@ -148,6 +174,6 @@ Neumann0BC(dx::Union{AbstractVector{T}, T}, order = 1) where T = NeumannBC((zero
 Base.:*(Q::AffineBC, u::AbstractVector) = BoundaryPaddedVector(Q.a_l ⋅ u[1:length(Q.a_l)] + Q.b_l, Q.a_r ⋅ u[(end-length(Q.a_r)+1):end] + Q.b_r, u)
 Base.:*(Q::PeriodicBC, u::AbstractVector) = BoundaryPaddedVector(u[end], u[1], u)
 
-Base.size(Q::AtomicBC) = (Inf, Inf) #Is this nessecary?
+Base.size(Q::AtomicBC) = (Inf, Inf) #Is this necessary?
 
 gettype(Q::AbstractBC{T}) where T = T

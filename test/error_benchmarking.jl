@@ -1,4 +1,5 @@
-using DiffEqOperators, Plots
+using DiffEqOperators
+# using Plots
 
 n = 10000
 @show n
@@ -22,7 +23,7 @@ for dor in 1:4, aor in 2:6
 
     @show max_error
     @show avg_error
-    plot(x[2:(end-1)], err_percent, title="Percentage Error, n=$n aor = $aor, dor = $dor")
+    #plot(x[2:(end-1)], err_percent, title="Percentage Error, n=$n aor = $aor, dor = $dor")
 
     #test result
 end

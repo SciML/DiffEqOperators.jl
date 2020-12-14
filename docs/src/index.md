@@ -1,10 +1,5 @@
 # DiffEqOperators.jl
 
-[![Build Status](https://github.com/SciML/DiffEqOperators.jl/workflows/CI/badge.svg)](https://github.com/SciML/DiffEqOperators.jl/actions?query=workflow%3ACI)
-[![GitlabCI](https://gitlab.com/JuliaGPU/DiffEqOperators.jl/badges/master/pipeline.svg)](https://gitlab.com/JuliaGPU/DiffEqOperators.jl/pipelines)
-[![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](http://diffeqoperators.sciml.ai/stable/)
-[![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](http://diffeqoperators.sciml.ai/dev/)
-
 Construct high-order finite-difference operators to discretize a partial
 differential equation and its boundary conditions by the method of
 lines. This reduces it to a system of ordinary differential
@@ -19,11 +14,6 @@ unnecessary allocations.
 
 Any operator can be concretized as an `Array`, a `BandedMatrix` or
 a sparse matrix.
-
-For information on using the package,
-[see the stable documentation](https://diffeqoperators.sciml.ai/stable/). Use the
-[in-development documentation](https://diffeqoperators.sciml.ai/dev/) for the version of
-the documentation which contains the unreleased features.
 
 ## The simplest case
 

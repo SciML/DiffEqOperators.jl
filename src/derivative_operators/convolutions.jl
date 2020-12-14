@@ -1,13 +1,13 @@
 #
-# Convolutions that can not be done by NNlib.conv!
+# Convolutions that cannot be done by NNlib.conv!
 #
-# There are three convolution routines.  They compute the derivative
-# on the left margin, interior and right margin of the grid.  They
+# There are three convolution routines. They compute the derivative
+# on the left margin, interior, and right margin of the grid. They
 # are used by the mul! methods defined in derivative_operator_functions.jl
-# to compute derivatives.  When possible, the mul! methods use
+# to compute derivatives. When possible, the mul! methods use
 # NNlib.conv! for the interior.
 #
-# These methods are defined for AbstractVector as a fallback.  However,
+# These methods are defined for AbstractVector as a fallback. However,
 # derivative operators normally act on a BoundaryPaddedVector returned
 # by a boundary condition operator, and there are specialized methods
 # to avoid allocation in this case.
@@ -306,7 +306,7 @@ function convolve_BC_right!(x_temp::AbstractVector{T1}, _x::BoundaryPaddedVector
         cur_stencil = stencil[i]
         cur_coeff = get_coefficient(coeff, bc_start + i)
         xtempi = cur_coeff*cur_stencil[end]*_x.r
-        @inbounds for idx in A.stencil_length:-1:1
+        @inbounds for idx in (A.boundary_stencil_length-1):-1:1
             xtempi += cur_coeff * cur_stencil[end-idx] * _x.u[end-idx+1]
         end
         x_temp[bc_start + i] = xtempi + !overwrite*x_temp[bc_start + i]

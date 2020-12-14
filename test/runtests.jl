@@ -20,7 +20,7 @@ if GROUP == "All" || GROUP == "Interface"
     @time @safetestset "Validate Regular Derivative Operators" begin include("regular_operator_validation.jl") end
     @time @safetestset "Validate and Compare Generic Operators" begin include("generic_operator_validation.jl") end
     @time @safetestset "Validate Boundary Padded Array Concretization" begin include("boundary_padded_array.jl") end
-    @time @safetestset "Validate Higher Dimensional Boundary Extension" begin include("MultiDimBC_test.jl") end
+    @time @safetestset "Validate Higher Dimensional Boundary Extension" begin include("multi_dim_bc_test.jl") end
     @time @safetestset "2nd order check" begin include("2nd_order_check.jl") end
     #@time @safetestset "KdV" begin include("KdV.jl") end # KdV times out and all fails
     #@time @safetestset "Heat Equation" begin include("heat_eqn.jl") end
@@ -31,7 +31,10 @@ if GROUP == "All" || GROUP == "Interface"
     @time @safetestset "Higher Dimensional Concretization" begin include("concretization.jl") end
     @time @safetestset "Upwind Operator Interface" begin include("upwind_operators_interface.jl") end
     @time @safetestset "MOLFiniteDifference Interface" begin include("MOLtest.jl") end
+    @time @safetestset "MOLFiniteDifference Interface: Linear Convection" begin include("MOL_1D_Linear_Convection.jl") end
+    @time @safetestset "MOLFiniteDifference Interface: Linear Diffusion" begin include("MOL_1D_Linear_Diffusion.jl") end
     @time @safetestset "Basic SDO Examples" begin include("BasicSDOExamples.jl") end
+    @time @safetestset "3D laplacian Test" begin include("3D_laplacian.jl") end
     # @time @safetestset "Linear Complementarity Problem Examples" begin include("lcp.jl"); include("lcp_split.jl") end
 end
 

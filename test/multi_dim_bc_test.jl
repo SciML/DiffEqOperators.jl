@@ -1,7 +1,9 @@
-using LinearAlgebra, DiffEqOperators, Random, Test
+using LinearAlgebra, SparseArrays, DiffEqOperators, Random, Test
 ################################################################################
 # Test 2d extension
 ################################################################################
+
+Random.seed!(7373)
 
 #Create Array
 n = 8
@@ -53,17 +55,22 @@ BCz = fill(Dirichlet0BC(Float64), (n,m))
 
 Qx = MultiDimBC{1}(BCx)
 Qy = MultiDimBC{2}(BCy)
-Qz = Dirichlet0BC{3}(Float64, size(A)) #Test the other constructor
+Qz = MultiDimBC{3}(Dirichlet0BC(Float64), size(A)) #Test the other constructor
 
-Q1 = (Qx+Qy+Qz)
-Q2 = compose(Qx,Qy,Qz) #test addition combinations
-@test_broken Q1 == Q2 #This fails
-@test all(Q1.BCs .== Q2.BCs) # but this passes so it does actually work
-@test_broken Qtmp = Qx + Qz
-@test_skip Qz+Qx+Qy == Qy+Qtmp
 Ax = Qx*A
 Ay = Qy*A
 Az = Qz*A
+
+Q = compose(Qx,Qy,Qz)
+QL, Qb = Array(Q, size(A))
+QLs, Qbs = sparse(Q, size(A))
+
+A_conc = QL*reshape(A, prod(size(A))) .+Qb
+A_conc_sp = QLs*reshape(A,prod(size(A))) .+Qbs
+
+#test BC concretization
+A_arr = Array(Q*A)
+@test reshape(A_arr, prod(size(A_arr))) ≈ A_conc_sp ≈ A_conc
 
 @test size(Ax)[1] == size(A)[1]+2
 @test size(Ay)[2] == size(A)[2]+2
@@ -79,16 +86,19 @@ for i in 1:n, j in 1:m
 end
 
 #test compositions to higher dimension
-for N in 2:7
+for N in 2:6
     sizes = rand(4:7, N)
-    A = rand(sizes...)
+    local A = rand(sizes...)
 
-    Q1_N = Neumann0BC(Float64, Tuple(ones(N)), 3.0, size(A))
+    Q1_N = RobinBC(Tuple(rand(3)), Tuple(rand(3)), fill(0.1, N), 4.0, size(A))
 
-    Q = compose(Q1_N...)
+    local Q = compose(Q1_N...)
 
     A1_N = Q1_N.*fill(A, N)
 
-    A_extended = Q*A
-    @test Array(A_extended) == Array(compose(A1_N...))
+    local A_arr = Array(Q*A)
+    Q_l, Q_b = sparse(Q, size(A))
+
+    @test A_arr ≈ Array(compose(A1_N...))
+    @test A_arr ≈ reshape(Q_l*reshape(A, length(A)) .+ Q_b, size(A_arr)) #Test concretization
 end

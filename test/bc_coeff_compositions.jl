@@ -137,12 +137,15 @@ end
     @test (A1 + B1) * u == A1 * u + B1 * u
 
     # Test for consistency of GhostDerivativeOperator*M with L*(Q*M)
+
     M = rand(N,10)
+    Qx = MultiDimBC{1}(Q, size(M))
+    Am = L*Qx
     LQM = zeros(N,10)
     for i in 1:10
         mul!(view(LQM,:,i), L, Q*M[:,i])
     end
-    ghost_LQM = A*M
+    ghost_LQM = Am*M
     @test ghost_LQM ≈ LQM
 
     u = rand(N + 2)
@@ -340,6 +343,16 @@ end
     analytic_QL = [transpose(zeros(N)); Diagonal(ones(N)); transpose(zeros(N))]
     analytic_AL = analytic_L*analytic_QL
 
+    analytic_QM = zeros((length(x)+2)*2, length(x)*2)
+    interior = CartesianIndices(Tuple([2:length(x)+1, 1:2]))
+    I1 = CartesianIndex(1,0)
+    for I in interior
+        i = DiffEqOperators.cartesian_to_linear(I, (length(x)+2, 2)) #helper function, see utils.jl
+        j = DiffEqOperators.cartesian_to_linear(I-I1, (length(x), 2))
+        analytic_QM[i,j] = 1.0
+    end
+    analytic_Am = kron(Diagonal(ones(2)), analytic_L)*analytic_QM
+
     # No affine component to the this system
     analytic_f = analytic_AL \ f2.(x)
     ghost_f = A \ f2.(x)
@@ -350,19 +363,17 @@ end
     # Additionally test that A\f2.(x) ≈ f.(x)
     @test f.(x) ≈ ghost_f ≈ analytic_f
 
-    # Check ldiv!
-    f_temp = zeros(N)
-    ldiv!(f_temp, A, f2.(x))
-    @test f_temp ≈ ghost_f ≈ analytic_f
-
     # Check that left division with matrices works
-    ghost_fM = A \ [f2.(x) f2.(x)]
-    analytic_fM = analytic_AL \ [f2.(x) f2.(x)]
-    @test ghost_fM ≈ analytic_fM
+    M = [f2.(x) f2.(x)]
+    Qx = MultiDimBC{1}(Q, size(M))
+
+    Am = L*Qx
+    ghost_fM = Am \ M
+    s = size(M)
+    analytic_fM = analytic_Am \ reshape(M, prod(s))
+    @test ghost_fM ≈ reshape(analytic_fM, s)
 
     fM_temp = zeros(N,2)
-    ldiv!(fM_temp, A, [f2.(x) f2.(x)])
-    @test fM_temp ≈ analytic_fM
 
     # Test \ Inhomogenous BC
     # f(x) = -x^2 + x + 4.0
@@ -384,6 +395,7 @@ end
     analytic_Qb = [4.0; zeros(N); 4.0]
     analytic_AL = analytic_L*analytic_QL
     analytic_Ab = analytic_L*analytic_Qb
+    analytic_Lm = kron(Diagonal(ones(3)), analytic_L)
 
     analytic_f = analytic_AL \ (f2.(x) - analytic_Ab)
     ghost_f = A \ f2.(x)
@@ -394,25 +406,25 @@ end
     # Additionally test that A\f2.(x) ≈ f.(x)
     @test f.(x) ≈ ghost_f ≈ analytic_f
 
-    # Check ldiv!
-    f_temp = zeros(N)
-    ldiv!(f_temp, A, f2.(x))
-    @test f_temp ≈ ghost_f ≈ analytic_f
-
     # Check \ for Matrix
     M2 = [f2.(x) 2.0*f2.(x) 10.0*f2.(x)]
-    analytic_M = analytic_AL \ (M2 .- analytic_Ab)
-    ghost_M = A \ M2
-    @test analytic_M ≈ ghost_M
 
-    # Check ldiv! for Matrix
-    M_temp = zeros(N,3)
-    ldiv!(M_temp, A, M2)
-    @test M_temp ≈ analytic_M ≈ ghost_M
+    s = size(M2)
+    Qx = MultiDimBC{1}(Q, size(M2))
+
+    analytic_QLm, analytic_Qbm = Array(Qx, s)
+
+    analytic_ALm = analytic_Lm*analytic_QLm
+    analytic_Abm = analytic_Lm*analytic_Qbm
+
+    Am = L*Qx
+    analytic_M = analytic_ALm \ (reshape(M2 , prod(s)).- analytic_Abm)
+    ghost_M = Am \ M2
+    @test reshape(analytic_M, s) ≈ ghost_M
 
     # Additionally test that A\M2 ≈ [f, 2.0(f-4.0)+4.0, 10.0(f-4.0)+4.0]
     M = [f.(x) 2.0*(f.(x) .- 4.0).+4.0 10.0*(f.(x) .- 4.0).+4.0]
-    @test M ≈ M_temp ≈ analytic_M ≈ ghost_M
+    @test M ≈ reshape(analytic_M, s) ≈ ghost_M
 end
 
 @testset "Test Left Division L4 (fourth order)" begin
@@ -424,7 +436,7 @@ end
     u = sin.(x)
 
     L = CenteredDifference(4, 4, dx, N)
-    Q = RobinBC((1.0, 0.0, sin(0.0)), (1.0, 0.0, sin(0.2+dx)), dx)
+    Q = RobinBC((1.0, 0.0, 0.0), (1.0, 0.0, sin(0.2+dx)), dx)
     A = L*Q
 
     analytic_L = fourth_deriv_approx_stencil(N) ./ dx^4
@@ -433,25 +445,63 @@ end
     analytic_Qb = [zeros(N+1); sin(0.2+dx)]
     analytic_Ab = analytic_L*analytic_Qb
 
-    analytic_u = analytic_AL \ (u - analytic_Ab)
+
+    analytic_QM = zeros((length(x)+2)*3, length(x)*3)
+    interior = CartesianIndices(Tuple([2:length(x)+1, 1:3]))
+    I1 = CartesianIndex(1,0)
+    for I in interior
+        i = DiffEqOperators.cartesian_to_linear(I, (length(x)+2, 3)) #helper function, see utils.jl
+        j = DiffEqOperators.cartesian_to_linear(I-I1, (length(x), 3))
+        analytic_QM[i,j] = 1.0
+    end
+    analytic_Am = kron(Diagonal(ones(3)), analytic_L)*analytic_QM
+
+    analytic_u = analytic_AL \ Vector(u .- analytic_Ab)
     ghost_u = A \ u
 
+    As_l, As_b = sparse(A, length(u))
+
+    @test As_l ≈ analytic_AL #This is true
+    @test As_b ≈  analytic_Ab #This is true
+    @test Vector(u .- analytic_Ab) ≈ Vector(u .- As_b) #this is true
+    u_translated = u .- analytic_Ab |> Vector
+    # TODO validate analytic_AL as having reasonable condition (what is reasonable condition?)
+    @test norm(analytic_AL \ u_translated - As_l \ u_translated) / norm(analytic_AL \ u_translated) < cond(analytic_AL)*eps()
+
+    sp_u = As_l\Vector(u .- As_b)
     # Check that A\u.(x) is consistent with analytic_AL \ u.(x)
-    @test analytic_u ≈ ghost_u
+    @test ghost_u ≈ sp_u
+    # TODO make cond function in ghost_derivative_operator?
+    # however, note: ArgumentError: 2-norm condition number is not implemented for sparse matrices, try cond(Array(A), 2) instead
+    # so the actual function would probably just propagate that error
+    _cond(A::GhostDerivativeOperator, u) = cond(sparse(A,length(u))[1] |> Array)
+    @test norm(analytic_u - ghost_u) / norm(ghost_u) < _cond(A,u) * eps() #
 
-    # Check ldiv!
-    u_temp = zeros(N)
-    ldiv!(u_temp, A, u)
-    @test u_temp ≈ ghost_u ≈ analytic_u
-
-    # Check \ for Matrix
     M2 = [u 2.0*u 10.0*u]
-    analytic_M = analytic_AL \ (M2 .- analytic_Ab)
-    ghost_M = A \ M2
-    @test analytic_M ≈ ghost_M
+    s = size(M2)
+    Qx = MultiDimBC{1}(Q, size(M2))
+    Am = L*Qx
+    #Somehow the operator is singular
+    @test_broken analytic_M = analytic_Am \ (reshape(M2, prod(s)) .- repeat(analytic_Ab, 3))
+    @test_broken ghost_M = Am \ M2
+    @test_broken reshape(analytic_M, s) ≈ ghost_M
 
-    # Check ldiv! for Matrix
-    M_temp = zeros(N,3)
-    ldiv!(M_temp, A, M2)
-    @test M_temp ≈ ghost_M ≈ analytic_M
+end
+
+@testset "Test Operator and BC combinations" begin
+    N = 40
+    x = range(-pi, stop = pi, length=N)
+    Δx = x[2]-x[1]
+    u₀=1.0
+    Γ=1.0
+    Dx=u₀*CenteredDifference{1}(1,4,Δx,N)
+    Dxx=Γ*CenteredDifference{1}(2,4,Δx,N)
+    Q=NeumannBC((2x[1]+2, 2x[end]+2), Δx, 6)
+
+    A = Dx*Q + Dxx*Q
+
+    y = A*(x.^2)
+    analytic_y = 2x.+2
+
+    @test_broken y ≈ analytic_y
 end

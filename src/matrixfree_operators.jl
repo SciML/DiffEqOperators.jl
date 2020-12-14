@@ -24,14 +24,14 @@ end
   return n <= length(M.size) ? M.size[n] : 1
 end
 @inline ==(M1::MatrixFreeOperator, M2::MatrixFreeOperator) = M1.f == M2.f && M1.args == M2.args && M1.size == M2.size && M1.opnorm == M2.opnorm && M1.ishermitian == M2.ishermitian
-@inline Base.:*(A::MatrixFreeOperator, X::AbstractVecOrMat) = mul!(similar(X), A, X)
+@inline Base.:*(A::MatrixFreeOperator, X::AbstractVecOrMat) = mul!(zero(X), A, X)
 
 # Overloading LinearAlgebra functions
 LinearAlgebra.ishermitian(M::MatrixFreeOperator) = M.ishermitian
 function LinearAlgebra.opnorm(M::MatrixFreeOperator, p::Real)
   M.opnorm === nothing && error("""
     M.opnorm is nothing, please define opnorm as a function that takes one
-    argument. E.g. `(p::Real) -> p == Inf ? 100 : error("only Inf norm is
+    argument. E.g., `(p::Real) -> p == Inf ? 100 : error("only Inf norm is
     defined")`
   """)
   opn = M.opnorm
@@ -60,7 +60,7 @@ end
 
 function (M::MatrixFreeOperator{F,N})(u, p, t) where {F,N}
   update_coefficients!(M,u,p,t)
-  du = similar(u)
+  du = zero(u)
   if isconstant(M)
     M.f(du, u, p)
   else
