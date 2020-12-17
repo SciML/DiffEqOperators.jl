@@ -21,6 +21,9 @@ include("jacvec_operators.jl")
 ### Utilities
 include("utils.jl")
 
+### Exceptions
+include("exceptions.jl")
+
 ### Boundary Padded Arrays
 include("boundary_padded_arrays.jl")
 
@@ -63,4 +66,5 @@ export compose, decompose, perpsize
 
 export GhostDerivativeOperator
 export MOLFiniteDifference
+export BoundaryConditionError
 end # module
