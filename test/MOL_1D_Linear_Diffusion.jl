@@ -33,12 +33,16 @@ using ModelingToolkit,DiffEqOperators,DiffEqBase,LinearAlgebra,Test,OrdinaryDiff
     dx = 0.1
     order = 2
     discretization = MOLFiniteDifference(dx,order)
+    # Explicitly specify order of centered difference
+    discretization_centered = MOLFiniteDifference(dx; centered_order=order)
 
     # Convert the PDE problem into an ODE problem
     prob = discretize(pdesys,discretization)
+    prob_centered = discretize(pdesys,discretization_centered)
 
     # Solve ODE problem
     sol = solve(prob,Tsit5(),saveat=0.1)
+    sol_centered = solve(prob_centered,Tsit5(),saveat=0.1)
     x = prob.space[2]
     t = sol.t
 
@@ -54,7 +58,9 @@ using ModelingToolkit,DiffEqOperators,DiffEqBase,LinearAlgebra,Test,OrdinaryDiff
     # Test against exact solution
     for i in 1:size(t,1)
         u_approx = Array(prob.extrapolation[1](t[i])*sol.u[i])
+        u_approx_centered = Array(prob.extrapolation[1](t[i])*sol_centered.u[i])
         @test u_approx ≈ u_exact(x, t[i]) atol=0.01
+        @test u_approx_centered ≈ u_exact(x, t[i]) atol=0.01
     end
 end
 

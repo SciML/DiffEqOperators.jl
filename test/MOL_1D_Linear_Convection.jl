@@ -29,13 +29,17 @@ using ModelingToolkit,DiffEqOperators,DiffEqBase,LinearAlgebra,Test
     dx = 2/80
     order = 1
     discretization = MOLFiniteDifference(dx,order)
+    # explicitly specify upwind order
+    discretization_upwind = MOLFiniteDifference(dx; upwind_order=order)
 
     # Convert the PDE problem into an ODE problem
     prob = discretize(pdesys,discretization)
+    prob_upwind = discretize(pdesys, discretization_upwind)
 
     # Solve ODE problem
     using OrdinaryDiffEq
     sol = solve(prob,Euler(),dt=.025,saveat=0.1)
+    sol_upwind = solve(prob_upwind,Euler(),dt=.025,saveat=0.1)
 
     # Plot and save results
     # using Plots
@@ -53,8 +57,7 @@ using ModelingToolkit,DiffEqOperators,DiffEqBase,LinearAlgebra,Test
     t_f = size(sol,3)
 
     @test sol[:,1,t_f] ≈ u atol = 0.1;
-    
-
+    @test sol_upwind[:,1,t_f] ≈ u atol = 0.1;
 end
 
 @testset "Test 01: Dt(u(t,x)) ~ -Dx(u(t,x)) + 0.01" begin
