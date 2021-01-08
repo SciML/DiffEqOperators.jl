@@ -42,4 +42,8 @@ end
 if !is_APPVEYOR && (GROUP == "All" || GROUP == "Multithreading")
     @time @safetestset "2D and 3D fast multiplication" begin include("2D_3D_fast_multiplication.jl") end
 end
+    
+if GROUP == "GPU"
+        
+end
 end
