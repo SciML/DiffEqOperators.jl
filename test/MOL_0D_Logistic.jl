@@ -8,8 +8,8 @@ using ModelingToolkit,DiffEqOperators,DiffEqBase,LinearAlgebra,Test
     # Parameters, variables, and derivatives
     @parameters t x
     @variables u(..)
-    @derivatives Dt'~t
-    @derivatives Dx'~x
+    Dt = Differential(t)
+    Dx = Differential(x)
 
     # 1D PDE and boundary conditions
     eq  = Dt(u(t,x)) ~ 0.0*Dx(u(t,x))+u(t,x)*(1.0-u(t,x))

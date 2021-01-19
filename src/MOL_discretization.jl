@@ -1,4 +1,4 @@
-using ModelingToolkit: operation
+using ModelingToolkit: operation, istree, arguments
 # Method of lines discretization scheme
 struct MOLFiniteDifference{T} <: DiffEqBase.AbstractDiscretization
     dxs::T
@@ -25,37 +25,39 @@ function get_bcs(bcs,tdomain,domain)
     num_bcs = size(bcs,1)
     for i = 1:num_bcs
         lhs = bcs[i].lhs
+    @show lhs
         # Extract the variable from the lhs
         if operation(lhs) isa Sym
             # Dirichlet boundary condition
             var = nameof(operation(lhs))
             α = 1.0
             β = 0.0
-            bc_args = lhs.args
+            bc_args = arguments(lhs)
         elseif operation(lhs) isa Differential
             # Neumann boundary condition
             # Check that we don't have a second-order derivative in the
             # boundary condition, by checking that the argument is a Sym
-            @assert operation(lhs.args[1]) isa Sym throw_bc_err(bcs[i])
-            var = nameof(operation(lhs.args[1]))
+            @assert operation(arguments(lhs)[1]) isa Sym throw_bc_err(bcs[i])
+            var = nameof(operation(arguments(lhs)[1]))
             α = 0.0
             β = 1.0
-            bc_args = lhs.args[1].args
-        elseif operation(lhs) isa typeof(+)
+            bc_args = arguments(arguments(lhs)[1])
+          elseif operation(lhs) === +
             # Robin boundary condition
-            lhs_l, lhs_r = lhs.args
+            lhs_l, lhs_r = arguments(lhs)
             # Left side of the expression should be Sym or α * Sym
+            @show lhs_l
             if operation(lhs_l) isa Sym
                 α = 1.0
                 var_l = nameof(operation(lhs_l))
-                bc_args_l = lhs_l.args
-            elseif operation(lhs_l) isa typeof(*)
-                α = lhs_l.args[1]
+                bc_args_l = arguments(lhs_l)
+            elseif operation(lhs_l) === *
+                α = arguments(lhs_l)[1]
                 # Convert α to a Float64 if it is an Int, leave unchanged otherwise
                 α = α isa Int ? Float64(α) : α
-                @assert operation(lhs_l.args[2]) isa Sym throw_bc_err(bcs[i])
-                var_l = nameof(operation(lhs_l.args[2]))
-                bc_args_l = lhs_l.args[2].args
+                @assert operation(arguments(lhs_l)[2]) isa Sym throw_bc_err(bcs[i])
+                var_l = nameof(operation(arguments(lhs_l)[2]))
+                bc_args_l = arguments(arguments(lhs_l)[2])
             else
                 throw_bc_err(bcs[i])
             end
@@ -63,20 +65,22 @@ function get_bcs(bcs,tdomain,domain)
             if operation(lhs_r) isa Differential
                 # Check that we don't have a second-order derivative in the
                 # boundary condition
-                @assert operation(lhs_r.args[1]) isa Sym throw_bc_err(bcs[i])
+                @assert operation(arguments(lhs_r)[1]) isa Sym throw_bc_err(bcs[i])
                 β = 1.0
-                var_r = nameof(operation(lhs_r.args[1]))
-                bc_args_r = lhs_r.args[1].args
+                var_r = nameof(operation(arguments(lhs_r)[1]))
+                bc_args_r = arguments(arguments(lhs_r)[1])
             elseif operation(lhs_r) isa typeof(*)
-                β = lhs_r.args[1]
+                β = arguments(lhs_r)[1]
                 # Convert β to a Float64 if it is an Int, leave unchanged otherwise
                 β = β isa Int ? Float64(β) : β
                 # Check that the bc is a derivative
-                @assert operation(lhs_r.args[2]) isa Differential throw_bc_err(bcs[i])
+                lhs_r2 = arguments(lhs_r)[2]
+                @assert operation(lhs_r2) isa Differential throw_bc_err(bcs[i])
                 # But not second order (argument should be a Sym)
-                @assert operation(lhs_r.args[2].args[1]) isa Sym throw_bc_err(bcs[i])
-                var_r = nameof(operation(lhs_r.args[2].args[1]))
-                bc_args_r = lhs_r.args[2].args[1].args
+                lhsrr1 = arguments(lhs_r2)[1]
+                @assert operation(lhsrr1) isa Sym throw_bc_err(bcs[i])
+                var_r = nameof(operation(lhsrr1))
+                bc_args_r = arguments(lhsrr1)
             else
                 throw_bc_err(bcs[i])
             end
@@ -148,7 +152,7 @@ function discretize_2(input,deriv_order,approx_order,dx,X,len_of_indep_vars,
     if !(input isa ModelingToolkit.Symbolic)
         return :($(input))
     else
-        if input isa Sym || (input isa Term && operation(input) isa Sym)
+        if input isa Sym || (istree(input) && operation(input) isa Sym)
             expr = :(0.0)
             var = nameof(input isa Sym ? input : operation(input))
             if haskey(indep_var_idx,var) # ind. var.
@@ -176,7 +180,7 @@ function discretize_2(input,deriv_order,approx_order,dx,X,len_of_indep_vars,
                 end
             end
             return expr
-        elseif input isa Term && operation(input) isa Differential
+        elseif istree(input) && operation(input) isa Differential
             var = nameof(input.op.x)
             push!(deriv_var,var)
             return discretize_2(input.args[1],deriv_order+1,approx_order,dx,X,
@@ -272,7 +276,7 @@ function DiffEqBase.discretize(pdesys::PDESystem,discretization::MOLFiniteDiffer
         if op isa Sym
             var = nameof(op)
         else #var isa Differential
-            var = nameof(operation(input.args[1]))
+            var = nameof(operation(arguments(input)[1]))
             lhs_deriv_depvars[var] = j
         end
         dep_var_idx[var] = j

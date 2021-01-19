@@ -9,8 +9,8 @@ using ModelingToolkit,DiffEqOperators,DiffEqBase,LinearAlgebra,Test
     # Parameters, variables, and derivatives
     @parameters t x
     @variables u(..)
-    @derivatives Dt'~t
-    @derivatives Dx'~x
+    Dt = Differential(t)
+    Dx = Differential(x)
 
     # 1D PDE and boundary conditions
     eq  = Dt(u(t,x)) ~ -Dx(u(t,x))
@@ -62,8 +62,8 @@ end
     # Parameters, variables, and derivatives
     @parameters t x
     @variables u(..)
-    @derivatives Dt'~t
-    @derivatives Dx'~x
+    Dt = Differential(t)
+    Dx = Differential(x)
 
     # 1D PDE and boundary conditions
     eq  = Dt(u(t,x)) ~ -Dx(u(t,x)) + 0.01
@@ -112,8 +112,8 @@ end
     # Parameters, variables, and derivatives
     @parameters t x v
     @variables u(..)
-    @derivatives Dt'~t
-    @derivatives Dx'~x
+    Dt = Differential(t)
+    Dx = Differential(x)
 
     v = 1.0
 
@@ -163,8 +163,8 @@ end
     # Parameters, variables, and derivatives
     @parameters t x
     @variables v(..) u(..)
-    @derivatives Dt'~t
-    @derivatives Dx'~x
+    Dt = Differential(t)
+    Dx = Differential(x)
 
     # 1D PDE and boundary conditions
     eq  = [ Dt(u(t,x)) ~ -(Dx(v(t,x))*u(t,x)+v(t,x)*Dx(u(t,x))),
@@ -218,8 +218,8 @@ end
     # Parameters, variables, and derivatives
     @parameters t x
     @variables v(..) u(..)
-    @derivatives Dt'~t
-    @derivatives Dx'~x
+    Dt = Differential(t)
+    Dx = Differential(x)
 
     # 1D PDE and boundary conditions
     eq  = [ Dt(u(t,x)) ~ -Dx(v(t,x))*u(t,x)-v(t,x)*Dx(u(t,x)),
