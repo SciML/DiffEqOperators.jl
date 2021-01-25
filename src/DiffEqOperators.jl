@@ -59,7 +59,7 @@ end
 export MatrixFreeOperator
 export AnalyticalJacVecOperator, JacVecOperator, getops
 export AbstractDerivativeOperator, DerivativeOperator,
-       CenteredDifference, UpwindDifference
+       CenteredDifference, UpwindDifference, NonLinearDiffusion
 export DirichletBC, Dirichlet0BC, NeumannBC, Neumann0BC, RobinBC, GeneralBC, MultiDimBC, PeriodicBC,
        MultiDimDirectionalBC, ComposedMultiDimBC
 export compose, decompose, perpsize
