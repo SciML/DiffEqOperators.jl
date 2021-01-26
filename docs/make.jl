@@ -14,13 +14,13 @@ makedocs(
         "DiffEqOperators.jl: Linear operators for Scientific Machine Learning" => "index.md",
         "Symbolic Tutorials" => [
             "mol_heat.md"
-        ]
+        ],
         "Operators" => [
             "operators/operator_overview.md",
             "operators/derivative_operators.md",
             "operators/jacobian_vector_product.md",
             "operators/matrix_free_operators.md"
-        ]
+        ],
         "Symbolic PDE Solver" => [
             "symbolic/molfinitedifference.md"
         ]
