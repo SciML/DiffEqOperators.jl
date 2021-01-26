@@ -13,7 +13,7 @@ makedocs(
     pages=[
         "DiffEqOperators.jl: Linear operators for Scientific Machine Learning" => "index.md",
         "Symbolic Tutorials" => [
-            "mol_heat.md"
+            "symbolic_tutorials/mol_heat.md"
         ],
         "Operators" => [
             "operators/operator_overview.md",
