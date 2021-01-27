@@ -27,7 +27,7 @@ They have the form `Q(x) = M*x + c`, where `M` is a matrix and `c`
 is a constant vector. As a consequence, `Q` cannot be concretized
 to a matrix.
 
-![Actions of DiffEqOperators on interior points and ghost points](action.svg)
+![Actions of DiffEqOperators on interior points and ghost points](https://github.com/SciML/DiffEqOperators.jl/raw/master/action.svg)
 
 The operator `D` works by interpolating a polynomial of degree `m`
 through `m+1` adjacent points on the grid. Near the middle of the
