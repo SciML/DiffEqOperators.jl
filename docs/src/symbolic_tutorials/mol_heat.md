@@ -1,11 +1,13 @@
-# Examples
+# Solving the Heat Equation
 
-## Heat equation
+#### Note: This uses a currently unreleased interface that is still a work in progress. Use at your own risk!
+
+In this tutorial we will use the symbolic interface to solve the heat equation.
 
 ### Dirichlet boundary conditions
 
 ```julia
-using ModelingToolkit, DiffEqOperators
+using OrdinaryDiffEq, ModelingToolkit, DiffEqOperators
 # Method of Manufactured Solutions: exact solution
 u_exact = (x,t) -> exp.(-t) * cos.(x)
 
@@ -55,7 +57,7 @@ display(plt)
 ### Neumann boundary conditions
 
 ```julia
-using ModelingToolkit, DiffEqOperators
+using OrdinaryDiffEq, ModelingToolkit, DiffEqOperators
 # Method of Manufactured Solutions: exact solution
 u_exact = (x,t) -> exp.(-t) * cos.(x)
 
@@ -108,7 +110,7 @@ display(plt)
 ### Robin boundary conditions
 
 ```julia
-using ModelingToolkit, DiffEqOperators 
+using OrdinaryDiffEq, ModelingToolkit, DiffEqOperators
 # Method of Manufactured Solutions
 u_exact = (x,t) -> exp.(-t) * sin.(x)
 
