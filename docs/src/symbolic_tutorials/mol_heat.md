@@ -14,8 +14,8 @@ u_exact = (x,t) -> exp.(-t) * cos.(x)
 # Parameters, variables, and derivatives
 @parameters t x
 @variables u(..)
-@derivatives Dt'~t
-@derivatives Dxx''~x
+Dt = Differential(t)
+Dxx = Differential(x)^2
 
 # 1D PDE and boundary conditions
 eq  = Dt(u(t,x)) ~ Dxx(u(t,x))
@@ -64,9 +64,9 @@ u_exact = (x,t) -> exp.(-t) * cos.(x)
 # Parameters, variables, and derivatives
 @parameters t x
 @variables u(..)
-@derivatives Dt'~t
-@derivatives Dx'~x
-@derivatives Dxx''~x
+Dt = Differential(t)
+Dx = Differential(x)
+Dxx = Differential(x)^2
 
 # 1D PDE and boundary conditions
 eq  = Dt(u(t,x)) ~ Dxx(u(t,x))
@@ -117,9 +117,9 @@ u_exact = (x,t) -> exp.(-t) * sin.(x)
 # Parameters, variables, and derivatives
 @parameters t x
 @variables u(..)
-@derivatives Dt'~t
-@derivatives Dx'~x
-@derivatives Dxx''~x
+Dt = Differential(t)
+Dx = Differential(x)
+Dxx = Differential(x)^2
 
 # 1D PDE and boundary conditions
 eq  = Dt(u(t,x)) ~ Dxx(u(t,x))
