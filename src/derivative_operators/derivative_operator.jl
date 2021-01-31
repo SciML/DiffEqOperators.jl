@@ -29,7 +29,7 @@ end
 struct NonLinearDiffusion end
 
 function NonLinearDiffusion(second_differential_order::Int, first_differential_order::Int, approx_order::Int,
-                            p::AbstractVector{T}, q::AbstractVector{T}, dx::Union{T,AbstractVector{T}},
+                            p::AbstractVector{T}, q::AbstractVector{T}, dx::Union{T,AbstractVector{T}, Real},
                             nknots::Int) where {T<:Real,N}
     #p is given by bc1*k , k being the diffusion coefficient
     #q is given by bc2*u , u being the desired function
