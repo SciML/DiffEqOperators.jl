@@ -34,6 +34,7 @@ function second_derivative_stencil(N)
   A
 end
 
+@test_skip begin
 @testset "Test Constructor, Multiplication, and Concretization" begin
     # Generate random parameters
     al = rand()
@@ -504,4 +505,5 @@ end
     analytic_y = 2x.+2
 
     @test_broken y ≈ analytic_y
+end
 end
