@@ -26,6 +26,31 @@ struct DerivativeOperator{T<:Real,N,Wind,T2,S1,S2<:SArray,T3,F} <: AbstractDeriv
     coeff_func              :: F
 end
 
+struct NonLinearDiffusion end
+
+function NonLinearDiffusion(second_differential_order::Int, first_differential_order::Int, approx_order::Int,
+                            p::AbstractVector{T}, q::AbstractVector{T}, dx::Union{T , AbstractVector{T} , Real},
+                            nknots::Int) where {T<:Real,N}
+    #p is given by bc1*k , k being the diffusion coefficient
+    #q is given by bc2*u , u being the desired function
+    @assert approx_order>1 "approximation_order must be greater than 1."
+    discretization = zeros(nknots);
+    
+    if first_differential_order > 0 
+        discretization += (CenteredDifference(first_differential_order,approx_order,dx,nknots)*q).*(CenteredDifference(second_differential_order,approx_order,dx,nknots)*p);
+    else 
+        discretization += q[2:(nknots + 1)].*(CenteredDifference(second_differential_order,approx_order,dx,nknots)*p); 
+    end
+    
+    for l = 1:(second_differential_order - 1)
+        discretization += binomial(second_differential_order,l)*(CenteredDifference(l + first_differential_order,approx_order,dx,nknots)*q).*(CenteredDifference(second_differential_order - l,approx_order,dx,nknots)*p);
+    end
+    
+    discretization += (CenteredDifference(first_differential_order + second_differential_order,approx_order,dx,nknots)*q).*p[2:(nknots + 1)];
+    return discretization
+    
+end
+
 struct CenteredDifference{N} end
 
 function CenteredDifference{N}(derivative_order::Int,
