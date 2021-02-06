@@ -264,10 +264,10 @@ function DiffEqBase.discretize(pdesys::PDESystem,discretization::MOLFiniteDiffer
     dep_var_disc = Dict() # expressions evaluated in the ODE function (f)
 
     # if there is only one equation
-    if pdesys.eq isa Equation
-        eqs = [pdesys.eq]
+    if pdesys.eqs isa Equation
+        eqs = [pdesys.eqs]
     else
-        eqs = pdesys.eq
+        eqs = pdesys.eqs
     end
     num_dep_vars = size(eqs,1)
     for j = 1:num_dep_vars
