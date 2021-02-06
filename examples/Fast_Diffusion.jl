@@ -26,15 +26,15 @@ m = 1                                   # Inner differential order
 approx_ord = 2                               
 
 u0 = u_analytic.(knots,0.0)
-
+du = similar(u0)
 t0 = 0.0
 t1 = 1.0
 
-function f(u,p,t)
+function f(du,u,p,t)
     bc = DirichletBC(exp(-t),(1.0 + exp(2*t))^(-0.5))
     l = bc*u
     k = l.^(-2)                        # Diffusion Coefficient
-    NonLinearDiffusion(n,m,approx_ord,k,l,h,nknots)
+    NonLinearDiffusion!(du,n,m,approx_ord,k,l,h,nknots)
 end
 
 prob = ODEProblem(f, u0, (t0, t1))
