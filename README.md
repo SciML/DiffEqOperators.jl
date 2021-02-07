@@ -1,7 +1,7 @@
 # DiffEqOperators.jl
 
 [![Build Status](https://github.com/SciML/DiffEqOperators.jl/workflows/CI/badge.svg)](https://github.com/SciML/DiffEqOperators.jl/actions?query=workflow%3ACI)
-[![GitlabCI](https://gitlab.com/JuliaGPU/DiffEqOperators.jl/badges/master/pipeline.svg)](https://gitlab.com/JuliaGPU/DiffEqOperators.jl/pipelines)
+[![Build status](https://badge.buildkite.com/0bc9acab7cf614b556a704cfe8422a5e3ab0cfbf3dbec83af7.svg)](https://buildkite.com/julialang/diffeqoperators-dot-jl)
 [![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](http://diffeqoperators.sciml.ai/stable/)
 [![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](http://diffeqoperators.sciml.ai/dev/)
 
