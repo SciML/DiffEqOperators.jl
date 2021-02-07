@@ -26,8 +26,6 @@ struct DerivativeOperator{T<:Real,N,Wind,T2,S1,S2<:SArray,T3,F} <: AbstractDeriv
     coeff_func              :: F
 end
 
-struct NonLinearDiffusion! end
-
 function NonLinearDiffusion!(du::AbstractVector{T}, second_differential_order::Int, first_differential_order::Int, approx_order::Int,
     p::AbstractVector{T}, q::AbstractVector{T}, dx::Union{T , AbstractVector{T} , Real},
     nknots::Int) where {T<:Real, N}
