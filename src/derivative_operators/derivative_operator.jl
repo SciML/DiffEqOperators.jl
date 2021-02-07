@@ -26,6 +26,36 @@ struct DerivativeOperator{T<:Real,N,Wind,T2,S1,S2<:SArray,T3,F} <: AbstractDeriv
     coeff_func              :: F
 end
 
+function nonlinear_diffusion!(du::AbstractVector{T}, second_differential_order::Int, first_differential_order::Int, approx_order::Int,
+    p::AbstractVector{T}, q::AbstractVector{T}, dx::Union{T , AbstractVector{T} , Real},
+    nknots::Int) where {T<:Real, N}
+    #q is given by bc*u , u being the unknown function
+    #p is given as some function of q , p being the diffusion coefficient
+
+    @assert approx_order>1 "approximation_order must be greater than 1."
+    if first_differential_order > 0 
+    du .= (CenteredDifference(first_differential_order,approx_order,dx,nknots)*q).*(CenteredDifference(second_differential_order,approx_order,dx,nknots)*p)
+    else 
+    du .= q[2:(nknots + 1)].*(CenteredDifference(second_differential_order,approx_order,dx,nknots)*p)
+    end
+
+    for l = 1:(second_differential_order - 1)
+    du .= du .+ binomial(second_differential_order,l)*(CenteredDifference(l + first_differential_order,approx_order,dx,nknots)*q).*(CenteredDifference(second_differential_order - l,approx_order,dx,nknots)*p)
+    end
+
+    du .= du .+ (CenteredDifference(first_differential_order + second_differential_order,approx_order,dx,nknots)*q).*p[2:(nknots + 1)]
+
+end
+
+# An out of place workaround for the mutating version
+function nonlinear_diffusion(second_differential_order::Int, first_differential_order::Int, approx_order::Int,
+    p::AbstractVector{T}, q::AbstractVector{T}, dx::Union{T , AbstractVector{T} , Real},
+    nknots::Int) where {T<:Real, N}
+
+    du = similar(q,length(q) - 2)
+    return nonlinear_diffusion!(du,second_differential_order,first_differential_order,approx_order,p,q,dx,nknots)
+end
+
 struct CenteredDifference{N} end
 
 function CenteredDifference{N}(derivative_order::Int,
