@@ -36,7 +36,7 @@ using DiffEqOperators, OrdinaryDiffEq
         bc = DirichletBC(exp(-t),(1.0 + exp(2*t))^(-0.5))
         l = bc*u
         k = l.^(-2)                        # Diffusion Coefficient
-        NonLinearDiffusion!(du,n,m,approx_ord,k,l,h,nknots)
+        nonlinear_diffusion!(du,n,m,approx_ord,k,l,h,nknots)
     end
 
     prob = ODEProblem(f, u0, (t0, t1))

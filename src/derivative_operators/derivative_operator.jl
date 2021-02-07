@@ -26,7 +26,7 @@ struct DerivativeOperator{T<:Real,N,Wind,T2,S1,S2<:SArray,T3,F} <: AbstractDeriv
     coeff_func              :: F
 end
 
-function NonLinearDiffusion!(du::AbstractVector{T}, second_differential_order::Int, first_differential_order::Int, approx_order::Int,
+function nonlinear_diffusion!(du::AbstractVector{T}, second_differential_order::Int, first_differential_order::Int, approx_order::Int,
     p::AbstractVector{T}, q::AbstractVector{T}, dx::Union{T , AbstractVector{T} , Real},
     nknots::Int) where {T<:Real, N}
     #q is given by bc*u , u being the unknown function
@@ -45,6 +45,15 @@ function NonLinearDiffusion!(du::AbstractVector{T}, second_differential_order::I
 
     du .= du .+ (CenteredDifference(first_differential_order + second_differential_order,approx_order,dx,nknots)*q).*p[2:(nknots + 1)]
 
+end
+
+# An out of place workaround for the mutating version
+function nonlinear_diffusion(second_differential_order::Int, first_differential_order::Int, approx_order::Int,
+    p::AbstractVector{T}, q::AbstractVector{T}, dx::Union{T , AbstractVector{T} , Real},
+    nknots::Int) where {T<:Real, N}
+
+    du = similar(q,length(q) - 2)
+    return nonlinear_diffusion!(du,second_differential_order,first_differential_order,approx_order,p,q,dx,nknots)
 end
 
 struct CenteredDifference{N} end
