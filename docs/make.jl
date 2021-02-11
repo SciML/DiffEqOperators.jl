@@ -23,6 +23,9 @@ makedocs(
         ],
         "Symbolic PDE Solver" => [
             "symbolic/molfinitedifference.md"
+        ],
+        "Nonlinear Derivatives" => [
+            "nonlinear_derivatives/nonlinear_diffusion.md"
         ]
     ]
 )
