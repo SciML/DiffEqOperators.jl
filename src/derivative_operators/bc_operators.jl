@@ -117,11 +117,11 @@ struct GeneralBC{T, L<:AbstractVector{T}, R<:AbstractVector{T}} <:AffineBC{T}
         S_r = zeros(T, (nr-2, order+nr-2))
 
         for i in 1:(nl-2)
-            S_l[i,:] = [transpose(calculate_weights(i, one(T), Array(one(T):convert(T, order+i)))) transpose(zeros(T, Int(nl-2-i)))]./(dx_l.^i)
+            S_l[i,:] = [transpose(calculate_weights(i, one(T), Array(one(T):convert(T, order+i)))) transpose(zeros(T, Int(nl-2-i)))]./transpose(dx_l.^i)
         end
 
         for i in 1:(nr-2)
-            S_r[i,:] = [transpose(calculate_weights(i, convert(T, order+i), Array(one(T):convert(T, order+i)))) transpose(zeros(T, Int(nr-2-i)))]./(dx_r.^i)
+            S_r[i,:] = [transpose(calculate_weights(i, convert(T, order+i), Array(one(T):convert(T, order+i)))) transpose(zeros(T, Int(nr-2-i)))]./transpose(dx_r.^i)
         end
         s0_l = S_l[:,1] ; Sl = S_l[:,2:end]
         s0_r = S_r[:,end] ; Sr = S_r[:,(end-1):-1:1]
