@@ -24,7 +24,7 @@ if GROUP == "All" || GROUP == "Interface"
     @time @safetestset "2nd order check" begin include("2nd_order_check.jl") end
     @time @safetestset "Non-linear Diffusion" begin include("Fast_Diffusion.jl") end
     #@time @safetestset "KdV" begin include("KdV.jl") end # KdV times out and all fails
-    #@time @safetestset "Heat Equation" begin include("heat_eqn.jl") end
+    @time @safetestset "Heat Equation" begin include("heat_eqn.jl") end
     @time @safetestset "Matrix-Free Operators" begin include("matrixfree.jl") end
     @time @safetestset "JacVec Operator Integration Test" begin include("jacvec_integration_test.jl") end
     @time @safetestset "Convolutions" begin include("convolutions.jl") end
