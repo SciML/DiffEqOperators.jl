@@ -1,19 +1,21 @@
-# Examples
+# Solving the Heat Equation
 
-## Heat equation
+#### Note: This uses a currently unreleased interface that is still a work in progress. Use at your own risk!
+
+In this tutorial we will use the symbolic interface to solve the heat equation.
 
 ### Dirichlet boundary conditions
 
 ```julia
-using ModelingToolkit, DiffEqOperators
+using OrdinaryDiffEq, ModelingToolkit, DiffEqOperators
 # Method of Manufactured Solutions: exact solution
 u_exact = (x,t) -> exp.(-t) * cos.(x)
 
 # Parameters, variables, and derivatives
 @parameters t x
 @variables u(..)
-@derivatives Dt'~t
-@derivatives Dxx''~x
+Dt = Differential(t)
+Dxx = Differential(x)^2
 
 # 1D PDE and boundary conditions
 eq  = Dt(u(t,x)) ~ Dxx(u(t,x))
@@ -55,16 +57,16 @@ display(plt)
 ### Neumann boundary conditions
 
 ```julia
-using ModelingToolkit, DiffEqOperators
+using OrdinaryDiffEq, ModelingToolkit, DiffEqOperators
 # Method of Manufactured Solutions: exact solution
 u_exact = (x,t) -> exp.(-t) * cos.(x)
 
 # Parameters, variables, and derivatives
 @parameters t x
 @variables u(..)
-@derivatives Dt'~t
-@derivatives Dx'~x
-@derivatives Dxx''~x
+Dt = Differential(t)
+Dx = Differential(x)
+Dxx = Differential(x)^2
 
 # 1D PDE and boundary conditions
 eq  = Dt(u(t,x)) ~ Dxx(u(t,x))
@@ -108,16 +110,16 @@ display(plt)
 ### Robin boundary conditions
 
 ```julia
-using ModelingToolkit, DiffEqOperators 
+using OrdinaryDiffEq, ModelingToolkit, DiffEqOperators
 # Method of Manufactured Solutions
 u_exact = (x,t) -> exp.(-t) * sin.(x)
 
 # Parameters, variables, and derivatives
 @parameters t x
 @variables u(..)
-@derivatives Dt'~t
-@derivatives Dx'~x
-@derivatives Dxx''~x
+Dt = Differential(t)
+Dx = Differential(x)
+Dxx = Differential(x)^2
 
 # 1D PDE and boundary conditions
 eq  = Dt(u(t,x)) ~ Dxx(u(t,x))

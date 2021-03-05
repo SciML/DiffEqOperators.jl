@@ -4,6 +4,7 @@
 
 # Packages and inclusions
 using ModelingToolkit,DiffEqOperators,DiffEqBase,LinearAlgebra,Test,OrdinaryDiffEq
+using ModelingToolkit: Differential
 
 # Tests
 @testset "Test 00: Dt(u(t,x)) ~ Dxx(u(t,x))" begin
@@ -13,8 +14,8 @@ using ModelingToolkit,DiffEqOperators,DiffEqBase,LinearAlgebra,Test,OrdinaryDiff
     # Parameters, variables, and derivatives
     @parameters t x
     @variables u(..)
-    @derivatives Dt'~t
-    @derivatives Dxx''~x
+    Dt = Differential(t)
+    Dxx = Differential(x)^2
 
     # 1D PDE and boundary conditions
     eq  = Dt(u(t,x)) ~ Dxx(u(t,x))
@@ -68,8 +69,8 @@ end
     # Parameters, variables, and derivatives
     @parameters t x D
     @variables u(..)
-    @derivatives Dt'~t
-    @derivatives Dxx''~x
+    Dt = Differential(t)
+    Dxx = Differential(x)^2
 
     D = 1.1
 
@@ -118,9 +119,9 @@ end
     # Parameters, variables, and derivatives
     @parameters t x
     @variables u(..) D(..)
-    @derivatives Dt'~t
-    @derivatives Dx'~x
-    @derivatives Dxx''~x
+    Dt = Differential(t)
+    Dx = Differential(x)
+    Dxx = Differential(x)^2
 
     # 1D PDE and boundary conditions
 
@@ -176,9 +177,9 @@ end
     # Parameters, variables, and derivatives
     @parameters t x
     @variables u(..)
-    @derivatives Dt'~t
-    @derivatives Dx'~x
-    @derivatives Dxx''~x
+    Dt = Differential(t)
+    Dx = Differential(x)
+    Dxx = Differential(x)^2
 
     # 1D PDE and boundary conditions
     eq  = Dt(u(t,x)) ~ Dxx(u(t,x))
@@ -229,9 +230,9 @@ end
     # Parameters, variables, and derivatives
     @parameters t x
     @variables u(..)
-    @derivatives Dt'~t
-    @derivatives Dx'~x
-    @derivatives Dxx''~x
+    Dt = Differential(t)
+    Dx = Differential(x)
+    Dxx = Differential(x)^2
 
     # 1D PDE and boundary conditions
     eq  = Dt(u(t,x)) ~ Dxx(u(t,x))
@@ -282,9 +283,9 @@ end
     # Parameters, variables, and derivatives
     @parameters t x
     @variables u(..)
-    @derivatives Dt'~t
-    @derivatives Dx'~x
-    @derivatives Dxx''~x
+    Dt = Differential(t)
+    Dx = Differential(x)
+    Dxx = Differential(x)^2
 
     # 1D PDE and boundary conditions
     eq  = Dt(u(t,x)) ~ Dxx(u(t,x))
@@ -335,9 +336,9 @@ end
     # Parameters, variables, and derivatives
     @parameters t x
     @variables u(..)
-    @derivatives Dt'~t
-    @derivatives Dx'~x
-    @derivatives Dxx''~x
+    Dt = Differential(t)
+    Dx = Differential(x)
+    Dxx = Differential(x)^2
 
     # 1D PDE and boundary conditions
     eq  = Dt(u(t,x)) ~ Dxx(u(t,x))
@@ -385,9 +386,9 @@ end
     # Parameters, variables, and derivatives
     @parameters t x
     @variables u(..) v(..)
-    @derivatives Dt'~t
-    @derivatives Dx'~x
-    @derivatives Dxx''~x
+    Dt = Differential(t)
+    Dx = Differential(x)
+    Dxx = Differential(x)^2
 
     # 1D PDE and boundary conditions
     eq  = Dt(u(t,x)) ~ Dxx(u(t,x))

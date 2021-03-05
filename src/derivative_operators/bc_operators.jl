@@ -15,31 +15,10 @@ struct Neumann0BC{N} end
 struct DirichletBC{N} end
 struct Dirichlet0BC{N} end
 
-"""
-q = PeriodicBC{T}()
-Qx, Qy, ... = PeriodicBC{T}(size(u)) #When all dimensions are to be extended with a periodic boundary condition.
--------------------------------------------------------------------------------------
-Creates a periodic boundary condition, where the lower index end of some u is extended with the upper index end and vice versa.
-It is not recommended to concretize this BC type in to a BandedMatrix, since the vast majority of bands will be all 0s. SpatseMatrix concretization is recommended.
-"""
 struct PeriodicBC{T} <: AtomicBC{T}
     PeriodicBC(T::Type) = new{T}()
 end
 
-"""
-  q = RobinBC(left_coefficients, right_coefficients, dx::T, approximation_order) where T # When this BC extends a dimension with a uniform step size
-  q = RobinBC(left_coefficients, right_coefficients, dx::Vector{T}, approximation_order) where T # When this BC extends a dimension with a non-uniform step size. dx should be the vector of step sizes for the whole dimension
--------------------------------------------------------------------------------------
-  The variables in l are [αl, βl, γl], and correspond to a BC of the form αl*u(0) + βl*u'(0) = γl imposed on the lower-index boundary.
-  The variables in r are [αl, βl, γl], and correspond to an analogous boundary on the higher-index end.
-  Implements a robin boundary condition operator Q that acts on a vector to give an extended vector as a result.
-  Referring to (https://github.com/JuliaDiffEq/DiffEqOperators.jl/files/3267835/ghost_node.pdf).
-  Write vector b̄₁ as a vertical concatenation with b0 and the rest of the elements of b̄ ₁, denoted b̄`₁, the same with ū into u0 and ū`. b̄`₁ = b̄`_2 = fill(β/Δx, length(stencil)-1).
-  Pull out the product of u0 and b0 from the dot product. The stencil used to approximate u` is denoted s. b0 = α+(β/Δx)*s[1].
-  Rearrange terms to find a general formula for u0:= -b̄`₁̇⋅ū`/b0 + γ/b0, which is dependent on ū` the robin coefficients and Δx.
-  The non-identity part of Qa is qa:= -b`₁/b0 = -β.*s[2:end]/(α+β*s[1]/Δx). The constant part is Qb = γ/(α+β*s[1]/Δx).
-  Do the same at the other boundary (amounts to a flip of s[2:end], with the other set of boundary coefficients).
-"""
 struct RobinBC{T, V<:AbstractVector{T}} <: AffineBC{T}
     a_l::V
     b_l::T
@@ -138,11 +117,11 @@ struct GeneralBC{T, L<:AbstractVector{T}, R<:AbstractVector{T}} <:AffineBC{T}
         S_r = zeros(T, (nr-2, order+nr-2))
 
         for i in 1:(nl-2)
-            S_l[i,:] = [transpose(calculate_weights(i, one(T), Array(one(T):convert(T, order+i)))) transpose(zeros(T, Int(nl-2-i)))]./(dx_l.^i)
+            S_l[i,:] = [transpose(calculate_weights(i, one(T), Array(one(T):convert(T, order+i)))) transpose(zeros(T, Int(nl-2-i)))]./transpose(dx_l.^i)
         end
 
         for i in 1:(nr-2)
-            S_r[i,:] = [transpose(calculate_weights(i, convert(T, order+i), Array(one(T):convert(T, order+i)))) transpose(zeros(T, Int(nr-2-i)))]./(dx_r.^i)
+            S_r[i,:] = [transpose(calculate_weights(i, convert(T, order+i), Array(one(T):convert(T, order+i)))) transpose(zeros(T, Int(nr-2-i)))]./transpose(dx_r.^i)
         end
         s0_l = S_l[:,1] ; Sl = S_l[:,2:end]
         s0_r = S_r[:,end] ; Sr = S_r[:,(end-1):-1:1]

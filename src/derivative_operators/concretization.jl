@@ -133,8 +133,8 @@ function SparseArrays.sparse(Q::AffineBC{T}, N::Int) where {T}
     SparseMatrixCSC(Q,N)
 end
 
-LinearAlgebra.Array(Q::PeriodicBC{T}, N::Int) where T = (Array([transpose(zeros(T, N-1)) one(T); Diagonal(ones(T,N)); one(T) transpose(zeros(T, N-1))]), zeros(T, N))
-SparseArrays.SparseMatrixCSC(Q::PeriodicBC{T}, N::Int) where T = ([transpose(zeros(T, N-1)) one(T); Diagonal(ones(T,N)); one(T) transpose(zeros(T, N-1))], zeros(T, N))
+LinearAlgebra.Array(Q::PeriodicBC{T}, N::Int) where T = (Array([transpose(zeros(T, N-1)) one(T); Diagonal(ones(T,N)); one(T) transpose(zeros(T, N-1))]), zeros(T, N+2))
+SparseArrays.SparseMatrixCSC(Q::PeriodicBC{T}, N::Int) where T = ([transpose(zeros(T, N-1)) one(T); Diagonal(ones(T,N)); one(T) transpose(zeros(T, N-1))], zeros(T, N+2))
 SparseArrays.sparse(Q::PeriodicBC{T}, N::Int) where T = SparseMatrixCSC(Q,N)
 function BandedMatrices.BandedMatrix(Q::PeriodicBC{T}, N::Int) where T #Not recommended!
     Q_array = BandedMatrix{T}(Eye(N), (N-1, N-1))
@@ -143,7 +143,7 @@ function BandedMatrices.BandedMatrix(Q::PeriodicBC{T}, N::Int) where T #Not reco
     Q_array[end, 1] = one(T)
     Q_array[end, end] = zero(T)
 
-    return (Q_array, zeros(T, N))
+    return (Q_array, zeros(T, N+2))
 end
 
 function LinearAlgebra.Array(Q::BoundaryPaddedVector)
