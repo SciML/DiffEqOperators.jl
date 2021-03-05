@@ -195,18 +195,18 @@ function discretize_2(input,deriv_order,upwind_order,centered_order,dx,X,len_of_
         elseif istree(input) && operation(input) isa Differential
             var = nameof(input.op.x)
             push!(deriv_var,var)
-            return discretize_2(input.args[1],deriv_order+1,upwind_order,centered_order,dx,X,
+            return discretize_2(arguments(input)[1],deriv_order+1,upwind_order,centered_order,dx,X,
                                 len_of_indep_vars,deriv_var,dep_var_idx,indep_var_idx)
         else
             name = nameof(operation(input))
-            if size(input.args,1) == 1
-                aux = discretize_2(input.args[1],deriv_order,upwind_order,centered_order,dx,X,
+            if size(arguments(input),1) == 1
+                aux = discretize_2(arguments(input)[1],deriv_order,upwind_order,centered_order,dx,X,
                                    len_of_indep_vars,deriv_var,dep_var_idx,indep_var_idx)
                 return :(broadcast($name, $aux))
             else
-                aux_1 = discretize_2(input.args[1],deriv_order,upwind_order,centered_order,dx,X,
+                aux_1 = discretize_2(arguments(input)[1],deriv_order,upwind_order,centered_order,dx,X,
                                      len_of_indep_vars,deriv_var,dep_var_idx,indep_var_idx)
-                aux_2 = discretize_2(input.args[2],deriv_order,upwind_order,centered_order,dx,X,
+                aux_2 = discretize_2(arguments(input)[2],deriv_order,upwind_order,centered_order,dx,X,
                                      len_of_indep_vars,deriv_var,dep_var_idx,indep_var_idx)
                 return :(broadcast($name, $aux_1, $aux_2))
             end
