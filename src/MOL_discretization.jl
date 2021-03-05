@@ -10,12 +10,12 @@ end
 MOLFiniteDifference(dxs::T, order) where T =
     MOLFiniteDifference{T}(dxs, order, order)
 
-function MOLFiniteDifference(dxs::T; order = 2, upwind_order = nothing,
-                            centered_order = nothing) where T
+function MOLFiniteDifference(dxs::T; order = nothing, upwind_order = 1,
+                            centered_order = 2) where T
     MOLFiniteDifference(
         dxs,
-        upwind_order === nothing ? order : upwind_order,
-        centered_order === nothing ? order : centered_order
+        order === nothing ? upwind_order : order,
+        order === nothing ? centered_order : order
     )
 end
 
