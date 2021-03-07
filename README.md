@@ -70,6 +70,17 @@ sol = solve(prob,Tsit5(),saveat=0.1)
 ```julia
 using DiffEqOperators, OrdinaryDiffEq
 
+# # Heat Equation
+# This example demonstrates how to combine `OrdinaryDiffEq` with `DiffEqOperators` to solve a time-dependent PDE.
+# We consider the heat equation on the unit interval, with Dirichlet boundary conditions:
+# ∂ₜu = Δu
+# u(x=0,t)  = a
+# u(x=1,t)  = b
+# u(x, t=0) = u₀(x)
+#
+# For `a = b = 0` and `u₀(x) = sin(2πx)` a solution is given by:
+u_analytic(x, t) = sin(2*π*x) * exp(-t*(2*π)^2)
+
 nknots = 100
 h = 1.0/(nknots+1)
 knots = range(h, step=h, length=nknots)
