@@ -2,8 +2,21 @@ using ModelingToolkit: operation, istree, arguments
 # Method of lines discretization scheme
 struct MOLFiniteDifference{T} <: DiffEqBase.AbstractDiscretization
     dxs::T
-    order::Int
-    MOLFiniteDifference(args...;order=2) = new{typeof(args[1])}(args[1],order)
+    upwind_order::Int
+    centered_order::Int
+end
+
+# Constructors. If no order is specified, both upwind and centered differences will be 2nd order
+MOLFiniteDifference(dxs::T, order) where T =
+    MOLFiniteDifference{T}(dxs, order, order)
+
+function MOLFiniteDifference(dxs::T; order = nothing, upwind_order = 1,
+                            centered_order = 2) where T
+    MOLFiniteDifference(
+        dxs,
+        order === nothing ? upwind_order : order,
+        order === nothing ? centered_order : order
+    )
 end
 
 function throw_bc_err(bc)
@@ -147,7 +160,7 @@ end
 #       E.g., Dx(u(t,x))=v(t,x)*Dx(u(t,x)), v(t,x)=t*x
 #            =>  Dx(u(t,x))=t*x*Dx(u(t,x))
 
-function discretize_2(input,deriv_order,approx_order,dx,X,len_of_indep_vars,
+function discretize_2(input,deriv_order,upwind_order,centered_order,dx,X,len_of_indep_vars,
                       deriv_var,dep_var_idx,indep_var_idx)
     if !(input isa ModelingToolkit.Symbolic)
         return :($(input))
@@ -171,11 +184,10 @@ function discretize_2(input,deriv_order,approx_order,dx,X,len_of_indep_vars,
                 elseif deriv_order == 1
                     # TODO: approx_order and forward/backward should be
                     #       input parameters of each derivative
-                    approx_order = 1
-                    L = UpwindDifference(deriv_order,approx_order,dx[i],len_of_indep_vars[i]-2,-1)
+                    L = UpwindDifference(deriv_order,upwind_order,dx[i],len_of_indep_vars[i]-2,-1)
                     expr = :(-1*($L*Q[$j]*u[:,$j]))
                 elseif deriv_order == 2
-                    L = CenteredDifference(deriv_order,approx_order,dx[i],len_of_indep_vars[i]-2)
+                    L = CenteredDifference(deriv_order,centered_order,dx[i],len_of_indep_vars[i]-2)
                     expr = :($L*Q[$j]*u[:,$j])
                 end
             end
@@ -183,18 +195,18 @@ function discretize_2(input,deriv_order,approx_order,dx,X,len_of_indep_vars,
         elseif istree(input) && operation(input) isa Differential
             var = nameof(input.op.x)
             push!(deriv_var,var)
-            return discretize_2(input.args[1],deriv_order+1,approx_order,dx,X,
+            return discretize_2(arguments(input)[1],deriv_order+1,upwind_order,centered_order,dx,X,
                                 len_of_indep_vars,deriv_var,dep_var_idx,indep_var_idx)
         else
             name = nameof(operation(input))
-            if size(input.args,1) == 1
-                aux = discretize_2(input.args[1],deriv_order,approx_order,dx,X,
+            if size(arguments(input),1) == 1
+                aux = discretize_2(arguments(input)[1],deriv_order,upwind_order,centered_order,dx,X,
                                    len_of_indep_vars,deriv_var,dep_var_idx,indep_var_idx)
                 return :(broadcast($name, $aux))
             else
-                aux_1 = discretize_2(input.args[1],deriv_order,approx_order,dx,X,
+                aux_1 = discretize_2(arguments(input)[1],deriv_order,upwind_order,centered_order,dx,X,
                                      len_of_indep_vars,deriv_var,dep_var_idx,indep_var_idx)
-                aux_2 = discretize_2(input.args[2],deriv_order,approx_order,dx,X,
+                aux_2 = discretize_2(arguments(input)[2],deriv_order,upwind_order,centered_order,dx,X,
                                      len_of_indep_vars,deriv_var,dep_var_idx,indep_var_idx)
                 return :(broadcast($name, $aux_1, $aux_2))
             end
@@ -257,7 +269,8 @@ function DiffEqBase.discretize(pdesys::PDESystem,discretization::MOLFiniteDiffer
     ### Declare and define dependent-variable data structures #################
 
     # TODO: specify order for each derivative
-    approx_order = discretization.order
+    upwind_order = discretization.upwind_order
+    centered_order = discretization.centered_order
 
     lhs_deriv_depvars = Dict()
     dep_var_idx = Dict()
@@ -282,7 +295,7 @@ function DiffEqBase.discretize(pdesys::PDESystem,discretization::MOLFiniteDiffer
         dep_var_idx[var] = j
     end
     for (var,j) in dep_var_idx
-        aux = discretize_2( eqs[j].rhs,0,approx_order,dx,X,len_of_indep_vars,
+        aux = discretize_2( eqs[j].rhs,0,upwind_order,centered_order,dx,X,len_of_indep_vars,
                             [],dep_var_idx,indep_var_idx)
         dep_var_disc[var] = @RuntimeGeneratedFunction(:((Q,u,t) -> $aux))
     end
