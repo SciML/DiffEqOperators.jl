@@ -47,4 +47,4 @@ plot!(ϕ(x,2), label = "t = 2.0 (Analytic)")
 plot!(soln(0.0), label = "t = 0.0 (Numerical)",ls = :dash)
 plot!(soln(2.0), label = "t = 2.0 (Numerical)",ls = :dash)
 ```
-![solution_plot](https://user-images.githubusercontent.com/39168576/111031867-add9e600-842f-11eb-91f2-a07be80ea4d2.jpeg)
+![solution_plot](https://user-images.githubusercontent.com/39168576/111033316-a702a180-8436-11eb-9b8e-749ad9206639.jpeg)
