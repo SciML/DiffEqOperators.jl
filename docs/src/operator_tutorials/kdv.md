@@ -1,4 +1,4 @@
-# Solving KdV Solitons
+# Solving KdV Solitons with Upwinding Operators
 
 The KdV equation is of the form `uₜ + αuuₓ + βuₓₓₓ = 0`. Here we'll use `α = 6`, `β = 1` for 
 simplicity of the true solution expression.
