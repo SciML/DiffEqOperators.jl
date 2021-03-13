@@ -26,8 +26,11 @@ makedocs(
         ],
         "Nonlinear Derivatives" => [
             "nonlinear_derivatives/nonlinear_diffusion.md"
-        ]
-    ]
+        ],
+        "Operator Tutorials" => [
+            "operator_tutorials/working_examples.md"
+        ]  
+     ]
 )
 
 deploydocs(

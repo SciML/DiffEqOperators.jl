@@ -6,6 +6,7 @@ simplicity of the true solution expression.
 ### 1-Soliton solution using Upwind Difference
 
 The analytical expression for the single soliton case takes the form `u(x,t) = (c/2)/cosh²(√c * ξ/2)`.
+
 `c > 0` (wave speed) ; `ξ  = x - c*t` (moving coordinate)
 
 ```julia
