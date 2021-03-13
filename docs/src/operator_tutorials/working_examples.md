@@ -47,4 +47,4 @@ plot!(ϕ(x,2), label = "t = 2.0 (Analytic)")
 plot!(soln(0.0), label = "t = 0.0 (Numerical)",ls = :dash)
 plot!(soln(2.0), label = "t = 2.0 (Numerical)",ls = :dash)
 ```
-![Analytical and Numerical comparison plot](https://github.com/SciML/DiffEqOperators.jl/raw/master/docs/src/assets/solution_plot.png)
+![Analytical and Numerical comparison plot](https://github.com/SciML/DiffEqOperators.jl/raw/master/docs/src/assets/solution_plot.jpeg)
