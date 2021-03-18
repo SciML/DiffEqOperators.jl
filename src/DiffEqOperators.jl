@@ -33,12 +33,12 @@ include("derivative_operators/multi_dim_bc_operators.jl")
 
 ### Derivative Operators
 include("derivative_operators/fornberg.jl")
+include("derivative_operators/coefficients.jl")
 include("derivative_operators/derivative_operator.jl")
 include("derivative_operators/abstract_operator_functions.jl")
 include("derivative_operators/convolutions.jl")
 include("derivative_operators/ghost_derivative_operator.jl")
 include("derivative_operators/derivative_operator_functions.jl")
-include("derivative_operators/coefficient_functions.jl")
 
 ### Composite Operators
 include("composite_operators.jl")
