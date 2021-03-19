@@ -19,7 +19,7 @@ p = params()
 #----------------------------------
 # payoff function
 pi_profit(x) = x^2
-#=# SimpleDifferentialOperators setup
+#= SimpleDifferentialOperators setup
 function SDO_negative_drift(pi_profit, params)
     bc = (Reflecting(), Reflecting())
     Lₓ = params.μ*L₁₋bc(params.x̄, bc) + params.σ^2 / 2 * L₂bc(params.x̄, bc)
@@ -32,10 +32,10 @@ function DEO_negative_drift(pi_profit, params)
     dx = params.x[2] - params.x[1]
     # discretize L = ρ - μ D_x - σ^2 / 2 D_xx
     # subject to reflecting barriers at 0 and 1
-    L1 = UpwindDifference(1,1,dx,params.M,1.)
+    L1 = UpwindDifference(1,1,dx,params.M,0,1.)
     L2 = CenteredDifference(2,2,dx,params.M)
     Q = Neumann0BC(dx, 1)
-    L₁₋bc = -1. .* Array(UpwindDifference(1,1,dx,params.M,-1.) * Q)[1]
+    L₁₋bc = -1. .* Array(UpwindDifference(1,1,dx,params.M,0,-1.) * Q)[1]
     # Here Array(A::GhostDerivativeOperator) will return a tuple of the linear part
     # and the affine part of the operator A, hence we index Array(µ*L1*Q).
     # The operators in this example are purely linear, so we don't worry about Array(µ*L1*Q)[2]
@@ -72,7 +72,7 @@ function DEO_positive_drift(pi_profit, params)
     dx = params.x[2] - params.x[1]
     # discretize L = ρ - μ D_x - σ^2 / 2 D_xx
     # subject to reflecting barriers at 0 and 1
-    L1 = UpwindDifference(1,1,dx,params.M,1.0)
+    L1 = UpwindDifference(1,1,dx,params.M,0,1.0)
     L2 = CenteredDifference(2,2,dx,params.M)
     Q = Neumann0BC(dx, 1)
     # Here Array(A::GhostDerivativeOperator) will return a tuple of the linear part
@@ -114,7 +114,7 @@ function DEO_state_dependent_drift(pi_profit, μ, params)
     # discretize L = ρ - μ D_x - σ^2 / 2 D_xx
     # subject to reflecting barriers at 0 and 1
     drift = μ.(params.x)
-    L1 = UpwindDifference(1,1,dx,params.M,drift)
+    L1 = UpwindDifference(1,1,dx,params.M,0,drift)
     L2 = CenteredDifference(2,2,dx,params.M)
     Q = Neumann0BC(dx, 1)
     # Here Array(A::GhostDerivativeOperator) will return a tuple of the linear part
@@ -166,7 +166,7 @@ end=#
 function DEO_absorbing_bc(pi_profit, params)
     dx = params.x[2] - params.x[1]
 
-    L1 = UpwindDifference(1,1,dx,params.M,params.μ)
+    L1 = UpwindDifference(1,1,dx,params.M,0,params.μ)
     L2 = CenteredDifference(2,2,dx,params.M)
     # RobinBC(l::NTuple{3,T}, r::NTuple{3,T}, dx::T, order = 1)
     # The variables in l are [αl, βl, γl], and correspond to a BC of the form αl*u(0) + βl*u'(0) = γl
@@ -235,7 +235,7 @@ end=#
 function DEO_Solve_KFE(params)
     dx = params.x[2] - params.x[1]
 
-    L1 = UpwindDifference(1,1,dx,params.M,-params.μ)
+    L1 = UpwindDifference(1,1,dx,params.M,0,-params.μ)
     # L2l = UpwindDifference(2,2,dx,params.M,
     #                          vcat(-1.,zeros(params.M-1)))
     # L2r = UpwindDifference(2,2,dx,params.M,

@@ -46,12 +46,12 @@ end
     # Set up operators to test construction with different coeff_func
     vec_op = Vector{DerivativeOperator}(undef,0)
     dxv = [1.4, 1.1, 2.3, 3.6, 1.5]
-    push!(vec_op, UpwindDifference(1, 1, 1., 3, 1.))
-    push!(vec_op, UpwindDifference(1, 1, 1., 3, [1., 2.25, 3.5]))
-    push!(vec_op, UpwindDifference(1, 1, 1., 3, cos))
-    push!(vec_op, UpwindDifference(1, 1, dxv, 3, 1.))
-    push!(vec_op, UpwindDifference(1, 1, dxv, 3, [1., 2.25, 3.5]))
-    push!(vec_op, UpwindDifference(1, 1, dxv, 3, cos))
+    push!(vec_op, UpwindDifference(1, 1, 1., 3, 0, 1.))
+    push!(vec_op, UpwindDifference(1, 1, 1., 3, 0, [1., 2.25, 3.5]))
+    push!(vec_op, UpwindDifference(1, 1, 1., 3, 0, cos))
+    push!(vec_op, UpwindDifference(1, 1, dxv, 3, 0, 1.))
+    push!(vec_op, UpwindDifference(1, 1, dxv, 3, 0, [1., 2.25, 3.5]))
+    push!(vec_op, UpwindDifference(1, 1, dxv, 3, 0, cos))
 
 
     vec_op_ans = Vector{Any}(undef,0)
@@ -63,7 +63,7 @@ end
     push!(vec_op_ans, ones(3))
 
     # Check constructors
-    @test UpwindDifference(1, 1, 1., 3).coefficients + ones(3) - ones(3) ≈ zeros(3)
+    @test UpwindDifference(1, 1, 1., 3,0).coefficients + ones(3) - ones(3) ≈ zeros(3)
     @test CenteredDifference(2, 2, 1., 3, 0.).coefficients + ones(3) - ones(3) ≈ zeros(3)
     for (L, op_ans) in zip(vec_op, vec_op_ans)
         @test L.coefficients ≈ op_ans
