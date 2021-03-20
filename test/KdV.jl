@@ -19,7 +19,7 @@ using DiffEqOperators, OrdinaryDiffEq, LinearAlgebra
     # const temp = zeros(size(x));
 
     # A = CenteredDifference(1,2,Δx,length(x),:Dirichlet0,:Dirichlet0);
-    A = UpwindDifference{Float64}(1,3,Δx,length(x),0,-1);
+    A = UpwindDifference{Float64}(1,3,Δx,length(x),-1);
     # C = CenteredDifference(3,2,Δx,length(x),:Dirichlet0,:Dirichlet0);
     #C = UpwindDifference{Float64}(3,3,Δx,length(x),-1);
 

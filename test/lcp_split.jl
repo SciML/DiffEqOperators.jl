@@ -19,7 +19,7 @@ function LCP_split(S_)
 
     # construct operator and non-operator LCP objects
     BC = RobinBC((0., 1., 0.), (0., 1., 0.), x[2] - x[1], 1)
-    L1 = UpwindDifference(1, 1, x[2] - x[1], M, 0, map(t -> μ1(t), x)) * BC
+    L1 = UpwindDifference(1, 1, x[2] - x[1], M, map(t -> μ1(t), x)) * BC
     L2 = σ^2 / 2 * CenteredDifference(2, 2, x[2] - x[1], M) * BC
     u_vec = u1.(x)
 

@@ -31,7 +31,7 @@ function LCP_objects(sp)
     # construct operator and non-operator LCP objects
     BC1 = RobinBC((0., 1., 0.), (0., 1., 0.), grid[2] - grid[1], 1) # for first-derivative
     BC2 = RobinBC((0., 1., 0.), (0., 1., 0.), grid[2] - grid[1], 1) # for second-derivative
-    L1 = UpwindDifference(1, 1, grid[2] - grid[1], M, 0, μ) * BC1
+    L1 = UpwindDifference(1, 1, grid[2] - grid[1], M, μ) * BC1
     L2 = σ^2/2 * CenteredDifference(2, 2, grid[2] - grid[1], M) * BC2
     S_vec = S.(grid)
     u_vec = u.(grid)

@@ -17,7 +17,7 @@ using OrdinaryDiffEq
     end
 
     # UpwindDifference with equal no. of primay wind and offside points should behave like a CenteredDifference
-    A2 = UpwindDifference(2,1,2π/511,512,1,1);
+    A2 = UpwindDifference(2,1,2π/511,512,1,offside=1);
     step(u,p,t) = A2*bc*u
     heat_eqn = ODEProblem(step, u0, (0.,10.))
     soln = solve(heat_eqn,Tsit5(),dense=false,tstops=0:0.01:10)
@@ -52,7 +52,7 @@ end
     end
 
     # UpwindDifference with equal no. of primay wind and offside points should behave like a CenteredDifference
-    A2 = UpwindDifference(2,1,dx,N,1,1)
+    A2 = UpwindDifference(2,1,dx,N,1,offside=1)
     step(u,p,t) = A2*bc*u
     heat_eqn = ODEProblem(step, u0, (0.,10.))
     soln = solve(heat_eqn,Tsit5(),dense=false,tstops=0:0.01:10)
@@ -92,7 +92,7 @@ end
     end
 
     # UpwindDifference with equal no. of primay wind and offside points should behave like a CenteredDifference
-    A2 = UpwindDifference(2,1,dx,N,1,1);
+    A2 = UpwindDifference(2,1,dx,N,1,offside=1);
     step(u,p,t) = A2*bc*u
     heat_eqn = ODEProblem(step, u0, (0.,10.));
     soln = solve(heat_eqn,Tsit5(),dense=false,tstops=0:0.01:10);

@@ -50,7 +50,7 @@ end
     N = 20
     L = CenteredDifference(4, 4, dx, N)
     L2 = CenteredDifference(2,4, dx, N)
-    L1 = UpwindDifference(1, 1, dx, N, 0, 1.)
+    L1 = UpwindDifference(1, 1, dx, N, 1.)
 
     function coeff_func(du,u,p,t)
         du .= u
@@ -111,7 +111,7 @@ end
     # Test for consistency of c*GhostDerivativeOperator*u when c is a vector
     c = rand(N)
     L = CenteredDifference(4, 4, dx, N)
-    L1 = UpwindDifference(1, 1, 1., N, 0, 1.)
+    L1 = UpwindDifference(1, 1, 1., N, 1.)
     A1 = L1 * Q
     cA = c * A
     cL = c * L
@@ -182,7 +182,7 @@ end
     dx = rand(N + 2)
 
     Q = RobinBC((al, bl, cl), (ar, br, cr), dx)
-    L = UpwindDifference(1, 1, dx, N + 1, 0, 1.)
+    L = UpwindDifference(1, 1, dx, N + 1, 1.)
     L2 = CenteredDifference(2, 2, dx, N)
     L4 = CenteredDifference(4, 4, dx, N - 2)
 

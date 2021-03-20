@@ -187,7 +187,7 @@ julia> Array(L2 * Q)[1]
 """
 function UpwindDifference{N}(derivative_order::Int,
                              approximation_order::Int, dx::T,
-                             len::Int, offside::Int, coeff_func=nothing) where {T<:Real,N}
+                             len::Int, coeff_func=nothing; offside::Int=0) where {T<:Real,N}
 
     @assert offside > -1 "Number of offside points should be non-negative"
     @assert offside <= div(derivative_order + approximation_order - 1,2) "Number of offside points should not exceed the primary wind points"
@@ -230,7 +230,7 @@ end
 # TODO implement the non-uniform grid
 function UpwindDifference{N}(derivative_order::Int,
                           approximation_order::Int, dx::AbstractVector{T},
-                          len::Int, offside::Int, coeff_func=nothing) where {T<:Real,N}
+                          len::Int, coeff_func=nothing; offside::Int=0) where {T<:Real,N}
 
     @assert offside > -1 "Number of offside points should be non-negative"
     @assert offside <= div(derivative_order + approximation_order - 1,2) "Number of offside points should not exceed the primary wind points"
@@ -287,7 +287,7 @@ function UpwindDifference{N}(derivative_order::Int,
 end
 
 CenteredDifference(args...) = CenteredDifference{1}(args...)
-UpwindDifference(args...) = UpwindDifference{1}(args...)
+UpwindDifference(args...;kwargs...) = UpwindDifference{1}(args...;kwargs...)
 nonlinear_diffusion(args...) = nonlinear_diffusion{1}(args...)
 nonlinear_diffusion!(args...) = nonlinear_diffusion!{1}(args...)
 use_winding(A::DerivativeOperator{T,N,Wind}) where {T,N,Wind} = Wind
