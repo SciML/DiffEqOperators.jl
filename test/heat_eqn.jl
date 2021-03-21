@@ -92,7 +92,13 @@ end
     end
 
     # UpwindDifference with equal no. of primay wind and offside points should behave like a CenteredDifference
-    A2 = UpwindDifference(2,1,dx,N,1,offside=1);
+    A2 = UpwindDifference(2,1,dx*ones(513),N,1,offside=1);
+    B2 = UpwindDifference(1,2,dx,N,1,offside=1)
+    deriv_start, deriv_end = (B2*u0)[1], (B2*u0)[end]
+    left_RBC = params[1]*u0[1] - params[2]*deriv_start
+    right_RBC = params[1]*u0[end] + params[2]*deriv_end
+    bc = RobinBC((params[1],-params[2],left_RBC), (params[1],params[2],right_RBC),dx,1);
+    
     step(u,p,t) = A2*bc*u
     heat_eqn = ODEProblem(step, u0, (0.,10.));
     soln = solve(heat_eqn,Tsit5(),dense=false,tstops=0:0.01:10);
