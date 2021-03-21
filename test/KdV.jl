@@ -41,7 +41,52 @@ using DiffEqOperators, OrdinaryDiffEq, LinearAlgebra
         @show maximum(soln(t)-ϕ(x,t))
     end
     =#
+    for t in 0:0.5:5
+        @test soln(t) ≈ ϕ(x,t) atol = 0.01;
+    end
 
+    # Using Biased Upwinds with 1 offside point
+    A2 = UpwindDifference{Float64}(1,3,Δx,length(x),-1,offside=1);
+    function KdV(du, u, p, t)
+        bc = GeneralBC([0,1,-6*ϕ(-10,t),0,-1],[0,1,-6*ϕ(10,t),0,-1],Δx,3)
+        mul!(du,A2,bc*u)        
+    end
+    single_solition = ODEProblem(KdV, u0, (0.,5.));
+    soln = solve(single_solition,Tsit5(),abstol=1e-6,reltol=1e-6);
+    for t in 0:0.5:5
+        @test soln(t) ≈ ϕ(x,t) atol = 0.01;
+    end
+
+    A3 = UpwindDifference{Float64}(1,3,Δx*ones(length(x)+1),length(x),-1,offside=1);
+    function KdV(du, u, p, t)
+        bc = GeneralBC([0,1,-6*ϕ(-10,t),0,-1],[0,1,-6*ϕ(10,t),0,-1],Δx,3)
+        mul!(du,A3,bc*u)
+    end
+    single_solition = ODEProblem(KdV, u0, (0.,5.));
+    soln = solve(single_solition,Tsit5(),abstol=1e-6,reltol=1e-6);
+    for t in 0:0.5:5
+        @test soln(t) ≈ ϕ(x,t) atol = 0.01;
+    end
+
+    # Using Biased Upwinds with 2 offside points
+    A4 = UpwindDifference{Float64}(1,4,Δx,length(x),-1,offside=2);
+    function KdV(du, u, p, t)
+        bc = GeneralBC([0,1,-6*ϕ(-10,t),0,-1],[0,1,-6*ϕ(10,t),0,-1],Δx,3)
+        mul!(du,A4,bc*u)        
+    end
+    single_solition = ODEProblem(KdV, u0, (0.,5.));
+    soln = solve(single_solition,Tsit5(),abstol=1e-6,reltol=1e-6);
+    for t in 0:0.5:5
+        @test soln(t) ≈ ϕ(x,t) atol = 0.01;
+    end
+
+    A5 = UpwindDifference{Float64}(1,4,Δx,length(x),1,offside=2);
+    function KdV(du, u, p, t)
+        bc = GeneralBC([0,1,-6*ϕ(-10,t),0,-1],[0,1,-6*ϕ(10,t),0,-1],Δx,3)
+        mul!(du,-1*A5,bc*u)        
+    end
+    single_solition = ODEProblem(KdV, u0, (0.,5.));
+    soln = solve(single_solition,Tsit5(),abstol=1e-6,reltol=1e-6);
     for t in 0:0.5:5
         @test soln(t) ≈ ϕ(x,t) atol = 0.01;
     end
