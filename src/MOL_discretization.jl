@@ -35,10 +35,13 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
     spacevals = map(y->[Pair(nottime[i],space[i][y.I[i]]) for i in 1:length(nottime)],indices)
 
     # Build symbolic maps
+    edges = reduce(vcat,[[vcat([Colon() for j in 1:i-1],1,[Colon() for j in i+1:length(nottime)]),
+      vcat([Colon() for j in 1:i-1],size(depvars[1],i),[Colon() for j in i+1:length(nottime)])] for i in 1:length(nottime)])
+
     edgevals = reduce(vcat,[[nottime[i]=>first(space[i]),nottime[i]=>last(space[i])] for i in 1:length(space)])
-    edgevars = [depvars[1][1,:],depvars[1][end,:],depvars[1][:,1],depvars[1][:,end]]
-    depvarmaps = reduce(vcat,[substitute.((d,),edgevals) .=> edgevars for d in pdesys.depvars])
-    edgemaps = [spacevals[1,:],spacevals[end,:],spacevals[:,1],spacevals[:,end]]
+    edgevars = [[d[e...] for e in edges] for d in depvars]
+    depvarmaps = reduce(vcat,[substitute.((pdesys.depvars[i],),edgevals) .=> edgevars[i] for i in 1:length(pdesys.depvars)])
+    edgemaps = [spacevals[e...] for e in edges]
     initmaps = substitute.(pdesys.depvars,[t=>tspan[1]])
 
     # Generate initial conditions and bc equations
