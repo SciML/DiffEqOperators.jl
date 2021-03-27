@@ -39,6 +39,7 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
     edgevars = [depvars[1][1,:],depvars[1][end,:],depvars[1][:,1],depvars[1][:,end]]
     depvarmaps = reduce(vcat,[substitute.((d,),edgevals) .=> edgevars for d in pdesys.depvars])
     edgemaps = [spacevals[1,:],spacevals[end,:],spacevals[:,1],spacevals[:,end]]
+    initmaps = substitute.(pdesys.depvars,[t=>tspan[1]])
 
     # Generate initial conditions and bc equations
     # Assume in the form `u(...) ~ ...` for now
@@ -47,7 +48,7 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
     for bc in pdesys.bcs
         if t.val ∉ ModelingToolkit.arguments(bc.lhs)
             # initial condition
-            u0 = depvars[1] .=> substitute.((bc.rhs,),spacevals)
+            u0 = depvars[findfirst(isequal(bc.lhs),initmaps)] .=> substitute.((bc.rhs,),spacevals)
         else
             # Algebraic equations for BCs
             i = findfirst(x->isequal(x,bc.lhs),first.(depvarmaps))
