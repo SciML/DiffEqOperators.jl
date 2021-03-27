@@ -43,12 +43,12 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
 
     # Generate initial conditions and bc equations
     # Assume in the form `u(...) ~ ...` for now
-    u0 = nothing
+    u0 = []
     bceqs = []
     for bc in pdesys.bcs
         if t.val ∉ ModelingToolkit.arguments(bc.lhs)
             # initial condition
-            u0 = depvars[findfirst(isequal(bc.lhs),initmaps)] .=> substitute.((bc.rhs,),spacevals)
+            push!(u0,vec(depvars[findfirst(isequal(bc.lhs),initmaps)] .=> substitute.((bc.rhs,),spacevals)))
         else
             # Algebraic equations for BCs
             i = findfirst(x->isequal(x,bc.lhs),first.(depvarmaps))
@@ -57,6 +57,7 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
             push!(bceqs,lhs .~ rhs)
         end
     end
+    u0 = reduce(vcat,u0)
     bceqs = reduce(vcat,bceqs)
 
     # Generate PDE Equations
