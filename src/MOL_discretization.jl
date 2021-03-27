@@ -64,13 +64,13 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
     bceqs = reduce(vcat,bceqs)
 
     # Generate PDE Equations
-    interior = indices[2:end-1,2:end-1]
+    interior = indices[[2:length(s)-1 for s in space]...]
     eqs = vec(map(Base.product(interior,pdesys.eqs)) do p
         i,eq = p
-        # [-1,0,1] assumes dx and dy are constant
+
         central_weights = DiffEqOperators.calculate_weights(discretization.centered_order, 0.0, [-1,0,1])
-        neighbor_idxs(i,j) = [i+CartesianIndex([ifelse(l==j,-1,0) for l in 1:length(nottime)]...),i,i+CartesianIndex([ifelse(l==j,1,0) for l in 1:length(nottime)]...)]
-        deriv_rules = [(Differential(nottime[j])^2)(pdesys.depvars[k]) => dot(central_weights,depvars[k][neighbor_idxs(i,j)]) for j in 1:length(nottime), k in 1:length(pdesys.depvars)]
+        central_neighbor_idxs(i,j) = [i+CartesianIndex([ifelse(l==j,-1,0) for l in 1:length(nottime)]...),i,i+CartesianIndex([ifelse(l==j,1,0) for l in 1:length(nottime)]...)]
+        deriv_rules = [(Differential(nottime[j])^2)(pdesys.depvars[k]) => dot(central_weights,depvars[k][central_neighbor_idxs(i,j)]) for j in 1:length(nottime), k in 1:length(pdesys.depvars)]
         valrules = [pdesys.depvars[k] => depvars[k][i] for k in 1:length(pdesys.depvars)]
         substitute(eq.lhs,vcat(vec(deriv_rules),valrules)) ~ substitute(eq.rhs,vcat(vec(deriv_rules),valrules))
     end)
