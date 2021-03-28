@@ -23,14 +23,14 @@ using DiffEqOperators, OrdinaryDiffEq, LinearAlgebra
     # C = CenteredDifference(3,2,Δx,length(x),:Dirichlet0,:Dirichlet0);
     #C = UpwindDifference{Float64}(3,3,Δx,length(x),-1);
 
-    function KdV(du, u, p, t)
+    KdV = function (du, u, p, t)
         # bc = DirichletBC(ϕ(-10-Δx,t),ϕ(10+Δx,t))
         bc = GeneralBC([0,1,-6*ϕ(-10,t),0,-1],[0,1,-6*ϕ(10,t),0,-1],Δx,3)
         #mul!(du3,C,bc*u)
         mul!(du,A,bc*u)
         # @. temp = -0.5*u*du - 0.25*du3
         # copyto!(du,temp)
-        
+
     end
 
     single_solition = ODEProblem(KdV, u0, (0.,5.));
@@ -47,9 +47,9 @@ using DiffEqOperators, OrdinaryDiffEq, LinearAlgebra
 
     # Using Biased Upwinds with 1 offside point
     A2 = UpwindDifference{Float64}(1,3,Δx,length(x),-1,offside=1);
-    function KdV(du, u, p, t)
+    KdV = function (du, u, p, t)
         bc = GeneralBC([0,1,-6*ϕ(-10,t),0,-1],[0,1,-6*ϕ(10,t),0,-1],Δx,3)
-        mul!(du,A2,bc*u)        
+        mul!(du,A2,bc*u)
     end
     single_solition = ODEProblem(KdV, u0, (0.,5.));
     soln = solve(single_solition,Tsit5(),abstol=1e-6,reltol=1e-6);
@@ -58,7 +58,7 @@ using DiffEqOperators, OrdinaryDiffEq, LinearAlgebra
     end
 
     A3 = UpwindDifference{Float64}(1,3,Δx*ones(length(x)+1),length(x),-1,offside=1);
-    function KdV(du, u, p, t)
+    KdV = function (du, u, p, t)
         bc = GeneralBC([0,1,-6*ϕ(-10,t),0,-1],[0,1,-6*ϕ(10,t),0,-1],Δx,3)
         mul!(du,A3,bc*u)
     end
@@ -70,9 +70,9 @@ using DiffEqOperators, OrdinaryDiffEq, LinearAlgebra
 
     # Using Biased Upwinds with 2 offside points
     A4 = UpwindDifference{Float64}(1,4,Δx,length(x),-1,offside=2);
-    function KdV(du, u, p, t)
+    KdV = function (du, u, p, t)
         bc = GeneralBC([0,1,-6*ϕ(-10,t),0,-1],[0,1,-6*ϕ(10,t),0,-1],Δx,3)
-        mul!(du,A4,bc*u)        
+        mul!(du,A4,bc*u)
     end
     single_solition = ODEProblem(KdV, u0, (0.,5.));
     soln = solve(single_solition,Tsit5(),abstol=1e-6,reltol=1e-6);
@@ -81,9 +81,9 @@ using DiffEqOperators, OrdinaryDiffEq, LinearAlgebra
     end
 
     A5 = UpwindDifference{Float64}(1,4,Δx,length(x),1,offside=2);
-    function KdV(du, u, p, t)
+    KdV = function (du, u, p, t)
         bc = GeneralBC([0,1,-6*ϕ(-10,t),0,-1],[0,1,-6*ϕ(10,t),0,-1],Δx,3)
-        mul!(du,-1*A5,bc*u)        
+        mul!(du,-1*A5,bc*u)
     end
     single_solition = ODEProblem(KdV, u0, (0.,5.));
     soln = solve(single_solition,Tsit5(),abstol=1e-6,reltol=1e-6);
@@ -120,7 +120,7 @@ end
 
     # C = UpwindDifference{Float64}(3,1,Δx,length(x),-1);
 
-    function KdV(du, u, p, t)
+    KdV = function (du, u, p, t)
         bc = GeneralBC([0,1,-6*ϕ(-50,t),0,-1],[0,1,-6*ϕ(50,t),0,-1],Δx,3)
         # mul!(du3,C,bc*u)
         mul!(du,A,bc*u)
