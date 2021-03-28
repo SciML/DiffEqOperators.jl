@@ -41,22 +41,32 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
 
     edgevals = reduce(vcat,[[nottime[i]=>first(space[i]),nottime[i]=>last(space[i])] for i in 1:length(space)])
     edgevars = [[d[e...] for e in edges] for d in depvars]
-    depvarmaps = reduce(vcat,[substitute.((pdesys.depvars[i],),edgevals) .=> edgevars[i] for i in 1:length(pdesys.depvars)])
     edgemaps = [spacevals[e...] for e in edges]
     initmaps = substitute.(pdesys.depvars,[t=>tspan[1]])
 
+    depvarmaps = reduce(vcat,[substitute.((pdesys.depvars[i],),edgevals) .=> edgevars[i] for i in 1:length(pdesys.depvars)])
+    left_weights(j) = DiffEqOperators.calculate_weights(discretization.upwind_order, 0.0, [space[j][1],space[j][2]])
+    right_weights(j) = DiffEqOperators.calculate_weights(discretization.upwind_order, 0.0, [space[j][end-1],space[j][end]])
+    central_neighbor_idxs(i,j) = [i+CartesianIndex([ifelse(l==j,-1,0) for l in 1:length(nottime)]...),i,i+CartesianIndex([ifelse(l==j,1,0) for l in 1:length(nottime)]...)]
+    derivars = [[dot(left_weights(j),[depvars[j][central_neighbor_idxs(CartesianIndex(2),1)[1:2][2]],depvars[j][central_neighbor_idxs(CartesianIndex(2),1)[1:2][1]]]),
+                dot(right_weights(j),[depvars[j][central_neighbor_idxs(CartesianIndex(length(space[1])-1),1)[end-1:end][1]],depvars[j][central_neighbor_idxs(CartesianIndex(length(space[1])-1),1)[end-1:end][2]]])]
+                for j in 1:length(pdesys.depvars)]
+    depvarderivmaps = reduce(vcat,[substitute.((Differential(nottime[j])(pdesys.depvars[i]),),edgevals) .=> derivars[i]
+                                   for i in 1:length(pdesys.depvars) for j in 1:length(nottime)])
+
     # Generate initial conditions and bc equations
-    # Assume in the form `u(...) ~ ...` for now
     u0 = []
     bceqs = []
     for bc in pdesys.bcs
-        if t.val ∉ ModelingToolkit.arguments(bc.lhs)
+        if ModelingToolkit.operation(bc.lhs) isa Sym && t.val ∉ ModelingToolkit.arguments(bc.lhs)
             # initial condition
+            # Assume in the form `u(...) ~ ...` for now
             push!(u0,vec(depvars[findfirst(isequal(bc.lhs),initmaps)] .=> substitute.((bc.rhs,),spacevals)))
         else
             # Algebraic equations for BCs
-            i = findfirst(x->isequal(x,bc.lhs),first.(depvarmaps))
-            lhs = substitute(bc.lhs,depvarmaps[i])
+            i = findfirst(x->occursin(x.val,bc.lhs),first.(depvarmaps))
+            lhs = substitute(bc.lhs,depvarderivmaps[i])
+            lhs = substitute(lhs,depvarmaps[i])
             rhs = substitute.((bc.rhs,),edgemaps[i])
             lhs = lhs isa Vector ? lhs : [lhs] # handle 1D
             push!(bceqs,lhs .~ rhs)

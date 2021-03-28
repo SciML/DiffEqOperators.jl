@@ -104,7 +104,7 @@ using Plots
 plt = plot()
 
 for i in 1:length(t)
-    plot!(x,sol.u[i],label="Numerical, t=$(t[i])")
+    plot!(x,sol.u[i],label="Numerical, t=$(t[i])",lw=12)
     scatter!(x, u_exact(x, t[i]),label="Exact, t=$(t[i])")
 end
 display(plt)
