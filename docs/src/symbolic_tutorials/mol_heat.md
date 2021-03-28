@@ -25,15 +25,15 @@ bcs = [u(0,x) ~ cos(x),
 
 # Space and time domains
 domains = [t ∈ IntervalDomain(0.0,1.0),
-        x ∈ IntervalDomain(0.0,1.0)]
+           x ∈ IntervalDomain(0.0,1.0)]
 
 # PDE system
-pdesys = PDESystem(eq,bcs,domains,[t,x],[u])
+pdesys = PDESystem(eq,bcs,domains,[t,x],[u(t,x)])
 
 # Method of lines discretization
 dx = 0.1
 order = 2
-discretization = MOLFiniteDifference(dx,order)
+discretization = MOLFiniteDifference([x=>dx],t)
 
 # Convert the PDE problem into an ODE problem
 prob = discretize(pdesys,discretization)
@@ -79,13 +79,13 @@ domains = [t ∈ IntervalDomain(0.0,1.0),
         x ∈ IntervalDomain(0.0,1.0)]
 
 # PDE system
-pdesys = PDESystem(eq,bcs,domains,[t,x],[u])
+pdesys = PDESystem(eq,bcs,domains,[t,x],[u(t,x)])
 
 # Method of lines discretization
 # Need a small dx here for accuracy
 dx = 0.01
 order = 2
-discretization = MOLFiniteDifference(dx,order)
+discretization = MOLFiniteDifference([x=>dx],t)
 
 # Convert the PDE problem into an ODE problem
 prob = discretize(pdesys,discretization)
@@ -132,13 +132,13 @@ domains = [t ∈ IntervalDomain(0.0,1.0),
         x ∈ IntervalDomain(-1.0,1.0)]
 
 # PDE system
-pdesys = PDESystem(eq,bcs,domains,[t,x],[u])
+pdesys = PDESystem(eq,bcs,domains,[t,x],[u(t,x)])
 
 # Method of lines discretization
 # Need a small dx here for accuracy
 dx = 0.05
 order = 2
-discretization = MOLFiniteDifference(dx,order)
+discretization = MOLFiniteDifference([x=>dx],t)
 
 # Convert the PDE problem into an ODE problem
 prob = discretize(pdesys,discretization)
