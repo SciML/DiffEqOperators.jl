@@ -12,7 +12,10 @@ jobs:
     strategy:
       matrix:
         group:
-          - Interface
+          - OperatorInterface
+          - MOLFiniteDifference
+          - Multithreading
+          - Misc
     steps:
       - uses: actions/checkout@v2
       - uses: julia-actions/setup-julia@v1

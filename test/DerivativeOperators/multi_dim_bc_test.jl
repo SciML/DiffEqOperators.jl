@@ -65,8 +65,8 @@ Q = compose(Qx,Qy,Qz)
 QL, Qb = Array(Q, size(A))
 QLs, Qbs = sparse(Q, size(A))
 
-A_conc = QL*reshape(A, prod(size(A))) .+Qb
-A_conc_sp = QLs*reshape(A,prod(size(A))) .+Qbs
+A_conc = QL*reshape(A, prod(size(A))) .+ Qb
+A_conc_sp = QLs*reshape(A,prod(size(A))) .+ Qbs
 
 #test BC concretization
 A_arr = Array(Q*A)
