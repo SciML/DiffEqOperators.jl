@@ -123,3 +123,20 @@ function SciMLBase.discretize(pdesys::ModelingToolkit.PDESystem,discretization::
     simpsys = structural_simplify(sys)
     prob = ODEProblem(simpsys,Pair[],tspan)
 end
+
+# Piracy, to be deleted when https://github.com/JuliaSymbolics/SymbolicUtils.jl/pull/251
+# merges
+Base.occursin(needle::ModelingToolkit.SymbolicUtils.Symbolic, haystack::ModelingToolkit.SymbolicUtils.Symbolic) = _occursin(needle, haystack)
+Base.occursin(needle, haystack::ModelingToolkit.SymbolicUtils.Symbolic) = _occursin(needle, haystack)
+Base.occursin(needle::ModelingToolkit.SymbolicUtils.Symbolic, haystack) = _occursin(needle, haystack)
+function _occursin(needle, haystack)
+    isequal(needle, haystack) && return true
+
+    if istree(haystack)
+        args = arguments(haystack)
+        for arg in args
+            occursin(needle, arg) && return true
+        end
+    end
+    return false
+end
