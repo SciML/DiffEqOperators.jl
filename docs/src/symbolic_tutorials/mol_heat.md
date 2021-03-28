@@ -43,16 +43,18 @@ using OrdinaryDiffEq
 sol = solve(prob,Tsit5(),saveat=0.2)
 
 # Plot results and compare with exact solution
-x = prob.space[2]
+x = (0:dx:1)[2:end-1]
 t = sol.t
 
 using Plots
 plt = plot()
+
 for i in 1:length(t)
-    plot!(x,Array(prob.extrapolation[1](t[i])*sol.u[i]),label="Numerical, t=$(t[i])")
+    plot!(x,sol.u[i],label="Numerical, t=$(t[i])")
     scatter!(x, u_exact(x, t[i]),label="Exact, t=$(t[i])")
 end
 display(plt)
+savefig("plot.png")
 ```
 ### Neumann boundary conditions
 
@@ -95,16 +97,18 @@ using OrdinaryDiffEq
 sol = solve(prob,Tsit5(),saveat=0.2)
 
 # Plot results and compare with exact solution
-x = prob.space[2]
+x = (0:dx:1)[2:end-1]
 t = sol.t
 
 using Plots
 plt = plot()
+
 for i in 1:length(t)
-    plot!(x,Array(prob.extrapolation[1](t[i])*sol.u[i]),label="Numerical, t=$(t[i])")
+    plot!(x,sol.u[i],label="Numerical, t=$(t[i])")
     scatter!(x, u_exact(x, t[i]),label="Exact, t=$(t[i])")
 end
 display(plt)
+savefig("plot.png")
 ```
 
 ### Robin boundary conditions
@@ -148,14 +152,16 @@ using OrdinaryDiffEq
 sol = solve(prob,Tsit5(),saveat=0.2)
 
 # Plot results and compare with exact solution
-x = prob.space[2]
+x = (0:dx:1)[2:end-1]
 t = sol.t
 
 using Plots
 plt = plot()
+
 for i in 1:length(t)
-    plot!(x,Array(prob.extrapolation[1](t[i])*sol.u[i]),label="Numerical, t=$(t[i])")
+    plot!(x,sol.u[i],label="Numerical, t=$(t[i])")
     scatter!(x, u_exact(x, t[i]),label="Exact, t=$(t[i])")
 end
 display(plt)
+savefig("plot.png")
 ```

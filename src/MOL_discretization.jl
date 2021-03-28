@@ -76,7 +76,8 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
         central_neighbor_idxs(i,j) = [i+CartesianIndex([ifelse(l==j,-1,0) for l in 1:length(nottime)]...),i,i+CartesianIndex([ifelse(l==j,1,0) for l in 1:length(nottime)]...)]
         central_weights(i,j) = DiffEqOperators.calculate_weights(2, 0.0, [space[j][i[j]-1],space[j][i[j]],space[j][i[j]+1]])
         central_deriv_rules = [(Differential(nottime[j])^2)(pdesys.depvars[k]) => dot(central_weights(i,j),depvars[k][central_neighbor_idxs(i,j)]) for j in 1:length(nottime), k in 1:length(pdesys.depvars)]
-        valrules = [pdesys.depvars[k] => depvars[k][i] for k in 1:length(pdesys.depvars)]
+        valrules = vcat([pdesys.depvars[k] => depvars[k][i] for k in 1:length(pdesys.depvars)],
+                        [nottime[k] => space[k][i[k]] for k in 1:length(nottime)])
 
         # TODO: Use rule matching for nonlinear Laplacian
 
