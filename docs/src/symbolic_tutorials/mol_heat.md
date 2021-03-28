@@ -25,15 +25,15 @@ bcs = [u(0,x) ~ cos(x),
 
 # Space and time domains
 domains = [t ∈ IntervalDomain(0.0,1.0),
-        x ∈ IntervalDomain(0.0,1.0)]
+           x ∈ IntervalDomain(0.0,1.0)]
 
 # PDE system
-pdesys = PDESystem(eq,bcs,domains,[t,x],[u])
+pdesys = PDESystem(eq,bcs,domains,[t,x],[u(t,x)])
 
 # Method of lines discretization
 dx = 0.1
 order = 2
-discretization = MOLFiniteDifference(dx,order)
+discretization = MOLFiniteDifference([x=>dx],t)
 
 # Convert the PDE problem into an ODE problem
 prob = discretize(pdesys,discretization)
@@ -43,16 +43,18 @@ using OrdinaryDiffEq
 sol = solve(prob,Tsit5(),saveat=0.2)
 
 # Plot results and compare with exact solution
-x = prob.space[2]
+x = (0:dx:1)[2:end-1]
 t = sol.t
 
 using Plots
 plt = plot()
+
 for i in 1:length(t)
-    plot!(x,Array(prob.extrapolation[1](t[i])*sol.u[i]),label="Numerical, t=$(t[i])")
+    plot!(x,sol.u[i],label="Numerical, t=$(t[i])")
     scatter!(x, u_exact(x, t[i]),label="Exact, t=$(t[i])")
 end
 display(plt)
+savefig("plot.png")
 ```
 ### Neumann boundary conditions
 
@@ -79,13 +81,13 @@ domains = [t ∈ IntervalDomain(0.0,1.0),
         x ∈ IntervalDomain(0.0,1.0)]
 
 # PDE system
-pdesys = PDESystem(eq,bcs,domains,[t,x],[u])
+pdesys = PDESystem(eq,bcs,domains,[t,x],[u(t,x)])
 
 # Method of lines discretization
 # Need a small dx here for accuracy
 dx = 0.01
 order = 2
-discretization = MOLFiniteDifference(dx,order)
+discretization = MOLFiniteDifference([x=>dx],t)
 
 # Convert the PDE problem into an ODE problem
 prob = discretize(pdesys,discretization)
@@ -95,16 +97,18 @@ using OrdinaryDiffEq
 sol = solve(prob,Tsit5(),saveat=0.2)
 
 # Plot results and compare with exact solution
-x = prob.space[2]
+x = (0:dx:1)[2:end-1]
 t = sol.t
 
 using Plots
 plt = plot()
+
 for i in 1:length(t)
-    plot!(x,Array(prob.extrapolation[1](t[i])*sol.u[i]),label="Numerical, t=$(t[i])")
+    plot!(x,sol.u[i],label="Numerical, t=$(t[i])",lw=12)
     scatter!(x, u_exact(x, t[i]),label="Exact, t=$(t[i])")
 end
 display(plt)
+savefig("plot.png")
 ```
 
 ### Robin boundary conditions
@@ -132,13 +136,13 @@ domains = [t ∈ IntervalDomain(0.0,1.0),
         x ∈ IntervalDomain(-1.0,1.0)]
 
 # PDE system
-pdesys = PDESystem(eq,bcs,domains,[t,x],[u])
+pdesys = PDESystem(eq,bcs,domains,[t,x],[u(t,x)])
 
 # Method of lines discretization
 # Need a small dx here for accuracy
 dx = 0.05
 order = 2
-discretization = MOLFiniteDifference(dx,order)
+discretization = MOLFiniteDifference([x=>dx],t)
 
 # Convert the PDE problem into an ODE problem
 prob = discretize(pdesys,discretization)
@@ -148,14 +152,16 @@ using OrdinaryDiffEq
 sol = solve(prob,Tsit5(),saveat=0.2)
 
 # Plot results and compare with exact solution
-x = prob.space[2]
+x = (0:dx:1)[2:end-1]
 t = sol.t
 
 using Plots
 plt = plot()
+
 for i in 1:length(t)
-    plot!(x,Array(prob.extrapolation[1](t[i])*sol.u[i]),label="Numerical, t=$(t[i])")
+    plot!(x,sol.u[i],label="Numerical, t=$(t[i])")
     scatter!(x, u_exact(x, t[i]),label="Exact, t=$(t[i])")
 end
 display(plt)
+savefig("plot.png")
 ```

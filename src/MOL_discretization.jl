@@ -1,362 +1,142 @@
 using ModelingToolkit: operation, istree, arguments
 # Method of lines discretization scheme
-struct MOLFiniteDifference{T} <: DiffEqBase.AbstractDiscretization
+struct MOLFiniteDifference{T,T2} <: DiffEqBase.AbstractDiscretization
     dxs::T
+    time::T2
     upwind_order::Int
     centered_order::Int
 end
 
 # Constructors. If no order is specified, both upwind and centered differences will be 2nd order
-MOLFiniteDifference(dxs::T, order) where T =
-    MOLFiniteDifference{T}(dxs, order, order)
+MOLFiniteDifference(dxs, time; upwind_order = 1, centered_order = 2) =
+    MOLFiniteDifference(dxs, time, upwind_order, centered_order)
 
-function MOLFiniteDifference(dxs::T; order = nothing, upwind_order = 1,
-                            centered_order = 2) where T
-    MOLFiniteDifference(
-        dxs,
-        order === nothing ? upwind_order : order,
-        order === nothing ? centered_order : order
-    )
+function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discretization::DiffEqOperators.MOLFiniteDifference)
+    pdeeqs = pdesys.eqs isa Vector ? pdesys.eqs : [pdesys.eqs]
+    t = discretization.time
+    nottime = filter(x->x.val != t.val,pdesys.indvars)
+
+    # Discretize space
+
+    space = map(nottime) do x
+        xdomain = pdesys.domain[findfirst(d->x.val == d.variables,pdesys.domain)]
+        @assert xdomain.domain isa IntervalDomain
+        dx = discretization.dxs[findfirst(dxs->x.val == dxs[1].val,discretization.dxs)][2]
+        dx isa Number ? (xdomain.domain.lower:dx:xdomain.domain.upper) : dx
+    end
+    tdomain = pdesys.domain[findfirst(d->t.val == d.variables,pdesys.domain)]
+    @assert tdomain.domain isa IntervalDomain
+    tspan = (tdomain.domain.lower,tdomain.domain.upper)
+
+    # Build symbolic variables
+    indices = CartesianIndices(((axes(s)[1] for s in space)...,))
+    depvars = map(pdesys.depvars) do u
+        [Num(Variable{Symbolics.FnType{Tuple{Any}, Real}}(Base.nameof(ModelingToolkit.operation(u.val)),II.I...))(t) for II in indices]
+    end
+    spacevals = map(y->[Pair(nottime[i],space[i][y.I[i]]) for i in 1:length(nottime)],indices)
+
+    # Build symbolic maps
+    edges = reduce(vcat,[[vcat([Colon() for j in 1:i-1],1,[Colon() for j in i+1:length(nottime)]),
+      vcat([Colon() for j in 1:i-1],size(depvars[1],i),[Colon() for j in i+1:length(nottime)])] for i in 1:length(nottime)])
+
+    #edgeindices = [indices[e...] for e in edges]
+    edgevals = reduce(vcat,[[nottime[i]=>first(space[i]),nottime[i]=>last(space[i])] for i in 1:length(space)])
+    edgevars = [[d[e...] for e in edges] for d in depvars]
+    edgemaps = [spacevals[e...] for e in edges]
+    initmaps = substitute.(pdesys.depvars,[t=>tspan[1]])
+
+    depvarmaps = reduce(vcat,[substitute.((pdesys.depvars[i],),edgevals) .=> edgevars[i] for i in 1:length(pdesys.depvars)])
+    if length(nottime) == 1
+        left_weights(j) = DiffEqOperators.calculate_weights(discretization.upwind_order, 0.0, [space[j][1],space[j][2]])
+        right_weights(j) = DiffEqOperators.calculate_weights(discretization.upwind_order, 0.0, [space[j][end-1],space[j][end]])
+        central_neighbor_idxs(i,j) = [i+CartesianIndex([ifelse(l==j,-1,0) for l in 1:length(nottime)]...),i,i+CartesianIndex([ifelse(l==j,1,0) for l in 1:length(nottime)]...)]
+        derivars = [[dot(left_weights(j),[depvars[j][central_neighbor_idxs(CartesianIndex(2),1)[1:2][2]],depvars[j][central_neighbor_idxs(CartesianIndex(2),1)[1:2][1]]]),
+                    dot(right_weights(j),[depvars[j][central_neighbor_idxs(CartesianIndex(length(space[1])-1),1)[end-1:end][1]],depvars[j][central_neighbor_idxs(CartesianIndex(length(space[1])-1),1)[end-1:end][2]]])]
+                    for j in 1:length(pdesys.depvars)]
+        depvarderivmaps = reduce(vcat,[substitute.((Differential(nottime[j])(pdesys.depvars[i]),),edgevals) .=> derivars[i]
+                                       for i in 1:length(pdesys.depvars) for j in 1:length(nottime)])
+   else
+       # TODO: Fix Neumann and Robin on higher dimension
+       depvarderivmaps = []
+   end
+
+    # Generate initial conditions and bc equations
+    u0 = []
+    bceqs = []
+    for bc in pdesys.bcs
+        if ModelingToolkit.operation(bc.lhs) isa Sym && t.val ∉ ModelingToolkit.arguments(bc.lhs)
+            # initial condition
+            # Assume in the form `u(...) ~ ...` for now
+            push!(u0,vec(depvars[findfirst(isequal(bc.lhs),initmaps)] .=> substitute.((bc.rhs,),spacevals)))
+        else
+            # Algebraic equations for BCs
+            i = findfirst(x->occursin(x.val,bc.lhs),first.(depvarmaps))
+
+            # TODO: Fix Neumann and Robin on higher dimension
+            lhs = length(nottime) == 1 ? substitute(bc.lhs,depvarderivmaps[i]) : bc.lhs
+
+            lhs = substitute(lhs,depvarmaps[i])
+            rhs = substitute.((bc.rhs,),edgemaps[i])
+            lhs = lhs isa Vector ? lhs : [lhs] # handle 1D
+            push!(bceqs,lhs .~ rhs)
+        end
+    end
+    u0 = reduce(vcat,u0)
+    bceqs = reduce(vcat,bceqs)
+
+    # Generate PDE Equations
+    interior = indices[[2:length(s)-1 for s in space]...]
+    eqs = vec(map(Base.product(interior,pdeeqs)) do p
+        i,eq = p
+
+        # TODO: Number of points in the central_neighbor_idxs should be dependent
+        # on discretization.centered_order
+        # TODO: Generalize central difference handling to allow higher even order derivatives
+        central_neighbor_idxs(i,j) = [i+CartesianIndex([ifelse(l==j,-1,0) for l in 1:length(nottime)]...),i,i+CartesianIndex([ifelse(l==j,1,0) for l in 1:length(nottime)]...)]
+        central_weights(i,j) = DiffEqOperators.calculate_weights(2, 0.0, [space[j][i[j]-1],space[j][i[j]],space[j][i[j]+1]])
+        central_deriv_rules = [(Differential(nottime[j])^2)(pdesys.depvars[k]) => dot(central_weights(i,j),depvars[k][central_neighbor_idxs(i,j)]) for j in 1:length(nottime), k in 1:length(pdesys.depvars)]
+        valrules = vcat([pdesys.depvars[k] => depvars[k][i] for k in 1:length(pdesys.depvars)],
+                        [nottime[k] => space[k][i[k]] for k in 1:length(nottime)])
+
+        # TODO: Use rule matching for nonlinear Laplacian
+
+        # TODO: upwind rules needs interpolation into `@rule`
+        #forward_weights(i,j) = DiffEqOperators.calculate_weights(discretization.upwind_order, 0.0, [space[j][i[j]],space[j][i[j]+1]])
+        #reverse_weights(i,j) = DiffEqOperators.calculate_weights(discretization.upwind_order, 0.0, [space[j][i[j]-1],space[j][i[j]]])
+        #upwinding_rules = [@rule(*(~~a,(Differential(nottime[j]))(u),~~b) => IfElse.ifelse(*(~~a..., ~~b...,)>0,
+        #                        *(~~a..., ~~b..., dot(reverse_weights(i,j),depvars[k][central_neighbor_idxs(i,j)[1:2]])),
+        #                        *(~~a..., ~~b..., dot(forward_weights(i,j),depvars[k][central_neighbor_idxs(i,j)[2:3]]))))
+        #                        for j in 1:length(nottime), k in 1:length(pdesys.depvars)]
+
+        substitute(eq.lhs,vcat(vec(central_deriv_rules),valrules)) ~ substitute(eq.rhs,vcat(vec(central_deriv_rules),valrules))
+    end)
+
+    # Finalize
+    defaults = pdesys.ps === nothing || pdesys.ps === SciMLBase.NullParameters() ? u0 : vcat(u0,pdesys.ps)
+    ps = pdesys.ps === nothing || pdesys.ps === SciMLBase.NullParameters() ? Num[] : first.(pdesys.ps)
+    sys = ODESystem(vcat(eqs,unique(bceqs)),t,vec(reduce(vcat,vec(depvars))),ps,defaults=Dict(defaults))
+    sys, tspan
 end
 
-function throw_bc_err(bc)
-    throw(BoundaryConditionError(
-        "Could not read boundary condition '$(bc.lhs) ~ $(bc.rhs)'"
-    ))
-end
-# Get boundary conditions from an array
-# The returned boundary conditions will be the three coefficients (α, β, γ)
-# for a RobinBC of the form α*u(0) + β*u'(0) = γ
-# These are created automatically from the form of the boundary condition that is
-# passed, i.e.
-# u(t, 0) ~ γ                           ---> (1, 0, γ)
-# Dx(u(t, 0)) ~ γ                       ---> (0, 1, γ)
-# α * u(t, 0)) + β * Dx(u(t, 0)) ~ γ    ---> (α, β, γ)
-# In general, all of α, β, and γ could be Expr (i.e. functions of t)
-function get_bcs(bcs,tdomain,domain)
-    lhs_deriv_depvars_bcs = Dict()
-    num_bcs = size(bcs,1)
-    for i = 1:num_bcs
-        lhs = bcs[i].lhs
-    @show lhs
-        # Extract the variable from the lhs
-        if operation(lhs) isa Sym
-            # Dirichlet boundary condition
-            var = nameof(operation(lhs))
-            α = 1.0
-            β = 0.0
-            bc_args = arguments(lhs)
-        elseif operation(lhs) isa Differential
-            # Neumann boundary condition
-            # Check that we don't have a second-order derivative in the
-            # boundary condition, by checking that the argument is a Sym
-            @assert operation(arguments(lhs)[1]) isa Sym throw_bc_err(bcs[i])
-            var = nameof(operation(arguments(lhs)[1]))
-            α = 0.0
-            β = 1.0
-            bc_args = arguments(arguments(lhs)[1])
-          elseif operation(lhs) === +
-            # Robin boundary condition
-            lhs_l, lhs_r = arguments(lhs)
-            # Left side of the expression should be Sym or α * Sym
-            @show lhs_l
-            if operation(lhs_l) isa Sym
-                α = 1.0
-                var_l = nameof(operation(lhs_l))
-                bc_args_l = arguments(lhs_l)
-            elseif operation(lhs_l) === *
-                α = arguments(lhs_l)[1]
-                # Convert α to a Float64 if it is an Int, leave unchanged otherwise
-                α = α isa Int ? Float64(α) : α
-                @assert operation(arguments(lhs_l)[2]) isa Sym throw_bc_err(bcs[i])
-                var_l = nameof(operation(arguments(lhs_l)[2]))
-                bc_args_l = arguments(arguments(lhs_l)[2])
-            else
-                throw_bc_err(bcs[i])
-            end
-            # Right side of the expression should be Differential or β * Differential
-            if operation(lhs_r) isa Differential
-                # Check that we don't have a second-order derivative in the
-                # boundary condition
-                @assert operation(arguments(lhs_r)[1]) isa Sym throw_bc_err(bcs[i])
-                β = 1.0
-                var_r = nameof(operation(arguments(lhs_r)[1]))
-                bc_args_r = arguments(arguments(lhs_r)[1])
-            elseif operation(lhs_r) isa typeof(*)
-                β = arguments(lhs_r)[1]
-                # Convert β to a Float64 if it is an Int, leave unchanged otherwise
-                β = β isa Int ? Float64(β) : β
-                # Check that the bc is a derivative
-                lhs_r2 = arguments(lhs_r)[2]
-                @assert operation(lhs_r2) isa Differential throw_bc_err(bcs[i])
-                # But not second order (argument should be a Sym)
-                lhsrr1 = arguments(lhs_r2)[1]
-                @assert operation(lhsrr1) isa Sym throw_bc_err(bcs[i])
-                var_r = nameof(operation(lhsrr1))
-                bc_args_r = arguments(lhsrr1)
-            else
-                throw_bc_err(bcs[i])
-            end
-            # Check var and bc_args are the same in lhs and rhs, and if so assign 
-            # the unique value
-            @assert var_l == var_r throw(BoundaryConditionError(
-                "mismatched variables '$var_l' and '$var_r' "
-                * "in Robin BC '$(bcs[i].lhs) ~ $(bcs[i].rhs)'"
-            ))
-            var = var_l
-            @assert bc_args_l == bc_args_r throw(BoundaryConditionError(
-                "mismatched args $bc_args_l and $bc_args_r "
-                * "in Robin BC '$(bcs[i].lhs) ~ $(bcs[i].rhs)'"
-            ))
-            bc_args = bc_args_l
-        else
-            throw_bc_err(bcs[i])
-        end
-        if !haskey(lhs_deriv_depvars_bcs,var)
-            # Initialize dict of boundary conditions for this variable
-            lhs_deriv_depvars_bcs[var] = Dict()
-        end
-        # Create key
-        if isequal(bc_args[1],tdomain.lower) # u(t=0,x)
-            key = "ic"
-        elseif isequal(bc_args[2],domain.lower) # u(t,x=x_init)
-            key = "left bc"
-        elseif isequal(bc_args[2],domain.upper) # u(t,x=x_final)
-            key = "right bc"
-        else
-            throw(BoundaryConditionError(
-                "Boundary condition '$(bcs[i].lhs) ~ $(bcs[i].rhs)' could not be read. "
-                * "BCs should be applied at t=$(tdomain.lower), "
-                * "x=$(domain.lower), or x=$(domain.upper)"
-            ))
-        end
-        # Create value
-        γ = toexpr(bcs[i].rhs)
-        # Assign
-        if key == "ic"
-            # Initial conditions always take the form u(0, x) ~ γ
-            lhs_deriv_depvars_bcs[var][key] = γ
-        else
-            # Boundary conditions can be more general
-            lhs_deriv_depvars_bcs[var][key] = (toexpr(α), toexpr(β), γ)
-        end
-    end
-    # Check each variable got all boundary conditions
-    for var in keys(lhs_deriv_depvars_bcs)
-        for key in ["ic", "left bc", "right bc"]
-            if !haskey(lhs_deriv_depvars_bcs[var], key)
-                throw(BoundaryConditionError("missing $key for $var"))
-            end
-        end
-    end
-    return lhs_deriv_depvars_bcs
+function SciMLBase.discretize(pdesys::ModelingToolkit.PDESystem,discretization::DiffEqOperators.MOLFiniteDifference)
+    sys, tspan = SciMLBase.symbolic_discretize(pdesys,discretization)
+    simpsys = structural_simplify(sys)
+    prob = ODEProblem(simpsys,Pair[],tspan)
 end
 
+# Piracy, to be deleted when https://github.com/JuliaSymbolics/SymbolicUtils.jl/pull/251
+# merges
+Base.occursin(needle::ModelingToolkit.SymbolicUtils.Symbolic, haystack::ModelingToolkit.SymbolicUtils.Symbolic) = _occursin(needle, haystack)
+Base.occursin(needle, haystack::ModelingToolkit.SymbolicUtils.Symbolic) = _occursin(needle, haystack)
+Base.occursin(needle::ModelingToolkit.SymbolicUtils.Symbolic, haystack) = _occursin(needle, haystack)
+function _occursin(needle, haystack)
+    isequal(needle, haystack) && return true
 
-# Recursively traverses the input expression (rhs), replacing derivatives by
-# finite difference schemes. It returns a time dependent expression (expr)
-# that will be evaluated in the "f" ODE function (in DiffEqBase.discretize),
-# Note: 'non-derived' dependent variables are inserted into the differential equations
-#       E.g., Dx(u(t,x))=v(t,x)*Dx(u(t,x)), v(t,x)=t*x
-#            =>  Dx(u(t,x))=t*x*Dx(u(t,x))
-
-function discretize_2(input,deriv_order,upwind_order,centered_order,dx,X,len_of_indep_vars,
-                      deriv_var,dep_var_idx,indep_var_idx)
-    if !(input isa ModelingToolkit.Symbolic)
-        return :($(input))
-    else
-        if input isa Sym || (istree(input) && operation(input) isa Sym)
-            expr = :(0.0)
-            var = nameof(input isa Sym ? input : operation(input))
-            if haskey(indep_var_idx,var) # ind. var.
-                if var != :(t)
-                    i = indep_var_idx[var]
-                    expr = :($X[$i][2:$len_of_indep_vars[$i]-1])
-                else
-                    expr = :(t)
-                end
-            else # dep. var.
-                # TODO: time and cross derivatives terms
-                i = indep_var_idx[deriv_var[1]]
-                j = dep_var_idx[var]
-                if deriv_order == 0
-                    expr = :(u[:,$j])
-                elseif deriv_order == 1
-                    # TODO: approx_order and forward/backward should be
-                    #       input parameters of each derivative
-                    L = UpwindDifference(deriv_order,upwind_order,dx[i],len_of_indep_vars[i]-2,-1)
-                    expr = :(-1*($L*Q[$j]*u[:,$j]))
-                elseif deriv_order == 2
-                    L = CenteredDifference(deriv_order,centered_order,dx[i],len_of_indep_vars[i]-2)
-                    expr = :($L*Q[$j]*u[:,$j])
-                end
-            end
-            return expr
-        elseif istree(input) && operation(input) isa Differential
-            var = nameof(input.op.x)
-            push!(deriv_var,var)
-            return discretize_2(arguments(input)[1],deriv_order+1,upwind_order,centered_order,dx,X,
-                                len_of_indep_vars,deriv_var,dep_var_idx,indep_var_idx)
-        else
-            name = nameof(operation(input))
-            if size(arguments(input),1) == 1
-                aux = discretize_2(arguments(input)[1],deriv_order,upwind_order,centered_order,dx,X,
-                                   len_of_indep_vars,deriv_var,dep_var_idx,indep_var_idx)
-                return :(broadcast($name, $aux))
-            else
-                aux_1 = discretize_2(arguments(input)[1],deriv_order,upwind_order,centered_order,dx,X,
-                                     len_of_indep_vars,deriv_var,dep_var_idx,indep_var_idx)
-                aux_2 = discretize_2(arguments(input)[2],deriv_order,upwind_order,centered_order,dx,X,
-                                     len_of_indep_vars,deriv_var,dep_var_idx,indep_var_idx)
-                return :(broadcast($name, $aux_1, $aux_2))
-            end
+    if istree(haystack)
+        args = arguments(haystack)
+        for arg in args
+            occursin(needle, arg) && return true
         end
     end
-end
-
-# Convert a PDE problem into an ODE problem
-function DiffEqBase.discretize(pdesys::PDESystem,discretization::MOLFiniteDifference)
-
-    # TODO: discretize the following cases
-    #
-    #   1) PDE System
-    #        1.a) Transient
-    #                There is more than one indep. variable, including  't'
-    #                E.g., du/dt = d2u/dx2 + d2u/dy2 + f(t,x,y)
-    #        1.b) Stationary
-    #                There is more than one indep. variable, 't' is not included
-    #                E.g., 0 = d2u/dx2 + d2u/dy2 + f(x,y)
-    #   2) ODE System
-    #        't' is the only independent variable
-    #        The ODESystem is packed inside a PDESystem
-    #        E.g., du/dt = f(t)
-    #
-    #   Note: regarding input format, lhs must be "du/dt" or "0".
-    #
-
-    # The following code deals with 1.a case for 1-D,
-    # i.e., only considering 't' and 'x'.
-
-
-    ### Declare and define independent-variable data structures ###############
-
-    tdomain = 0.0
-    indep_var_idx = Dict()
-    num_indep_vars = size(pdesys.domain,1)
-    domain = Array{Any}(undef,num_indep_vars)
-    dx = Array{Any}(undef,num_indep_vars)
-    X = Array{Any}(undef,num_indep_vars)
-    len_of_indep_vars = Array{Any}(undef,num_indep_vars)
-    k = 0
-    for i = 1:num_indep_vars
-        var = nameof(pdesys.domain[i].variables)
-        indep_var_idx[var] = i
-        domain[i] = pdesys.domain[i].domain
-        if var != :(t)
-            dx[i] = discretization.dxs[i-k]
-            X[i] = domain[i].lower:dx[i]:domain[i].upper
-            len_of_indep_vars[i] = size(X[i],1)
-        else
-            dx[i] = 0.0
-            X[i] = 0.0
-            len_of_indep_vars[i] = 0.0
-            tdomain = pdesys.domain[1].domain
-            @assert tdomain isa IntervalDomain
-            k = 1
-        end
-    end
-
-    ### Declare and define dependent-variable data structures #################
-
-    # TODO: specify order for each derivative
-    upwind_order = discretization.upwind_order
-    centered_order = discretization.centered_order
-
-    lhs_deriv_depvars = Dict()
-    dep_var_idx = Dict()
-    dep_var_disc = Dict() # expressions evaluated in the ODE function (f)
-
-    # if there is only one equation
-    if pdesys.eqs isa Equation
-        eqs = [pdesys.eqs]
-    else
-        eqs = pdesys.eqs
-    end
-    num_dep_vars = size(eqs,1)
-    for j = 1:num_dep_vars
-        input = eqs[j].lhs
-        op = operation(input)
-        if op isa Sym
-            var = nameof(op)
-        else #var isa Differential
-            var = nameof(operation(arguments(input)[1]))
-            lhs_deriv_depvars[var] = j
-        end
-        dep_var_idx[var] = j
-    end
-    for (var,j) in dep_var_idx
-        aux = discretize_2( eqs[j].rhs,0,upwind_order,centered_order,dx,X,len_of_indep_vars,
-                            [],dep_var_idx,indep_var_idx)
-        dep_var_disc[var] = @RuntimeGeneratedFunction(:((Q,u,t) -> $aux))
-    end
-
-    ### Declare and define boundary conditions ################################
-
-    # TODO: extend to Neumann BCs and Robin BCs
-    lhs_deriv_depvars_bcs = get_bcs(pdesys.bcs,tdomain,domain[2])
-    u_ic = Array{Float64}(undef,len_of_indep_vars[2]-2,num_dep_vars)
-    robin_bc_func = Array{Any}(undef,num_dep_vars)
-    Q = Array{RobinBC}(undef,num_dep_vars)
-
-    for var in keys(dep_var_idx)
-        j = dep_var_idx[var]
-        bcs = lhs_deriv_depvars_bcs[var]
-
-        # Initial condition depends on space but not time
-        ic = @RuntimeGeneratedFunction(:(x -> $(bcs["ic"])))
-        u_ic[:,j] = ic.(X[2][2:len_of_indep_vars[2]-1])
-
-        # Boundary conditions depend on time and so will be evaluated at t within the
-        # ODE function for the discretized PDE (below)
-        # We use @RuntimeGeneratedFunction to do this efficiently
-        αl, βl, γl = bcs["left bc"]
-        αr, βr, γr = bcs["right bc"]
-        # Right now there is only one independent variable, so dx is always dx[2]
-        # i.e. the spatial variable
-        robin_bc_func[j] = @RuntimeGeneratedFunction(:(t -> begin
-            RobinBC(($(αl), $(βl), $(γl)), ($(αr), $(βr), $(γr)), $(dx[2]))
-        end))
-    end
-
-    ### Define the discretized PDE as an ODE function #########################
-
-    function f(du,u,p,t)
-
-        # Boundary conditions can vary with respect to time (but not space)
-        for j in 1:num_dep_vars
-            Q[j] = robin_bc_func[j](t)
-        end
-
-        for (var,disc) in dep_var_disc
-            j = dep_var_idx[var]
-            res = disc(Q,u,t)
-            if haskey(lhs_deriv_depvars,var)
-                du[:,j] = res
-            else
-                u[:,j] .= res
-            end
-        end
-
-    end
-
-    # Return problem ##########################################################
-    # The second entry, robin_bc_func, is stored as the "extrapolation" in the
-    # PDEProblem. Since this can in general be time-dependent, it must be evaluated
-    # at the correct time when used, e.g.
-    #   prob.extrapolation[1](t[i])*sol[:,1,i]
-    return PDEProblem(
-        ODEProblem(f,u_ic,(tdomain.lower,tdomain.upper),nothing),
-        robin_bc_func,
-        X
-    )
+    return false
 end
