@@ -42,7 +42,7 @@ if GROUP == "All" || GROUP == "MOLFiniteDifference"
 end
 
 if GROUP == "All" || GROUP == "Misc"
-    @time @safetestset "Utilities Tests" begin include("Misc/DerivativeOperators/utils.jl") end
+    @time @safetestset "Utilities Tests" begin include("Misc/utils.jl") end
     @time @safetestset "JacVec Operators Interface" begin include("Misc/jacvec_operators.jl") end
     @time @safetestset "JacVec Operator Integration Test" begin include("Misc/jacvec_integration_test.jl") end
 end
