@@ -29,7 +29,7 @@ using OrdinaryDiffEq
 end
 
 @testset "Parabolic Heat Equation with Neumann BCs" begin
-    N = 512
+    N = 128
     dx = 2π/(N-1)
     x = collect(-pi : dx : pi)
     u0 = @. -(x - 0.5)^2 + 1/12
@@ -81,7 +81,7 @@ end
 end
 
 @testset "Parabolic Heat Equation with Robin BCs" begin
-    N = 512
+    N = 128
     dx = 2π/(N-1)
     x = collect(-pi : dx : pi)
     u0 = @. -(x - 0.5)^2 + 1/12
@@ -96,17 +96,16 @@ end
     bc = RobinBC((params[1],-params[2],left_RBC), (params[1],params[2],right_RBC),dx,1);
     step1(u,p,t)=A*bc*u
     heat_eqn = ODEProblem(step1, u0, (0.,1.));
-    println("solve 1")
-    soln = solve(heat_eqn,Tsit5());
+    soln = solve(heat_eqn,Rodas4(autodiff=false),reltol=1e-6);
 
     first_order_coeffs_start = [-11/6, 3.0, -3/2, 1/3] * (1/dx)
     first_order_coeffs_end = -reverse([-11/6, 3.0, -3/2, 1/3] * (1/dx))
     val = []
 
     for t in 0.2:0.1:1.0
-        @test params[1]*soln(t)[1] - params[2]*sum(first_order_coeffs_start .* soln(t)[1:4]) ≈ left_RBC atol=1e-1
+        @test params[1]*soln(t)[1] - params[2]*sum(first_order_coeffs_start .* soln(t)[1:4]) ≈ left_RBC atol=4e-1
         # append!(val,params[1]*soln(t)[1] + -params[2]*sum(first_order_coeffs_start .* soln(t)[1:4]) - left_RBC)
-        @test params[1]*soln(t)[end] + params[2]*sum(first_order_coeffs_end .* soln(t)[end-3:end]) ≈ right_RBC atol=1e-1
+        @test params[1]*soln(t)[end] + params[2]*sum(first_order_coeffs_end .* soln(t)[end-3:end]) ≈ right_RBC atol=4e-1
     end
 
     # UpwindDifference with equal no. of primay wind and offside points should behave like a CenteredDifference
@@ -119,13 +118,11 @@ end
 
     step2(u,p,t)=A2*bc*u
     heat_eqn = ODEProblem(step2, u0, (0.,1.));
-    println("solve 2")
-    soln = solve(heat_eqn,Tsit5());
-    println("sol2 done!")
+    soln = solve(heat_eqn,Rodas4(autodiff=false),reltol=1e-6);
 
     for t in 0.2:0.1:1.0
-        @test params[1]*soln(t)[1] - params[2]*sum(first_order_coeffs_start .* soln(t)[1:4]) ≈ left_RBC atol=1e-1
-        @test params[1]*soln(t)[end] + params[2]*sum(first_order_coeffs_end .* soln(t)[end-3:end]) ≈ right_RBC atol=1e-1
+        @test params[1]*soln(t)[1] - params[2]*sum(first_order_coeffs_start .* soln(t)[1:4]) ≈ left_RBC atol=4e-1
+        @test params[1]*soln(t)[end] + params[2]*sum(first_order_coeffs_end .* soln(t)[end-3:end]) ≈ right_RBC atol=4e-1
     end
     # Testing for 2 offside points against Standard Vector input
     B3 = UpwindDifference(1,4,dx*ones(N-1),N-2,-1,offside=2)
@@ -136,11 +133,10 @@ end
 
     step3(u,p,t)=A2*bc*u
     heat_eqn = ODEProblem(step3, u0, (0.,1.));
-    println("solve 3")
-    soln = solve(heat_eqn,Tsit5());
+    soln = solve(heat_eqn,Rodas4(autodiff=false),reltol=1e-6);
 
     for t in 0.2:0.1:1.0
-        @test params[1]*soln(t)[1] - params[2]*sum(first_order_coeffs_start .* soln(t)[1:4]) ≈ left_RBC atol=1e-1
-        @test params[1]*soln(t)[end] + params[2]*sum(first_order_coeffs_end .* soln(t)[end-3:end]) ≈ right_RBC atol=1e-1
+        @test params[1]*soln(t)[1] - params[2]*sum(first_order_coeffs_start .* soln(t)[1:4]) ≈ left_RBC atol=4e-1
+        @test params[1]*soln(t)[end] + params[2]*sum(first_order_coeffs_end .* soln(t)[end-3:end]) ≈ right_RBC atol=4e-1
     end
 end
