@@ -96,7 +96,7 @@ end
 end
 
 # @test_set "Test 02: Dt(u(t,x)) ~ Dx(D(t,x))*Dx(u(t,x))+D(t,x)*Dxx(u(t,x))" begin
-@test_skip begin
+@test_broken begin
     # Parameters, variables, and derivatives
     @parameters t x
     @variables u(..) D(..)
@@ -136,7 +136,7 @@ end
     # Test
     n = size(sol,1)
     t_f = size(sol,3)
-    @test_skip sol[:,1,t_f] ≈ zeros(n) atol=0.01;
+    @test_broken sol[:,1,t_f] ≈ zeros(n) atol=0.01;
 end
 
 @testset "Test 03: Dt(u(t,x)) ~ Dxx(u(t,x)), Neumann BCs" begin
@@ -276,49 +276,51 @@ end
 end
 
 
-@test_skip begin
-# @testset "Test 06: Dt(u(t,x)) ~ Dxx(u(t,x)), time-dependent Robin BCs" begin
-       # Method of Manufactured Solutions
-       u_exact = (x,t) -> exp.(-t) * sin.(x)
-   
-       # Parameters, variables, and derivatives
-       @parameters t x
-       @variables u(..)
-       Dt = Differential(t)
-       Dx = Differential(x)
-       Dxx = Differential(x)^2
-   
-       # 1D PDE and boundary conditions
-       eq  = Dt(u(t,x)) ~ Dxx(u(t,x))
-       bcs = [u(0,x) ~ sin(x),
-              t^2 * u(t,-1.0) + 3Dx(u(t,-1.0)) ~ exp(-t) * (t^2 * sin(-1.0) + 3cos(-1.0)),
-              4u(t,1.0) + t * Dx(u(t,1.0)) ~ exp(-t) * (4sin(1.0) + t * cos(1.0))]
-   
-       # Space and time domains
-       domains = [t ∈ IntervalDomain(0.0,1.0),
-                  x ∈ IntervalDomain(-1.0,1.0)]
-   
-       # PDE system
-       pdesys = PDESystem(eq,bcs,domains,[t,x],[u(t,x)])
-   
-       # Method of lines discretization
-       dx = 0.01
-       order = 2
-       discretization = MOLFiniteDifference([x=>dx],t)
-   
-       # Convert the PDE problem into an ODE problem
-       prob = discretize(pdesys,discretization)
-   
-       # Solve ODE problem
-       sol = solve(prob,Rodas5(),saveat=0.1)
-   
-       x = (-1:dx:1)[2:end-1]
-       t = sol.t
-   
-       # Test against exact solution
-       for i in 1:length(sol)
-           exact = u_exact(x, t[i])
-           u_approx = sol.u[i]
-           @test u_approx ≈ exact atol=0.01
-       end
-   end
+@testset "Test 06: Dt(u(t,x)) ~ Dxx(u(t,x)), time-dependent Robin BCs" begin
+    # Method of Manufactured Solutions
+    u_exact = (x,t) -> exp.(-t) * sin.(x)
+
+    # Parameters, variables, and derivatives
+    @parameters t x
+    @variables u(..)
+    Dt = Differential(t)
+    Dx = Differential(x)
+    Dxx = Differential(x)^2
+
+    # 1D PDE and boundary conditions
+    eq  = Dt(u(t,x)) ~ Dxx(u(t,x))
+    bcs = [u(0,x) ~ sin(x),
+          t^2 * u(t,-1.0) + 3Dx(u(t,-1.0)) ~ exp(-t) * (t^2 * sin(-1.0) + 3cos(-1.0)),
+          4u(t,1.0) + t * Dx(u(t,1.0)) ~ exp(-t) * (4sin(1.0) + t * cos(1.0))]
+
+    # Space and time domains
+    domains = [t ∈ IntervalDomain(0.0,1.0),
+               x ∈ IntervalDomain(-1.0,1.0)]
+
+    # PDE system
+    pdesys = PDESystem(eq,bcs,domains,[t,x],[u(t,x)])
+
+    # Method of lines discretization
+    dx = 0.01
+    order = 2
+    discretization = MOLFiniteDifference([x=>dx],t)
+
+    # Convert the PDE problem into an ODE problem
+    prob = discretize(pdesys,discretization)
+
+    # Solve ODE problem
+    sol = solve(prob,Rodas4(),reltol=1e-6,saveat=0.1)
+
+    x = (-1:dx:1)
+    t = sol.t
+
+    # Test against exact solution
+    for i in 1:length(sol)
+       exact = u_exact(x, t[i])
+       # Due to structural simplification
+       # [u2 -> u(n-1), u(1), u(n)]
+       # Will be fixed by sol[u]
+       u_approx = [sol.u[i][end-1];sol.u[i][1:end-2];sol.u[i][end]]
+       @test u_approx ≈ exact atol=0.05
+    end
+end
