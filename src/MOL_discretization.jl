@@ -8,10 +8,11 @@ struct MOLFiniteDifference{T,T2} <: DiffEqBase.AbstractDiscretization
 end
 
 # Constructors. If no order is specified, both upwind and centered differences will be 2nd order
-MOLFiniteDifference(dxs, time = nothing; upwind_order = 1, centered_order = 2) =
+MOLFiniteDifference(dxs, time; upwind_order = 1, centered_order = 2) =
     MOLFiniteDifference(dxs, time, upwind_order, centered_order)
 
 function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discretization::DiffEqOperators.MOLFiniteDifference)
+    pdeeqs = pdesys.eqs isa Vector ? pdesys.eqs : [pdesys.eqs]
     t = discretization.time
     nottime = filter(x->x.val != t.val,pdesys.indvars)
 
@@ -21,7 +22,7 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
         xdomain = pdesys.domain[findfirst(d->x.val == d.variables,pdesys.domain)]
         @assert xdomain.domain isa IntervalDomain
         dx = discretization.dxs[findfirst(dxs->x.val == dxs[1].val,discretization.dxs)][2]
-        xdomain.domain.lower:dx:xdomain.domain.upper
+        dx isa Number ? (xdomain.domain.lower:dx:xdomain.domain.upper) : dx
     end
     tdomain = pdesys.domain[findfirst(d->t.val == d.variables,pdesys.domain)]
     @assert tdomain.domain isa IntervalDomain
@@ -57,6 +58,7 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
             i = findfirst(x->isequal(x,bc.lhs),first.(depvarmaps))
             lhs = substitute(bc.lhs,depvarmaps[i])
             rhs = substitute.((bc.rhs,),edgemaps[i])
+            lhs = lhs isa Vector ? lhs : [lhs] # handle 1D
             push!(bceqs,lhs .~ rhs)
         end
     end
@@ -65,7 +67,7 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
 
     # Generate PDE Equations
     interior = indices[[2:length(s)-1 for s in space]...]
-    eqs = vec(map(Base.product(interior,pdesys.eqs)) do p
+    eqs = vec(map(Base.product(interior,pdeeqs)) do p
         i,eq = p
 
         # TODO: Number of points in the central_neighbor_idxs should be dependent
@@ -90,12 +92,14 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
     end)
 
     # Finalize
-    sys = ODESystem(vcat(eqs,unique(bceqs)),t,vec(reduce(vcat,vec(depvars))),Num[])
-    sys, u0, tspan
+    defaults = pdesys.ps === nothing ? u0 : vcat(u0,pdesys.ps)
+    ps = pdesys.ps === nothing ? Num[] : first.(pdesys.ps)
+    sys = ODESystem(vcat(eqs,unique(bceqs)),t,vec(reduce(vcat,vec(depvars))),ps,defaults=defaults)
+    sys, tspan
 end
 
 function SciMLBase.discretize(pdesys::ModelingToolkit.PDESystem,discretization::DiffEqOperators.MOLFiniteDifference)
-    sys, u0, tspan = SciMLBase.symbolic_discretize(pdesys,discretization)
+    sys, tspan = SciMLBase.symbolic_discretize(pdesys,discretization)
     simpsys = structural_simplify(sys)
-    prob = ODEProblem(simpsys,vec(u0),tspan)
+    prob = ODEProblem(simpsys,Pair[],tspan)
 end

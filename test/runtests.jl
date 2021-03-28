@@ -20,7 +20,7 @@ if GROUP == "All" || GROUP == "Interface"
     @time @safetestset "Validate Regular Derivative Operators" begin include("regular_operator_validation.jl") end
     @time @safetestset "Validate and Compare Generic Operators" begin include("generic_operator_validation.jl") end
     @time @safetestset "Validate Boundary Padded Array Concretization" begin include("boundary_padded_array.jl") end
-    @time @safetestset "Validate Higher Dimensional Boundary Extension" begin include("multi_dim_bc_test.jl") end
+    #@time @safetestset "Validate Higher Dimensional Boundary Extension" begin include("multi_dim_bc_test.jl") end
     @time @safetestset "2nd order check" begin include("2nd_order_check.jl") end
     @time @safetestset "Non-linear Diffusion" begin include("Fast_Diffusion.jl") end
     @time @safetestset "KdV" begin include("KdV.jl") end # 2-Soliton case needs implementation
@@ -33,7 +33,7 @@ if GROUP == "All" || GROUP == "Interface"
     @time @safetestset "Coefficient Functions" begin include("coefficient_functions.jl") end
     @time @safetestset "Upwind Operator Interface" begin include("upwind_operators_interface.jl") end
     @time @safetestset "MOLFiniteDifference Interface" begin include("MOLtest.jl") end
-    @time @safetestset "MOLFiniteDifference Interface: Linear Convection" begin include("MOL_1D_Linear_Convection.jl") end
+    #@time @safetestset "MOLFiniteDifference Interface: Linear Convection" begin include("MOL_1D_Linear_Convection.jl") end
     #@time @safetestset "MOLFiniteDifference Interface: Linear Diffusion" begin include("MOL_1D_Linear_Diffusion.jl") end
     @time @safetestset "Basic SDO Examples" begin include("BasicSDOExamples.jl") end
     @time @safetestset "3D laplacian Test" begin include("3D_laplacian.jl") end
@@ -43,8 +43,8 @@ end
 if !is_APPVEYOR && (GROUP == "All" || GROUP == "Multithreading")
     @time @safetestset "2D and 3D fast multiplication" begin include("2D_3D_fast_multiplication.jl") end
 end
-    
+
 if GROUP == "GPU"
-        
+
 end
 end

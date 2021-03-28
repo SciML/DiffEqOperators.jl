@@ -3,7 +3,7 @@
 # TODO: Add more complex tests.
 
 # Packages and inclusions
-using ModelingToolkit,DiffEqOperators,DiffEqBase,LinearAlgebra,Test,OrdinaryDiffEq
+using ModelingToolkit,DiffEqOperators,LinearAlgebra,Test,OrdinaryDiffEq
 using ModelingToolkit: Differential
 
 # Tests
@@ -21,21 +21,21 @@ using ModelingToolkit: Differential
     eq  = Dt(u(t,x)) ~ Dxx(u(t,x))
     bcs = [u(0,x) ~ cos(x),
            u(t,0) ~ exp(-t),
-           u(t,Float64(pi)) ~ -exp(-t)]
+           u(t,Float64(π)) ~ -exp(-t)]
 
     # Space and time domains
     domains = [t ∈ IntervalDomain(0.0,1.0),
-               x ∈ IntervalDomain(0.0,Float64(pi))]
+               x ∈ IntervalDomain(0.0,Float64(π))]
 
     # PDE system
-    pdesys = PDESystem(eq,bcs,domains,[t,x],[u])
+    pdesys = PDESystem(eq,bcs,domains,[t,x],[u(t,x)])
 
     # Method of lines discretization
-    dx = 0.1
+    dx = range(0.0,Float64(π),length=30)
     order = 2
-    discretization = MOLFiniteDifference(dx,order)
+    discretization = MOLFiniteDifference([x=>dx],t)
     # Explicitly specify order of centered difference
-    discretization_centered = MOLFiniteDifference(dx; centered_order=order)
+    discretization_centered = MOLFiniteDifference([x=>dx],t;centered_order=order)
 
     # Convert the PDE problem into an ODE problem
     prob = discretize(pdesys,discretization)
@@ -44,24 +44,14 @@ using ModelingToolkit: Differential
     # Solve ODE problem
     sol = solve(prob,Tsit5(),saveat=0.1)
     sol_centered = solve(prob_centered,Tsit5(),saveat=0.1)
-    x = prob.space[2]
-    t = sol.t
-
-    # Plot and save results
-    # using Plots
-    # plot()
-    # for i in 1:4
-    #     plot!(x,Array(prob.extrapolation[1](t[i])*sol.u[i]))
-    #     scatter!(x, u_exact(x, t[i]))
-    # end
-    # savefig("MOL_1D_Linear_Diffusion_Test00.png")
 
     # Test against exact solution
-    for i in 1:size(t,1)
-        u_approx = Array(prob.extrapolation[1](t[i])*sol.u[i])
-        u_approx_centered = Array(prob.extrapolation[1](t[i])*sol_centered.u[i])
-        @test u_approx ≈ u_exact(x, t[i]) atol=0.01
-        @test u_approx_centered ≈ u_exact(x, t[i]) atol=0.01
+    for i in 1:length(sol)
+        exact = u_exact(dx, sol.t[1])[2:end-1]
+        u_approx = sol.u[i]
+        u_approx_centered = sol_centered.u[i]
+        @test u_approx ≈ exact atol=0.01
+        @test u_approx_centered ≈ exact atol=0.01
     end
 end
 
@@ -71,8 +61,6 @@ end
     @variables u(..)
     Dt = Differential(t)
     Dxx = Differential(x)^2
-
-    D = 1.1
 
     # 1D PDE and boundary conditions
     eq  = Dt(u(t,x)) ~ D*Dxx(u(t,x))
@@ -85,29 +73,18 @@ end
                x ∈ IntervalDomain(0.0,1.0)]
 
     # PDE system
-    pdesys = PDESystem(eq,bcs,domains,[t,x,D],[u])
+    pdesys = PDESystem(eq,bcs,domains,[t,x],[u(t,x)],[D=>1.1])
 
     # Method of lines discretization
     dx = 0.1
     order = 2
-    discretization = MOLFiniteDifference(dx,order)
+    discretization = MOLFiniteDifference([x=>dx],t)
 
     # Convert the PDE problem into an ODE problem
     prob = discretize(pdesys,discretization)
 
     # Solve ODE problem
     sol = solve(prob,Tsit5(),saveat=0.1)
-
-    # Plot and save results
-    # x = prob.space[2]
-    # t = sol.t
-    
-    # using Plots
-    # plot()
-    # for i in 1:4
-    #     plot!(x,Array(prob.extrapolation[1](t[i])*sol.u[i]))
-    # end
-    # savefig("MOL_1D_Linear_Diffusion_Test01.png")
 
     # Test
     n = size(sol,1)
@@ -152,11 +129,11 @@ end
 
     # Solve ODE problem
     sol = solve(prob,Tsit5(),saveat=0.1)
-    
+
     # Plot and save results
     # x = prob.space[2]
     # t = sol.t
-    
+
     # using Plots
     # plot()
     # for i in 1:4
@@ -402,10 +379,10 @@ end
 
     # Missing boundary condition
     bcs = [u(0,x) ~ 0.5 + sin(2pi*x),
-           Dx(u(t,1)) ~ 0.0]    
+           Dx(u(t,1)) ~ 0.0]
     pdesys = PDESystem(eq,bcs,domains,[t,x],[u])
     @test_throws BoundaryConditionError discretize(pdesys,discretization)
-    
+
     # Boundary condition not at t=0
     bcs = [u(1,x) ~ 0.5 + sin(2pi*x),
            Dx(u(t,0)) ~ 0.0,
@@ -416,66 +393,66 @@ end
     # Boundary condition not at an edge of the domain
     bcs = [u(0,x) ~ 0.5 + sin(2pi*x),
            Dx(u(t,0)) ~ 0.0,
-           Dx(u(t,0.5)) ~ 0.0]    
+           Dx(u(t,0.5)) ~ 0.0]
     pdesys = PDESystem(eq,bcs,domains,[t,x],[u])
     @test_throws BoundaryConditionError discretize(pdesys,discretization)
-    
+
     # Second-order derivative in BC
     bcs = [u(0,x) ~ 0.5 + sin(2pi*x),
            Dxx(u(t,0)) ~ 0.0,
-           Dx(u(t,0.5)) ~ 0.0]    
+           Dx(u(t,0.5)) ~ 0.0]
     pdesys = PDESystem(eq,bcs,domains,[t,x],[u])
     @test_throws BoundaryConditionError discretize(pdesys,discretization)
-   
+
     # Wrong format for Robin BCs
     bcs = [u(0,x) ~ 0.5 + sin(2pi*x),
            Dx(u(t,0)) ~ 0.0,
-           u(t,1) * Dx(u(t,1)) ~ 0.0]    
+           u(t,1) * Dx(u(t,1)) ~ 0.0]
     pdesys = PDESystem(eq,bcs,domains,[t,x],[u])
     @test_throws BoundaryConditionError discretize(pdesys,discretization)
-    
+
     bcs = [u(0,x) ~ 0.5 + sin(2pi*x),
            Dx(u(t,0)) ~ 0.0,
-           u(t,1) + Dxx(u(t,1)) ~ 0.0]    
+           u(t,1) + Dxx(u(t,1)) ~ 0.0]
     pdesys = PDESystem(eq,bcs,domains,[t,x],[u])
     @test_throws BoundaryConditionError discretize(pdesys,discretization)
-    
+
     bcs = [u(0,x) ~ 0.5 + sin(2pi*x),
            Dx(u(t,0)) ~ 0.0,
-           u(t,1) + 2Dxx(u(t,1)) ~ 0.0]    
+           u(t,1) + 2Dxx(u(t,1)) ~ 0.0]
     pdesys = PDESystem(eq,bcs,domains,[t,x],[u])
     @test_throws BoundaryConditionError discretize(pdesys,discretization)
-    
+
     bcs = [u(0,x) ~ 0.5 + sin(2pi*x),
            Dx(u(t,0)) ~ 0.0,
-           Dx(u(t,1)) + u(t,1) ~ 0.0]    
+           Dx(u(t,1)) + u(t,1) ~ 0.0]
     pdesys = PDESystem(eq,bcs,domains,[t,x],[u])
     @test_throws BoundaryConditionError discretize(pdesys,discretization)
-    
+
     bcs = [u(0,x) ~ 0.5 + sin(2pi*x),
            Dx(u(t,0)) ~ 0.0,
-           u(t,1) / 2 + Dx(u(t,1)) ~ 0.0]    
+           u(t,1) / 2 + Dx(u(t,1)) ~ 0.0]
     pdesys = PDESystem(eq,bcs,domains,[t,x],[u])
     @test_throws BoundaryConditionError discretize(pdesys,discretization)
-    
+
     bcs = [u(0,x) ~ 0.5 + sin(2pi*x),
            Dx(u(t,0)) ~ 0.0,
-           u(t,1) + Dx(u(t,1)) / 2 ~ 0.0]    
+           u(t,1) + Dx(u(t,1)) / 2 ~ 0.0]
     pdesys = PDESystem(eq,bcs,domains,[t,x],[u])
     @test_throws BoundaryConditionError discretize(pdesys,discretization)
-    
+
     # Mismatching arguments
     bcs = [u(0,x) ~ 0.5 + sin(2pi*x),
     Dx(u(t,0)) ~ 0.0,
-    u(t,0) + Dx(u(t,1)) ~ 0.0]    
+    u(t,0) + Dx(u(t,1)) ~ 0.0]
     pdesys = PDESystem(eq,bcs,domains,[t,x],[u])
     @test_throws BoundaryConditionError discretize(pdesys,discretization)
-    
+
     # Mismatching variables
     bcs = [u(0,x) ~ 0.5 + sin(2pi*x),
     Dx(u(t,0)) ~ 0.0,
-    u(t,1) + Dx(v(t,1)) ~ 0.0]    
+    u(t,1) + Dx(v(t,1)) ~ 0.0]
     pdesys = PDESystem(eq,bcs,domains,[t,x],[u])
     @test_throws BoundaryConditionError discretize(pdesys,discretization)
-    
+
 end
