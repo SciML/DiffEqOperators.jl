@@ -46,14 +46,19 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
     initmaps = substitute.(pdesys.depvars,[t=>tspan[1]])
 
     depvarmaps = reduce(vcat,[substitute.((pdesys.depvars[i],),edgevals) .=> edgevars[i] for i in 1:length(pdesys.depvars)])
-    left_weights(j) = DiffEqOperators.calculate_weights(discretization.upwind_order, 0.0, [space[j][1],space[j][2]])
-    right_weights(j) = DiffEqOperators.calculate_weights(discretization.upwind_order, 0.0, [space[j][end-1],space[j][end]])
-    central_neighbor_idxs(i,j) = [i+CartesianIndex([ifelse(l==j,-1,0) for l in 1:length(nottime)]...),i,i+CartesianIndex([ifelse(l==j,1,0) for l in 1:length(nottime)]...)]
-    derivars = [[dot(left_weights(j),[depvars[j][central_neighbor_idxs(CartesianIndex(2),1)[1:2][2]],depvars[j][central_neighbor_idxs(CartesianIndex(2),1)[1:2][1]]]),
-                dot(right_weights(j),[depvars[j][central_neighbor_idxs(CartesianIndex(length(space[1])-1),1)[end-1:end][1]],depvars[j][central_neighbor_idxs(CartesianIndex(length(space[1])-1),1)[end-1:end][2]]])]
-                for j in 1:length(pdesys.depvars)]
-    depvarderivmaps = reduce(vcat,[substitute.((Differential(nottime[j])(pdesys.depvars[i]),),edgevals) .=> derivars[i]
-                                   for i in 1:length(pdesys.depvars) for j in 1:length(nottime)])
+    if length(nottime) == 1
+        left_weights(j) = DiffEqOperators.calculate_weights(discretization.upwind_order, 0.0, [space[j][1],space[j][2]])
+        right_weights(j) = DiffEqOperators.calculate_weights(discretization.upwind_order, 0.0, [space[j][end-1],space[j][end]])
+        central_neighbor_idxs(i,j) = [i+CartesianIndex([ifelse(l==j,-1,0) for l in 1:length(nottime)]...),i,i+CartesianIndex([ifelse(l==j,1,0) for l in 1:length(nottime)]...)]
+        derivars = [[dot(left_weights(j),[depvars[j][central_neighbor_idxs(CartesianIndex(2),1)[1:2][2]],depvars[j][central_neighbor_idxs(CartesianIndex(2),1)[1:2][1]]]),
+                    dot(right_weights(j),[depvars[j][central_neighbor_idxs(CartesianIndex(length(space[1])-1),1)[end-1:end][1]],depvars[j][central_neighbor_idxs(CartesianIndex(length(space[1])-1),1)[end-1:end][2]]])]
+                    for j in 1:length(pdesys.depvars)]
+        depvarderivmaps = reduce(vcat,[substitute.((Differential(nottime[j])(pdesys.depvars[i]),),edgevals) .=> derivars[i]
+                                       for i in 1:length(pdesys.depvars) for j in 1:length(nottime)])
+   else
+       # TODO: Fix Neumann and Robin on higher dimension
+       depvarderivmaps = []
+   end
 
     # Generate initial conditions and bc equations
     u0 = []
@@ -66,7 +71,10 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
         else
             # Algebraic equations for BCs
             i = findfirst(x->occursin(x.val,bc.lhs),first.(depvarmaps))
-            lhs = substitute(bc.lhs,depvarderivmaps[i])
+
+            # TODO: Fix Neumann and Robin on higher dimension
+            lhs = length(nottime) == 1 ? substitute(bc.lhs,depvarderivmaps[i]) : bc.lhs
+
             lhs = substitute(lhs,depvarmaps[i])
             rhs = substitute.((bc.rhs,),edgemaps[i])
             lhs = lhs isa Vector ? lhs : [lhs] # handle 1D
