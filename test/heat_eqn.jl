@@ -94,9 +94,10 @@ end
 
     A = CenteredDifference(2,2,dx,N);
     bc = RobinBC((params[1],-params[2],left_RBC), (params[1],params[2],right_RBC),dx,1);
-    step = (u,p,t) ->A*bc*u
-    heat_eqn = ODEProblem(step, u0, (0.,10.));
-    soln = solve(heat_eqn,Tsit5(),dense=false,tstops=0:0.01:10);
+    step1(u,p,t)=A*bc*u
+    heat_eqn = ODEProblem(step1, u0, (0.,10.));
+    println("solve 1")
+    soln = solve(heat_eqn,Tsit5());
 
     first_order_coeffs_start = [-11/6, 3.0, -3/2, 1/3] * (1/dx)
     first_order_coeffs_end = -reverse([-11/6, 3.0, -3/2, 1/3] * (1/dx))
@@ -116,11 +117,13 @@ end
     right_RBC = params[1]*u0[end] + params[2]*deriv_end
     bc = RobinBC((params[1],-params[2],left_RBC), (params[1],params[2],right_RBC),dx,1);
 
-    step = (u,p,t) ->A2*bc*u
-    heat_eqn = ODEProblem(step, u0, (0.,10.));
-    soln = solve(heat_eqn,Tsit5(),dense=false,tstops=0:0.01:10);
+    step2(u,p,t)=A2*bc*u
+    heat_eqn = ODEProblem(step2, u0, (0.,1.));
+    println("solve 2")
+    soln = solve(heat_eqn,Tsit5());
+    println("sol2 done!")
 
-    for t in 0.2:0.1:9.8
+    for t in 0.2:0.1:1.0
         @test params[1]*soln(t)[1] - params[2]*sum(first_order_coeffs_start .* soln(t)[1:4]) ≈ left_RBC atol=1e-1
         @test params[1]*soln(t)[end] + params[2]*sum(first_order_coeffs_end .* soln(t)[end-3:end]) ≈ right_RBC atol=1e-1
     end
@@ -131,11 +134,12 @@ end
     right_RBC = params[1]*u0[end] + params[2]*deriv_end
     bc = RobinBC((params[1],-params[2],left_RBC), (params[1],params[2],right_RBC),dx,1);
 
-    step = (u,p,t) ->A2*bc*u
-    heat_eqn = ODEProblem(step, u0, (0.,10.));
-    soln = solve(heat_eqn,Tsit5(),dense=false,tstops=0:0.01:10);
+    step3(u,p,t)=A2*bc*u
+    heat_eqn = ODEProblem(step3, u0, (0.,1.));
+    println("solve 3")
+    soln = solve(heat_eqn,Tsit5());
 
-    for t in 0.2:0.1:9.8
+    for t in 0.2:0.1:1.0
         @test params[1]*soln(t)[1] - params[2]*sum(first_order_coeffs_start .* soln(t)[1:4]) ≈ left_RBC atol=1e-1
         @test params[1]*soln(t)[end] + params[2]*sum(first_order_coeffs_end .* soln(t)[end-3:end]) ≈ right_RBC atol=1e-1
     end
