@@ -15,6 +15,9 @@ makedocs(
         "Symbolic Tutorials" => [
             "symbolic_tutorials/mol_heat.md"
         ],
+        "Operator Tutorials" => [
+            "operator_tutorials/kdv.md"
+        ],
         "Operators" => [
             "operators/operator_overview.md",
             "operators/derivative_operators.md",
@@ -26,8 +29,8 @@ makedocs(
         ],
         "Nonlinear Derivatives" => [
             "nonlinear_derivatives/nonlinear_diffusion.md"
-        ]
-    ]
+        ]  
+     ]
 )
 
 deploydocs(

@@ -19,7 +19,7 @@ p = params()
 #----------------------------------
 # payoff function
 pi_profit(x) = x^2
-#=# SimpleDifferentialOperators setup
+#= SimpleDifferentialOperators setup
 function SDO_negative_drift(pi_profit, params)
     bc = (Reflecting(), Reflecting())
     Lₓ = params.μ*L₁₋bc(params.x̄, bc) + params.σ^2 / 2 * L₂bc(params.x̄, bc)

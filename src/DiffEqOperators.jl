@@ -42,13 +42,13 @@ include("derivative_operators/coefficient_functions.jl")
 
 ### Composite Operators
 include("composite_operators.jl")
-
-include("MOL_discretization.jl")
-
 include("docstrings.jl")
 
 ### Concretizations
 include("derivative_operators/concretization.jl")
+
+### MOL
+include("MOLFiniteDifference/MOL_discretization.jl")
 
 # The (u,p,t) and (du,u,p,t) interface
 for T in [DiffEqScaledOperator, DiffEqOperatorCombination, DiffEqOperatorComposition, GhostDerivativeOperator]
@@ -63,6 +63,7 @@ export AbstractDerivativeOperator, DerivativeOperator,
 export DirichletBC, Dirichlet0BC, NeumannBC, Neumann0BC, RobinBC, GeneralBC, MultiDimBC, PeriodicBC,
        MultiDimDirectionalBC, ComposedMultiDimBC
 export compose, decompose, perpsize
+export discretize, symbolic_discretize
 
 export GhostDerivativeOperator
 export MOLFiniteDifference
