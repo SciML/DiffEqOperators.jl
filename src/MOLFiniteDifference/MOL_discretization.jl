@@ -67,7 +67,7 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
         depvarderivmaps = reduce(vcat,[subderivar(depvar, s) .=> derivars[i]
                                        for (i, depvar) in enumerate(pdesys.depvars) for s in nottime])
    else
-        # Higher order system
+        # Higher dimension
         # TODO: Fix Neumann and Robin on higher dimension
         depvarderivmaps = []
    end
