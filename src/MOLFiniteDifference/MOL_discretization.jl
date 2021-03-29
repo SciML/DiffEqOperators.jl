@@ -87,7 +87,7 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
             # Replace Differential terms in the bc lhs with the symbolic spatially discretized terms
             # TODO: Fix Neumann and Robin on higher dimension
             lhs = length(nottime) == 1 ? substitute(bc.lhs,depvarderivmaps[i]) : bc.lhs
-            
+
             # Replace symbol in the bc lhs with the spatial discretized term
             lhs = substitute(lhs,depvarmaps[i])
             rhs = substitute.((bc.rhs,),edgemaps[i])
@@ -139,21 +139,4 @@ function SciMLBase.discretize(pdesys::ModelingToolkit.PDESystem,discretization::
     sys, tspan = SciMLBase.symbolic_discretize(pdesys,discretization)
     simpsys = structural_simplify(sys)
     prob = ODEProblem(simpsys,Pair[],tspan)
-end
-
-# Piracy, to be deleted when https://github.com/JuliaSymbolics/SymbolicUtils.jl/pull/251
-# merges
-Base.occursin(needle::ModelingToolkit.SymbolicUtils.Symbolic, haystack::ModelingToolkit.SymbolicUtils.Symbolic) = _occursin(needle, haystack)
-Base.occursin(needle, haystack::ModelingToolkit.SymbolicUtils.Symbolic) = _occursin(needle, haystack)
-Base.occursin(needle::ModelingToolkit.SymbolicUtils.Symbolic, haystack) = _occursin(needle, haystack)
-function _occursin(needle, haystack)
-    isequal(needle, haystack) && return true
-
-    if istree(haystack)
-        args = arguments(haystack)
-        for arg in args
-            occursin(needle, arg) && return true
-        end
-    end
-    return false
 end
