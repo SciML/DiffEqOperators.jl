@@ -15,6 +15,7 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
     pdeeqs = pdesys.eqs isa Vector ? pdesys.eqs : [pdesys.eqs]
     t = discretization.time
     nottime = filter(x->x.val != t.val,pdesys.indvars)
+    nspace = length(nottime)
 
     # Discretize space
     space = map(nottime) do x
@@ -33,13 +34,13 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
     depvars = map(pdesys.depvars) do u
         [Num(Variable{Symbolics.FnType{Tuple{Any}, Real}}(Base.nameof(ModelingToolkit.operation(u.val)),II.I...))(t) for II in indices]
     end
-    spacevals = map(y->[Pair(nottime[i],space[i][y.I[i]]) for i in 1:length(nottime)],indices)
+    spacevals = map(y->[Pair(nottime[i],space[i][y.I[i]]) for i in 1:nspace],indices)
 
 
     ### INITIAL AND BOUNDARY CONDITIONS ###
     # Build symbolic maps for boundaries
-    edges = reduce(vcat,[[vcat([Colon() for j in 1:i-1],1,[Colon() for j in i+1:length(nottime)]),
-      vcat([Colon() for j in 1:i-1],size(depvars[1],i),[Colon() for j in i+1:length(nottime)])] for i in 1:length(nottime)])
+    edges = reduce(vcat,[[vcat([Colon() for j in 1:i-1],1,[Colon() for j in i+1:nspace]),
+      vcat([Colon() for j in 1:i-1],size(depvars[1],i),[Colon() for j in i+1:nspace])] for i in 1:nspace])
 
     #edgeindices = [indices[e...] for e in edges]
     edgevals = reduce(vcat,[[nottime[i]=>first(space[i]),nottime[i]=>last(space[i])] for i in 1:length(space)])
@@ -51,11 +52,11 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
     subvar(depvar) = substitute.((depvar,),edgevals)
     depvarmaps = reduce(vcat,[subvar(depvar) .=> edgevars[i] for (i, depvar) in enumerate(pdesys.depvars)])
     # depvarderivmaps will dictate what to replace the Differential terms with
-    if length(nottime) == 1
+    if nspace == 1
         # 1D system
-        left_weights(j) = DiffEqOperators.calculate_weights(discretization.upwind_order, 0.0, space[j][1:2])
-        right_weights(j) = DiffEqOperators.calculate_weights(discretization.upwind_order, 0.0, space[j][end-1:end])
-        central_neighbor_idxs(i,j) = [i+CartesianIndex([ifelse(l==j,-1,0) for l in 1:length(nottime)]...),i,i+CartesianIndex([ifelse(l==j,1,0) for l in 1:length(nottime)]...)]
+        left_weights(j) = DiffEqOperators.calculate_weights(discretization.upwind_order, space[j][1], space[j][1:2])
+        right_weights(j) = DiffEqOperators.calculate_weights(discretization.upwind_order, space[j][end], space[j][end-1:end])
+        central_neighbor_idxs(i,j) = [i+CartesianIndex([ifelse(l==j,-1,0) for l in 1:nspace]...),i,i+CartesianIndex([ifelse(l==j,1,0) for l in 1:nspace]...)]
         left_idxs = central_neighbor_idxs(CartesianIndex(2),1)[1:2]
         right_idxs(j) = central_neighbor_idxs(CartesianIndex(length(space[j])-1),1)[end-1:end]
         # Constructs symbolic spatially discretized terms of the form e.g. au₂ - bu₁
@@ -86,7 +87,7 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
 
             # Replace Differential terms in the bc lhs with the symbolic spatially discretized terms
             # TODO: Fix Neumann and Robin on higher dimension
-            lhs = length(nottime) == 1 ? substitute(bc.lhs,depvarderivmaps[i]) : bc.lhs
+            lhs = nspace == 1 ? substitute(bc.lhs,depvarderivmaps[i]) : bc.lhs
 
             # Replace symbol in the bc lhs with the spatial discretized term
             lhs = substitute(lhs,depvarmaps[i])
@@ -101,28 +102,42 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
     ### PDE EQUATIONS ###
     interior = indices[[2:length(s)-1 for s in space]...]
     eqs = vec(map(Base.product(interior,pdeeqs)) do p
-        i,eq = p
-
-        # TODO: Number of points in the central_neighbor_idxs should be dependent
-        # on discretization.centered_order
+        II,eq = p
+    
+        # Create a stencil in the required dimension centered around 0
+        # e.g. (-1,0,1) for 2nd order, (-2,-1,0,1,2) for 4th order, etc
+        order = discretization.centered_order
+        stencil_indices(j) = [1:ifelse(l==j,order+1,1) for l in 1:nspace]
+        stencil_shift(j) = [ifelse(l==j,order÷2+1,1) for l in 1:nspace]
+        stencil(j) = CartesianIndices(Tuple(stencil_indices(j))) .- CartesianIndex(stencil_shift(j)...)
+    
         # TODO: Generalize central difference handling to allow higher even order derivatives
-        central_neighbor_idxs(i,j) = [i+CartesianIndex([ifelse(l==j,-1,0) for l in 1:length(nottime)]...),i,i+CartesianIndex([ifelse(l==j,1,0) for l in 1:length(nottime)]...)]
-        central_weights(i,j) = DiffEqOperators.calculate_weights(2, 0.0, space[j][i[j]-1:i[j]+1])
-        central_deriv(i,j,k) = dot(central_weights(i,j),depvars[k][central_neighbor_idxs(i,j)])
-        central_deriv_rules = [(Differential(s)^2)(pdesys.depvars[k]) => central_deriv(i,j,k) for (j,s) in enumerate(nottime), k in 1:length(pdesys.depvars)]
-        valrules = vcat([pdesys.depvars[k] => depvars[k][i] for k in 1:length(pdesys.depvars)],
-                        [nottime[j] => space[j][i[j]] for j in 1:length(nottime)])
+        # The central neighbour indices should add the stencil to II, unless II is too close
+        # to an edge in which case we need to shift away from the edge
+        # Calculate buffers
+        I1 = oneunit(first(indices))
+        Imin = first(indices) + I1 * (order÷2)
+        Imax = last(indices) - I1 * (order÷2)
+        # Use max and min to apply buffers
+        central_neighbor_idxs(II,j) = stencil(j) .+ max(Imin,min(II,Imax))
+        central_neighbor_space(II,j) = vec(space[j][map(i->i[j],central_neighbor_idxs(II,j))])
+        central_weights(II,j) = DiffEqOperators.calculate_weights(2, space[j][II[j]], central_neighbor_space(II,j))
+        central_deriv(II,j,k) = dot(central_weights(II,j),depvars[k][central_neighbor_idxs(II,j)])
 
+        central_deriv_rules = [(Differential(s)^2)(u) => central_deriv(II,j,k) for (j,s) in enumerate(nottime), (k,u) in enumerate(pdesys.depvars)]
+        valrules = vcat([pdesys.depvars[k] => depvars[k][II] for k in 1:length(pdesys.depvars)],
+                        [nottime[j] => space[j][II[j]] for j in 1:nspace])
+    
         # TODO: Use rule matching for nonlinear Laplacian
-
+    
         # TODO: upwind rules needs interpolation into `@rule`
         #forward_weights(i,j) = DiffEqOperators.calculate_weights(discretization.upwind_order, 0.0, [space[j][i[j]],space[j][i[j]+1]])
         #reverse_weights(i,j) = DiffEqOperators.calculate_weights(discretization.upwind_order, 0.0, [space[j][i[j]-1],space[j][i[j]]])
         #upwinding_rules = [@rule(*(~~a,(Differential(nottime[j]))(u),~~b) => IfElse.ifelse(*(~~a..., ~~b...,)>0,
         #                        *(~~a..., ~~b..., dot(reverse_weights(i,j),depvars[k][central_neighbor_idxs(i,j)[1:2]])),
         #                        *(~~a..., ~~b..., dot(forward_weights(i,j),depvars[k][central_neighbor_idxs(i,j)[2:3]]))))
-        #                        for j in 1:length(nottime), k in 1:length(pdesys.depvars)]
-
+        #                        for j in 1:nspace, k in 1:length(pdesys.depvars)]
+    
         rules = vcat(vec(central_deriv_rules),valrules)
         substitute(eq.lhs,rules) ~ substitute(eq.rhs,rules)
     end)
