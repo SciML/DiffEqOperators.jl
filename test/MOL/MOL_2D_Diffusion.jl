@@ -37,12 +37,15 @@ using ModelingToolkit: Differential
 
     # Method of lines discretization
     dx = 0.1; dy = 0.2
-    discretization = MOLFiniteDifference([x=>dx,y=>dy],t)
-    prob = ModelingToolkit.discretize(pdesys,discretization)
-    sol = solve(prob,Tsit5())
+    for order in [2,4,6]
+        discretization = MOLFiniteDifference([x=>dx,y=>dy],t;centered_order=order)
+        prob = ModelingToolkit.discretize(pdesys,discretization)
+        sol = solve(prob,Tsit5())
 
-    # Test against exact solution
-    # TODO: do this properly when sol[u] with reshape etc works
-    @test sol.u[1][1] ≈ analytic_sol_func(sol.t[1],0.1,0.2)
-    @test sol.u[1][2] ≈ analytic_sol_func(sol.t[1],0.2,0.2)
+        # Test against exact solution
+        # TODO: do this properly when sol[u] with reshape etc works
+        @test sol.u[1][1] ≈ analytic_sol_func(sol.t[1],0.1,0.2)
+        @test sol.u[1][2] ≈ analytic_sol_func(sol.t[1],0.2,0.2)
+
+    end
 end
