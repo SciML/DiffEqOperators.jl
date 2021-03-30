@@ -36,14 +36,18 @@ using ModelingToolkit: Differential
     discretization = MOLFiniteDifference([x=>dx],t)
     # Explicitly specify order of centered difference
     discretization_centered = MOLFiniteDifference([x=>dx],t;centered_order=order)
+    # Higher order centered difference
+    discretization_centered_order4 = MOLFiniteDifference([x=>dx],t;centered_order=4)
 
     # Convert the PDE problem into an ODE problem
     prob = discretize(pdesys,discretization)
     prob_centered = discretize(pdesys,discretization_centered)
+    prob_centered_order4 = discretize(pdesys,discretization_centered_order4)
 
     # Solve ODE problem
     sol = solve(prob,Tsit5(),saveat=0.1)
     sol_centered = solve(prob_centered,Tsit5(),saveat=0.1)
+    sol_centered_order4 = solve(prob_centered_order4,Tsit5(),saveat=0.1)
 
     x = dx[2:end-1]
     t = sol.t
@@ -53,10 +57,13 @@ using ModelingToolkit: Differential
         exact = u_exact(x, t[i])
         u_approx = sol.u[i]
         u_approx_centered = sol_centered.u[i]
+        u_approx_centered_order4 =sol_centered_order4.u[i]
         @test u_approx ≈ exact atol=0.01
         @test u_approx_centered ≈ exact atol=0.01
+        @test u_approx_centered_order4 ≈ exact atol=0.01
     end
 end
+
 
 @testset "Test 01: Dt(u(t,x)) ~ D*Dxx(u(t,x))" begin
     # Parameters, variables, and derivatives
