@@ -107,9 +107,7 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
         # Create a stencil in the required dimension centered around 0
         # e.g. (-1,0,1) for 2nd order, (-2,-1,0,1,2) for 4th order, etc
         order = discretization.centered_order
-        stencil_indices(j) = [1:ifelse(l==j,order+1,1) for l in 1:nspace]
-        stencil_shift(j) = [ifelse(l==j,order÷2+1,1) for l in 1:nspace]
-        stencil(j) = CartesianIndices(Tuple(stencil_indices(j))) .- CartesianIndex(stencil_shift(j)...)
+        stencil(j) = CartesianIndices(Tuple(map(x -> -x:x, (1:nspace.==j) * (order÷2))))
     
         # TODO: Generalize central difference handling to allow higher even order derivatives
         # The central neighbour indices should add the stencil to II, unless II is too close
