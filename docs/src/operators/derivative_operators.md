@@ -96,7 +96,7 @@ CenteredDifference{N}(derivative_order::Int,
 
 UpwindDifference{N}(derivative_order::Int,
                     approximation_order::Int, dx
-                    len::Int, coeff_func=nothing)
+                    len::Int, coeff_func=nothing; offside::Int=0)
 ```
 
 The arguments are:
@@ -114,6 +114,9 @@ The arguments are:
   then the coefficients are set to be constant with that number. If `coeff_func`
   is an `AbstractArray` with length matching `len`, then the coefficients are
   constant but spatially dependent.
+- `offside`: A keyword argument for `UpwindDifference` which sets the number of offside
+  points against the primary wind direction allowing it to have some bias/offset. Number
+  of points used for approximation remain same. By default its `0`.
 
 `N`-dimensional derivative operators need to act against a value of at least
 `N` dimensions.
