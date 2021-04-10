@@ -14,18 +14,18 @@ MOLFiniteDifference(dxs, time; upwind_order = 1, centered_order = 2) =
 function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discretization::DiffEqOperators.MOLFiniteDifference)
     pdeeqs = pdesys.eqs isa Vector ? pdesys.eqs : [pdesys.eqs]
     t = discretization.time
-    nottime = filter(x->x.val != t.val,pdesys.indvars)
+    nottime = filter(x->~isequal(x.val, t.val),pdesys.indvars)
     nspace = length(nottime)
 
     # Discretize space
     space = map(nottime) do x
-        xdomain = pdesys.domain[findfirst(d->x.val == d.variables,pdesys.domain)]
+        xdomain = pdesys.domain[findfirst(d->isequal(x.val, d.variables),pdesys.domain)]
         @assert xdomain.domain isa IntervalDomain
-        dx = discretization.dxs[findfirst(dxs->x.val == dxs[1].val,discretization.dxs)][2]
+        dx = discretization.dxs[findfirst(dxs->isequal(x.val, dxs[1].val),discretization.dxs)][2]
         dx isa Number ? (xdomain.domain.lower:dx:xdomain.domain.upper) : dx
     end
     # Get tspan
-    tdomain = pdesys.domain[findfirst(d->t.val == d.variables,pdesys.domain)]
+    tdomain = pdesys.domain[findfirst(d->isequal(t.val, d.variables),pdesys.domain)]
     @assert tdomain.domain isa IntervalDomain
     tspan = (tdomain.domain.lower,tdomain.domain.upper)
 
@@ -77,7 +77,7 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
     u0 = []
     bceqs = []
     for bc in pdesys.bcs
-        if ModelingToolkit.operation(bc.lhs) isa Sym && t.val ∉ ModelingToolkit.arguments(bc.lhs)
+        if ModelingToolkit.operation(bc.lhs) isa Sym && ~any(x -> isequal(x, t.val), ModelingToolkit.arguments(bc.lhs))
             # initial condition
             # Assume in the form `u(...) ~ ...` for now
             push!(u0,vec(depvars[findfirst(isequal(bc.lhs),initmaps)] .=> substitute.((bc.rhs,),spacevals)))
