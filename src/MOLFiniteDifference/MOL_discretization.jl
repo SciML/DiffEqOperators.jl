@@ -135,7 +135,23 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
         #                        *(~~a..., ~~b..., dot(reverse_weights(i,j),depvars[k][central_neighbor_idxs(i,j)[1:2]])),
         #                        *(~~a..., ~~b..., dot(forward_weights(i,j),depvars[k][central_neighbor_idxs(i,j)[2:3]]))))
         #                        for j in 1:nspace, k in 1:length(pdesys.depvars)]
-    
+        
+        # Advances regarding issue https://github.com/SciML/DiffEqOperators.jl/issues/354
+        #b1 = dot(reverse_weights(i,j), depvars[j][central_neighbor_idxs(i,j)[1:2]]) / dx
+        #b2 = dot(forward_weights(i,j), depvars[j][central_neighbor_idxs(i,j)[2:3]]) / dx
+        #a1 = dot(0.5 / dx^2 * [1.0, -2.0, 1.0], depvars[j][central_neighbor_idxs(i,j)])
+        #a2 = dot(0.5 / dx * [-3.0, 4.0, -1.0], depvars[j][central_neighbor_idxs(i,j)])
+        #a3 = depvars[j][central_neighbor_idxs(i,j)][1]
+        #g(x) = a1 * x^2 + a2 * x + a3
+        #x_mid = [ (space[j][i[j]] + space[j][i[j]-1]) / 2.0, # x(i-1/2)
+        #          (space[j][i[j]] + space[j][i[j]+1]) / 2.0 ] # x(i+1/2)
+        #r_mid_dep(l) = [pdesys.depvars[k] => g(x_mid[l]) for k in 1:length(pdesys.depvars)]
+        #r_mid_indep(l) = [nottime[j] => x_mid[l] for j in 1:length(nottime)]
+        #r = @rule Dx(*(~~a,Dx(u(t, x)),~~b)) => 
+        #                dot([Num(substitute(substitute(*(~~a...,~~b...), r_mid_dep(1)), r_mid_indep(1))),
+        #                     Num(substitute(substitute(*(~~a...,~~b...), r_mid_dep(2)), r_mid_indep(2)))],
+        #                     [-b1, b2])
+        
         rules = vcat(vec(central_deriv_rules),valrules)
         substitute(eq.lhs,rules) ~ substitute(eq.rhs,rules)
     end)
