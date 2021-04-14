@@ -137,20 +137,27 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
         #                        for j in 1:nspace, k in 1:length(pdesys.depvars)]
         
         # Advances regarding issue https://github.com/SciML/DiffEqOperators.jl/issues/354
-        #b1 = dot(reverse_weights(i,j), depvars[j][central_neighbor_idxs(i,j)[1:2]]) / dx
-        #b2 = dot(forward_weights(i,j), depvars[j][central_neighbor_idxs(i,j)[2:3]]) / dx
-        #a1 = dot(0.5 / dx^2 * [1.0, -2.0, 1.0], depvars[j][central_neighbor_idxs(i,j)])
-        #a2 = dot(0.5 / dx * [-3.0, 4.0, -1.0], depvars[j][central_neighbor_idxs(i,j)])
-        #a3 = depvars[j][central_neighbor_idxs(i,j)][1]
-        #g(x) = a1 * x^2 + a2 * x + a3
-        #x_mid = [ (space[j][i[j]] + space[j][i[j]-1]) / 2.0, # x(i-1/2)
-        #          (space[j][i[j]] + space[j][i[j]+1]) / 2.0 ] # x(i+1/2)
-        #r_mid_dep(l) = [pdesys.depvars[k] => g(x_mid[l]) for k in 1:length(pdesys.depvars)]
-        #r_mid_indep(l) = [nottime[j] => x_mid[l] for j in 1:length(nottime)]
-        #r = @rule Dx(*(~~a,Dx(u(t, x)),~~b)) => 
-        #                dot([Num(substitute(substitute(*(~~a...,~~b...), r_mid_dep(1)), r_mid_indep(1))),
-        #                     Num(substitute(substitute(*(~~a...,~~b...), r_mid_dep(2)), r_mid_indep(2)))],
-        #                     [-b1, b2])
+        ### Discretization of non-linear laplacian. 
+        ## d/dx( a du/dx ) ~ (a(x+1/2) * (u[i+1] - u[i]) - a(x-1/2) * (u[i] - u[i-1]) / dx^2
+        #b1(i, j, k) = dot(reverse_weights(i, j), depvars[k][central_neighbor_idxs(i, j)[1:2]]) / dxs[j]
+        #b2(i, j, k) = dot(forward_weights(i, j), depvars[k][central_neighbor_idxs(i, j)[2:3]]) / dxs[j]
+        ## g(x) = u(x)
+        #a1(i, j, k) = dot(0.5 / dxs[j]^2 * [1.0, -2.0, 1.0], depvars[k][central_neighbor_idxs(i, j)])
+        #a2(i, j, k) = dot(0.5 / dxs[j] * [-3.0, 4.0, -1.0], depvars[k][central_neighbor_idxs(i, j)])
+        #a3(i, j, k) = depvars[j][central_neighbor_idxs(i, j)][1]
+        #g(x, i, j, k) = a1(i, j, k) * x^2 + a2(i, j, k) * x + a3(i, j, k)
+        ## iv_mid returns middle space values. E.g. x(i-1/2) or y(i+1/2).
+        #iv_mid(i, j, l) = (space[j][i[j]] + space[j][i[j]+l]) / 2.0 
+        ## Dependent variable rules
+        #r_mid_dep(i, j, k, l) = [depvars0[k] => g(iv_mid(i, j, l), i, j, k) for k in 1:length(depvars0)]
+        ## Independent variable rules
+        #r_mid_indep(i, j, l) = [nottime[j] => iv_mid(i, j, l) for j in 1:length(nottime)]
+        ## Replacement rules
+        #r = Chain([@rule( (Differential(iv))(*(~~a, (Differential(iv))(dv), ~~b)) => 
+        #                dot([ Num(substitute(substitute(*(~~a..., ~~b...), r_mid_dep(i, j, k, -1)), r_mid_indep(i, j, -1))),
+        #                      Num(substitute(substitute(*(~~a..., ~~b...), r_mid_dep(i, j, k, 1)), r_mid_indep(i, j, 1))) ],
+        #                      [-b1(i, j, k), b2(i, j, k)]))
+        #                for (j, iv) in enumerate(nottime), (k, dv) in enumerate(depvars0)])
         
         rules = vcat(vec(central_deriv_rules),valrules)
         substitute(eq.lhs,rules) ~ substitute(eq.rhs,rules)
