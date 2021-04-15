@@ -149,15 +149,15 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
         ## iv_mid returns middle space values. E.g. x(i-1/2) or y(i+1/2).
         #iv_mid(i, j, l) = (space[j][i[j]] + space[j][i[j]+l]) / 2.0 
         ## Dependent variable rules
-        #r_mid_dep(i, j, k, l) = [depvars0[k] => g(iv_mid(i, j, l), i, j, k) for k in 1:length(depvars0)]
+        #r_mid_dep(i, j, k, l) = [upwinding_rules[k] => g(iv_mid(i, j, l), i, j, k) for k in 1:length(pdesys.depvars)]
         ## Independent variable rules
         #r_mid_indep(i, j, l) = [nottime[j] => iv_mid(i, j, l) for j in 1:length(nottime)]
         ## Replacement rules
-        #r = Chain([@rule( (Differential(iv))(*(~~a, (Differential(iv))(dv), ~~b)) => 
-        #                dot([ Num(substitute(substitute(*(~~a..., ~~b...), r_mid_dep(i, j, k, -1)), r_mid_indep(i, j, -1))),
-        #                      Num(substitute(substitute(*(~~a..., ~~b...), r_mid_dep(i, j, k, 1)), r_mid_indep(i, j, 1))) ],
-        #                      [-b1(i, j, k), b2(i, j, k)]))
-        #                for (j, iv) in enumerate(nottime), (k, dv) in enumerate(depvars0)])
+        #nonlinlap_rules = RestartedChain([@acrule(+($(Differential(iv))(*(~~a, $(Differential(iv))(dv), ~~b)), ~~c)) =>
+        #      +(dot([ Num(substitute(substitute(*(~~a..., ~~b...), r_mid_dep(i, j, k, -1)), r_mid_indep(i, j, -1))),
+        #              Num(substitute(substitute(*(~~a..., ~~b...), r_mid_dep(i, j, k, 1)), r_mid_indep(i, j, 1))) ],
+        #            [-b1(i, j, k), b2(i, j, k)]), ~~c...)
+        #      for (j, iv) in enumerate(nottime) for (k, dv) in enumerate(pdesys.depvars)])
         
         rules = vcat(vec(central_deriv_rules),valrules)
         substitute(eq.lhs,rules) ~ substitute(eq.rhs,rules)
