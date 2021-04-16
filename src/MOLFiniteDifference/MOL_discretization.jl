@@ -17,13 +17,15 @@ function calculate_weights_general(order::Int, x0::T, xs::AbstractVector, idxs::
  end
  function calculate_weights_general(order::Int, x0::T, x::AbstractVector, idxs::AbstractVector, domain::AxisymmetricSphereDomain) where T<:Real
         # Spherical domain: see #367
+        # https://web.mit.edu/braatzgroup/analysis_of_finite_difference_discretization_schemes_for_diffusion_in_spheres_with_variable_diffusivity.pdf
         # Only order 2 is implemented
         @assert order == 2
         # TODO: nonlinear diffusion in a spherical domain
-        i = idxs[2]
+        i = idxs[2] 
         dx1 = x[i] - x[i-1]
         dx2 = x[i+1] - x[i]
-        1 / (i * dx1 * dx2) * [i-1, -2i, i+1]
+        i0 = i - 1 # indexing starts at 0 in the paper and starts at 1 in julia
+        1 / (i0 * dx1 * dx2) * [i0-1, -2i0, i0+1]
  end
  
 
@@ -77,7 +79,7 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
         # 1D system
         left_weights(j) = DiffEqOperators.calculate_weights(discretization.upwind_order, space[j][1], space[j][1:2])
         right_weights(j) = DiffEqOperators.calculate_weights(discretization.upwind_order, space[j][end], space[j][end-1:end])
-        central_neighbor_idxs(i,j) = [i+CartesianIndex([ifelse(l==j,-1,0) for l in 1:nspace]...),i,i+CartesianIndex([ifelse(l==j,1,0) for l in 1:nspace]...)]
+        central_neighbor_idxs(II,j) = [II-CartesianIndex((1:nspace.==j)...),II,II+CartesianIndex((1:nspace.==j)...)]
         left_idxs = central_neighbor_idxs(CartesianIndex(2),1)[1:2]
         right_idxs(j) = central_neighbor_idxs(CartesianIndex(length(space[j])-1),1)[end-1:end]
         # Constructs symbolic spatially discretized terms of the form e.g. au₂ - bu₁
@@ -139,7 +141,7 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
         Imax = last(indices) - I1 * (order÷2)
         # Use max and min to apply buffers
         central_neighbor_idxs(II,j) = stencil(j) .+ max(Imin,min(II,Imax))
-        central_weights(II,j) = calculate_weights_general(2, space[j][II[j]], space[j], map(i->i[j], central_neighbor_idxs(II,j)), spacedomains[j])
+        central_weights(II,j) = calculate_weights_general(2, space[j][II[j]], space[j], vec(map(i->i[j], central_neighbor_idxs(II,j))), spacedomains[j])
         central_deriv(II,j,k) = dot(central_weights(II,j),depvars[k][central_neighbor_idxs(II,j)])
 
         # TODO: detect Laplacian in general form
