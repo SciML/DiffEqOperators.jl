@@ -84,7 +84,7 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
         right_idxs(j) = central_neighbor_idxs(CartesianIndex(length(space[j])-1),1)[end-1:end]
         # Constructs symbolic spatially discretized terms of the form e.g. au₂ - bu₁
         derivars = [[dot(left_weights(j),depvar[left_idxs]), dot(right_weights(j),depvar[right_idxs(j)])]
-                for (j, depvar) in enumerate(depvars)]
+                    for (j, depvar) in enumerate(depvars)]
         # Create list of all the symbolic Differential terms evaluated at boundary e.g. Differential(x)(u(t,0))
         subderivar(depvar,s) = substitute.((Differential(s)(depvar),),edgevals)
         # Create map of symbolic Differential terms with symbolic spatially discretized terms
@@ -105,18 +105,18 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
             # Assume in the form `u(...) ~ ...` for now
             push!(u0,vec(depvars[findfirst(isequal(bc.lhs),initmaps)] .=> substitute.((bc.rhs,),spacevals)))
         else
-        # Algebraic equations for BCs
-        i = findfirst(x->occursin(x.val,bc.lhs),first.(depvarmaps))
+            # Algebraic equations for BCs
+            i = findfirst(x->occursin(x.val,bc.lhs),first.(depvarmaps))
 
-        # Replace Differential terms in the bc lhs with the symbolic spatially discretized terms
-        # TODO: Fix Neumann and Robin on higher dimension
-        lhs = nspace == 1 ? substitute(bc.lhs,depvarderivmaps[i]) : bc.lhs
+            # Replace Differential terms in the bc lhs with the symbolic spatially discretized terms
+            # TODO: Fix Neumann and Robin on higher dimension
+            lhs = nspace == 1 ? substitute(bc.lhs,depvarderivmaps[i]) : bc.lhs
 
-        # Replace symbol in the bc lhs with the spatial discretized term
-        lhs = substitute(lhs,depvarmaps[i])
-        rhs = substitute.((bc.rhs,),edgemaps[i])
-        lhs = lhs isa Vector ? lhs : [lhs] # handle 1D
-        push!(bceqs,lhs .~ rhs)
+            # Replace symbol in the bc lhs with the spatial discretized term
+            lhs = substitute(lhs,depvarmaps[i])
+            rhs = substitute.((bc.rhs,),edgemaps[i])
+            lhs = lhs isa Vector ? lhs : [lhs] # handle 1D
+            push!(bceqs,lhs .~ rhs)
         end
     end
     u0 = reduce(vcat,u0)
