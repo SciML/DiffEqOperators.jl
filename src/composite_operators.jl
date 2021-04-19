@@ -21,7 +21,7 @@ struct DiffEqOperatorCombination{T,O<:Tuple{Vararg{AbstractDiffEqLinearOperator{
 end
 +(ops::AbstractDiffEqLinearOperator...) = DiffEqOperatorCombination(ops)
 +(op::AbstractDiffEqLinearOperator, A::AbstractMatrix) = op + DiffEqArrayOperator(A)
-+(op::AbstractDiffEqLinearOperator{T}, α::UniformScaling) where T = op + DiffEqArrayOperator(UniformScaling(T(α.λ))(size(op,1)))
++(op::AbstractDiffEqLinearOperator{T}, α::UniformScaling) where T = op + UniformScaling(T(α.λ))(size(op,1))
 +(A::AbstractMatrix, op::AbstractDiffEqLinearOperator) = op + A
 +(α::UniformScaling, op::AbstractDiffEqLinearOperator) = op + α
 +(L1::DiffEqOperatorCombination, L2::AbstractDiffEqLinearOperator) = DiffEqOperatorCombination((L1.ops..., L2))
