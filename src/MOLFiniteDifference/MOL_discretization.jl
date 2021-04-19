@@ -42,20 +42,21 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
     ### INITIAL AND BOUNDARY CONDITIONS ###
     # Build symbolic maps for boundaries
     edges = reduce(vcat,[[vcat([Colon() for j in 1:i-1],1,[Colon() for j in i+1:nspace]),
-    vcat([Colon() for j in 1:i-1],size(depvarsdisc[1],i),[Colon() for j in i+1:nspace])] for i in 1:nspace])
+      vcat([Colon() for j in 1:i-1],size(depvarsdisc[1],i),[Colon() for j in i+1:nspace])] for i in 1:nspace])
 
     #edgeindices = [indices[e...] for e in edges]
     edgevals = reduce(vcat,[[nottime[i]=>first(space[i]),nottime[i]=>last(space[i])] for i in 1:length(space)])
     edgevars = [[d[e...] for e in edges] for d in depvarsdisc]
-
+    
     bclocs = map(e->substitute.(pdesys.indvars,e),edgevals) # location of the boundary conditions e.g. (t,0.0,y)
     edgemaps = Dict(bclocs .=> [spacevals[e...] for e in edges])
     initmaps = substitute.(depvars,[t=>tspan[1]])
 
     # Generate map from variable (e.g. u(t,0)) to discretized variable (e.g. u₁(t))
     subvar(depvar) = substitute.((depvar,),edgevals)
-    depvarmaps = reduce(vcat,[subvar(depvar) .=> edgevar for (depvar, edgevar) in zip(depvars, edgevars)])
-    # depvarderivmaps will dictate what to replace the Differential terms with
+    # depvarbcmaps will dictate what to replace the variable terms with in the bcs
+    depvarbcmaps = reduce(vcat,[subvar(depvar) .=> edgevar for (depvar, edgevar) in zip(depvars, edgevars)])
+    # depvarderivbcmaps will dictate what to replace the Differential terms with in the bcs
     if nspace == 1
         # 1D system
         left_weights(j) = DiffEqOperators.calculate_weights(discretization.upwind_order, space[j][1], space[j][1:2])
@@ -69,13 +70,13 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
         # Create list of all the symbolic Differential terms evaluated at boundary e.g. Differential(x)(u(t,0))
         subderivar(depvar,s) = substitute.((Differential(s)(depvar),),edgevals)
         # Create map of symbolic Differential terms with symbolic spatially discretized terms
-        depvarderivmaps = reduce(vcat,[subderivar(depvar, s) .=> derivars[i]
-                                    for (i, depvar) in enumerate(depvars) for s in nottime])
-    else
+        depvarderivbcmaps = reduce(vcat,[subderivar(depvar, s) .=> derivars[i]
+                                       for (i, depvar) in enumerate(depvars) for s in nottime])
+   else
         # Higher dimension
         # TODO: Fix Neumann and Robin on higher dimension
-        depvarderivmaps = []
-    end
+        depvarderivbcmaps = []
+   end
 
     # Generate initial conditions and bc equations
     u0 = []
@@ -87,15 +88,14 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
             push!(u0,vec(depvarsdisc[findfirst(isequal(bc.lhs),initmaps)] .=> substitute.((bc.rhs,),spacevals)))
         else
             # Algebraic equations for BCs
-            i = findfirst(x->occursin(x.val,bc.lhs),first.(depvarmaps))
-            bcargs = bc.lhs.arguments
-
+            i = findfirst(x->occursin(x.val,bc.lhs),first.(depvarbcmaps))
+            bcargs = first(depvarbcmaps[i]).val.arguments
             # Replace Differential terms in the bc lhs with the symbolic spatially discretized terms
             # TODO: Fix Neumann and Robin on higher dimension
-            lhs = nspace == 1 ? substitute(bc.lhs,depvarderivmaps[i]) : bc.lhs
+            lhs = nspace == 1 ? substitute(bc.lhs,depvarderivbcmaps[i]) : bc.lhs
 
             # Replace symbol in the bc lhs with the spatial discretized term
-            lhs = substitute(lhs,depvarmaps[i])
+            lhs = substitute(lhs,depvarbcmaps[i])
             rhs = substitute.((bc.rhs,),edgemaps[bcargs])
             lhs = lhs isa Vector ? lhs : [lhs] # handle 1D
             push!(bceqs,lhs .~ rhs)
@@ -109,12 +109,12 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
     interior = indices[[2:length(s)-1 for s in space]...]
     eqs = vec(map(Base.product(interior,pdeeqs)) do p
         II,eq = p
-
+    
         # Create a stencil in the required dimension centered around 0
         # e.g. (-1,0,1) for 2nd order, (-2,-1,0,1,2) for 4th order, etc
         order = discretization.centered_order
         stencil(j) = CartesianIndices(Tuple(map(x -> -x:x, (1:nspace.==j) * (order÷2))))
-
+    
         # TODO: Generalize central difference handling to allow higher even order derivatives
         # The central neighbour indices should add the stencil to II, unless II is too close
         # to an edge in which case we need to shift away from the edge
@@ -131,9 +131,9 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
         central_deriv_rules = [(Differential(s)^2)(u) => central_deriv(II,j,k) for (j,s) in enumerate(nottime), (k,u) in enumerate(depvars)]
         valrules = vcat([depvars[k] => depvarsdisc[k][II] for k in 1:length(depvars)],
                         [nottime[j] => space[j][II[j]] for j in 1:nspace])
-
+    
         # TODO: Use rule matching for nonlinear Laplacian
-
+    
         # TODO: upwind rules needs interpolation into `@rule`
         #forward_weights(i,j) = DiffEqOperators.calculate_weights(discretization.upwind_order, 0.0, [space[j][i[j]],space[j][i[j]+1]])
         #reverse_weights(i,j) = DiffEqOperators.calculate_weights(discretization.upwind_order, 0.0, [space[j][i[j]-1],space[j][i[j]]])
@@ -141,7 +141,7 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
         #                        *(~~a..., ~~b..., dot(reverse_weights(i,j),depvarsdisc[k][central_neighbor_idxs(i,j)[1:2]])),
         #                        *(~~a..., ~~b..., dot(forward_weights(i,j),depvarsdisc[k][central_neighbor_idxs(i,j)[2:3]]))))
         #                        for j in 1:nspace, k in 1:length(depvars)]
-
+    
         rules = vcat(vec(central_deriv_rules),valrules)
         substitute(eq.lhs,rules) ~ substitute(eq.rhs,rules)
     end)
@@ -152,8 +152,6 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
     # Combine PDE equations and BC equations
     sys = ODESystem(vcat(eqs,unique(bceqs)),t,vec(reduce(vcat,vec(depvarsdisc))),ps,defaults=Dict(defaults))
     sys, tspan
-
-
 end
 
 function SciMLBase.discretize(pdesys::ModelingToolkit.PDESystem,discretization::DiffEqOperators.MOLFiniteDifference)
