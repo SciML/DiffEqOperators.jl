@@ -41,6 +41,10 @@ include("derivative_operators/ghost_derivative_operator.jl")
 include("derivative_operators/derivative_operator_functions.jl")
 include("derivative_operators/coefficient_functions.jl")
 
+### Vector Calculus Operators
+include("derivative_operators/vector_calculus_operator.jl")
+include("derivative_operators/vector_calculus_convolutions.jl")
+
 ### Composite Operators
 include("composite_operators.jl")
 include("docstrings.jl")
@@ -59,8 +63,8 @@ end
 
 export MatrixFreeOperator
 export AnalyticalJacVecOperator, JacVecOperator, getops
-export AbstractDerivativeOperator, DerivativeOperator,
-       CenteredDifference, UpwindDifference, nonlinear_diffusion, nonlinear_diffusion!
+export AbstractDerivativeOperator, DerivativeOperator, CompositeVectorDerivativeOperator,
+       CenteredDifference, UpwindDifference, nonlinear_diffusion, nonlinear_diffusion!, GradientOperator
 export DirichletBC, Dirichlet0BC, NeumannBC, Neumann0BC, RobinBC, GeneralBC, MultiDimBC, PeriodicBC,
        MultiDimDirectionalBC, ComposedMultiDimBC
 export compose, decompose, perpsize
