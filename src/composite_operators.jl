@@ -20,10 +20,18 @@ struct DiffEqOperatorCombination{T,O<:Tuple{Vararg{AbstractDiffEqLinearOperator{
     end
 end
 +(ops::AbstractDiffEqLinearOperator...) = DiffEqOperatorCombination(ops)
++(op::AbstractDiffEqLinearOperator, A::AbstractMatrix) = op + DiffEqArrayOperator(A)
++(op::AbstractDiffEqLinearOperator{T}, α::UniformScaling) where T = op + DiffEqArrayOperator(UniformScaling(T(α.λ))(size(op,1)))
++(A::AbstractMatrix, op::AbstractDiffEqLinearOperator) = op + A
++(α::UniformScaling, op::AbstractDiffEqLinearOperator) = op + α
 +(L1::DiffEqOperatorCombination, L2::AbstractDiffEqLinearOperator) = DiffEqOperatorCombination((L1.ops..., L2))
 +(L1::AbstractDiffEqLinearOperator, L2::DiffEqOperatorCombination) = DiffEqOperatorCombination((L1, L2.ops...))
 +(L1::DiffEqOperatorCombination, L2::DiffEqOperatorCombination) = DiffEqOperatorCombination((L1.ops..., L2.ops...))
 -(L1::AbstractDiffEqLinearOperator, L2::AbstractDiffEqLinearOperator) = L1 + (-L2)
+-(L::AbstractDiffEqLinearOperator, A::AbstractMatrix) = L + (-A)
+-(A::AbstractMatrix, L::AbstractDiffEqLinearOperator) = A + (-L)
+-(L::AbstractDiffEqLinearOperator, α::UniformScaling) = L + (-α)
+-(α::UniformScaling, L::AbstractDiffEqLinearOperator) = α + (-L)
 getops(L::DiffEqOperatorCombination) = L.ops
 Matrix(L::DiffEqOperatorCombination) = sum(Matrix, L.ops)
 convert(::Type{AbstractMatrix}, L::DiffEqOperatorCombination) =
