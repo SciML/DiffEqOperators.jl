@@ -3,25 +3,19 @@ using DiffEqBase
 using DiffEqBase: isconstant
 using DiffEqOperators: DiffEqScaledOperator, DiffEqOperatorCombination, DiffEqOperatorComposition
 
-@testset "Operator Compostion" begin
+@testset "Operator Composition" begin
   Random.seed!(0)
   A1 = rand(2,3)
   A2 = rand(3,2)
   b = rand()
   B = rand(2,2)
-  L0 = DiffEqArrayOperator(Diagonal([1.0, 1.0])) - I + zeros(2, 2) # this operator is 0
-  L = DiffEqArrayOperator(A1) * DiffEqArrayOperator(A2) + DiffEqScalar(b) * DiffEqArrayOperator(B) + L0
+  L = DiffEqArrayOperator(A1) * DiffEqArrayOperator(A2) + DiffEqScalar(b) * DiffEqArrayOperator(B)
 
   # Structure
   @test isa(L, DiffEqOperatorCombination)
-  L1, L2, L3 = getops(L)
+  L1, L2 = getops(L)
   @test isa(L1, DiffEqOperatorComposition)
   @test isa(L2, DiffEqScaledOperator)
-  @test isa(L3, DiffEqOperatorCombination)
-
-  # Verify that L3 and L0 == 0
-  @test all(Matrix(L3) .== 0)
-  @test all(Matrix(L0) .== 0)
 
   # Operations
   Lfull = Matrix(L)
@@ -34,6 +28,16 @@ using DiffEqOperators: DiffEqScaledOperator, DiffEqOperatorCombination, DiffEqOp
   Lf = factorize(L)
   ldiv!(du, Lf, u); @test Lfull * du ≈ u
   @test exp(L) ≈ exp(Lfull)
+end
+
+@testset "Operator combinations" begin
+  Random.seed!(0)
+  A = rand(2,2)
+  L1 = DiffEqArrayOperator(A)
+  @testset "" for op in (+,-), L2 in (L1,A,I)
+    @test isa(op(L1, L2), DiffEqOperatorCombination)
+    @test isa(op(L2, L1), DiffEqOperatorCombination)
+  end
 end
 
 @testset "Mutable Composite Operators" begin
