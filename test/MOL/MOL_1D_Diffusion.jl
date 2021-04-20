@@ -359,10 +359,11 @@ end
                x ∈ IntervalDomain(0.0,1.0)]
 
     # PDE system
-    pdesys = PDESystem(eq,bcs,domains,[t,x],[u(t,x),v(t,x)])
+    pdesys = PDESystem(eqs,bcs,domains,[t,x],[u(t,x),v(t,x)])
 
     # Method of lines discretization
-    dx = range(0.0,1.0,length=30)
+    l = 100
+    dx = range(0.0,1.0,length=l)
     order = 2
     discretization = MOLFiniteDifference([x=>dx],t)
 
@@ -372,12 +373,12 @@ end
     # Solve ODE problem
     sol = solve(prob,Tsit5(),saveat=0.1)
 
-    x = dx[2:end-1]
-    t = sol.t
+    x_sol = dx[2:end-1]
+    t_sol = sol.t
 
     # Test against exact solution
     for i in 1:length(sol)
-        @test u_exact(x, t[i]) ≈ sol.u[i] atol=0.01
-        @test v_exact(x, t[i]) ≈ sol.v[i] atol=0.01
+        @test u_exact(x_sol, t_sol[i]) ≈ sol.u[i][1:l-2] atol=0.01
+        @test v_exact(x_sol, t_sol[i]) ≈ sol.u[i][l-1:end] atol=0.01
     end
 end
