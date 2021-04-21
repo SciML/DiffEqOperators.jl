@@ -1352,7 +1352,7 @@ end
     mul!(M_temp, A, M)
 
     # Numerical errors accumulating for this test case, more so than the other tests
-    @test_broken M_temp ≈ ((Lx2*M)[1:N,2:N+1,:]+(Ly2*M)[2:N+1,1:N,:]+(Lx3*M)[1:N,2:N+1,:] +(Ly3*M)[2:N+1,1:N,:] + (Lx4*M)[1:N,2:N+1,:] +(Ly4*M)[2:N+1,1:N,:])
+    @test M_temp ≈ ((Lx2*M)[1:N,2:N+1,:]+(Ly2*M)[2:N+1,1:N,:]+(Lx3*M)[1:N,2:N+1,:] +(Ly3*M)[2:N+1,1:N,:] + (Lx4*M)[1:N,2:N+1,:] +(Ly4*M)[2:N+1,1:N,:]) rtol=1e-5
 
     # Test multiple operators on two axis: (Lxx + Lzz + Lxxx + Lzzz + Lxxxx + Lzzzz)*M, no coefficient
     A = Lx2 + Lz2 + Lx3 + Lz3 + Lx4 + Lz4
