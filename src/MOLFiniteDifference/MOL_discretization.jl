@@ -61,7 +61,7 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
     ### INITIAL AND BOUNDARY CONDITIONS ###
     # Build symbolic maps for boundaries
     edges = reduce(vcat,[[vcat([Colon() for j in 1:i-1],1,[Colon() for j in i+1:nspace]),
-                vcat([Colon() for j in 1:i-1],length(space[i]),[Colon() for j in i+1:nspace])] for i in 1:nspace])
+                          vcat([Colon() for j in 1:i-1],length(space[i]),[Colon() for j in i+1:nspace])] for i in 1:nspace])
 
     edgevals = reduce(vcat,[[nottime[i]=>first(space[i]),nottime[i]=>last(space[i])] for i in 1:length(space)])
     edgevars = [[d[e...] for e in edges] for d in depvarsdisc]
@@ -92,12 +92,12 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
         subderivar(depvar,s) = substitute.((Differential(s)(depvar),),edgevals)
         # Create map of symbolic Differential terms with symbolic spatially discretized terms
         depvarderivbcmaps = reduce(vcat,[subderivar(depvar, s) .=> derivars[i]
-        for (i, depvar) in enumerate(depvars) for s in nottime])
+                                         for (i, depvar) in enumerate(depvars) for s in nottime])
         
         if grid_align == "edge"
             # Constructs symbolic spatially discretized terms of the form e.g. (u₁ + u₂) / 2 
             bcvars = [[dot(ones(2)/2,depvar[left_idxs]), dot(ones(2)/2,depvar[right_idxs(1)])]
-            for depvar in depvarsdisc]
+                      for depvar in depvarsdisc]
             # replace u(t,0) with (u₁ + u₂) / 2, etc
             depvarbcmaps = reduce(vcat,[subvar(depvar) .=> bcvars[i]
                                   for (i, depvar) in enumerate(depvars) for s in nottime])
