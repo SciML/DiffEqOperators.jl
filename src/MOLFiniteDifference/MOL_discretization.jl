@@ -1,6 +1,6 @@
 using ModelingToolkit: operation, istree, arguments
-using SymbolicUtils
-using SymbolicUtils.Rewriters
+#using SymbolicUtils
+#using SymbolicUtils.Rewriters
 
 # Method of lines discretization scheme
 struct MOLFiniteDifference{T,T2} <: DiffEqBase.AbstractDiscretization
@@ -120,11 +120,12 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
         # to an edge in which case we need to shift away from the edge
 
         # Calculate buffers
+        # TODO: check central_neighbor_idxs. It does not work like the old implementation.
         #I1 = oneunit(first(indices))
         #Imin = first(indices) + I1 * (order÷2)
         #Imax = last(indices) - I1 * (order÷2)
         # Use max and min to apply buffers
-        # central_neighbor_idxs(II,j) = stencil(j) .+ max(Imin,min(II,Imax))  # does not work as the implementation below
+        # central_neighbor_idxs(II,j) = stencil(j) .+ max(Imin,min(II,Imax))  
         central_neighbor_idxs(i,j) = [i+CartesianIndex([ifelse(l==j,-1,0) for l in 1:length(nottime)]...),i,i+CartesianIndex([ifelse(l==j,1,0) for l in 1:length(nottime)]...)]
         central_neighbor_space(II,j) = vec(space[j][map(i->i[j],central_neighbor_idxs(II,j))])
         central_weights(II,j) = DiffEqOperators.calculate_weights(2, space[j][II[j]], central_neighbor_space(II,j))
@@ -134,7 +135,6 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
         valrules = vcat([pdesys.depvars[k] => depvars[k][II] for k in 1:length(pdesys.depvars)],
                         [nottime[j] => space[j][II[j]] for j in 1:nspace])
     
-        # TODO: Use rule matching for nonlinear Laplacian
         # TODO: upwind rules needs interpolation into `@rule`
         forward_weights(i,j) = DiffEqOperators.calculate_weights(discretization.upwind_order, 0.0, [space[j][i[j]],space[j][i[j]+1]])
         reverse_weights(i,j) = DiffEqOperators.calculate_weights(discretization.upwind_order, 0.0, [space[j][i[j]-1],space[j][i[j]]])
@@ -147,15 +147,12 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
         # d/dx( a du/dx ) ~ (a(x+1/2) * (u[i+1] - u[i]) - a(x-1/2) * (u[i] - u[i-1]) / dx^2
         b1(i, j, k) = dot(reverse_weights(i, j), depvars[k][central_neighbor_idxs(i, j)[1:2]]) / dxs[j]
         b2(i, j, k) = dot(forward_weights(i, j), depvars[k][central_neighbor_idxs(i, j)[2:3]]) / dxs[j]
-        # g(x) = u(x)
-        a1(i, j, k) = dot(0.5 / dxs[j]^2 * [1.0, -2.0, 1.0], depvars[k][central_neighbor_idxs(i, j)])
-        a2(i, j, k) = dot(0.5 / dxs[j] * [-3.0, 4.0, -1.0], depvars[k][central_neighbor_idxs(i, j)])
-        a3(i, j, k) = depvars[k][central_neighbor_idxs(i, j)][1]
-        g(x, i, j, k) = a1(i, j, k) * x^2 + a2(i, j, k) * x + a3(i, j, k)
+        # TODO: improve interpolation of g(x) = u(x) for calculating u(x+-dx/2)
+        g(i, j, k, l) = sum([depvars[k][central_neighbor_idxs(i, j)][s] for s in (l == 1 ? [2,3] : [1,2])]) / 2.
         # iv_mid returns middle space values. E.g. x(i-1/2) or y(i+1/2).
         iv_mid(i, j, l) = (space[j][i[j]] + space[j][i[j]+l]) / 2.0 
         # Dependent variable rules
-        r_mid_dep(i, j, k, l) = [pdesys.depvars[k] => g(iv_mid(i, j, l), i, j, k) for k in 1:length(pdesys.depvars)]
+        r_mid_dep(i, j, k, l) = [pdesys.depvars[k] => g(i, j, k, l) for k in 1:length(pdesys.depvars)]
         # Independent variable rules
         r_mid_indep(i, j, l) = [nottime[j] => iv_mid(i, j, l) for j in 1:length(nottime)]
         # Replacement rules: new approach
@@ -163,9 +160,9 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
                  dot([Num(substitute(substitute(*(~~a..., ~~b...), r_mid_dep(II, j, k, -1)), r_mid_indep(II, j, -1))),
                       Num(substitute(substitute(*(~~a..., ~~b...), r_mid_dep(II, j, k, 1)), r_mid_indep(II, j, 1)))],
                      [-b1(II, j, k), b2(II, j, k)])
-                  for (j, iv) in enumerate(nottime) for (k, dv) in enumerate(pdesys.depvars)]
+                 for (j, iv) in enumerate(nottime) for (k, dv) in enumerate(pdesys.depvars)]
         rhs_arg = (SymbolicUtils.operation(eq.rhs) == +) ? SymbolicUtils.arguments(eq.rhs) : [eq.rhs]
-        lhs_arg = (SymbolicUtils.operation(eq.lhs) == +) ? SymbolicUtils.arguments(eq.lhs) : [eq.lhs]        
+        lhs_arg = (SymbolicUtils.operation(eq.lhs) == +) ? SymbolicUtils.arguments(eq.lhs) : [eq.lhs]
         nonlinlap_rules = []
         for t in vcat(lhs_arg,rhs_arg)
             for r in rules
