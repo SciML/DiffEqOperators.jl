@@ -1,6 +1,4 @@
 using ModelingToolkit: operation, istree, arguments
-#using SymbolicUtils
-#using SymbolicUtils.Rewriters
 
 # Method of lines discretization scheme
 struct MOLFiniteDifference{T,T2} <: DiffEqBase.AbstractDiscretization
