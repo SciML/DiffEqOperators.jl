@@ -42,6 +42,14 @@ using ModelingToolkit: Differential
     pdesys = PDESystem([eq],bcs,domains,[t,x,y],[u(t,x,y)])
 
     dx = 0.1; dy = 0.2
+    
+    # Test against exact solution
+    Nx = floor(Int64, (x_max - x_min) / dx) + 1
+    Ny = floor(Int64, (y_max - y_min) / dy) + 1
+    @variables u[1:Nx,1:Ny](t)
+    r_space_x = x_min:dx:x_max
+    r_space_y = y_min:dy:y_max
+    asf = reshape([analytic_sol_func(t_max,r_space_x[i],r_space_y[j]) for j in 1:Ny for i in 1:Nx],(Nx,Ny))
     for order in [2,4,6]
         # Method of lines discretization
         discretization = MOLFiniteDifference([x=>dx,y=>dy],t;centered_order=order)
@@ -49,13 +57,16 @@ using ModelingToolkit: Differential
         
         # Solution of the ODE system
         sol = solve(prob,Tsit5())
-
+        
         # Test against exact solution
-        # TODO: do this properly when sol[u] with reshape etc works
-        @test sol.u[1][1] ≈ analytic_sol_func(sol.t[1],0.1,0.2)
-        @test sol.u[1][2] ≈ analytic_sol_func(sol.t[1],0.2,0.2)
-
+        sol′ = reshape([sol[u[(i-1)*Ny+j]][end] for i in 1:Nx for j in 1:Ny],(Nx,Ny))
+        @test asf ≈ sol′ atol=0.4
     end
+    
+    #Plot
+    #using Plots
+    #heatmap(sol′)
+    #savefig("MOL_Linear_Diffusion_2D_Test00.png")
 end
 
 @testset "Test 01: Dt(u(t,x,y)) ~ Dx( a(x,y,u) * Dx(u(t,x,y))) + Dy( a(x,y,u) * Dy(u(t,x,y)))" begin
@@ -95,20 +106,29 @@ end
     # Space and time domains
     pdesys = PDESystem([eq],bcs,domains,[t,x,y],[u(t,x,y)])
 
+    # Method of lines discretization
     dx = 0.1; dy = 0.2
-    for order in [2,4,6]
-        # Method of lines discretization
-        discretization = MOLFiniteDifference([x=>dx,y=>dy],t;centered_order=order)
-        prob = ModelingToolkit.discretize(pdesys,discretization)
-        
-        # Solution of the ODE system
-        sol = solve(prob,Rosenbrock23())
+    discretization = MOLFiniteDifference([x=>dx,y=>dy],t)
+    prob = ModelingToolkit.discretize(pdesys,discretization)
 
-        # Test against exact solution
-        # TODO: do this properly when sol[u] with reshape etc works
-        @test sol.u[1][1] ≈ analytic_sol_func(sol.t[1],0.1,0.2)
-        @test sol.u[1][2] ≈ analytic_sol_func(sol.t[1],0.2,0.2)
+    # Solution of the ODE system
+    sol = solve(prob,Rosenbrock23())
 
-    end
+    # Test against exact solution
+    Nx = floor(Int64, (x_max - x_min) / dx) + 1
+    Ny = floor(Int64, (y_max - y_min) / dy) + 1
+    @variables u[1:Nx,1:Ny](t)
+    sol′ = reshape([sol[u[(i-1)*Ny+j]][end] for i in 1:Nx for j in 1:Ny],(Nx,Ny))
+    r_space_x = x_min:dx:x_max
+    r_space_y = y_min:dy:y_max
+    asf = reshape([analytic_sol_func(t_max,r_space_x[i],r_space_y[j]) for j in 1:Ny for i in 1:Nx],(Nx,Ny))
+    m = max(asf...)
+    @test asf / m ≈ sol′ / m  atol=0.4 # TODO: use lower atol when g(x) is improved in MOL_discretize.jl
+
+    #Plot
+    #using Plots
+    #heatmap(sol′)
+    #savefig("MOL_NonLinear_Diffusion_2D_Test01.png")
+    
 end
 
