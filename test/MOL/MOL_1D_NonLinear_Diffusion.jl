@@ -4,7 +4,7 @@
 # TODO: Add more complex tests.
 
 # Packages and inclusions
-using ModelingToolkit,DiffEqOperators,LinearAlgebra,Test,OrdinaryDiffEq,Sundials
+using ModelingToolkit,DiffEqOperators,LinearAlgebra,Test,OrdinaryDiffEq
 using ModelingToolkit: Differential
 
 # Tests
@@ -47,7 +47,7 @@ using ModelingToolkit: Differential
 
     # Solution of the ODE system
     using OrdinaryDiffEq
-    sol = solve(prob,CVODE_BDF(linear_solver=:GMRES))
+    sol = solve(prob,Rosenbrock32())
 
     # Test against exact solution
     r_space = x_min:dx:x_max
@@ -104,7 +104,7 @@ end
 
     # Solution of the ODE system
     using OrdinaryDiffEq
-    sol = solve(prob,CVODE_BDF(linear_solver=:GMRES))
+    sol = solve(prob,Rosenbrock32())
 
     # Test against exact solution
     r_space = x_min:dx:x_max
@@ -160,10 +160,7 @@ end
 
     # Solution of the ODE system
     using OrdinaryDiffEq
-    sol = solve(prob,CVODE_BDF(linear_solver=:GMRES))
-    # TODO: see the following:
-    #       [CVODES ERROR]  CVode
-    #       At t = 0 and h = 2.61861e-10, the corrector convergence test failed repeatedly or with |h| = hmin.
+    sol = solve(prob,Rosenbrock32()) # TODO: check warnings
 
     # Test against exact solution
     r_space = x_min:dx:x_max
@@ -220,7 +217,7 @@ end
 
     # Solution of the ODE system
     using OrdinaryDiffEq
-    sol = solve(prob,CVODE_BDF(linear_solver=:GMRES))
+    sol = solve(prob,Rosenbrock32())
 
     # Test against exact solution
     r_space = x_min:dx:x_max
