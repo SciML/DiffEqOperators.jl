@@ -38,6 +38,24 @@ function count_differentials(term, x::Symbolics.Symbolic)
     end
 end
 
+# return list of differential orders in the equation
+function differential_order(eq, x::Symbolics.Symbolic)
+    S = Symbolics
+    SU = SymbolicUtils
+    orders = Set{Int}()
+    if S.istree(eq)
+        op = SU.operation(eq)
+        if op isa Differential
+            push!(orders, count_differentials(eq, x))
+        else
+            for o in map(ch -> differential_order(ch, x), SU.arguments(eq))
+                union!(orders, o)
+            end
+        end
+    end
+    return filter(!iszero, orders)
+end
+
 add_dims(A::AbstractArray, n::Int; dims::Int = 1) = cat(ndims(A) + n, A, dims = dims)
 
 ""
