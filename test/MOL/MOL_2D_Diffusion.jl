@@ -1,7 +1,7 @@
 # 2D diffusion problem
 
 # Packages and inclusions
-using ModelingToolkit,DiffEqOperators,LinearAlgebra,Test,OrdinaryDiffEq,Sundials
+using ModelingToolkit,DiffEqOperators,LinearAlgebra,Test,OrdinaryDiffEq
 using ModelingToolkit: Differential
 
 # Tests
