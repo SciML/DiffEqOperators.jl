@@ -115,23 +115,31 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
         if discretization.centered_order % 2 != 0
             throw(ArgumentError, "Discretization centered_order must be even, given $(discretization.centered_order)")
         end
-        order = discretization.centered_order
-        stencil(j) = CartesianIndices(Tuple(map(x -> -x:x, (1:nspace.==j) * (order÷2))))
+        approx_order = discretization.centered_order
+        stencil(j) = CartesianIndices(Tuple(map(x -> -x:x, (1:nspace.==j) * (approx_order÷2))))
     
         # TODO: Generalize central difference handling to allow higher even order derivatives
         # The central neighbour indices should add the stencil to II, unless II is too close
         # to an edge in which case we need to shift away from the edge
         # Calculate buffers
         I1 = oneunit(first(indices))
-        Imin = first(indices) + I1 * (order÷2)
-        Imax = last(indices) - I1 * (order÷2)
+        Imin = first(indices) + I1 * (approx_order÷2)
+        Imax = last(indices) - I1 * (approx_order÷2)
         # Use max and min to apply buffers
         central_neighbor_idxs(II,j) = stencil(j) .+ max(Imin,min(II,Imax))
         central_neighbor_space(II,j) = vec(space[j][map(i->i[j],central_neighbor_idxs(II,j))])
-        central_weights(II,j) = DiffEqOperators.calculate_weights(2, space[j][II[j]], central_neighbor_space(II,j))
-        central_deriv(II,j,k) = dot(central_weights(II,j),depvarsdisc[k][central_neighbor_idxs(II,j)])
+        central_weights(d_order,II,j) = DiffEqOperators.calculate_weights(d_order, space[j][II[j]], central_neighbor_space(II,j))
+        central_deriv(d_order,II,j,k) = dot(central_weights(d_order,II,j),depvarsdisc[k][central_neighbor_idxs(II,j)])
+        d_orders(s) = reverse(sort(collect(union(differential_order(eq.rhs, s.val), differential_order(eq.lhs, s.val)))))
 
-        central_deriv_rules = [(Differential(s)^2)(u) => central_deriv(II,j,k) for (j,s) in enumerate(nottime), (k,u) in enumerate(depvars)]
+        # central_deriv_rules = [(Differential(s)^2)(u) => central_deriv(2,II,j,k) for (j,s) in enumerate(nottime), (k,u) in enumerate(depvars)]
+        central_deriv_rules = Array{Pair{Num,Num},1}()
+        for (j,s) in enumerate(nottime)
+            rs = [(Differential(s)^d)(u) => central_deriv(d,II,j,k) for d in d_orders(s), (k,u) in enumerate(depvars)]
+            for r in rs
+              push!(central_deriv_rules, r)
+            end
+        end
         valrules = vcat([depvars[k] => depvarsdisc[k][II] for k in 1:length(depvars)],
                         [nottime[j] => space[j][II[j]] for j in 1:nspace])
     
