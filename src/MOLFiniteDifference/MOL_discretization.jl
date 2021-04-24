@@ -130,6 +130,9 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
         central_neighbor_space(II,j) = vec(space[j][map(i->i[j],central_neighbor_idxs(II,j))])
         central_weights(d_order,II,j) = DiffEqOperators.calculate_weights(d_order, space[j][II[j]], central_neighbor_space(II,j))
         central_deriv(d_order,II,j,k) = dot(central_weights(d_order,II,j),depvarsdisc[k][central_neighbor_idxs(II,j)])
+
+        # get a sorted list derivative order such that highest order is first. This is useful when substituting rules
+        # starting from highest to lowest order.
         d_orders(s) = reverse(sort(collect(union(differential_order(eq.rhs, s.val), differential_order(eq.lhs, s.val)))))
 
         # central_deriv_rules = [(Differential(s)^2)(u) => central_deriv(2,II,j,k) for (j,s) in enumerate(nottime), (k,u) in enumerate(depvars)]

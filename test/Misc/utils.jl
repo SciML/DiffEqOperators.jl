@@ -1,5 +1,6 @@
 using Test, LinearAlgebra
 using DiffEqOperators
+using ModelingToolkit
 
 @testset "utility functions" begin
     @test DiffEqOperators.unit_indices(2) == (CartesianIndex(1,0), CartesianIndex(0,1))
