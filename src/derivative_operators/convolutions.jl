@@ -44,7 +44,7 @@ function convolve_interior!(x_temp::AbstractVector{T1}, x::AbstractVector{T2}, A
             for idx in 1:A.stencil_length
                 xtempi += cur_coeff * cur_stencil[idx] * x[i - mid + idx]
             end
-            if is_vector == true                                 # mutate the corresponding entry of the vector
+            if is_vector                                 # mutate the corresponding entry of the vector
                 x_temp[i][N] = xtempi + !overwrite*x_temp[i][N]
             else
                 x_temp[i] = xtempi + !overwrite*x_temp[i]
@@ -58,7 +58,7 @@ function convolve_interior!(x_temp::AbstractVector{T1}, x::AbstractVector{T2}, A
             for idx in 1:A.stencil_length
                 xtempi += cur_coeff * cur_stencil[idx] * x[i - mid + idx]
             end
-            if is_vector == true                                 # mutate the corresponding entry of the vector
+            if is_vector                                 # mutate the corresponding entry of the vector
                 x_temp[i][N] = xtempi + !overwrite*x_temp[i][N]
             else
                 x_temp[i] = xtempi + !overwrite*x_temp[i]
@@ -85,7 +85,7 @@ function convolve_BC_left!(x_temp::AbstractVector{T1}, x::AbstractVector{T2}, A:
         for idx in 2:A.boundary_stencil_length
             xtempi += cur_coeff * cur_stencil[idx] * x[idx]
         end
-        if is_vector == true
+        if is_vector
             x_temp[i][N] = xtempi + !overwrite*x_temp[i][N]
         else
             x_temp[i] = xtempi + !overwrite*x_temp[i]
@@ -111,7 +111,7 @@ function convolve_BC_right!(x_temp::AbstractVector{T1}, x::AbstractVector{T2}, A
         for idx in (A.boundary_stencil_length-1):-1:1
             xtempi += cur_coeff * cur_stencil[end-idx] * x[end-idx]
         end
-        if is_vector == true
+        if is_vector
             x_temp[end-A.boundary_point_count+i][N] = xtempi + !overwrite*x_temp[end-A.boundary_point_count+i][N]
         else
             x_temp[end-A.boundary_point_count+i] = xtempi + !overwrite*x_temp[end-A.boundary_point_count+i] 
