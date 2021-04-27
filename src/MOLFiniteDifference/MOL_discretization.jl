@@ -113,7 +113,7 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
         # Create a stencil in the required dimension centered around 0
         # e.g. (-1,0,1) for 2nd order, (-2,-1,0,1,2) for 4th order, etc
         if discretization.centered_order % 2 != 0
-            throw(ArgumentError, "Discretization centered_order must be even, given $(discretization.centered_order)")
+            throw(ArgumentError("Discretization centered_order must be even, given $(discretization.centered_order)"))
         end
         approx_order = discretization.centered_order
         stencil(j) = CartesianIndices(Tuple(map(x -> -x:x, (1:nspace.==j) * (approx_order÷2))))
