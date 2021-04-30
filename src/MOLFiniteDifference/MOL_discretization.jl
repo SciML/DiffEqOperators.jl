@@ -125,12 +125,11 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
 
         # Calculate buffers
         # TODO: check central_neighbor_idxs. It does not work like the old implementation.
-        #I1 = oneunit(first(indices))
-        #Imin = first(indices) + I1 * (order÷2)
-        #Imax = last(indices) - I1 * (order÷2)
+        I1 = oneunit(first(indices))
+        Imin = first(indices) + I1 * (order÷2)
+        Imax = last(indices) - I1 * (order÷2)
         # Use max and min to apply buffers
-        # central_neighbor_idxs(II,j) = stencil(j) .+ max(Imin,min(II,Imax))  
-        central_neighbor_idxs(i,j) = [i+CartesianIndex([ifelse(l==j,-1,0) for l in 1:length(nottime)]...),i,i+CartesianIndex([ifelse(l==j,1,0) for l in 1:length(nottime)]...)]
+        central_neighbor_idxs(II,j) = stencil(j) .+ max(Imin,min(II,Imax))  
         central_neighbor_space(II,j) = vec(space[j][map(i->i[j],central_neighbor_idxs(II,j))])
         central_weights(II,j) = DiffEqOperators.calculate_weights(2, space[j][II[j]], central_neighbor_space(II,j))
         central_deriv(II,j,k) = dot(central_weights(II,j),depvarsdisc[k][central_neighbor_idxs(II,j)])

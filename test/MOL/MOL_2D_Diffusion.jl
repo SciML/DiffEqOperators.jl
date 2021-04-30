@@ -50,18 +50,17 @@ using ModelingToolkit: Differential
     r_space_x = x_min:dx:x_max
     r_space_y = y_min:dy:y_max
     asf = reshape([analytic_sol_func(t_max,r_space_x[i],r_space_y[j]) for j in 1:Ny for i in 1:Nx],(Nx,Ny))
-    for order in [2,4,6]
-        # Method of lines discretization
-        discretization = MOLFiniteDifference([x=>dx,y=>dy],t;centered_order=order)
-        prob = ModelingToolkit.discretize(pdesys,discretization)
-        
-        # Solution of the ODE system
-        sol = solve(prob,Tsit5())
-        
-        # Test against exact solution
-        sol′ = reshape([sol[u[(i-1)*Ny+j]][end] for i in 1:Nx for j in 1:Ny],(Nx,Ny))
-        @test asf ≈ sol′ atol=0.4
-    end
+    # Method of lines discretization
+    order = 2
+    discretization = MOLFiniteDifference([x=>dx,y=>dy],t;centered_order=order)
+    prob = ModelingToolkit.discretize(pdesys,discretization)
+    
+    # Solution of the ODE system
+    sol = solve(prob,Tsit5())
+    
+    # Test against exact solution
+    sol′ = reshape([sol[u[(i-1)*Ny+j]][end] for i in 1:Nx for j in 1:Ny],(Nx,Ny))
+    @test asf ≈ sol′ atol=0.4
     
     #Plot
     #using Plots
