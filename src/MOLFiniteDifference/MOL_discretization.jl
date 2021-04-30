@@ -177,7 +177,7 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
         end
 
         rules = vcat(vec(nonlinlap_rules),
-                     vcat(vec(central_deriv_rules),valrules))
+                     vec(central_deriv_rules),valrules)
 
         substitute(eq.lhs,rules) ~ substitute(eq.rhs,rules)
 
