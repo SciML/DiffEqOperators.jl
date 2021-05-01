@@ -1,15 +1,18 @@
 using ModelingToolkit: operation, istree, arguments
 # Method of lines discretization scheme
+
+@enum GridAlign center_align edge_align
+center_align
 struct MOLFiniteDifference{T,T2} <: DiffEqBase.AbstractDiscretization
     dxs::T
     time::T2
     upwind_order::Int
     centered_order::Int
-    grid_align::String
+    grid_align::GridAlign
 end
 
 # Constructors. If no order is specified, both upwind and centered differences will be 2nd order
-MOLFiniteDifference(dxs, time; upwind_order = 1, centered_order = 2, grid_align="center") =
+MOLFiniteDifference(dxs, time; upwind_order = 1, centered_order = 2, grid_align=center_align) =
     MOLFiniteDifference(dxs, time, upwind_order, centered_order, grid_align)
 
 function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discretization::DiffEqOperators.MOLFiniteDifference)
@@ -34,11 +37,11 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
     tspan = (tdomain.domain.lower,tdomain.domain.upper)
 
     # Define the grid on which the dependent variables will be evaluated (see #378)
-    # "center" is recommended for Dirichlet BCs
-    # "edge" is recommended for Neumann BCs (spatial discretization is conservative)
-    if grid_align == "center"
+    # center_align is recommended for Dirichlet BCs
+    # edge_align is recommended for Neumann BCs (spatial discretization is conservative)
+    if grid_align == center_align
         grid = space
-    elseif grid_align == "edge"
+    elseif grid_align == edge_align
         # boundary conditions implementation assumes centered_order=2
         @assert discretization.centered_order==2
         # construct grid including ghost nodes beyond outer edges
@@ -72,7 +75,7 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
 
     # Generate map from variable (e.g. u(t,0)) to discretized variable (e.g. u₁(t))
     subvar(depvar) = substitute.((depvar,),edgevals)
-    if grid_align == "center"
+    if grid_align == center_align
         # depvarbcmaps will dictate what to replace the variable terms with in the bcs
         # replace u(t,0) with u₁, etc
         depvarbcmaps = reduce(vcat,[subvar(depvar) .=> edgevar for (depvar, edgevar) in zip(depvars, edgevars)])
@@ -94,7 +97,7 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
         depvarderivbcmaps = reduce(vcat,[subderivar(depvar, s) .=> derivars[i]
                                          for (i, depvar) in enumerate(depvars) for s in nottime])
         
-        if grid_align == "edge"
+        if grid_align == edge_align
             # Constructs symbolic spatially discretized terms of the form e.g. (u₁ + u₂) / 2 
             bcvars = [[dot(ones(2)/2,depvar[left_idxs]), dot(ones(2)/2,depvar[right_idxs(1)])]
                       for depvar in depvarsdisc]

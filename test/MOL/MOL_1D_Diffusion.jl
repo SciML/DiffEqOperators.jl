@@ -32,7 +32,7 @@ using ModelingToolkit: Differential
     dx = range(0.0,Float64(π),length=30)
     order = 2
     discretization = MOLFiniteDifference([x=>dx],t)
-    discretization_edge = MOLFiniteDifference([x=>dx],t;grid_align="edge")
+    discretization_edge = MOLFiniteDifference([x=>dx],t;grid_align=edge_align)
     # Explicitly specify order of centered difference
     discretization_centered = MOLFiniteDifference([x=>dx],t;centered_order=order)
     # Higher order centered difference
@@ -45,7 +45,7 @@ using ModelingToolkit: Differential
         # Solve ODE problem
         sol = solve(prob,Tsit5(),saveat=0.1)
 
-        if disc.grid_align == "center"
+        if disc.grid_align == center_align
             x = dx[2:end-1]
         else
             x = (dx[1:end-1]+dx[2:end])/2
@@ -171,7 +171,7 @@ end
     dx = range(0.0,Float64(π),length=300)
     order = 2
     discretization = MOLFiniteDifference([x=>dx],t)
-    discretization_edge = MOLFiniteDifference([x=>dx],t;grid_align="center")
+    discretization_edge = MOLFiniteDifference([x=>dx],t;grid_align=center_align)
 
     # Convert the PDE problem into an ODE problem
     for disc in [discretization, discretization_edge]
@@ -180,7 +180,7 @@ end
         # Solve ODE problem
         sol = solve(prob,Tsit5(),saveat=0.1)
 
-        if disc.grid_align == "center"
+        if disc.grid_align == center_align
             x_sol = dx[2:end-1]
         else
             x_sol = (dx[1:end-1]+dx[2:end])/2
@@ -225,7 +225,7 @@ end
     dx = range(0.0,Float64(π),length=30)
     order = 2
     discretization = MOLFiniteDifference([x=>dx],t)
-    discretization_edge = MOLFiniteDifference([x=>dx],t;grid_align="edge")
+    discretization_edge = MOLFiniteDifference([x=>dx],t;grid_align=edge_align)
 
     # Convert the PDE problem into an ODE problem
     for disc ∈ [discretization, discretization_edge]
@@ -234,7 +234,7 @@ end
         # Solve ODE problem
         sol = solve(prob,Tsit5(),saveat=0.1)
 
-        if disc.grid_align == "center"
+        if disc.grid_align == center_align
             x = dx[2:end-1]
         else
             x = (dx[1:end-1]+dx[2:end])/2
@@ -247,7 +247,6 @@ end
         for i in 1:length(sol)
             exact = u_exact(x, t[i])
             u_approx = sol.u[i]
-            @show maximum(abs.(u_approx - exact))
             @test u_approx ≈ exact atol=0.01
             # test mass conservation
             integral_u_approx = sum(u_approx * dx[2])
@@ -329,7 +328,7 @@ end
     dx = 0.01
     order = 2
     discretization = MOLFiniteDifference([x=>dx],t)
-    discretization_edge = MOLFiniteDifference([x=>dx],t;grid_align="edge")
+    discretization_edge = MOLFiniteDifference([x=>dx],t;grid_align=edge_align)
 
     for disc ∈ [discretization, discretization_edge]
         # Convert the PDE problem into an ODE problem
@@ -338,7 +337,7 @@ end
         # Solve ODE problem
         sol = solve(prob,Tsit5(),saveat=0.1)
         x = (-1:dx:1)
-        if disc.grid_align == "center"
+        if disc.grid_align == center_align
             x = x[2:end-1]
         else
             x = (x[1:end-1].+x[2:end])/2
