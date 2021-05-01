@@ -4,6 +4,5 @@
 deps/deps.jl
 Manifest.toml
 *.png
+*.gif
 docs/build
-.vscode
-.DS_store

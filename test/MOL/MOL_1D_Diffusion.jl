@@ -454,3 +454,29 @@ end
         @test v_exact(x_sol, t_sol[i]) ≈ sol.u[i][l-1:end] atol=0.01
     end
 end
+
+@testset "Test 11: linear diffusion, two variables, mixed BCs, with parameters" begin
+    @parameters t x
+    @parameters Dn, Dp
+    @variables u(..) v(..)
+    Dt = Differential(t)
+    Dx = Differential(x)
+    Dxx = Differential(x)^2
+
+    eqs  = [Dt(u(t,x)) ~ Dn * Dxx(u(t,x)) + u(t,x)*v(t,x), 
+            Dt(v(t,x)) ~ Dp * Dxx(v(t,x)) - u(t,x)*v(t,x)]
+    bcs = [u(0,x) ~ sin(pi*x/2),
+        v(0,x) ~ sin(pi*x/2),
+        u(t,0) ~ 0.0, Dx(u(t,1)) ~ 0.0,
+        v(t,0) ~ 0.0, Dx(v(t,1)) ~ 0.0]
+
+    domains = [t ∈ IntervalDomain(0.0,1.0),
+            x ∈ IntervalDomain(0.0,1.0)]
+
+    pdesys = PDESystem(eqs,bcs,domains,[t,x],[u(t,x),v(t,x)],[Dn=>0.5, Dp=>2])
+    discretization = MOLFiniteDifference([x=>0.1],t)
+    prob = discretize(pdesys,discretization)
+    @test prob.p == [0.5,2]
+    # Make sure it can be solved
+    sol = solve(prob,Tsit5())
+end
