@@ -1,7 +1,5 @@
 # 1D diffusion problem
 
-# TODO: Add more complex tests.
-
 # Packages and inclusions
 using ModelingToolkit,DiffEqOperators,LinearAlgebra,Test,OrdinaryDiffEq
 using ModelingToolkit: Differential
@@ -34,33 +32,32 @@ using ModelingToolkit: Differential
     dx = range(0.0,Float64(π),length=30)
     order = 2
     discretization = MOLFiniteDifference([x=>dx],t)
+    discretization_edge = MOLFiniteDifference([x=>dx],t;grid_align=edge_align)
     # Explicitly specify order of centered difference
     discretization_centered = MOLFiniteDifference([x=>dx],t;centered_order=order)
     # Higher order centered difference
     discretization_centered_order4 = MOLFiniteDifference([x=>dx],t;centered_order=4)
 
-    # Convert the PDE problem into an ODE problem
-    prob = discretize(pdesys,discretization)
-    prob_centered = discretize(pdesys,discretization_centered)
-    prob_centered_order4 = discretize(pdesys,discretization_centered_order4)
+    for disc in [discretization, discretization_edge, discretization_centered, discretization_centered_order4]
+        # Convert the PDE problem into an ODE problem
+        prob = discretize(pdesys,disc)
 
-    # Solve ODE problem
-    sol = solve(prob,Tsit5(),saveat=0.1)
-    sol_centered = solve(prob_centered,Tsit5(),saveat=0.1)
-    sol_centered_order4 = solve(prob_centered_order4,Tsit5(),saveat=0.1)
+        # Solve ODE problem
+        sol = solve(prob,Tsit5(),saveat=0.1)
 
-    x = dx[2:end-1]
-    t = sol.t
+        if disc.grid_align == center_align
+            x = dx[2:end-1]
+        else
+            x = (dx[1:end-1]+dx[2:end])/2
+        end
+        t = sol.t
 
-    # Test against exact solution
-    for i in 1:length(sol)
-        exact = u_exact(x, t[i])
-        u_approx = sol.u[i]
-        u_approx_centered = sol_centered.u[i]
-        u_approx_centered_order4 =sol_centered_order4.u[i]
-        @test u_approx ≈ exact atol=0.01
-        @test u_approx_centered ≈ exact atol=0.01
-        @test u_approx_centered_order4 ≈ exact atol=0.01
+        # Test against exact solution
+        for i in 1:length(sol)
+            exact = u_exact(x, t[i])
+            u_approx = sol.u[i]
+            @test u_approx ≈ exact atol=0.01
+        end
     end
 end
 
@@ -146,7 +143,61 @@ end
     @test_broken sol[:,1,t_f] ≈ zeros(n) atol=0.01;
 end
 
-@testset "Test 03: Dt(u(t,x)) ~ Dxx(u(t,x)), Neumann BCs" begin
+@testset "Test 03: Dt(u(t,x)) ~ Dxx(u(t,x)), homogeneous Neumann BCs" begin
+    # Method of Manufactured Solutions
+    u_exact = (x,t) -> exp.(-t) * cos.(x)
+
+    # Parameters, variables, and derivatives
+    @parameters t x
+    @variables u(..)
+    Dt = Differential(t)
+    Dx = Differential(x)
+    Dxx = Differential(x)^2
+
+    # 1D PDE and boundary conditions
+    eq  = Dt(u(t,x)) ~ Dxx(u(t,x))
+    bcs = [u(0,x) ~ cos(x),
+           Dx(u(t,0)) ~ 0,
+           Dx(u(t,Float64(pi))) ~ 0]
+
+    # Space and time domains
+    domains = [t ∈ IntervalDomain(0.0,1.0),
+               x ∈ IntervalDomain(0.0,Float64(pi))]
+
+    # PDE system
+    pdesys = PDESystem(eq,bcs,domains,[t,x],[u(t,x)])
+
+    # Method of lines discretization
+    dx = range(0.0,Float64(π),length=300)
+    order = 2
+    discretization = MOLFiniteDifference([x=>dx],t)
+    discretization_edge = MOLFiniteDifference([x=>dx],t;grid_align=center_align)
+
+    # Convert the PDE problem into an ODE problem
+    for disc in [discretization, discretization_edge]
+        prob = discretize(pdesys,disc)
+
+        # Solve ODE problem
+        sol = solve(prob,Tsit5(),saveat=0.1)
+
+        if disc.grid_align == center_align
+            x_sol = dx[2:end-1]
+        else
+            x_sol = (dx[1:end-1]+dx[2:end])/2
+        end
+        t_sol = sol.t
+
+        # Test against exact solution
+        for i in 1:length(sol)
+            exact = u_exact(x_sol, t_sol[i])
+            u_approx = sol.u[i]
+            @test all(isapprox.(u_approx, exact, atol=0.01))
+            @test sum(u_approx) ≈ 0 atol=1e-10
+        end
+    end
+end
+
+@testset "Test 03a: Dt(u(t,x)) ~ Dxx(u(t,x)), Neumann BCs" begin
     # Method of Manufactured Solutions
     u_exact = (x,t) -> exp.(-t) * sin.(x)
 
@@ -174,21 +225,33 @@ end
     dx = range(0.0,Float64(π),length=30)
     order = 2
     discretization = MOLFiniteDifference([x=>dx],t)
+    discretization_edge = MOLFiniteDifference([x=>dx],t;grid_align=edge_align)
 
     # Convert the PDE problem into an ODE problem
-    prob = discretize(pdesys,discretization)
+    for disc ∈ [discretization, discretization_edge]
+        prob = discretize(pdesys,disc)
 
-    # Solve ODE problem
-    sol = solve(prob,Tsit5(),saveat=0.1)
+        # Solve ODE problem
+        sol = solve(prob,Tsit5(),saveat=0.1)
 
-    x = dx[2:end-1]
-    t = sol.t
+        if disc.grid_align == center_align
+            x = dx[2:end-1]
+        else
+            x = (dx[1:end-1]+dx[2:end])/2
+        end
+        t = sol.t
 
-    # Test against exact solution
-    for i in 1:length(sol)
-        exact = u_exact(x, t[i])
-        u_approx = sol.u[i]
-        @test u_approx ≈ exact atol=0.01
+        # Test against exact solution
+        # exact integral based on Neumann BCs
+        integral_u_exact = t -> sum(sol.u[1] * dx[2]) + 2 * (exp(-t) - 1)
+        for i in 1:length(sol)
+            exact = u_exact(x, t[i])
+            u_approx = sol.u[i]
+            @test u_approx ≈ exact atol=0.01
+            # test mass conservation
+            integral_u_approx = sum(u_approx * dx[2])
+            @test integral_u_exact(t[i]) ≈ integral_u_approx atol=1e-13
+        end
     end
 end
 
@@ -265,20 +328,28 @@ end
     dx = 0.01
     order = 2
     discretization = MOLFiniteDifference([x=>dx],t)
+    discretization_edge = MOLFiniteDifference([x=>dx],t;grid_align=edge_align)
 
-    # Convert the PDE problem into an ODE problem
-    prob = discretize(pdesys,discretization)
+    for disc ∈ [discretization, discretization_edge]
+        # Convert the PDE problem into an ODE problem
+        prob = discretize(pdesys,disc)
 
-    # Solve ODE problem
-    sol = solve(prob,Tsit5(),saveat=0.1)
-    x = (-1:dx:1)[2:end-1]
-    t = sol.t
+        # Solve ODE problem
+        sol = solve(prob,Tsit5(),saveat=0.1)
+        x = (-1:dx:1)
+        if disc.grid_align == center_align
+            x = x[2:end-1]
+        else
+            x = (x[1:end-1].+x[2:end])/2
+        end
+        t = sol.t
 
-    # Test against exact solution
-    for i in 1:length(sol)
-        exact = u_exact(x, t[i])
-        u_approx = sol.u[i]
-        @test u_approx ≈ exact atol=0.1
+        # Test against exact solution
+        for i in 1:length(sol)
+            exact = u_exact(x, t[i])
+            u_approx = sol.u[i]
+            @test u_approx ≈ exact atol=0.1
+        end
     end
 end
 
