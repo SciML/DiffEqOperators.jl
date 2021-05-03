@@ -1,3 +1,4 @@
+using SymbolicUtils
 
 """
 A function that creates a tuple of CartesianIndices of unit length and `N` dimensions, one pointing along each dimension.

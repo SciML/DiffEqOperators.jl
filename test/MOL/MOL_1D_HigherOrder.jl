@@ -36,8 +36,16 @@ using ModelingToolkit: Differential
     dx = 0.4; dt = 0.2
 
     discretization = MOLFiniteDifference([x=>dx],t;centered_order=4)
-    pde_system = PDESystem(eq,bcs,domains,[x,t],[u(x,t)])
-    prob = discretize(pde_system,discretization)
+    pdesys = PDESystem(eq,bcs,domains,[x,t],[u(x,t)])
+    prob = discretize(pdesys,discretization)
 
-    # TODO: finish this.
+    sol = solve(prob,Tsit5(),saveat=0.1,dt=dt)
+    xs = domains[1].domain.lower+dx+dx:dx:domains[1].domain.upper-dx-dx
+    ts = sol.t
+
+    u_predict = sol.u
+    u_real = [[u_analytic(x, t) for x in xs] for t in ts]
+    u_diff = u_real - u_predict
+    @test_broken u_diff[:] ≈ zeros(length(u_diff)) atol=0.01;
+    #plot(xs, u_diff)
 end

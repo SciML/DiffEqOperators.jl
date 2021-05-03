@@ -7,6 +7,28 @@ struct MOLFiniteDifference{T,T2} <: DiffEqBase.AbstractDiscretization
     centered_order::Int
 end
 
+# for terms that of the form:
+# u(x,t) or Differential(x)(u(x,t)), returns, u(x,t) in both cases.
+function get_sym(term)
+    if !Symbolics.istree(term)
+        return nothing
+    end
+    if SymbolicUtils.operation(term) isa Sym
+        return term
+    else
+        # FIXME: for multiple terms, simply return the first...possible bug here
+        syms = filter(!isnothing, [get_sym(t) for t in SymbolicUtils.arguments(term)])
+        return isempty(syms) ? nothing : first(syms)
+    end
+end
+
+# get all terms on the lhs of given equatios that involve the given dependent
+# variable
+function get_depvar_terms(eqs, depvar)
+    syms = filter(!isnothing, [get_sym(eq.lhs) for eq in eqs])
+    return filter(s -> depvar.val.f === s.f, syms)
+end
+
 # Constructors. If no order is specified, both upwind and centered differences will be 2nd order
 MOLFiniteDifference(dxs, time; upwind_order = 1, centered_order = 2) =
     MOLFiniteDifference(dxs, time, upwind_order, centered_order)
@@ -105,8 +127,27 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
     u0 = reduce(vcat,u0)
     bceqs = reduce(vcat,bceqs)
 
+    #---- Count Boundary Equations --------------------
+    # Count the number of boundary equations that lie at the spatial boundary on
+    # both the left and right side. This will be used to determine number of
+    # interior equations s.t. we have a balanced system of equations.
+    # TODO: Check/Generalize to work with multi-dimensional equations
+    # TODO: Check Generalization to higher order boundary conditions (e.g., beam equation with 2nd order/3rd order boundary)
+    # TODO: Check against equations with multiple dependent vars
+
+    # bc_values will contain the pair mappings from vars to their boundary location.
+    # FIXME: Currently only considering the first depvar, we need to consider all available depvars in the system.
+    bc_values = reduce(vcat, [pdesys.indvars .=> t.arguments for t in get_depvar_terms(pdesys.bcs, depvars[1])])
+    # remove non-value terms and time, we are only concerned with boudary edge values.
+    bc_values = filter(v -> !(last(v) isa Sym) && ~isequal(first(v), t.val), bc_values)
+    bc_count(indvar,edgefunc) = count(v -> last(v) == edgefunc(last.(edgevals)), filter(kv->first(kv) === indvar, bc_values))
+    # FIXME: Assuming that the bc count for all indendent vars is the same, so we just take the first one here.
+    left_bc_count = first([bc_count(indvar, minimum) for indvar in nottime])
+    right_bc_count = first([bc_count(indvar, maximum) for indvar in nottime])
+    #--------------------------------------------------
+
     ### PDE EQUATIONS ###
-    interior = indices[[2:length(s)-1 for s in space]...]
+    interior = indices[[(1 + left_bc_count):length(s)-(right_bc_count) for s in space]...]
     eqs = vec(map(Base.product(interior,pdeeqs)) do p
         II,eq = p
     

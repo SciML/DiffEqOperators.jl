@@ -18,6 +18,7 @@ SciMLBase = "0bca4576-84f4-4d90-8ffe-ffa030f20462"
 SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 SuiteSparse = "4607b0f0-06f3-5cda-b6b1-a6196a1729e9"
+SymbolicUtils = "d1185830-fcd6-423d-90d6-eec64667417b"
 
 [compat]
 BandedMatrices = "0.15.11, 0.16"
