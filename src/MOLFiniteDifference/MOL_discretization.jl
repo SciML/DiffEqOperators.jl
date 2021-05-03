@@ -2,7 +2,6 @@ using ModelingToolkit: operation, istree, arguments
 # Method of lines discretization scheme
 
 @enum GridAlign center_align edge_align
-center_align
 struct MOLFiniteDifference{T,T2} <: DiffEqBase.AbstractDiscretization
     dxs::T
     time::T2
