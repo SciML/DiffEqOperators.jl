@@ -1,4 +1,5 @@
 using ModelingToolkit: operation, istree, arguments
+
 # Method of lines discretization scheme
 
 @enum GridAlign center_align edge_align
@@ -29,7 +30,9 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
         dx = discretization.dxs[findfirst(dxs->isequal(x.val, dxs[1].val),discretization.dxs)][2]
         dx isa Number ? (xdomain.domain.lower:dx:xdomain.domain.upper) : dx
     end
-
+    dxs = map(nottime) do x        
+        dx = discretization.dxs[findfirst(dxs->isequal(x.val, dxs[1].val),discretization.dxs)][2]
+    end
     # Get tspan
     tdomain = pdesys.domain[findfirst(d->isequal(t.val, d.variables),pdesys.domain)]
     @assert tdomain.domain isa IntervalDomain
@@ -151,6 +154,7 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
         # TODO: Generalize central difference handling to allow higher even order derivatives
         # The central neighbour indices should add the stencil to II, unless II is too close
         # to an edge in which case we need to shift away from the edge
+
         # Calculate buffers
         I1 = oneunit(first(grid_indices))
         Imin = first(grid_indices) + I1 * (order÷2)
@@ -165,18 +169,48 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
         valrules = vcat([depvars[k] => depvarsdisc[k][II] for k in 1:length(depvars)],
                         [nottime[j] => grid[j][II[j]] for j in 1:nspace])
     
-        # TODO: Use rule matching for nonlinear Laplacian
-    
         # TODO: upwind rules needs interpolation into `@rule`
-        #forward_weights(i,j) = DiffEqOperators.calculate_weights(discretization.upwind_order, 0.0, [grid[j][i[j]],grid[j][i[j]+1]])
-        #reverse_weights(i,j) = DiffEqOperators.calculate_weights(discretization.upwind_order, 0.0, [grid[j][i[j]-1],grid[j][i[j]]])
-        #upwinding_rules = [@rule(*(~~a,(Differential(nottime[j]))(u),~~b) => IfElse.ifelse(*(~~a..., ~~b...,)>0,
-        #                        *(~~a..., ~~b..., dot(reverse_weights(i,j),depvarsdisc[k][central_neighbor_idxs(i,j)[1:2]])),
-        #                        *(~~a..., ~~b..., dot(forward_weights(i,j),depvarsdisc[k][central_neighbor_idxs(i,j)[2:3]]))))
-        #                        for j in 1:nspace, k in 1:length(depvars)]
-    
-        rules = vcat(vec(central_deriv_rules),valrules)
+        forward_weights(II,j) = DiffEqOperators.calculate_weights(discretization.upwind_order, 0.0, grid[j][[II[j],II[j]+1]])
+        reverse_weights(II,j) = DiffEqOperators.calculate_weights(discretization.upwind_order, 0.0, grid[j][[II[j]-1,II[j]]])
+        # upwinding_rules = [@rule(*(~~a,$(Differential(nottime[j]))(u),~~b) => IfElse.ifelse(*(~~a..., ~~b...,)>0,
+        #                         *(~~a..., ~~b..., dot(reverse_weights(II,j),depvars[k][central_neighbor_idxs(II,j)[1:2]])),
+        #                         *(~~a..., ~~b..., dot(forward_weights(II,j),depvars[k][central_neighbor_idxs(II,j)[2:3]]))))
+        #                         for j in 1:nspace, k in 1:length(pdesys.depvars)]
+
+        ## Discretization of non-linear laplacian. 
+        # d/dx( a du/dx ) ~ (a(x+1/2) * (u[i+1] - u[i]) - a(x-1/2) * (u[i] - u[i-1]) / dx^2
+        b1(II, j, k) = dot(reverse_weights(II, j), depvarsdisc[k][central_neighbor_idxs(II, j)[1:2]]) / dxs[j]
+        b2(II, j, k) = dot(forward_weights(II, j), depvarsdisc[k][central_neighbor_idxs(II, j)[2:3]]) / dxs[j]
+        # TODO: improve interpolation of g(x) = u(x) for calculating u(x+-dx/2)
+        g(II, j, k, l) = sum([depvarsdisc[k][central_neighbor_idxs(II, j)][s] for s in (l == 1 ? [2,3] : [1,2])]) / 2.
+        # iv_mid returns middle space values. E.g. x(i-1/2) or y(i+1/2).
+        iv_mid(II, j, l) = (grid[j][II[j]] + grid[j][II[j]+l]) / 2.0 
+        # Dependent variable rules
+        r_mid_dep(II, j, k, l) = [depvars[k] => g(II, j, k, l) for k in 1:length(depvars)]
+        # Independent variable rules
+        r_mid_indep(II, j, l) = [nottime[j] => iv_mid(II, j, l) for j in 1:length(nottime)]
+        # Replacement rules: new approach
+        rules = [@rule ($(Differential(iv))(*(~~a, $(Differential(iv))(dv), ~~b))) =>
+                 dot([Num(substitute(substitute(*(~~a..., ~~b...), r_mid_dep(II, j, k, -1)), r_mid_indep(II, j, -1))),
+                      Num(substitute(substitute(*(~~a..., ~~b...), r_mid_dep(II, j, k, 1)), r_mid_indep(II, j, 1)))],
+                     [-b1(II, j, k), b2(II, j, k)])
+                 for (j, iv) in enumerate(nottime) for (k, dv) in enumerate(depvars)]
+        rhs_arg = (SymbolicUtils.operation(eq.rhs) == +) ? SymbolicUtils.arguments(eq.rhs) : [eq.rhs]
+        lhs_arg = (SymbolicUtils.operation(eq.lhs) == +) ? SymbolicUtils.arguments(eq.lhs) : [eq.lhs]
+        nonlinlap_rules = []
+        for t in vcat(lhs_arg,rhs_arg)
+            for r in rules
+                if r(t) !== nothing
+                    push!(nonlinlap_rules, t => r(t))
+                end
+            end
+        end
+
+        rules = vcat(vec(nonlinlap_rules),
+                     vec(central_deriv_rules),valrules)
+
         substitute(eq.lhs,rules) ~ substitute(eq.rhs,rules)
+
     end)
 
     # Finalize
