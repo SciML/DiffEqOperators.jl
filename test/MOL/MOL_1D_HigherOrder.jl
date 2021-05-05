@@ -4,73 +4,73 @@
 using ModelingToolkit,DiffEqOperators,LinearAlgebra,Test,OrdinaryDiffEq
 using ModelingToolkit: Differential
 
-@testset "Beam Equation" begin
-    @parameters x, t
-    @variables u(..)
-    Dt = Differential(t)
-    Dtt = Differential(t)^2
-    Dx = Differential(x)
-    Dxx = Differential(x)^2
-    Dx3 = Differential(x)^3
-    Dx4 = Differential(x)^4
+# @testset "Beam Equation" begin
+#     @parameters x, t
+#     @variables u(..)
+#     Dt = Differential(t)
+#     Dtt = Differential(t)^2
+#     Dx = Differential(x)
+#     Dxx = Differential(x)^2
+#     Dx3 = Differential(x)^3
+#     Dx4 = Differential(x)^4
 
-    g = -9.81
-    EI = 1
-    mu = 1
-    L = 10.0
-    dx = 0.4
+#     g = -9.81
+#     EI = 1
+#     mu = 1
+#     L = 10.0
+#     dx = 0.4
 
-    eq = Dtt(u(t,x)) ~ -mu*EI*Dx4(u(t,x)) + mu*g
+#     eq = Dtt(u(t,x)) ~ -mu*EI*Dx4(u(t,x)) + mu*g
 
-    bcs = [u(0, x) ~ 0,
-           u(t,0) ~ 0,
-           Dx(u(t,0)) ~ 0,
-           Dxx(u(t, L)) ~ 0,
-           Dx3(u(t, L)) ~ 0]
+#     bcs = [u(0, x) ~ 0,
+#            u(t,0) ~ 0,
+#            Dx(u(t,0)) ~ 0,
+#            Dxx(u(t, L)) ~ 0,
+#            Dx3(u(t, L)) ~ 0]
 
-    # Space and time domains
-    domains = [t ∈ IntervalDomain(0.0,1.0),
-               x ∈ IntervalDomain(0.0,L)]
+#     # Space and time domains
+#     domains = [t ∈ IntervalDomain(0.0,1.0),
+#                x ∈ IntervalDomain(0.0,L)]
 
-    pdesys = PDESystem(eq,bcs,domains,[t,x],[u(t,x)])
-    discretization = MOLFiniteDifference([x=>dx],t, centered_order=4)
-    prob = discretize(pdesys,discretization)
-end
+#     pdesys = PDESystem(eq,bcs,domains,[t,x],[u(t,x)])
+#     discretization = MOLFiniteDifference([x=>dx],t, centered_order=4)
+#     prob = discretize(pdesys,discretization)
+# end
 
-@testset "Beam Equation with Velocity" begin
-    @parameters x, t
-    @variables u(..), v(..)
-    Dt = Differential(t)
-    Dtt = Differential(t)^2
-    Dx = Differential(x)
-    Dxx = Differential(x)^2
-    Dx3 = Differential(x)^3
-    Dx4 = Differential(x)^4
+# @testset "Beam Equation with Velocity" begin
+#     @parameters x, t
+#     @variables u(..), v(..)
+#     Dt = Differential(t)
+#     Dtt = Differential(t)^2
+#     Dx = Differential(x)
+#     Dxx = Differential(x)^2
+#     Dx3 = Differential(x)^3
+#     Dx4 = Differential(x)^4
 
-    g = -9.81
-    EI = 1
-    mu = 1
-    L = 10.0
-    dx = 0.4
+#     g = -9.81
+#     EI = 1
+#     mu = 1
+#     L = 10.0
+#     dx = 0.4
 
-    eqs = [v(t, x) ~ Dt(u(t,x)),
-           Dt(v(t,x)) ~ -mu*EI*Dx4(u(t,x)) + mu*g]
+#     eqs = [v(t, x) ~ Dt(u(t,x)),
+#            Dt(v(t,x)) ~ -mu*EI*Dx4(u(t,x)) + mu*g]
 
-    bcs = [u(0, x) ~ 0,
-           v(0, x) ~ 0,
-           u(t,0) ~ 0,
-           v(t,0) ~ 0,
-           Dxx(u(t, L)) ~ 0,
-           Dx3(u(t, L)) ~ 0]
+#     bcs = [u(0, x) ~ 0,
+#            v(0, x) ~ 0,
+#            u(t,0) ~ 0,
+#            v(t,0) ~ 0,
+#            Dxx(u(t, L)) ~ 0,
+#            Dx3(u(t, L)) ~ 0]
 
-    # Space and time domains
-    domains = [t ∈ IntervalDomain(0.0,1.0),
-               x ∈ IntervalDomain(0.0,L)]
+#     # Space and time domains
+#     domains = [t ∈ IntervalDomain(0.0,1.0),
+#                x ∈ IntervalDomain(0.0,L)]
 
-    pdesys = PDESystem(eqs,bcs,domains,[t,x],[u(t,x),v(t,x)])
-    discretization = MOLFiniteDifference([x=>dx],t, centered_order=4)
-    prob = discretize(pdesys,discretization)
-end
+#     pdesys = PDESystem(eqs,bcs,domains,[t,x],[u(t,x),v(t,x)])
+#     discretization = MOLFiniteDifference([x=>dx],t, centered_order=4)
+#     prob = discretize(pdesys,discretization)
+# end
 
 @testset "Kuramoto–Sivashinsky equation" begin
     @parameters x, t
