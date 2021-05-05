@@ -7,28 +7,6 @@ struct MOLFiniteDifference{T,T2} <: DiffEqBase.AbstractDiscretization
     centered_order::Int
 end
 
-# for terms that of the form:
-# u(x,t) or Differential(x)(u(x,t)), returns, u(x,t) in both cases.
-function get_sym(term)
-    if !Symbolics.istree(term)
-        return nothing
-    end
-    if SymbolicUtils.operation(term) isa Sym
-        return term
-    else
-        # FIXME: for multiple terms, simply return the first...possible bug here
-        syms = filter(!isnothing, [get_sym(t) for t in SymbolicUtils.arguments(term)])
-        return isempty(syms) ? nothing : first(syms)
-    end
-end
-
-# get all terms on the lhs of given equatios that involve the given dependent
-# variable
-function get_depvar_terms(eqs, depvar)
-    syms = filter(!isnothing, [get_sym(eq.lhs) for eq in eqs])
-    return filter(s -> depvar.val.f === s.f, syms)
-end
-
 # Constructors. If no order is specified, both upwind and centered differences will be 2nd order
 MOLFiniteDifference(dxs, time; upwind_order = 1, centered_order = 2) =
     MOLFiniteDifference(dxs, time, upwind_order, centered_order)
@@ -67,7 +45,8 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
       vcat([Colon() for j in 1:i-1],size(depvarsdisc[1],i),[Colon() for j in i+1:nspace])] for i in 1:nspace])
 
     #edgeindices = [indices[e...] for e in edges]
-    edgevals = reduce(vcat,[[nottime[i]=>first(space[i]),nottime[i]=>last(space[i])] for i in 1:length(space)])
+    get_edgevals(i) = [nottime[i]=>first(space[i]),nottime[i]=>last(space[i])]
+    edgevals = reduce(vcat,[get_edgevals(i) for i in 1:length(space)])
     edgevars = [[d[e...] for e in edges] for d in depvarsdisc]
     
     bclocs = map(e->substitute.(pdesys.indvars,e),edgevals) # location of the boundary conditions e.g. (t,0.0,y)
@@ -135,19 +114,31 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
     # TODO: Check Generalization to higher order boundary conditions (e.g., beam equation with 2nd order/3rd order boundary)
     # TODO: Check against equations with multiple dependent vars
 
-    # bc_values will contain the pair mappings from vars to their boundary location.
-    # FIXME: Currently only considering the first depvar, we need to consider all available depvars in the system.
-    bc_values = reduce(vcat, [pdesys.indvars .=> t.arguments for t in get_depvar_terms(pdesys.bcs, depvars[1])])
-    # remove non-value terms and time, we are only concerned with boudary edge values.
-    bc_values = filter(v -> !(last(v) isa Sym) && ~isequal(first(v), t.val), bc_values)
-    bc_count(indvar,edgefunc) = count(v -> last(v) == edgefunc(last.(edgevals)), filter(kv->first(kv) === indvar, bc_values))
-    # FIXME: Assuming that the bc count for all indendent vars is the same, so we just take the first one here.
-    left_bc_count = first([bc_count(indvar, minimum) for indvar in nottime])
-    right_bc_count = first([bc_count(indvar, maximum) for indvar in nottime])
+    # get the depvar boundary terms for given depvar and indvar index.
+    get_depvarbcs(depvar, i) = substitute.((depvar,),get_edgevals(i))
+
+    # return the counts of the boundary-conditions that reference the "left" and
+    # "right" edges of the given independent variable. Note that we return the
+    # max of the count for each depvar in the system of equations.
+    get_bc_counts(i) =
+        begin
+            left = 0
+            right = 0
+            for depvar in depvars
+                depvaredges = get_depvarbcs(depvar, i)
+                counts = [map(x->occursin(x.val, bc.lhs), depvaredges) for bc in pdesys.bcs]
+                left = max(left, sum([c[1] for c in counts]))
+                right = max(right, sum([c[2] for c in counts]))
+            end
+            return [left, right]
+        end
     #--------------------------------------------------
 
     ### PDE EQUATIONS ###
-    interior = indices[[(1 + left_bc_count):length(s)-(right_bc_count) for s in space]...]
+    interior = indices[[let bcs = get_bc_counts(i)
+                        (1 + first(bcs)):length(s)-last(bcs)
+                        end
+                        for (i,s) in enumerate(space)]...]
     eqs = vec(map(Base.product(interior,pdeeqs)) do p
         II,eq = p
     
