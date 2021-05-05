@@ -195,7 +195,7 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
         # Use max and min to apply buffers
         central_neighbor_idxs(II,j) = stencil(j) .+ max(Imin,min(II,Imax))
         central_neighbor_space(II,j) = vec(grid[j][map(i->i[j],central_neighbor_idxs(II,j))])
-        central_weights(d_order, II,j) = DiffEqOperators.calculate_weights(2, grid[j][II[j]], central_neighbor_space(II,j))
+        central_weights(d_order, II,j) = DiffEqOperators.calculate_weights(d_order, grid[j][II[j]], central_neighbor_space(II,j))
         central_deriv(d_order, II,j,k) = dot(central_weights(d_order, II,j),depvarsdisc[k][central_neighbor_idxs(II,j)])
 
         # get a sorted list derivative order such that highest order is first. This is useful when substituting rules
