@@ -68,7 +68,7 @@ bcs = [u(0,r) ~ - r * (r-1) * sin(r),
        Dr(u(t,0)) ~ 0.0, u(t,1) ~ sin(1)]
 
 domains = [t ∈ IntervalDomain(0.0,1.0),
-           r ∈ AxisymmetricSphereDomain(0.0,1.0)]
+           r ∈ IntervalDomain(0.0,1.0)]
 
 pdesys = PDESystem(eq,bcs,domains,[t,r],[u(t,r)])
 discretization = MOLFiniteDifference([r=>0.1],t)

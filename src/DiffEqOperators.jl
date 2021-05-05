@@ -64,7 +64,6 @@ export AbstractDerivativeOperator, DerivativeOperator,
        CenteredDifference, UpwindDifference, nonlinear_diffusion, nonlinear_diffusion!
 export DirichletBC, Dirichlet0BC, NeumannBC, Neumann0BC, RobinBC, GeneralBC, MultiDimBC, PeriodicBC,
        MultiDimDirectionalBC, ComposedMultiDimBC
-export AxisymmetricSphereDomain
 export compose, decompose, perpsize
 export discretize, symbolic_discretize
 

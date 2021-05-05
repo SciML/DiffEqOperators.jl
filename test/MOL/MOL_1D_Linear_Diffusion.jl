@@ -425,7 +425,7 @@ end
 
     # Space and time domains
     domains = [t ∈ IntervalDomain(0.0,1.0),
-               r ∈ AxisymmetricSphereDomain(0.0,1.0)]
+               r ∈ IntervalDomain(0.0,1.0)]
 
     # PDE system
     pdesys = PDESystem(eq,bcs,domains,[t,r],[u(t,r)])

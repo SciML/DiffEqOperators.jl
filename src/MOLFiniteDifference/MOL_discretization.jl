@@ -15,15 +15,21 @@ end
 MOLFiniteDifference(dxs, time; upwind_order = 1, centered_order = 2, grid_align=center_align) =
     MOLFiniteDifference(dxs, time, upwind_order, centered_order, grid_align)
 
-function calculate_weights_general(order::Int, x0::T, xs::AbstractVector, idxs::AbstractVector, domain::IntervalDomain) where T<:Real
+function calculate_weights_cartesian(order::Int, x0::T, xs::AbstractVector, idxs::AbstractVector) where T<:Real
         # Cartesian domain: use Fornberg
         DiffEqOperators.calculate_weights(order, x0, vec(xs[idxs]))
  end
- function calculate_weights_general(order::Int, x0::T, x::AbstractVector, idxs::AbstractVector, domain::AxisymmetricSphereDomain) where T<:Real
+ function calculate_weights_spherical(order::Int, x0::T, x::AbstractVector, idxs::AbstractVector) where T<:Real
         # Spherical domain: see #367
         # https://web.mit.edu/braatzgroup/analysis_of_finite_difference_discretization_schemes_for_diffusion_in_spheres_with_variable_diffusivity.pdf
         # Only order 2 is implemented
         @assert order == 2
+        # Only 2nd order discretization is implemented
+        # We can't activate this assertion for now because the rules try to create the spherical Laplacian
+        # before checking whether there is a spherical Laplacian
+        # this could be fixed by dispatching on domain type when we have different domain types
+        # but for now everything is an IntervalDomain
+        # @assert length(x) == 3
         # TODO: nonlinear diffusion in a spherical domain
         i = idxs[2] 
         dx1 = x[i] - x[i-1]
@@ -42,11 +48,6 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
     depvars = pdesys.depvars
 
     # Discretize space
-    spacedomains = map(nottime) do x
-        xdomain = pdesys.domain[findfirst(d->isequal(x.val, d.variables),pdesys.domain)]
-        @assert xdomain.domain isa AbstractDomain
-        xdomain.domain
-    end
     space = map(nottime) do x
         xdomain = pdesys.domain[findfirst(d->isequal(x.val, d.variables),pdesys.domain)]
         dx = discretization.dxs[findfirst(dxs->isequal(x.val, dxs[1].val),discretization.dxs)][2]
@@ -164,30 +165,36 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
     bceqs = reduce(vcat,bceqs)
 
     ### PDE EQUATIONS ###
+    # Create a stencil in the required dimension centered around 0
+    # e.g. (-1,0,1) for 2nd order, (-2,-1,0,1,2) for 4th order, etc
+    stencil(j, order) = CartesianIndices(Tuple(map(x -> -x:x, (1:nspace.==j) * (order÷2))))
+
+    # TODO: Generalize central difference handling to allow higher even order derivatives
+    # The central neighbour indices should add the stencil to II, unless II is too close
+    # to an edge in which case we need to shift away from the edge
+
+    # Calculate buffers
+    I1 = oneunit(first(grid_indices))
+    Imin(order) = first(grid_indices) + I1 * (order÷2)
+    Imax(order) = last(grid_indices) - I1 * (order÷2)
+
     interior = grid_indices[[2:length(g)-1 for g in grid]...]
     eqs = vec(map(Base.product(interior,pdeeqs)) do p
-        II,eq = p
+       II,eq = p
 
-        # Create a stencil in the required dimension centered around 0
-        # e.g. (-1,0,1) for 2nd order, (-2,-1,0,1,2) for 4th order, etc
-        order = discretization.centered_order
-        stencil(j) = CartesianIndices(Tuple(map(x -> -x:x, (1:nspace.==j) * (order÷2))))
-
-        # TODO: Generalize central difference handling to allow higher even order derivatives
-        # The central neighbour indices should add the stencil to II, unless II is too close
-        # to an edge in which case we need to shift away from the edge
-
-        # Calculate buffers
-        I1 = oneunit(first(grid_indices))
-        Imin = first(grid_indices) + I1 * (order÷2)
-        Imax = last(grid_indices) - I1 * (order÷2)
         # Use max and min to apply buffers
-        central_neighbor_idxs(II,j) = stencil(j) .+ max(Imin,min(II,Imax))
-        central_weights(II,j) = calculate_weights_general(2, grid[j][II[j]], grid[j], vec(map(i->i[j], central_neighbor_idxs(II,j))), spacedomains[j])
-        central_deriv(II,j,k) = dot(central_weights(II,j),depvarsdisc[k][central_neighbor_idxs(II,j)])
+        central_neighbor_idxs(II,j,order) = stencil(j,order) .+ max(Imin(order),min(II,Imax(order)))
+        central_weights_cartesian(II,j) = calculate_weights_cartesian(2, grid[j][II[j]], grid[j], vec(map(i->i[j], 
+                                                                      central_neighbor_idxs(II,j,discretization.centered_order))))
+        central_deriv_cartesian(II,j,k) = dot(central_weights_cartesian(II,j),depvarsdisc[k][central_neighbor_idxs(II,j,discretization.centered_order)])
+        central_weights_spherical(II,j) = calculate_weights_spherical(2, grid[j][II[j]], grid[j], vec(map(i->i[j], central_neighbor_idxs(II,j,2))))
+        # the [1:3] at the end here means that central_deriv_spherical will only work with a centered_order of 2
+        # right now it will fail quietly otherwise ...
+        central_deriv_spherical(II,j,k) = dot(central_weights_spherical(II,j),depvarsdisc[k][central_neighbor_idxs(II,j,2)])
         
-        central_deriv_rules = [(Differential(s)^2)(u) => central_deriv(II,j,k) for (j,s) in enumerate(nottime), (k,u) in enumerate(depvars)]
-        central_deriv_rules_sphere = [(Differential(s))(s^2*Differential(s)(u))/s^2 => central_deriv(II,j,k) 
+        
+        central_deriv_rules_cartesian = [(Differential(s)^2)(u) => central_deriv_cartesian(II,j,k) for (j,s) in enumerate(nottime), (k,u) in enumerate(depvars)]
+        central_deriv_rules_spherical = [(Differential(s))(s^2*Differential(s)(u))/s^2 => central_deriv_spherical(II,j,k) 
                                     for (j,s) in enumerate(nottime), (k,u) in enumerate(pdesys.depvars)]
         valrules = vcat([depvars[k] => depvarsdisc[k][II] for k in 1:length(depvars)],
                         [nottime[j] => grid[j][II[j]] for j in 1:nspace])
@@ -230,8 +237,9 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
         end
 
         rules = vcat(vec(nonlinlap_rules),
-                     vec(central_deriv_rules)
-                     vec(central_deriv_rules_sphere),valrules)
+                     vec(central_deriv_rules_cartesian),
+                     vec(central_deriv_rules_spherical),
+                     valrules)
 
         substitute(eq.lhs,rules) ~ substitute(eq.rhs,rules)
 
