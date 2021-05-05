@@ -18,7 +18,7 @@ domains = [t ∈ IntervalDomain(0.0,1.0),
            x ∈ IntervalDomain(0.0,1.0)]
 
 pdesys = PDESystem(eqs,bcs,domains,[t,x],[u(t,x),v(t,x)])
-discretization = MOLFiniteDifference([x=>0.1],t)
+discretization = MOLFiniteDifference([x=>0.1],t;grid_align=edge_align)
 prob = discretize(pdesys,discretization) # This gives an ODEProblem since it's time-dependent
 sol = solve(prob,Tsit5())
 
