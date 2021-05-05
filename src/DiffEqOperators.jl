@@ -49,7 +49,6 @@ include("docstrings.jl")
 include("derivative_operators/concretization.jl")
 
 ### MOL
-include("MOLFiniteDifference/sphere_utils.jl")
 include("MOLFiniteDifference/MOL_discretization.jl")
 
 # The (u,p,t) and (du,u,p,t) interface

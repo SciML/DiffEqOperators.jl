@@ -188,8 +188,7 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
                                                                       central_neighbor_idxs(II,j,discretization.centered_order))))
         central_deriv_cartesian(II,j,k) = dot(central_weights_cartesian(II,j),depvarsdisc[k][central_neighbor_idxs(II,j,discretization.centered_order)])
         central_weights_spherical(II,j) = calculate_weights_spherical(2, grid[j][II[j]], grid[j], vec(map(i->i[j], central_neighbor_idxs(II,j,2))))
-        # the [1:3] at the end here means that central_deriv_spherical will only work with a centered_order of 2
-        # right now it will fail quietly otherwise ...
+        # spherical Laplacian has a hardcoded order of 2 (only 2nd order is implemented)
         central_deriv_spherical(II,j,k) = dot(central_weights_spherical(II,j),depvarsdisc[k][central_neighbor_idxs(II,j,2)])
         
         
