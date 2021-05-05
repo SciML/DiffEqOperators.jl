@@ -54,3 +54,109 @@ dx = 0.1; dy = 0.2
 discretization = MOLFiniteDifference([x=>dx,y=>dy],t)
 prob = ModelingToolkit.discretize(pdesys,discretization)
 sol = solve(prob,Tsit5())
+
+using ModelingToolkit
+using IfElse
+
+# MTK model
+# ('negative electrode', 'separator', 'positive electrode') -> x
+@parameters t x
+# 'Electrolyte concentration ' -> c_e
+# 'Electrolyte potential' -> phi_e
+@variables c_e(..) phi_e(..)
+Dt = Differential(t)
+Dx = Differential(x)
+
+# 'Electrolyte concentration ' equation
+
+function concatenation(n, s, p)
+   # A concatenation in the electrolyte domain
+  f= (x) -> IfElse.ifelse(
+      x < 0.4444444444444445, n, IfElse.ifelse(
+         x < 0.5555555555555556, s, p
+      )
+   )
+end
+
+cache_5101060308695467050(x) = concatenation(2.25, 0.0, -2.25)(x)
+@register cache_5101060308695467050(x)
+cache_8771569224475106856 = (Dx(Dx(c_e(t, x)))) + cache_5101060308695467050(x)
+
+# 'Electrolyte potential' equation
+cache_5101060308695467050(x) = concatenation(2.25, 0.0, -2.25)(x)
+@register cache_5101060308695467050(x)
+# cache_4483180157687090897 = (Dx(1 / c_e(t, x) * Dx(c_e(t, x))) - Dx(Dx(phi_e(t, x)))) - cache_5101060308695467050(x)
+cache_4483180157687090897 = Dx(Dx(c_e(t,x))) - Dx(Dx(phi_e(t, x))) - cache_5101060308695467050(x)
+
+
+eqs = [
+   Dt(c_e(t, x)) ~ cache_8771569224475106856,
+   0 ~ cache_4483180157687090897,
+]
+
+ics_bcs = [
+   # initial conditions
+   c_e(0, x) ~ 1.0,
+   phi_e(0, x) ~ 0.0,
+   # boundary conditions
+   Dx(c_e(t, 0.0)) ~ 0.0,
+   Dx(c_e(t, 1.0)) ~ 0.0,
+   phi_e(t, 0.0) ~ 0.0,
+   Dx(phi_e(t, 1.0)) ~ 0.0,
+]
+
+t_domain = IntervalDomain(0.0, 3600.0)
+x_domain = IntervalDomain(0.0, 1.0)
+
+domains = [
+   t in t_domain,
+   x in x_domain,
+]
+ind_vars = [t, x]
+dep_vars = [c_e(t,x), phi_e(t,x)]
+
+reduced_c_phi_pde_system = PDESystem(eqs, ics_bcs, domains, ind_vars, dep_vars)
+
+
+# Finite difference solution
+using DiffEqOperators
+using OrdinaryDiffEq
+
+ln = 4/9
+ls = 1/9
+dx = vcat(range(0,ln,length=11)[1:end-1], range(ln,ln+ls,length=11)[1:end-1], range(ln+ls,1,length=11))
+discretization = MOLFiniteDifference([x=>dx],t; grid_align=edge_align)
+
+pdesys = reduced_c_phi_pde_system
+sys, tspan = SciMLBase.symbolic_discretize(pdesys,discretization)
+    simpsys = structural_simplify(sys)
+    prob = ODEProblem(simpsys,Pair[],tspan)
+prob = discretize(reduced_c_phi_pde_system,discretization) # This gives an ODEProblem since it's time-dependent
+sol = solve(prob,KenCarp47())
+sys.states[1]
+vcat(map(x -> sol[sys.states[x]], 1:30))
+# using BenchmarkTools
+# @btime solve(prob,KenCarp47();saveat=t_pb)
+
+xsol=dx[2:end-1]
+xsol = x_pb
+using Plots
+anim = @animate for i in 1:length(t_pb)
+   plot(xsol,sol.u[i];ylims=(0.7,1.3),label="Finite differences",xlabel="x",ylabel="cₑ")
+   scatter!(x_pb,c_e[:,i];ylims=(0.7,1.3),label="PyBaMM")
+end
+gif(anim, "pybamm/hardcoded_models/MTK_format/animations/reduced_c_diffeqops.gif",fps=30)
+
+using ModelingToolkit, OrdinaryDiffEq
+
+@parameters t
+@variables x(t) y(t)
+D = Differential(t)
+
+eqs = [D(x) ~ -x,
+       0 ~ 2x-y]
+
+sys = structural_simplify(ODESystem(eqs))
+
+prob = ODEProblem(sys,[1],(0.0,1.0))
+sol = solve(prob,Rodas4())

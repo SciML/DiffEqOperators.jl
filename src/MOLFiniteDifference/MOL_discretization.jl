@@ -196,8 +196,9 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
                      [-b1(II, j, k), b2(II, j, k)])
                  for (j, iv) in enumerate(nottime) for (k, dv) in enumerate(depvars)]
         rhs_arg = (SymbolicUtils.operation(eq.rhs) == +) ? SymbolicUtils.arguments(eq.rhs) : [eq.rhs]
-        lhs_arg = (SymbolicUtils.operation(eq.lhs) == +) ? SymbolicUtils.arguments(eq.lhs) : [eq.lhs]
-        nonlinlap_rules = []
+        # lhs_arg = (SymbolicUtils.operation(eq.lhs) == +) ? SymbolicUtils.arguments(eq.lhs) : [eq.lhs]
+       lhs_arg = []
+       nonlinlap_rules = []
         for t in vcat(lhs_arg,rhs_arg)
             for r in rules
                 if r(t) !== nothing
