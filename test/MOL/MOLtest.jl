@@ -9,7 +9,6 @@ Dxx = Differential(x)^2
 eqs  = [Dt(u(t,x)) ~ Dxx(u(t,x)), 
         Dt(v(t,x)) ~ Dxx(v(t,x))]
 bcs = [u(0,x) ~ - x * (x-1) * sin(x),
-       Dx(u(t,0)) ~ 0.0, u(t,1) ~ 0.0,
        v(0,x) ~ - x * (x-1) * sin(x),
        u(t,0) ~ 0.0, u(t,1) ~ 0.0,
        v(t,0) ~ 0.0, v(t,1) ~ 0.0]
@@ -74,4 +73,3 @@ pdesys = PDESystem(eq,bcs,domains,[t,r],[u(t,r)])
 discretization = MOLFiniteDifference([r=>0.1],t)
 prob = discretize(pdesys,discretization) # This gives an ODEProblem since it's time-dependent
 sol = solve(prob,Tsit5())
-
