@@ -110,9 +110,6 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
     # Count the number of boundary equations that lie at the spatial boundary on
     # both the left and right side. This will be used to determine number of
     # interior equations s.t. we have a balanced system of equations.
-    # TODO: Check/Generalize to work with multi-dimensional equations
-    # TODO: Check Generalization to higher order boundary conditions (e.g., beam equation with 2nd order/3rd order boundary)
-    # TODO: Check against equations with multiple dependent vars
 
     # get the depvar boundary terms for given depvar and indvar index.
     get_depvarbcs(depvar, i) = substitute.((depvar,),get_edgevals(i))

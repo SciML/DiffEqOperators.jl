@@ -382,3 +382,40 @@ end
         @test v_exact(x_sol, t_sol[i]) ≈ sol.u[i][l-1:end] atol=0.01
     end
 end
+
+@testset "Test 11: Test Invalid Centered Order" begin
+    # Method of Manufactured Solutions
+    u_exact = (x,t) -> exp.(-t) * cos.(x)
+
+    # Parameters, variables, and derivatives
+    @parameters t x
+    @variables u(..)
+    Dt = Differential(t)
+    Dxx = Differential(x)^2
+
+    # 1D PDE and boundary conditions
+    eq  = Dt(u(t,x)) ~ Dxx(u(t,x))
+    bcs = [u(0,x) ~ cos(x),
+           u(t,0) ~ exp(-t),
+           u(t,Float64(π)) ~ -exp(-t)]
+
+    # Space and time domains
+    domains = [t ∈ IntervalDomain(0.0,1.0),
+               x ∈ IntervalDomain(0.0,Float64(π))]
+
+    # PDE system
+    pdesys = PDESystem(eq,bcs,domains,[t,x],[u(t,x)])
+
+    # Method of lines discretization
+    dx = range(0.0,Float64(π),length=30)
+
+    # Explicitly specify and invalid order of centered difference
+    for order in 1:6
+        discretization = MOLFiniteDifference([x=>dx],t;centered_order=order)
+        if order % 2 != 0
+            @test_throws ArgumentError discretize(pdesys,discretization)
+        else
+            discretize(pdesys,discretization)
+        end
+    end
+end
