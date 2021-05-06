@@ -68,7 +68,9 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
     edges = reduce(vcat,[[vcat([Colon() for j in 1:i-1],1,[Colon() for j in i+1:nspace]),
                           vcat([Colon() for j in 1:i-1],length(space[i]),[Colon() for j in i+1:nspace])] for i in 1:nspace])
 
-    edgevals = reduce(vcat,[[nottime[i]=>first(space[i]),nottime[i]=>last(space[i])] for i in 1:length(space)])
+    #edgeindices = [indices[e...] for e in edges]
+    get_edgevals(i) = [nottime[i]=>first(space[i]),nottime[i]=>last(space[i])]
+    edgevals = reduce(vcat,[get_edgevals(i) for i in 1:length(space)])
     edgevars = [[d[e...] for e in edges] for d in depvarsdisc]
 
     bclocs = map(e->substitute.(pdesys.indvars,e),edgevals) # location of the boundary conditions e.g. (t,0.0,y)
@@ -141,15 +143,46 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
     u0 = reduce(vcat,u0)
     bceqs = reduce(vcat,bceqs)
 
+    #---- Count Boundary Equations --------------------
+    # Count the number of boundary equations that lie at the spatial boundary on
+    # both the left and right side. This will be used to determine number of
+    # interior equations s.t. we have a balanced system of equations.
+
+    # get the depvar boundary terms for given depvar and indvar index.
+    get_depvarbcs(depvar, i) = substitute.((depvar,),get_edgevals(i))
+
+    # return the counts of the boundary-conditions that reference the "left" and
+    # "right" edges of the given independent variable. Note that we return the
+    # max of the count for each depvar in the system of equations.
+    get_bc_counts(i) =
+        begin
+            left = 0
+            right = 0
+            for depvar in depvars
+                depvaredges = get_depvarbcs(depvar, i)
+                counts = [map(x->occursin(x.val, bc.lhs), depvaredges) for bc in pdesys.bcs]
+                left = max(left, sum([c[1] for c in counts]))
+                right = max(right, sum([c[2] for c in counts]))
+            end
+            return [left, right]
+        end
+    #--------------------------------------------------
+
     ### PDE EQUATIONS ###
-    interior = grid_indices[[2:length(g)-1 for g in grid]...]
+    interior = grid_indices[[let bcs = get_bc_counts(i)
+                             (1 + first(bcs)):length(g)-last(bcs)
+                             end
+                             for (i,g) in enumerate(grid)]...]
     eqs = vec(map(Base.product(interior,pdeeqs)) do p
         II,eq = p
     
         # Create a stencil in the required dimension centered around 0
         # e.g. (-1,0,1) for 2nd order, (-2,-1,0,1,2) for 4th order, etc
-        order = discretization.centered_order
-        stencil(j) = CartesianIndices(Tuple(map(x -> -x:x, (1:nspace.==j) * (order÷2))))
+        if discretization.centered_order % 2 != 0
+            throw(ArgumentError("Discretization centered_order must be even, given $(discretization.centered_order)"))
+        end
+        approx_order = discretization.centered_order
+        stencil(j) = CartesianIndices(Tuple(map(x -> -x:x, (1:nspace.==j) * (approx_order÷2))))
     
         # TODO: Generalize central difference handling to allow higher even order derivatives
         # The central neighbour indices should add the stencil to II, unless II is too close
@@ -157,15 +190,26 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
 
         # Calculate buffers
         I1 = oneunit(first(grid_indices))
-        Imin = first(grid_indices) + I1 * (order÷2)
-        Imax = last(grid_indices) - I1 * (order÷2)
+        Imin = first(grid_indices) + I1 * (approx_order÷2)
+        Imax = last(grid_indices) - I1 * (approx_order÷2)
         # Use max and min to apply buffers
         central_neighbor_idxs(II,j) = stencil(j) .+ max(Imin,min(II,Imax))
         central_neighbor_space(II,j) = vec(grid[j][map(i->i[j],central_neighbor_idxs(II,j))])
-        central_weights(II,j) = DiffEqOperators.calculate_weights(2, grid[j][II[j]], central_neighbor_space(II,j))
-        central_deriv(II,j,k) = dot(central_weights(II,j),depvarsdisc[k][central_neighbor_idxs(II,j)])
+        central_weights(d_order, II,j) = DiffEqOperators.calculate_weights(d_order, grid[j][II[j]], central_neighbor_space(II,j))
+        central_deriv(d_order, II,j,k) = dot(central_weights(d_order, II,j),depvarsdisc[k][central_neighbor_idxs(II,j)])
 
-        central_deriv_rules = [(Differential(s)^2)(u) => central_deriv(II,j,k) for (j,s) in enumerate(nottime), (k,u) in enumerate(depvars)]
+        # get a sorted list derivative order such that highest order is first. This is useful when substituting rules
+        # starting from highest to lowest order.
+        d_orders(s) = reverse(sort(collect(union(differential_order(eq.rhs, s.val), differential_order(eq.lhs, s.val)))))
+
+        # central_deriv_rules = [(Differential(s)^2)(u) => central_deriv(2,II,j,k) for (j,s) in enumerate(nottime), (k,u) in enumerate(depvars)]
+        central_deriv_rules = Array{Pair{Num,Num},1}()
+        for (j,s) in enumerate(nottime)
+            rs = [(Differential(s)^d)(u) => central_deriv(d,II,j,k) for d in d_orders(s), (k,u) in enumerate(depvars)]
+            for r in rs
+              push!(central_deriv_rules, r)
+            end
+        end
         valrules = vcat([depvars[k] => depvarsdisc[k][II] for k in 1:length(depvars)],
                         [nottime[j] => grid[j][II[j]] for j in 1:nspace])
     
