@@ -41,6 +41,7 @@ if GROUP == "All" || GROUP == "MOLFiniteDifference"
     @time @safetestset "MOLFiniteDifference Interface: 1D Linear Diffusion" begin include("MOL/MOL_1D_Linear_Diffusion.jl") end
     @time @safetestset "MOLFiniteDifference Interface: 1D Non-Linear Diffusion" begin include("MOL/MOL_1D_NonLinear_Diffusion.jl") end
     @time @safetestset "MOLFiniteDifference Interface: 2D Diffusion" begin include("MOL/MOL_2D_Diffusion.jl") end
+    @time @safetestset "MOLFiniteDifference Interface: 1D HigherOrder" begin include("MOL/MOL_1D_HigherOrder.jl") end
 end
 
 if GROUP == "All" || GROUP == "Misc"
