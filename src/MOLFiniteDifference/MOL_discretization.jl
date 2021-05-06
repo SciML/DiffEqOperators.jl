@@ -178,15 +178,17 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
     Imin(order) = first(grid_indices) + I1 * (order÷2)
     Imax(order) = last(grid_indices) - I1 * (order÷2)
 
+    cent_order = discretization.centered_order
     interior = grid_indices[[2:length(g)-1 for g in grid]...]
+
     eqs = vec(map(Base.product(interior,pdeeqs)) do p
        II,eq = p
 
         # Use max and min to apply buffers
         central_neighbor_idxs(II,j,order) = stencil(j,order) .+ max(Imin(order),min(II,Imax(order)))
         central_weights_cartesian(II,j) = calculate_weights_cartesian(2, grid[j][II[j]], grid[j], vec(map(i->i[j], 
-                                                                      central_neighbor_idxs(II,j,discretization.centered_order))))
-        central_deriv_cartesian(II,j,k) = dot(central_weights_cartesian(II,j),depvarsdisc[k][central_neighbor_idxs(II,j,discretization.centered_order)])
+                                                                      central_neighbor_idxs(II,j,cent_order))))
+        central_deriv_cartesian(II,j,k) = dot(central_weights_cartesian(II,j),depvarsdisc[k][central_neighbor_idxs(II,j,cent_order)])
         central_weights_spherical(II,j) = calculate_weights_spherical(2, grid[j][II[j]], grid[j], vec(map(i->i[j], central_neighbor_idxs(II,j,2))))
         # spherical Laplacian has a hardcoded order of 2 (only 2nd order is implemented)
         central_deriv_spherical(II,j,k) = dot(central_weights_spherical(II,j),depvarsdisc[k][central_neighbor_idxs(II,j,2)])
@@ -208,10 +210,10 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
 
         ## Discretization of non-linear laplacian. 
         # d/dx( a du/dx ) ~ (a(x+1/2) * (u[i+1] - u[i]) - a(x-1/2) * (u[i] - u[i-1]) / dx^2
-        b1(II, j, k) = dot(reverse_weights(II, j), depvarsdisc[k][central_neighbor_idxs(II, j)[1:2]]) / dxs[j]
-        b2(II, j, k) = dot(forward_weights(II, j), depvarsdisc[k][central_neighbor_idxs(II, j)[2:3]]) / dxs[j]
+        b1(II, j, k) = dot(reverse_weights(II, j), depvarsdisc[k][central_neighbor_idxs(II, j, cent_order)[1:2]]) / dxs[j]
+        b2(II, j, k) = dot(forward_weights(II, j), depvarsdisc[k][central_neighbor_idxs(II, j, cent_order)[2:3]]) / dxs[j]
         # TODO: improve interpolation of g(x) = u(x) for calculating u(x+-dx/2)
-        g(II, j, k, l) = sum([depvarsdisc[k][central_neighbor_idxs(II, j)][s] for s in (l == 1 ? [2,3] : [1,2])]) / 2.
+        g(II, j, k, l) = sum([depvarsdisc[k][central_neighbor_idxs(II, j, cent_order)][s] for s in (l == 1 ? [2,3] : [1,2])]) / 2.
         # iv_mid returns middle space values. E.g. x(i-1/2) or y(i+1/2).
         iv_mid(II, j, l) = (grid[j][II[j]] + grid[j][II[j]+l]) / 2.0 
         # Dependent variable rules
