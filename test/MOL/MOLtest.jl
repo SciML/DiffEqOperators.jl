@@ -132,31 +132,8 @@ sys, tspan = SciMLBase.symbolic_discretize(pdesys,discretization)
     simpsys = structural_simplify(sys)
     prob = ODEProblem(simpsys,Pair[],tspan)
 prob = discretize(reduced_c_phi_pde_system,discretization) # This gives an ODEProblem since it's time-dependent
-sol = solve(prob,KenCarp47())
+sol = solve(prob,Rodas4())
 sys.states[1]
 vcat(map(x -> sol[sys.states[x]], 1:30))
 # using BenchmarkTools
 # @btime solve(prob,KenCarp47();saveat=t_pb)
-
-xsol=dx[2:end-1]
-xsol = x_pb
-using Plots
-anim = @animate for i in 1:length(t_pb)
-   plot(xsol,sol.u[i];ylims=(0.7,1.3),label="Finite differences",xlabel="x",ylabel="cₑ")
-   scatter!(x_pb,c_e[:,i];ylims=(0.7,1.3),label="PyBaMM")
-end
-gif(anim, "pybamm/hardcoded_models/MTK_format/animations/reduced_c_diffeqops.gif",fps=30)
-
-using ModelingToolkit, OrdinaryDiffEq
-
-@parameters t
-@variables x(t) y(t)
-D = Differential(t)
-
-eqs = [D(x) ~ -x,
-       0 ~ 2x-y]
-
-sys = structural_simplify(ODESystem(eqs))
-
-prob = ODEProblem(sys,[1],(0.0,1.0))
-sol = solve(prob,Rodas4())
