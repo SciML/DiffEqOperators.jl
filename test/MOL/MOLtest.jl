@@ -4,6 +4,7 @@ using ModelingToolkit, DiffEqOperators, LinearAlgebra, OrdinaryDiffEq
 @parameters t x
 @variables u(..) v(..)
 Dt = Differential(t)
+Dx = Differential(x)
 Dxx = Differential(x)^2
 eqs  = [Dt(u(t,x)) ~ Dxx(u(t,x)), 
         Dt(v(t,x)) ~ Dxx(v(t,x))]
@@ -53,4 +54,22 @@ pdesys = PDESystem([eq],bcs,domains,[t,x,y],[u(t,x,y)])
 dx = 0.1; dy = 0.2
 discretization = MOLFiniteDifference([x=>dx,y=>dy],t)
 prob = ModelingToolkit.discretize(pdesys,discretization)
+sol = solve(prob,Tsit5())
+
+# Sphere domain
+@parameters t r
+@variables u(..)
+Dt = Differential(t)
+Dr = Differential(r)
+Drr = Dr^2
+eq  = Dt(u(t,r)) ~ 1/r^2 * Dr(r^2 * Dr(u(t,r)))
+bcs = [u(0,r) ~ - r * (r-1) * sin(r),
+       Dr(u(t,0)) ~ 0.0, u(t,1) ~ sin(1)]
+
+domains = [t ∈ IntervalDomain(0.0,1.0),
+           r ∈ IntervalDomain(0.0,1.0)]
+
+pdesys = PDESystem(eq,bcs,domains,[t,r],[u(t,r)])
+discretization = MOLFiniteDifference([r=>0.1],t)
+prob = discretize(pdesys,discretization) # This gives an ODEProblem since it's time-dependent
 sol = solve(prob,Tsit5())

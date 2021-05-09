@@ -15,6 +15,30 @@ end
 MOLFiniteDifference(dxs, time; upwind_order = 1, centered_order = 2, grid_align=center_align) =
     MOLFiniteDifference(dxs, time, upwind_order, centered_order, grid_align)
 
+function calculate_weights_cartesian(order::Int, x0::T, xs::AbstractVector, idxs::AbstractVector) where T<:Real
+        # Cartesian domain: use Fornberg
+        DiffEqOperators.calculate_weights(order, x0, vec(xs[idxs]))
+ end
+ function calculate_weights_spherical(order::Int, x0::T, x::AbstractVector, idxs::AbstractVector) where T<:Real
+        # Spherical domain: see #367
+        # https://web.mit.edu/braatzgroup/analysis_of_finite_difference_discretization_schemes_for_diffusion_in_spheres_with_variable_diffusivity.pdf
+        # Only order 2 is implemented
+        @assert order == 2
+        # Only 2nd order discretization is implemented
+        # We can't activate this assertion for now because the rules try to create the spherical Laplacian
+        # before checking whether there is a spherical Laplacian
+        # this could be fixed by dispatching on domain type when we have different domain types
+        # but for now everything is an IntervalDomain
+        # @assert length(x) == 3
+        # TODO: nonlinear diffusion in a spherical domain
+        i = idxs[2] 
+        dx1 = x[i] - x[i-1]
+        dx2 = x[i+1] - x[i]
+        i0 = i - 1 # indexing starts at 0 in the paper and starts at 1 in julia
+        1 / (i0 * dx1 * dx2) * [i0-1, -2i0, i0+1]
+ end
+ 
+
 function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discretization::DiffEqOperators.MOLFiniteDifference)
     grid_align = discretization.grid_align
     pdeeqs = pdesys.eqs isa Vector ? pdesys.eqs : [pdesys.eqs]
@@ -26,7 +50,6 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
     # Discretize space
     space = map(nottime) do x
         xdomain = pdesys.domain[findfirst(d->isequal(x.val, d.variables),pdesys.domain)]
-        @assert xdomain.domain isa IntervalDomain
         dx = discretization.dxs[findfirst(dxs->isequal(x.val, dxs[1].val),discretization.dxs)][2]
         dx isa Number ? (xdomain.domain.lower:dx:xdomain.domain.upper) : dx
     end
@@ -89,7 +112,7 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
         # 1D system
         left_weights(j) = DiffEqOperators.calculate_weights(discretization.upwind_order, grid[j][1], grid[j][1:2])
         right_weights(j) = DiffEqOperators.calculate_weights(discretization.upwind_order, grid[j][end], grid[j][end-1:end])
-        central_neighbor_idxs(i,j) = [i+CartesianIndex([ifelse(l==j,-1,0) for l in 1:nspace]...),i,i+CartesianIndex([ifelse(l==j,1,0) for l in 1:nspace]...)]
+        central_neighbor_idxs(II,j) = [II-CartesianIndex((1:nspace.==j)...),II,II+CartesianIndex((1:nspace.==j)...)]
         left_idxs = central_neighbor_idxs(CartesianIndex(2),1)[1:2]
         right_idxs(j) = central_neighbor_idxs(CartesianIndex(length(grid[j])-1),1)[end-1:end]
         # Constructs symbolic spatially discretized terms of the form e.g. au₂ - bu₁
@@ -169,6 +192,23 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
     #--------------------------------------------------
 
     ### PDE EQUATIONS ###
+    # Create a stencil in the required dimension centered around 0
+    # e.g. (-1,0,1) for 2nd order, (-2,-1,0,1,2) for 4th order, etc
+    if discretization.centered_order % 2 != 0
+        throw(ArgumentError("Discretization centered_order must be even, given $(discretization.centered_order)"))
+    end
+    approx_order = discretization.centered_order
+    stencil(j, order) = CartesianIndices(Tuple(map(x -> -x:x, (1:nspace.==j) * (order÷2))))
+
+    # TODO: Generalize central difference handling to allow higher even order derivatives
+    # The central neighbour indices should add the stencil to II, unless II is too close
+    # to an edge in which case we need to shift away from the edge
+
+    # Calculate buffers
+    I1 = oneunit(first(grid_indices))
+    Imin(order) = first(grid_indices) + I1 * (order÷2)
+    Imax(order) = last(grid_indices) - I1 * (order÷2)
+
     interior = grid_indices[[let bcs = get_bc_counts(i)
                              (1 + first(bcs)):length(g)-last(bcs)
                              end
@@ -176,40 +216,34 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
     eqs = vec(map(Base.product(interior,pdeeqs)) do p
         II,eq = p
     
-        # Create a stencil in the required dimension centered around 0
-        # e.g. (-1,0,1) for 2nd order, (-2,-1,0,1,2) for 4th order, etc
-        if discretization.centered_order % 2 != 0
-            throw(ArgumentError("Discretization centered_order must be even, given $(discretization.centered_order)"))
-        end
-        approx_order = discretization.centered_order
-        stencil(j) = CartesianIndices(Tuple(map(x -> -x:x, (1:nspace.==j) * (approx_order÷2))))
-    
-        # TODO: Generalize central difference handling to allow higher even order derivatives
-        # The central neighbour indices should add the stencil to II, unless II is too close
-        # to an edge in which case we need to shift away from the edge
-
-        # Calculate buffers
-        I1 = oneunit(first(grid_indices))
-        Imin = first(grid_indices) + I1 * (approx_order÷2)
-        Imax = last(grid_indices) - I1 * (approx_order÷2)
         # Use max and min to apply buffers
-        central_neighbor_idxs(II,j) = stencil(j) .+ max(Imin,min(II,Imax))
-        central_neighbor_space(II,j) = vec(grid[j][map(i->i[j],central_neighbor_idxs(II,j))])
-        central_weights(d_order, II,j) = DiffEqOperators.calculate_weights(d_order, grid[j][II[j]], central_neighbor_space(II,j))
-        central_deriv(d_order, II,j,k) = dot(central_weights(d_order, II,j),depvarsdisc[k][central_neighbor_idxs(II,j)])
+        central_neighbor_idxs(II,j,order) = stencil(j,order) .+ max(Imin(order),min(II,Imax(order)))
+        central_weights_cartesian(d_order,II,j) = calculate_weights_cartesian(d_order, grid[j][II[j]], grid[j], vec(map(i->i[j], 
+                                                                              central_neighbor_idxs(II,j,approx_order))))
+        central_deriv(d_order, II,j,k) = dot(central_weights(d_order, II,j),depvarsdisc[k][central_neighbor_idxs(II,j,approx_order)])
 
+        central_deriv_cartesian(d_order,II,j,k) = dot(central_weights_cartesian(d_order,II,j),depvarsdisc[k][central_neighbor_idxs(II,j,approx_order)])
+        
+        # spherical Laplacian has a hardcoded order of 2 (only 2nd order is implemented)
+        # both for derivative order and discretization order
+        central_weights_spherical(II,j) = calculate_weights_spherical(2, grid[j][II[j]], grid[j], vec(map(i->i[j], central_neighbor_idxs(II,j,2))))
+        central_deriv_spherical(II,j,k) = dot(central_weights_spherical(II,j),depvarsdisc[k][central_neighbor_idxs(II,j,2)])
+        
         # get a sorted list derivative order such that highest order is first. This is useful when substituting rules
         # starting from highest to lowest order.
         d_orders(s) = reverse(sort(collect(union(differential_order(eq.rhs, s.val), differential_order(eq.lhs, s.val)))))
-
+        
         # central_deriv_rules = [(Differential(s)^2)(u) => central_deriv(2,II,j,k) for (j,s) in enumerate(nottime), (k,u) in enumerate(depvars)]
-        central_deriv_rules = Array{Pair{Num,Num},1}()
+        central_deriv_rules_cartesian = Array{Pair{Num,Num},1}()
         for (j,s) in enumerate(nottime)
-            rs = [(Differential(s)^d)(u) => central_deriv(d,II,j,k) for d in d_orders(s), (k,u) in enumerate(depvars)]
+            rs = [(Differential(s)^d)(u) => central_deriv_cartesian(d,II,j,k) for d in d_orders(s), (k,u) in enumerate(depvars)]
             for r in rs
-              push!(central_deriv_rules, r)
+                push!(central_deriv_rules_cartesian, r)
             end
         end
+        central_deriv_rules_spherical = [(Differential(s))(s^2*Differential(s)(u))/s^2 => central_deriv_spherical(II,j,k) 
+                                         for (j,s) in enumerate(nottime), (k,u) in enumerate(pdesys.depvars)]
+        
         valrules = vcat([depvars[k] => depvarsdisc[k][II] for k in 1:length(depvars)],
                         [nottime[j] => grid[j][II[j]] for j in 1:nspace])
     
@@ -223,10 +257,10 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
 
         ## Discretization of non-linear laplacian. 
         # d/dx( a du/dx ) ~ (a(x+1/2) * (u[i+1] - u[i]) - a(x-1/2) * (u[i] - u[i-1]) / dx^2
-        b1(II, j, k) = dot(reverse_weights(II, j), depvarsdisc[k][central_neighbor_idxs(II, j)[1:2]]) / dxs[j]
-        b2(II, j, k) = dot(forward_weights(II, j), depvarsdisc[k][central_neighbor_idxs(II, j)[2:3]]) / dxs[j]
+        b1(II, j, k) = dot(reverse_weights(II, j), depvarsdisc[k][central_neighbor_idxs(II, j, approx_order)[1:2]]) / dxs[j]
+        b2(II, j, k) = dot(forward_weights(II, j), depvarsdisc[k][central_neighbor_idxs(II, j, approx_order)[2:3]]) / dxs[j]
         # TODO: improve interpolation of g(x) = u(x) for calculating u(x+-dx/2)
-        g(II, j, k, l) = sum([depvarsdisc[k][central_neighbor_idxs(II, j)][s] for s in (l == 1 ? [2,3] : [1,2])]) / 2.
+        g(II, j, k, l) = sum([depvarsdisc[k][central_neighbor_idxs(II, j, approx_order)][s] for s in (l == 1 ? [2,3] : [1,2])]) / 2.
         # iv_mid returns middle space values. E.g. x(i-1/2) or y(i+1/2).
         iv_mid(II, j, l) = (grid[j][II[j]] + grid[j][II[j]+l]) / 2.0 
         # Dependent variable rules
@@ -251,7 +285,9 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
         end
 
         rules = vcat(vec(nonlinlap_rules),
-                     vec(central_deriv_rules),valrules)
+                     vec(central_deriv_rules_cartesian),
+                     vec(central_deriv_rules_spherical),
+                     valrules)
 
         substitute(eq.lhs,rules) ~ substitute(eq.rhs,rules)
 
