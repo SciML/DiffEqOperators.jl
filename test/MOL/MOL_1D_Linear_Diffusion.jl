@@ -403,6 +403,53 @@ end
     end
 end
 
+@testset "Test 07: Dt(u(t,r)) ~ 1/r^2 * Dr(r^2 * Dr(u(t,r))) (Spherical Laplacian)" begin
+    # Method of Manufactured Solutions
+    # general solution of the spherical Laplacian equation
+    # satisfies Dr(u(t,0)) = 0
+    u_exact = (r,t) -> exp.(-t) * sin.(r) ./ r
+
+    # Parameters, variables, and derivatives
+    @parameters t r
+    @variables u(..)
+    Dt = Differential(t)
+    Dr = Differential(r)
+
+    # 1D PDE and boundary conditions
+
+    eq  = Dt(u(t,r)) ~ 1/r^2 * Dr(r^2 * Dr(u(t,r)))
+    bcs = [u(0,r) ~ sin(r)/r,
+           Dr(u(t,0)) ~ 0,
+           u(t,1) ~ exp(-t) * sin(1)]
+        #    Dr(u(t,1)) ~ -exp(-t) * sin(1)]
+
+    # Space and time domains
+    domains = [t ∈ IntervalDomain(0.0,1.0),
+               r ∈ IntervalDomain(0.0,1.0)]
+
+    # PDE system
+    pdesys = PDESystem(eq,bcs,domains,[t,r],[u(t,r)])
+
+    # Method of lines discretization
+    dr = 0.1
+    order = 2
+    discretization = MOLFiniteDifference([r=>dr],t)
+    prob = discretize(pdesys,discretization)
+
+    # Solve ODE problem
+    sol = solve(prob,Tsit5(),saveat=0.1)
+
+    r = (0:dr:1)[2:end-1]
+    t = sol.t
+
+    # Test against exact solution
+    for i in 1:length(sol)
+        exact = u_exact(r, t[i])
+        u_approx = sol.u[i]
+        @test u_approx ≈ exact atol=0.01
+    end
+end
+
 @testset "Test 10: linear diffusion, two variables, mixed BCs" begin
     # Method of Manufactured Solutions
     u_exact = (x,t) -> exp.(-t) * cos.(x)

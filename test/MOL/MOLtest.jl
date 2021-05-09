@@ -4,6 +4,7 @@ using ModelingToolkit, DiffEqOperators, LinearAlgebra, OrdinaryDiffEq
 @parameters t x
 @variables u(..) v(..)
 Dt = Differential(t)
+Dx = Differential(x)
 Dxx = Differential(x)^2
 eqs  = [Dt(u(t,x)) ~ Dxx(u(t,x)), 
         Dt(v(t,x)) ~ Dxx(v(t,x))]
@@ -55,82 +56,20 @@ discretization = MOLFiniteDifference([x=>dx,y=>dy],t)
 prob = ModelingToolkit.discretize(pdesys,discretization)
 sol = solve(prob,Tsit5())
 
-using ModelingToolkit
-using IfElse
-
-# MTK model
-# ('negative electrode', 'separator', 'positive electrode') -> x
-@parameters t x
-# 'Electrolyte concentration ' -> c_e
-# 'Electrolyte potential' -> phi_e
-@variables c_e(..) phi_e(..)
+# Sphere domain
+@parameters t r
+@variables u(..)
 Dt = Differential(t)
-Dx = Differential(x)
+Dr = Differential(r)
+Drr = Dr^2
+eq  = Dt(u(t,r)) ~ 1/r^2 * Dr(r^2 * Dr(u(t,r)))
+bcs = [u(0,r) ~ - r * (r-1) * sin(r),
+       Dr(u(t,0)) ~ 0.0, u(t,1) ~ sin(1)]
 
-# 'Electrolyte concentration ' equation
+domains = [t ∈ IntervalDomain(0.0,1.0),
+           r ∈ IntervalDomain(0.0,1.0)]
 
-function concatenation(n, s, p)
-   # A concatenation in the electrolyte domain
-  f= (x) -> IfElse.ifelse(
-      x < 0.4444444444444445, n, IfElse.ifelse(
-         x < 0.5555555555555556, s, p
-      )
-   )
-end
-
-cache_5101060308695467050(x) = concatenation(2.25, 0.0, -2.25)(x)
-@register cache_5101060308695467050(x)
-cache_8771569224475106856 = (Dx(Dx(c_e(t, x)))) + cache_5101060308695467050(x)
-
-# 'Electrolyte potential' equation
-cache_5101060308695467050(x) = concatenation(2.25, 0.0, -2.25)(x)
-@register cache_5101060308695467050(x)
-# cache_4483180157687090897 = (Dx(1 / c_e(t, x) * Dx(c_e(t, x))) - Dx(Dx(phi_e(t, x)))) - cache_5101060308695467050(x)
-cache_4483180157687090897 = Dx(1/c_e(t,x) * Dx(c_e(t,x))) - Dx(Dx(phi_e(t, x))) - cache_5101060308695467050(x)
-
-
-eqs = [
-   Dt(c_e(t, x)) ~ cache_8771569224475106856,
-   0 ~ cache_4483180157687090897,
-]
-
-ics_bcs = [
-   # initial conditions
-   c_e(0, x) ~ 1.0,
-   phi_e(0, x) ~ 0.0,
-   # boundary conditions
-   Dx(c_e(t, 0.0)) ~ 0.0,
-   Dx(c_e(t, 1.0)) ~ 0.0,
-   phi_e(t, 0.0) ~ 0.0,
-   Dx(phi_e(t, 1.0)) ~ 0.0,
-]
-
-t_domain = IntervalDomain(0.0, 3600.0)
-x_domain = IntervalDomain(0.0, 1.0)
-
-domains = [
-   t in t_domain,
-   x in x_domain,
-]
-ind_vars = [t, x]
-dep_vars = [c_e(t,x), phi_e(t,x)]
-
-reduced_c_phi_pde_system = PDESystem(eqs, ics_bcs, domains, ind_vars, dep_vars)
-
-
-# Finite difference solution
-using DiffEqOperators
-using OrdinaryDiffEq
-
-ln = 4/9
-ls = 1/9
-dx = vcat(range(0,ln,length=11)[1:end-1], range(ln,ln+ls,length=11)[1:end-1], range(ln+ls,1,length=11))
-discretization = MOLFiniteDifference([x=>dx],t; grid_align=edge_align)
-
-prob = discretize(reduced_c_phi_pde_system,discretization) # This gives an ODEProblem since it's time-dependent
-sol = solve(prob,Rodas4())
-# using BenchmarkTools
-# @btime solve(prob,KenCarp47();saveat=t_pb)
-
-@variables c_e[1:length(dx)](..) phi_e[1:length(dx)](..)
-sol[phi_e[end](t)]
+pdesys = PDESystem(eq,bcs,domains,[t,r],[u(t,r)])
+discretization = MOLFiniteDifference([r=>0.1],t)
+prob = discretize(pdesys,discretization) # This gives an ODEProblem since it's time-dependent
+sol = solve(prob,Tsit5())
