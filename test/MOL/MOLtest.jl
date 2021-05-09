@@ -86,7 +86,7 @@ cache_8771569224475106856 = (Dx(Dx(c_e(t, x)))) + cache_5101060308695467050(x)
 cache_5101060308695467050(x) = concatenation(2.25, 0.0, -2.25)(x)
 @register cache_5101060308695467050(x)
 # cache_4483180157687090897 = (Dx(1 / c_e(t, x) * Dx(c_e(t, x))) - Dx(Dx(phi_e(t, x)))) - cache_5101060308695467050(x)
-cache_4483180157687090897 = Dx(Dx(c_e(t,x))) - Dx(Dx(phi_e(t, x))) - cache_5101060308695467050(x)
+cache_4483180157687090897 = Dx(1/c_e(t,x) * Dx(c_e(t,x))) - Dx(Dx(phi_e(t, x))) - cache_5101060308695467050(x)
 
 
 eqs = [
@@ -127,13 +127,10 @@ ls = 1/9
 dx = vcat(range(0,ln,length=11)[1:end-1], range(ln,ln+ls,length=11)[1:end-1], range(ln+ls,1,length=11))
 discretization = MOLFiniteDifference([x=>dx],t; grid_align=edge_align)
 
-pdesys = reduced_c_phi_pde_system
-sys, tspan = SciMLBase.symbolic_discretize(pdesys,discretization)
-    simpsys = structural_simplify(sys)
-    prob = ODEProblem(simpsys,Pair[],tspan)
 prob = discretize(reduced_c_phi_pde_system,discretization) # This gives an ODEProblem since it's time-dependent
 sol = solve(prob,Rodas4())
-sys.states[1]
-vcat(map(x -> sol[sys.states[x]], 1:30))
 # using BenchmarkTools
 # @btime solve(prob,KenCarp47();saveat=t_pb)
+
+@variables c_e[1:length(dx)](..) phi_e[1:length(dx)](..)
+sol[phi_e[end](t)]

@@ -5,7 +5,7 @@ using ModelingToolkit,DiffEqOperators,LinearAlgebra,Test,OrdinaryDiffEq
 using ModelingToolkit: Differential
 
 # Tests
-# @testset "Dt(u(t,x)) ~ Dxx(u(t,x)), 0 ~ Dxx(v(t,x)) + sin(x), Dirichlet BCs" begin
+@testset "Dt(u(t,x)) ~ Dxx(u(t,x)), 0 ~ Dxx(v(t,x)) + sin(x), Dirichlet BCs" begin
     # Method of Manufactured Solutions
     u_exact = (x,t) -> exp.(-t) * cos.(x)
     v_exact = (x,t) -> exp.(-t) * sin.(x)
@@ -19,7 +19,7 @@ using ModelingToolkit: Differential
 
     # 1D PDE and boundary conditions
     eqs = [Dt(u(t,x)) ~ Dxx(u(t,x)),
-           Dt(v(t,x)) ~ Dxx(v(t,x))]
+           0 ~ Dxx(v(t,x)) + exp(-t)*sin(x)]
     bcs = [u(0,x) ~ cos(x),
            v(0,x) ~ sin(x),
            u(t,0) ~ exp(-t),
@@ -35,7 +35,7 @@ using ModelingToolkit: Differential
     pdesys = PDESystem(eqs,bcs,domains,[t,x],[u(t,x),v(t,x)])
 
     # Method of lines discretization
-    l = 100
+    l = 20
     dx = range(0.0,1.0,length=l)
     order = 2
     discretization = MOLFiniteDifference([x=>dx],t)
@@ -44,14 +44,16 @@ using ModelingToolkit: Differential
     prob = discretize(pdesys,discretization)
 
     # Solve ODE problem
-    sol = solve(prob,Tsit5(),saveat=0.1)
+    sol = solve(prob,Rodas4(),saveat=0.1)
 
-    x_sol = dx[2:end-1]
+    x_sol = dx
     t_sol = sol.t
 
+    @variables u[1:l](..) v[1:l](..)
+
     # Test against exact solution
-    for i in 1:length(sol)
-        @test u_exact(x_sol, t_sol[i]) ≈ sol.u[i][1:l-2] atol=0.01
-        @test v_exact(x_sol, t_sol[i]) ≈ sol.u[i][l-1:end] atol=0.01
+    for i in 1:l
+        @test all(isapprox.(u_exact(x_sol[i], t_sol), sol[u[i](t)], atol=0.01))
+        @test all(isapprox.(v_exact(x_sol[i], t_sol), sol[v[i](t)], atol=0.01))
     end
-# end
+end
