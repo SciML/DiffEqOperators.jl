@@ -251,11 +251,10 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
         # Upwind rules #########################################################
         forward_weights(II,j) = DiffEqOperators.calculate_weights(discretization.upwind_order, 0.0, grid[j][[II[j],II[j]+1]])
         reverse_weights(II,j) = DiffEqOperators.calculate_weights(discretization.upwind_order, 0.0, grid[j][[II[j]-1,II[j]]])
-        upwinding_rules_tmp =
-            [@rule(*(~~a,$(Differential(iv)),~~b) => IfElse.ifelse(*(~~a..., ~~b...,)>0,
-             *(~~a..., ~~b..., dot(reverse_weights(II,j),dv[central_neighbor_idxs(II,j)[1:2]])),
-             *(~~a..., ~~b..., dot(forward_weights(II,j),dv[central_neighbor_idxs(II,j)[2:3]]))))
-             for (j, iv) in enumerate(nottime) for (k, dv) in enumerate(depvars)]
+        upwinding_rules_tmp = [@rule(*(~~a,$(Differential(iv)),~~b) => IfElse.ifelse(*(~~a..., ~~b...,)>0,
+                                     *(~~a..., ~~b..., dot(reverse_weights(II,j),dv[central_neighbor_idxs(II,j)[1:2]])),
+                                     *(~~a..., ~~b..., dot(forward_weights(II,j),dv[central_neighbor_idxs(II,j)[2:3]]))))
+                                     for (j, iv) in enumerate(nottime) for (k, dv) in enumerate(depvars)]
 
         # Non-Linear Laplacian rules ###########################################
         # d/dx( a du/dx ) ~ (a(x+1/2) * (u[i+1] - u[i]) - a(x-1/2) * (u[i] - u[i-1]) / dx^2
@@ -270,12 +269,11 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
         # Independent variable rules
         r_mid_indep(II, j, l) = [nottime[j] => iv_mid(II, j, l) for j in 1:length(nottime)]
         # Replacement rules: new approach
-        nonlinlap_rules_tmp =
-            [@rule ($(Differential(iv))(*(~~a, $(Differential(iv))(dv), ~~b))) =>
-             dot([Num(substitute(substitute(*(~~a..., ~~b...), r_mid_dep(II, j, k, -1)), r_mid_indep(II, j, -1))),
-                  Num(substitute(substitute(*(~~a..., ~~b...), r_mid_dep(II, j, k, 1)), r_mid_indep(II, j, 1)))],
-                 [-b1(II, j, k), b2(II, j, k)])
-             for (j, iv) in enumerate(nottime) for (k, dv) in enumerate(depvars)]
+        nonlinlap_rules_tmp = [@rule ($(Differential(iv))(*(~~a, $(Differential(iv))(dv), ~~b))) =>
+                                     dot([Num(substitute(substitute(*(~~a..., ~~b...), r_mid_dep(II, j, k, -1)), r_mid_indep(II, j, -1))),
+                                          Num(substitute(substitute(*(~~a..., ~~b...), r_mid_dep(II, j, k, 1)), r_mid_indep(II, j, 1)))],
+                                         [-b1(II, j, k), b2(II, j, k)])
+                                     for (j, iv) in enumerate(nottime) for (k, dv) in enumerate(depvars)]
 
         # Post-processing @rules for applying `substitute` (see below) #########
         rhs_arg = (SymbolicUtils.operation(eq.rhs) == +) ? SymbolicUtils.arguments(eq.rhs) : [eq.rhs]
