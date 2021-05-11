@@ -112,7 +112,7 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
         # 1D system
         left_weights(j) = DiffEqOperators.calculate_weights(discretization.upwind_order, grid[j][1], grid[j][1:2])
         right_weights(j) = DiffEqOperators.calculate_weights(discretization.upwind_order, grid[j][end], grid[j][end-1:end])
-        central_neighbor_idxs(II,j) = [II-CartesianIndex((1:nspace.==j)...),II,II+CartesianIndex((1:nspace.==j)...)]
+        central_neighbor_idxs(i,j) = [i+CartesianIndex([ifelse(l==j,-1,0) for l in 1:nspace]...),i,i+CartesianIndex([ifelse(l==j,1,0) for l in 1:nspace]...)]
         left_idxs = central_neighbor_idxs(CartesianIndex(2),1)[1:2]
         right_idxs(j) = central_neighbor_idxs(CartesianIndex(length(grid[j])-1),1)[end-1:end]
         # Constructs symbolic spatially discretized terms of the form e.g. au₂ - bu₁
@@ -216,20 +216,20 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
     eqs = vec(map(Base.product(interior,pdeeqs)) do p
         II,eq = p
     
+        # Central difference rules #############################################
+        
         # Use max and min to apply buffers
         central_neighbor_idxs(II,j,order) = stencil(j,order) .+ max(Imin(order),min(II,Imax(order)))
         central_weights_cartesian(d_order,II,j) = calculate_weights_cartesian(d_order, grid[j][II[j]], grid[j], vec(map(i->i[j], 
                                                                               central_neighbor_idxs(II,j,approx_order))))
-        central_deriv(d_order, II,j,k) = dot(central_weights(d_order, II,j),depvarsdisc[k][central_neighbor_idxs(II,j,approx_order)])
-
         central_deriv_cartesian(d_order,II,j,k) = dot(central_weights_cartesian(d_order,II,j),depvarsdisc[k][central_neighbor_idxs(II,j,approx_order)])
         
-        # spherical Laplacian has a hardcoded order of 2 (only 2nd order is implemented)
+        # Spherical Laplacian has a hardcoded order of 2 (only 2nd order is implemented)
         # both for derivative order and discretization order
         central_weights_spherical(II,j) = calculate_weights_spherical(2, grid[j][II[j]], grid[j], vec(map(i->i[j], central_neighbor_idxs(II,j,2))))
         central_deriv_spherical(II,j,k) = dot(central_weights_spherical(II,j),depvarsdisc[k][central_neighbor_idxs(II,j,2)])
         
-        # get a sorted list derivative order such that highest order is first. This is useful when substituting rules
+        # Get a sorted list derivative order such that highest order is first. This is useful when substituting rules
         # starting from highest to lowest order.
         d_orders(s) = reverse(sort(collect(union(differential_order(eq.rhs, s.val), differential_order(eq.lhs, s.val)))))
         
@@ -241,21 +241,23 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
                 push!(central_deriv_rules_cartesian, r)
             end
         end
+
         central_deriv_rules_spherical = [(Differential(s))(s^2*Differential(s)(u))/s^2 => central_deriv_spherical(II,j,k) 
                                          for (j,s) in enumerate(nottime), (k,u) in enumerate(pdesys.depvars)]
-        
+        # Val rules ############################################################
         valrules = vcat([depvars[k] => depvarsdisc[k][II] for k in 1:length(depvars)],
                         [nottime[j] => grid[j][II[j]] for j in 1:nspace])
-    
-        # TODO: upwind rules needs interpolation into `@rule`
+
+        # Upwind rules #########################################################
         forward_weights(II,j) = DiffEqOperators.calculate_weights(discretization.upwind_order, 0.0, grid[j][[II[j],II[j]+1]])
         reverse_weights(II,j) = DiffEqOperators.calculate_weights(discretization.upwind_order, 0.0, grid[j][[II[j]-1,II[j]]])
-        # upwinding_rules = [@rule(*(~~a,$(Differential(nottime[j]))(u),~~b) => IfElse.ifelse(*(~~a..., ~~b...,)>0,
-        #                         *(~~a..., ~~b..., dot(reverse_weights(II,j),depvars[k][central_neighbor_idxs(II,j)[1:2]])),
-        #                         *(~~a..., ~~b..., dot(forward_weights(II,j),depvars[k][central_neighbor_idxs(II,j)[2:3]]))))
-        #                         for j in 1:nspace, k in 1:length(pdesys.depvars)]
+        upwinding_rules_tmp =
+            [@rule(*(~~a,$(Differential(iv)),~~b) => IfElse.ifelse(*(~~a..., ~~b...,)>0,
+             *(~~a..., ~~b..., dot(reverse_weights(II,j),dv[central_neighbor_idxs(II,j)[1:2]])),
+             *(~~a..., ~~b..., dot(forward_weights(II,j),dv[central_neighbor_idxs(II,j)[2:3]]))))
+             for (j, iv) in enumerate(nottime) for (k, dv) in enumerate(depvars)]
 
-        ## Discretization of non-linear laplacian. 
+        # Non-Linear Laplacian rules ###########################################
         # d/dx( a du/dx ) ~ (a(x+1/2) * (u[i+1] - u[i]) - a(x-1/2) * (u[i] - u[i-1]) / dx^2
         b1(II, j, k) = dot(reverse_weights(II, j), depvarsdisc[k][central_neighbor_idxs(II, j, approx_order)[1:2]]) / dxs[j]
         b2(II, j, k) = dot(forward_weights(II, j), depvarsdisc[k][central_neighbor_idxs(II, j, approx_order)[2:3]]) / dxs[j]
@@ -268,27 +270,37 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
         # Independent variable rules
         r_mid_indep(II, j, l) = [nottime[j] => iv_mid(II, j, l) for j in 1:length(nottime)]
         # Replacement rules: new approach
-        rules = [@rule ($(Differential(iv))(*(~~a, $(Differential(iv))(dv), ~~b))) =>
-                 dot([Num(substitute(substitute(*(~~a..., ~~b...), r_mid_dep(II, j, k, -1)), r_mid_indep(II, j, -1))),
-                      Num(substitute(substitute(*(~~a..., ~~b...), r_mid_dep(II, j, k, 1)), r_mid_indep(II, j, 1)))],
-                     [-b1(II, j, k), b2(II, j, k)])
-                 for (j, iv) in enumerate(nottime) for (k, dv) in enumerate(depvars)]
+        nonlinlap_rules_tmp =
+            [@rule ($(Differential(iv))(*(~~a, $(Differential(iv))(dv), ~~b))) =>
+             dot([Num(substitute(substitute(*(~~a..., ~~b...), r_mid_dep(II, j, k, -1)), r_mid_indep(II, j, -1))),
+                  Num(substitute(substitute(*(~~a..., ~~b...), r_mid_dep(II, j, k, 1)), r_mid_indep(II, j, 1)))],
+                 [-b1(II, j, k), b2(II, j, k)])
+             for (j, iv) in enumerate(nottime) for (k, dv) in enumerate(depvars)]
+
+        # Post-processing @rules for applying `substitute` (see below) #########
         rhs_arg = (SymbolicUtils.operation(eq.rhs) == +) ? SymbolicUtils.arguments(eq.rhs) : [eq.rhs]
         lhs_arg = (SymbolicUtils.operation(eq.lhs) == +) ? SymbolicUtils.arguments(eq.lhs) : [eq.lhs]
         nonlinlap_rules = []
+        upwinding_rules = []
         for t in vcat(lhs_arg,rhs_arg)
-            for r in rules
+            for r in upwinding_rules_tmp
+                if r(t) !== nothing
+                    push!(upwinding_rules, t => r(t))
+                end
+            end
+            for r in nonlinlap_rules_tmp
                 if r(t) !== nothing
                     push!(nonlinlap_rules, t => r(t))
                 end
             end
         end
 
+        # Applying rules to the equation #######################################
         rules = vcat(vec(nonlinlap_rules),
+                     vec(upwinding_rules),
                      vec(central_deriv_rules_cartesian),
                      vec(central_deriv_rules_spherical),
                      valrules)
-
         substitute(eq.lhs,rules) ~ substitute(eq.rhs,rules)
 
     end)
