@@ -56,7 +56,7 @@ discretization = MOLFiniteDifference([x=>dx,y=>dy],t)
 prob = ModelingToolkit.discretize(pdesys,discretization)
 sol = solve(prob,Tsit5())
 
-# Sphere domain
+# Diffusion in a sphere
 @parameters t r
 @variables u(..)
 Dt = Differential(t)
