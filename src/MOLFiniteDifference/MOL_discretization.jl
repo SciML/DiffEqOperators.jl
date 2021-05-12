@@ -282,12 +282,12 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
         upwinding_rules = []
         for t in vcat(lhs_arg,rhs_arg)
             for r in upwinding_rules_tmp
-                if r(t) !== nothing
+                if r(t) != nothing
                     push!(upwinding_rules, t => r(t))
                 end
             end
             for r in nonlinlap_rules_tmp
-                if r(t) !== nothing
+                if r(t) != nothing
                     push!(nonlinlap_rules, t => r(t))
                 end
             end
