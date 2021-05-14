@@ -60,24 +60,24 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
     for eq in pdeeqs
         # Read the dependent variables on both sides of the equation
         depvars_lhs = get_depvars(eq.lhs,depvar_ops)
-        depvars_rhs = get_depvars(eq.lhs,depvar_ops)
-        depvars = map(Num,collect(depvars_lhs ∪ depvars_rhs))
+        depvars_rhs = get_depvars(eq.rhs,depvar_ops)
+        depvars = collect(depvars_lhs ∪ depvars_rhs)
         # Read the independent variables, make sure there is only one set of independent variables
         # per equation
-        indvars = Set(map(u->arguments(u.val),depvars))
+        indvars = Set(map(u->arguments(u),depvars))
         @assert length(indvars) <= 1
-        indvars = map(Num,first(indvars))
+        indvars = first(indvars)
         nottime = filter(x->~isequal(x, t.val),indvars)
         nspace = length(nottime)
 
         # Discretize space
         space = map(nottime) do x
-            xdomain = pdesys.domain[findfirst(d->isequal(x.val, d.variables),pdesys.domain)]
-            dx = discretization.dxs[findfirst(dxs->isequal(x.val, dxs[1].val),discretization.dxs)][2]
+            xdomain = pdesys.domain[findfirst(d->isequal(x, d.variables),pdesys.domain)]
+            dx = discretization.dxs[findfirst(dxs->isequal(x, dxs[1].val),discretization.dxs)][2]
             dx isa Number ? (xdomain.domain.lower:dx:xdomain.domain.upper) : dx
         end
         dxs = map(nottime) do x        
-            dx = discretization.dxs[findfirst(dxs->isequal(x.val, dxs[1].val),discretization.dxs)][2]
+            dx = discretization.dxs[findfirst(dxs->isequal(x, dxs[1].val),discretization.dxs)][2]
         end
 
         # Define the grid on which the dependent variables will be evaluated (see #378)
@@ -99,7 +99,7 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
         space_indices = CartesianIndices(((axes(s)[1] for s in space)...,))
         grid_indices = CartesianIndices(((axes(g)[1] for g in grid)...,))
         depvarsdisc = map(depvars) do u
-            [Num(Variable{Symbolics.FnType{Tuple{Any}, Real}}(Base.nameof(operation(u.val)),II.I...))(t) for II in grid_indices]
+            [Num(Variable{Symbolics.FnType{Tuple{Any}, Real}}(Base.nameof(operation(u)),II.I...))(t) for II in grid_indices]
         end
         spacevals = map(y->[Pair(nottime[i],space[i][y.I[i]]) for i in 1:nspace],space_indices)
         gridvals = map(y->[Pair(nottime[i],grid[i][y.I[i]]) for i in 1:nspace],grid_indices)
@@ -160,27 +160,32 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
 
         # Generate initial conditions and bc equations
         for bc in pdesys.bcs
-        bcdepvar = first(get_depvars(bc.lhs, depvar_ops))
-        if any(u->isequal(operation(u.val),operation(bcdepvar)),depvars)
-            if operation(bc.lhs) isa Sym && !any(x -> isequal(x, t.val), arguments(bc.lhs))
-                # initial condition
-                # Assume in the form `u(...) ~ ...` for now
-                push!(u0,vec(depvarsdisc[findfirst(isequal(bc.lhs),initmaps)] .=> substitute.((bc.rhs,),gridvals)))
-            else
-                # Algebraic equations for BCs
-                i = findfirst(x->occursin(x.val,bc.lhs),first.(depvarbcmaps))
-                bcargs = first(depvarbcmaps[i]).val.arguments
-                # Replace Differential terms in the bc lhs with the symbolic spatially discretized terms
-                # TODO: Fix Neumann and Robin on higher dimension
-                lhs = nspace == 1 ? substitute(bc.lhs,depvarderivbcmaps[i]) : bc.lhs
+              bcdepvar = first(get_depvars(bc.lhs, depvar_ops))
+            if any(u->isequal(operation(u),operation(bcdepvar)),depvars)
+                if operation(bc.lhs) isa Sym && !any(x -> isequal(x, t.val), arguments(bc.lhs))
+                    # initial condition
+                    # Assume in the form `u(...) ~ ...` for now
+                    i = findfirst(isequal(bc.lhs),initmaps)
+                    if i !== nothing
+                        push!(u0,vec(depvarsdisc[i] .=> substitute.((bc.rhs,),gridvals)))
+                    end
+                else
+                    # Algebraic equations for BCs
+                    i = findfirst(x->occursin(x,bc.lhs),first.(depvarbcmaps))
+                    if i !== nothing
+                        bcargs = arguments(first(depvarbcmaps[i]))
+                        # Replace Differential terms in the bc lhs with the symbolic spatially discretized terms
+                        # TODO: Fix Neumann and Robin on higher dimension
+                        lhs = nspace == 1 ? substitute(bc.lhs,depvarderivbcmaps[i]) : bc.lhs
 
-                # Replace symbol in the bc lhs with the spatial discretized term
-                lhs = substitute(lhs,depvarbcmaps[i])
-                rhs = substitute.((bc.rhs,),edgemaps[bcargs])
-                lhs = lhs isa Vector ? lhs : [lhs] # handle 1D
-                push!(bceqs,lhs .~ rhs)
+                        # Replace symbol in the bc lhs with the spatial discretized term
+                        lhs = substitute(lhs,depvarbcmaps[i])
+                        rhs = substitute.((bc.rhs,),edgemaps[bcargs])
+                        lhs = lhs isa Vector ? lhs : [lhs] # handle 1D
+                        push!(bceqs,lhs .~ rhs)
+                    end
+                end
             end
-        end
         end
 
         #---- Count Boundary Equations --------------------
@@ -200,7 +205,7 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
                 right = 0
                 for depvar in depvars
                     depvaredges = get_depvarbcs(depvar, i)
-                    counts = [map(x->occursin(x.val, bc.lhs), depvaredges) for bc in pdesys.bcs]
+                    counts = [map(x->occursin(x, bc.lhs), depvaredges) for bc in pdesys.bcs]
                     left = max(left, sum([c[1] for c in counts]))
                     right = max(right, sum([c[2] for c in counts]))
                 end
@@ -246,7 +251,7 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
             
             # get a sorted list derivative order such that highest order is first. This is useful when substituting rules
             # starting from highest to lowest order.
-            d_orders(s) = reverse(sort(collect(union(differential_order(eq.rhs, s.val), differential_order(eq.lhs, s.val)))))
+            d_orders(s) = reverse(sort(collect(union(differential_order(eq.rhs, s), differential_order(eq.lhs, s)))))
             
             # central_deriv_rules = [(Differential(s)^2)(u) => central_deriv(2,II,j,k) for (j,s) in enumerate(nottime), (k,u) in enumerate(depvars)]
             central_deriv_rules_cartesian = Array{Pair{Num,Num},1}()
@@ -309,12 +314,12 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
 
         end)
         push!(alleqs,eqs)
-        push!(alldepvarsdisc,depvarsdisc)
+        push!(alldepvarsdisc,reduce(vcat,depvarsdisc))
     end
     u0 = reduce(vcat,u0)
     bceqs = reduce(vcat,bceqs)
     alleqs = reduce(vcat,alleqs)
-    alldepvarsdisc = reduce(vcat,alldepvarsdisc)
+    alldepvarsdisc = unique(reduce(vcat,alldepvarsdisc))
 
     # Finalize
     defaults = pdesys.ps === nothing || pdesys.ps === SciMLBase.NullParameters() ? u0 : vcat(u0,pdesys.ps)
