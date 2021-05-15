@@ -583,60 +583,51 @@ end
     end
 end
 
-@testset "Test 13: linear diffusion, two variables, mixed BCs, subdomain independent variables" begin
+@testset "Test 13: one linear diffusion with mixed BCs, one ODE" begin
     # Method of Manufactured Solutions
-    u_exact = (x,t) -> exp.(-t) * sin.(x/2)
-    v_exact = (y,t) -> exp.(-t) * sin.(y/2)
+    u_exact = (x,t) -> exp.(-t) * sin.(x)
+    v_exact = (t) -> exp.(-t)
 
-    # Parameters, variables, and derivatives
-    @parameters t x y
+    @parameters t x
     @variables u(..) v(..)
     Dt = Differential(t)
     Dx = Differential(x)
     Dxx = Dx^2
-    Dy = Differential(y)
-    Dyy = Dy^2
 
     # 1D PDE and boundary conditions
-    eqs = [Dt(u(t,x)) ~ 4Dxx(u(t,x)),
-           Dt(v(t,y)) ~ Dyy(v(t,y)) + 3Dyy(u(t,y))]
-    bcs = [u(0,x) ~ sin(x/2),
-           v(0,y) ~ sin(y/2),
+    eqs = [Dt(u(t,x)) ~ Dxx(u(t,x)),
+           Dt(v(t)) ~ -v(t)]
+    bcs = [u(0,x) ~ sin(x),
+           v(0) ~ 1,
            u(t,0) ~ 0,
-           Dx(u(t,2)) ~ exp(-t) * cos(2/2) / 2,
-           Dy(v(t,0)) ~ exp(-t)/2,
-           v(t,1) ~ exp(-t) * sin(1/2)]
+           Dx(u(t,1)) ~ exp(-t) * cos(1)]
 
     # Space and time domains
     domains = [t ∈ IntervalDomain(0.0,1.0),
-               x ∈ IntervalDomain(0.0,2.0),
-               y ∈ IntervalDomain(0.0,1.0)]
+               x ∈ IntervalDomain(0.0,1.0)]
 
     # PDE system
-    pdesys = PDESystem(eqs,bcs,domains,[t,x,y],[u(t,x),v(t,y)])
+    pdesys = PDESystem(eqs,bcs,domains,[t,x],[u(t,x),v(t)])
 
     # Method of lines discretization
     l = 100
-    dy = range(0.0,1.0,length=l)
-    dx = unique(vcat(dy,1 .+ dy))
+    dx = range(0.0,1.0,length=l)
     order = 2
-    discretization = MOLFiniteDifference([x=>dx,y=>dy],t)
+    discretization = MOLFiniteDifference([x=>dx],t)
 
     # Convert the PDE problem into an ODE problem
-    sys, tspan = SciMLBase.symbolic_discretize(pdesys,discretization)
     prob = discretize(pdesys,discretization)
 
     # Solve ODE problem
     sol = solve(prob,Tsit5(),saveat=0.1)
 
     x_sol = dx[2:end-1]
-    y_sol = dy[2:end-1]
     t_sol = sol.t
 
     # Test against exact solution
     for i in 1:length(sol)
         @test all(isapprox.(u_exact(x_sol, t_sol[i]), sol.u[i][1:length(x_sol)], atol=0.01))
-        @test all(isapprox.(v_exact(y_sol, t_sol[i]), sol.u[i][length(x_sol)+1:end], atol=0.01))
+        @test v_exact(t_sol[i]) ≈ sol.u[i][end] atol=0.01
     end
 end
 
