@@ -64,6 +64,8 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
         depvars = collect(depvars_lhs ∪ depvars_rhs)
         # Read the independent variables, make sure there is only one set of independent variables
         # per equation
+        indvars = Set(map(arguments,depvars))
+        @show indvars
         nottime = Set(filter(!isempty,map(u->filter(x->!isequal(x,t.val),arguments(u)),depvars)))
         if isempty(nottime)
             push!(alleqs,eq)
@@ -76,7 +78,7 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
         else
             @assert length(nottime) == 1
             nottime = first(nottime)
-            indvars = vcat([t],nottime)
+            indvars = first(indvars)
             nspace = length(nottime)
 
             # Discretize space
