@@ -152,7 +152,7 @@ using OrdinaryDiffEq
 sol = solve(prob,Tsit5(),saveat=0.2)
 
 # Plot results and compare with exact solution
-x = (0:dx:1)[2:end-1]
+x = (-1:dx:1)[2:end-1]
 t = sol.t
 
 using Plots
