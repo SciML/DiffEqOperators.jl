@@ -56,7 +56,7 @@ using ModelingToolkit: Differential
         for i in 1:length(sol)
             exact = u_exact(x, t[i])
             u_approx = sol.u[i]
-            @test u_approx ≈ exact atol=0.01
+            @test all(isapprox.(u_approx, exact, atol=0.01))
         end
     end
 end
@@ -247,7 +247,7 @@ end
         for i in 1:length(sol)
             exact = u_exact(x, t[i])
             u_approx = sol.u[i]
-            @test u_approx ≈ exact atol=0.01
+            @test all(isapprox.(u_approx, exact, atol=0.01))
             # test mass conservation
             integral_u_approx = sum(u_approx * dx[2])
             @test integral_u_exact(t[i]) ≈ integral_u_approx atol=1e-13
@@ -296,7 +296,7 @@ end
     for i in 1:length(sol)
         exact = u_exact(x, t[i])
         u_approx = sol.u[i]
-        @test u_approx ≈ exact atol=0.01
+        @test all(isapprox.(u_approx, exact, atol=0.01))
     end
 end
 
@@ -348,7 +348,7 @@ end
         for i in 1:length(sol)
             exact = u_exact(x, t[i])
             u_approx = sol.u[i]
-            @test u_approx ≈ exact atol=0.1
+            @test all(isapprox.(u_approx, exact, atol=0.1))
         end
     end
 end
@@ -399,7 +399,7 @@ end
        # [u2 -> u(n-1), u(1), u(n)]
        # Will be fixed by sol[u]
        u_approx = [sol.u[i][end-1];sol.u[i][1:end-2];sol.u[i][end]]
-       @test u_approx ≈ exact atol=0.05
+       @test all(isapprox.(u_approx, exact, atol=0.01))
     end
 end
 
@@ -446,7 +446,7 @@ end
     for i in 1:length(sol)
         exact = u_exact(r, t[i])
         u_approx = sol.u[i]
-        @test u_approx ≈ exact atol=0.01
+        @test all(isapprox.(u_approx, exact, atol=0.01))
     end
 end
 
@@ -496,8 +496,8 @@ end
 
     # Test against exact solution
     for i in 1:length(sol)
-        @test u_exact(x_sol, t_sol[i]) ≈ sol.u[i][1:l-2] atol=0.01
-        @test v_exact(x_sol, t_sol[i]) ≈ sol.u[i][l-1:end] atol=0.01
+        @test all(isapprox.(u_exact(x_sol, t_sol[i]), sol.u[i][1:l-2], atol=0.01))
+        @test all(isapprox.(v_exact(x_sol, t_sol[i]), sol.u[i][l-1:end], atol=0.01))
     end
 end
 
@@ -527,7 +527,111 @@ end
     sol = solve(prob,Tsit5())
 end
 
-@testset "Test 12: Test Invalid Centered Order" begin
+@testset "Test 12: linear diffusion, two variables, mixed BCs, different independent variables" begin
+    # Method of Manufactured Solutions
+    u_exact = (x,t) -> exp.(-t) * cos.(x)
+    v_exact = (y,t) -> exp.(-t) * sin.(y)
+
+    # Parameters, variables, and derivatives
+    @parameters t x y
+    @variables u(..) v(..)
+    Dt = Differential(t)
+    Dx = Differential(x)
+    Dxx = Dx^2
+    Dy = Differential(y)
+    Dyy = Dy^2
+
+    # 1D PDE and boundary conditions
+    eqs = [Dt(u(t,x)) ~ Dxx(u(t,x)),
+           Dt(v(t,y)) ~ Dyy(v(t,y))]
+    bcs = [u(0,x) ~ cos(x),
+           v(0,y) ~ sin(y),
+           u(t,0) ~ exp(-t),
+           Dx(u(t,1)) ~ -exp(-t) * sin(1),
+           Dy(v(t,0)) ~ exp(-t),
+           v(t,2) ~ exp(-t) * sin(2)]
+
+    # Space and time domains
+    domains = [t ∈ IntervalDomain(0.0,1.0),
+               x ∈ IntervalDomain(0.0,1.0),
+               y ∈ IntervalDomain(0.0,2.0)]
+
+    # PDE system
+    pdesys = PDESystem(eqs,bcs,domains,[t,x,y],[u(t,x),v(t,y)])
+
+    # Method of lines discretization
+    l = 100
+    dx = range(0.0,1.0,length=l)
+    dy = range(0.0,2.0,length=l)
+    order = 2
+    discretization = MOLFiniteDifference([x=>dx,y=>dy],t)
+
+    # Convert the PDE problem into an ODE problem
+    prob = discretize(pdesys,discretization)
+
+    # Solve ODE problem
+    sol = solve(prob,Tsit5(),saveat=0.1)
+
+    x_sol = dx[2:end-1]
+    y_sol = dy[2:end-1]
+    t_sol = sol.t
+
+    # Test against exact solution
+    for i in 1:length(sol)
+        @test all(isapprox.(u_exact(x_sol, t_sol[i]), sol.u[i][1:l-2], atol=0.01))
+        @test all(isapprox.(v_exact(y_sol, t_sol[i]), sol.u[i][l-1:end], atol=0.01))
+    end
+end
+
+@testset "Test 13: one linear diffusion with mixed BCs, one ODE" begin
+    # Method of Manufactured Solutions
+    u_exact = (x,t) -> exp.(-t) * sin.(x)
+    v_exact = (t) -> exp.(-t)
+
+    @parameters t x
+    @variables u(..) v(..)
+    Dt = Differential(t)
+    Dx = Differential(x)
+    Dxx = Dx^2
+
+    # 1D PDE and boundary conditions
+    eqs = [Dt(u(t,x)) ~ Dxx(u(t,x)),
+           Dt(v(t)) ~ -v(t)]
+    bcs = [u(0,x) ~ sin(x),
+           v(0) ~ 1,
+           u(t,0) ~ 0,
+           Dx(u(t,1)) ~ exp(-t) * cos(1)]
+
+    # Space and time domains
+    domains = [t ∈ IntervalDomain(0.0,1.0),
+               x ∈ IntervalDomain(0.0,1.0)]
+
+    # PDE system
+    pdesys = PDESystem(eqs,bcs,domains,[t,x],[u(t,x),v(t)])
+
+    # Method of lines discretization
+    l = 100
+    dx = range(0.0,1.0,length=l)
+    order = 2
+    discretization = MOLFiniteDifference([x=>dx],t)
+
+    # Convert the PDE problem into an ODE problem
+    prob = discretize(pdesys,discretization)
+
+    # Solve ODE problem
+    sol = solve(prob,Tsit5(),saveat=0.1)
+
+    x_sol = dx[2:end-1]
+    t_sol = sol.t
+
+    # Test against exact solution
+    for i in 1:length(sol)
+        @test all(isapprox.(u_exact(x_sol, t_sol[i]), sol.u[i][1:length(x_sol)], atol=0.01))
+        @test v_exact(t_sol[i]) ≈ sol.u[i][end] atol=0.01
+    end
+end
+
+@testset "Test error 01: Test Invalid Centered Order" begin
     # Method of Manufactured Solutions
     u_exact = (x,t) -> exp.(-t) * cos.(x)
 
