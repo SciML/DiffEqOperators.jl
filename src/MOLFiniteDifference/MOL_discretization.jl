@@ -16,27 +16,27 @@ MOLFiniteDifference(dxs, time; upwind_order = 1, centered_order = 2, grid_align=
     MOLFiniteDifference(dxs, time, upwind_order, centered_order, grid_align)
 
 function calculate_weights_cartesian(order::Int, x0::T, xs::AbstractVector, idxs::AbstractVector) where T<:Real
-        # Cartesian domain: use Fornberg
-        DiffEqOperators.calculate_weights(order, x0, vec(xs[idxs]))
- end
- function calculate_weights_spherical(order::Int, x0::T, x::AbstractVector, idxs::AbstractVector) where T<:Real
-        # Spherical domain: see #367
-        # https://web.mit.edu/braatzgroup/analysis_of_finite_difference_discretization_schemes_for_diffusion_in_spheres_with_variable_diffusivity.pdf
-        # Only order 2 is implemented
-        @assert order == 2
-        # Only 2nd order discretization is implemented
-        # We can't activate this assertion for now because the rules try to create the spherical Laplacian
-        # before checking whether there is a spherical Laplacian
-        # this could be fixed by dispatching on domain type when we have different domain types
-        # but for now everything is an IntervalDomain
-        # @assert length(x) == 3
-        # TODO: nonlinear diffusion in a spherical domain
-        i = idxs[2] 
-        dx1 = x[i] - x[i-1]
-        dx2 = x[i+1] - x[i]
-        i0 = i - 1 # indexing starts at 0 in the paper and starts at 1 in julia
-        1 / (i0 * dx1 * dx2) * [i0-1, -2i0, i0+1]
- end
+    # Cartesian domain: use Fornberg
+    DiffEqOperators.calculate_weights(order, x0, vec(xs[idxs]))
+end
+function calculate_weights_spherical(order::Int, x0::T, x::AbstractVector, idxs::AbstractVector) where T<:Real
+    # Spherical domain: see #367
+    # https://web.mit.edu/braatzgroup/analysis_of_finite_difference_discretization_schemes_for_diffusion_in_spheres_with_variable_diffusivity.pdf
+    # Only order 2 is implemented
+    @assert order == 2
+    # Only 2nd order discretization is implemented
+    # We can't activate this assertion for now because the rules try to create the spherical Laplacian
+    # before checking whether there is a spherical Laplacian
+    # this could be fixed by dispatching on domain type when we have different domain types
+    # but for now everything is an IntervalDomain
+    # @assert length(x) == 3
+    # TODO: nonlinear diffusion in a spherical domain
+    i = idxs[2] 
+    dx1 = x[i] - x[i-1]
+    dx2 = x[i+1] - x[i]
+    i0 = i - 1 # indexing starts at 0 in the paper and starts at 1 in julia
+    1 / (i0 * dx1 * dx2) * [i0-1, -2i0, i0+1]
+end
  
 
 function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discretization::DiffEqOperators.MOLFiniteDifference)
