@@ -91,11 +91,11 @@ The constructors are as follows:
 
 ```julia
 CenteredDifference{N}(derivative_order::Int,
-                      approximation_order::Int, dx,
+                      approximation_order::Int, dx::Float,
                       len::Int, coeff_func=nothing)
 
 UpwindDifference{N}(derivative_order::Int,
-                    approximation_order::Int, dx
+                    approximation_order::Int, dx::Float
                     len::Int, coeff_func=nothing; offside::Int=0)
 ```
 
