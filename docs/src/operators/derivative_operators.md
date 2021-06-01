@@ -107,7 +107,7 @@ The arguments are:
 - `approximation_order`: the order of the discretization in terms of O(dx^order).
 - `dx`: the spacing of the discretization. If `dx` is a `Number`, the operator
   is a uniform discretization. If `dx` is an array, then the operator is a
-  non-uniform discretization.
+  non-uniform discretization. Its type needs to match the one from the Array to be differentiated.
 - `len`: the length of the discretization in the direction of the operator.
 - `coeff_func`: An operational argument for a coefficient function `f(du,u,p,t)`
   which sets the coefficients of the operator. If `coeff_func` is a `Number`,
