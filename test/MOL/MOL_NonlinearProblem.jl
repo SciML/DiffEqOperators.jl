@@ -19,8 +19,8 @@ using ModelingToolkit: Differential
     # Space and time domains
     domains = [x ∈ IntervalDomain(0.0,1.0)]
 
-    sys = NonlinearSystem([eq],[x],[u(x)])
-    discretization = ImplicitFiniteDifference([x=>dx], centered_order=2)
-    prob = discretize(sys,discretization)
+    pdesys = PDESystem([eq],bcs,domains,[x],[u(x)])
+    discretization = MOLFiniteDifference([x=>dx], nothing, centered_order=2)
+    prob = discretize(pdesys,discretization)
 end
 
