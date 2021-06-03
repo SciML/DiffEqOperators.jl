@@ -67,6 +67,6 @@ export compose, decompose, perpsize
 export discretize, symbolic_discretize
 
 export GhostDerivativeOperator
-export MOLFiniteDifference, ImplicitFiniteDifference, center_align, edge_align
+export MOLFiniteDifference, center_align, edge_align
 export BoundaryConditionError
 end # module
