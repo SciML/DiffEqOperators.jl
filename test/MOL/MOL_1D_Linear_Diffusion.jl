@@ -22,8 +22,8 @@ using ModelingToolkit: Differential
            u(t,Float64(π)) ~ -exp(-t)]
 
     # Space and time domains
-    domains = [t ∈ IntervalDomain(0.0,1.0),
-               x ∈ IntervalDomain(0.0,Float64(π))]
+    domains = [t ∈ Interval(0.0,1.0),
+               x ∈ Interval(0.0,Float64(π))]
 
     # PDE system
     pdesys = PDESystem(eq,bcs,domains,[t,x],[u(t,x)])
@@ -76,8 +76,8 @@ end
            u(t,1) ~ 0.0]
 
     # Space and time domains
-    domains = [t ∈ IntervalDomain(0.0,1.0),
-               x ∈ IntervalDomain(0.0,1.0)]
+    domains = [t ∈ Interval(0.0,1.0),
+               x ∈ Interval(0.0,1.0)]
 
     # PDE system
     pdesys = PDESystem(eq,bcs,domains,[t,x],[u(t,x)],[D=>10.0])
@@ -120,8 +120,8 @@ end
            u(t,1) ~ 0.0]
 
     # Space and time domains
-    domains = [t ∈ IntervalDomain(0.0,1.0),
-               x ∈ IntervalDomain(0.0,1.0)]
+    domains = [t ∈ Interval(0.0,1.0),
+               x ∈ Interval(0.0,1.0)]
 
     # PDE system
     pdesys = PDESystem(eq,bcs,domains,[t,x],[u(t,x)])
@@ -161,8 +161,8 @@ end
            Dx(u(t,Float64(pi))) ~ 0]
 
     # Space and time domains
-    domains = [t ∈ IntervalDomain(0.0,1.0),
-               x ∈ IntervalDomain(0.0,Float64(pi))]
+    domains = [t ∈ Interval(0.0,1.0),
+               x ∈ Interval(0.0,Float64(pi))]
 
     # PDE system
     pdesys = PDESystem(eq,bcs,domains,[t,x],[u(t,x)])
@@ -215,8 +215,8 @@ end
            Dx(u(t,Float64(pi))) ~ -exp(-t)]
 
     # Space and time domains
-    domains = [t ∈ IntervalDomain(0.0,1.0),
-               x ∈ IntervalDomain(0.0,Float64(pi))]
+    domains = [t ∈ Interval(0.0,1.0),
+               x ∈ Interval(0.0,Float64(pi))]
 
     # PDE system
     pdesys = PDESystem(eq,bcs,domains,[t,x],[u(t,x)])
@@ -273,8 +273,8 @@ end
            Dx(u(t,Float64(pi))) ~ -exp(-t)]
 
     # Space and time domains
-    domains = [t ∈ IntervalDomain(0.0,1.0),
-               x ∈ IntervalDomain(0.0,Float64(pi))]
+    domains = [t ∈ Interval(0.0,1.0),
+               x ∈ Interval(0.0,Float64(pi))]
 
     # PDE system
     pdesys = PDESystem(eq,bcs,domains,[t,x],[u(t,x)])
@@ -318,8 +318,8 @@ end
            4u(t,1.0) + Dx(u(t,1.0)) ~ exp(-t) * (4sin(1.0) + cos(1.0))]
 
     # Space and time domains
-    domains = [t ∈ IntervalDomain(0.0,1.0),
-               x ∈ IntervalDomain(-1.0,1.0)]
+    domains = [t ∈ Interval(0.0,1.0),
+               x ∈ Interval(-1.0,1.0)]
 
     # PDE system
     pdesys = PDESystem(eq,bcs,domains,[t,x],[u(t,x)])
@@ -372,8 +372,8 @@ end
           4u(t,1.0) + t * Dx(u(t,1.0)) ~ exp(-t) * (4sin(1.0) + t * cos(1.0))]
 
     # Space and time domains
-    domains = [t ∈ IntervalDomain(0.0,1.0),
-               x ∈ IntervalDomain(-1.0,1.0)]
+    domains = [t ∈ Interval(0.0,1.0),
+               x ∈ Interval(-1.0,1.0)]
 
     # PDE system
     pdesys = PDESystem(eq,bcs,domains,[t,x],[u(t,x)])
@@ -424,8 +424,8 @@ end
         #    Dr(u(t,1)) ~ -exp(-t) * sin(1)]
 
     # Space and time domains
-    domains = [t ∈ IntervalDomain(0.0,1.0),
-               r ∈ IntervalDomain(0.0,1.0)]
+    domains = [t ∈ Interval(0.0,1.0),
+               r ∈ Interval(0.0,1.0)]
 
     # PDE system
     pdesys = PDESystem(eq,bcs,domains,[t,r],[u(t,r)])
@@ -473,8 +473,8 @@ end
            v(t,1) ~ exp(-t) * sin(1)]
 
     # Space and time domains
-    domains = [t ∈ IntervalDomain(0.0,1.0),
-               x ∈ IntervalDomain(0.0,1.0)]
+    domains = [t ∈ Interval(0.0,1.0),
+               x ∈ Interval(0.0,1.0)]
 
     # PDE system
     pdesys = PDESystem(eqs,bcs,domains,[t,x],[u(t,x),v(t,x)])
@@ -516,8 +516,8 @@ end
         u(t,0) ~ 0.0, Dx(u(t,1)) ~ 0.0,
         v(t,0) ~ 0.0, Dx(v(t,1)) ~ 0.0]
 
-    domains = [t ∈ IntervalDomain(0.0,1.0),
-            x ∈ IntervalDomain(0.0,1.0)]
+    domains = [t ∈ Interval(0.0,1.0),
+            x ∈ Interval(0.0,1.0)]
 
     pdesys = PDESystem(eqs,bcs,domains,[t,x],[u(t,x),v(t,x)],[Dn=>0.5, Dp=>2])
     discretization = MOLFiniteDifference([x=>0.1],t)
@@ -552,9 +552,9 @@ end
            v(t,2) ~ exp(-t) * sin(2)]
 
     # Space and time domains
-    domains = [t ∈ IntervalDomain(0.0,1.0),
-               x ∈ IntervalDomain(0.0,1.0),
-               y ∈ IntervalDomain(0.0,2.0)]
+    domains = [t ∈ Interval(0.0,1.0),
+               x ∈ Interval(0.0,1.0),
+               y ∈ Interval(0.0,2.0)]
 
     # PDE system
     pdesys = PDESystem(eqs,bcs,domains,[t,x,y],[u(t,x),v(t,y)])
@@ -603,8 +603,8 @@ end
            Dx(u(t,1)) ~ exp(-t) * cos(1)]
 
     # Space and time domains
-    domains = [t ∈ IntervalDomain(0.0,1.0),
-               x ∈ IntervalDomain(0.0,1.0)]
+    domains = [t ∈ Interval(0.0,1.0),
+               x ∈ Interval(0.0,1.0)]
 
     # PDE system
     pdesys = PDESystem(eqs,bcs,domains,[t,x],[u(t,x),v(t)])
@@ -648,8 +648,8 @@ end
            u(t,Float64(π)) ~ -exp(-t)]
 
     # Space and time domains
-    domains = [t ∈ IntervalDomain(0.0,1.0),
-               x ∈ IntervalDomain(0.0,Float64(π))]
+    domains = [t ∈ Interval(0.0,1.0),
+               x ∈ Interval(0.0,Float64(π))]
 
     # PDE system
     pdesys = PDESystem(eq,bcs,domains,[t,x],[u(t,x)])

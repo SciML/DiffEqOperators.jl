@@ -24,8 +24,8 @@ using ModelingToolkit,DiffEqOperators,DiffEqBase,LinearAlgebra,Test
            u(t, x_f) ~ analytic_sol_func(t, x_f)]
 
     # Space and time domains
-    domains = [t ∈ IntervalDomain(t_i, t_f),
-               x ∈ IntervalDomain(x_i, x_f)]
+    domains = [t ∈ Interval(t_i, t_f),
+               x ∈ Interval(x_i, x_f)]
 
     # PDE system
     pdesys = PDESystem(eq, bcs, domains, [t, x], [u(t, x)])
@@ -73,8 +73,8 @@ end
            u(t, x_f) ~ analytic_sol_func(t, x_f)]
 
     # Space and time domains
-    domains = [t ∈ IntervalDomain(t_i, t_f),
-               x ∈ IntervalDomain(x_i, x_f)]
+    domains = [t ∈ Interval(t_i, t_f),
+               x ∈ Interval(x_i, x_f)]
 
     # PDE system
     pdesys = PDESystem(eq, bcs, domains, [t, x], [u(t, x)])
@@ -123,8 +123,8 @@ end
            u(t, x_f) ~ analytic_sol_func(t, x_f)]
 
     # Space and time domains
-    domains = [t ∈ IntervalDomain(t_i, t_f),
-               x ∈ IntervalDomain(x_i, x_f)]
+    domains = [t ∈ Interval(t_i, t_f),
+               x ∈ Interval(x_i, x_f)]
 
     # PDE system
     pdesys = PDESystem(eq, bcs, domains, [t, x], [u(t, x)])
@@ -176,8 +176,8 @@ end
 #           v(t,2) ~ 1.0]
 
 #    # Space and time domains
-#    domains = [t ∈ IntervalDomain(t_i, t_f),
-#               x ∈ IntervalDomain(x_i, x_f)]
+#    domains = [t ∈ Interval(t_i, t_f),
+#               x ∈ Interval(x_i, x_f)]
 
 #    # PDE system
 #    pdesys = PDESystem(eq, bcs, domains, [t, x], [u(t, x), v(t, x)])
@@ -229,8 +229,8 @@ end
 #           v(t,2) ~ 1.0]
 
 #    # Space and time domains
-#    domains = [t ∈ IntervalDomain(t_i, t_f),
-#               x ∈ IntervalDomain(x_i, x_f)]
+#    domains = [t ∈ Interval(t_i, t_f),
+#               x ∈ Interval(x_i, x_f)]
 
 #    # PDE system
 #    pdesys = PDESystem(eq, bcs, domains, [t, x], [u(t, x), v(t, x)])

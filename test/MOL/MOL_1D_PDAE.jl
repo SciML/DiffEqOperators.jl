@@ -18,8 +18,8 @@ using ModelingToolkit: Differential
     Dxx = Dx^2
 
     # 1D PDE and boundary conditions
-    eqs = [Dt(u(t,x)) ~ Dxx(u(t,x)),
-           0 ~ Dxx(v(t,x)) + exp(-t)*sin(x)]
+    eqs = [0 ~ Dxx(v(t,x)) + exp(-t)*sin(x),
+           Dt(u(t,x)) ~ Dxx(u(t,x))]
     bcs = [u(0,x) ~ cos(x),
            v(0,x) ~ sin(x),
            u(t,0) ~ exp(-t),
@@ -28,8 +28,8 @@ using ModelingToolkit: Differential
            v(t,1) ~ exp(-t) * sin(1)]
 
     # Space and time domains
-    domains = [t ∈ IntervalDomain(0.0,1.0),
-               x ∈ IntervalDomain(0.0,1.0)]
+    domains = [t ∈ Interval(0.0,1.0),
+               x ∈ Interval(0.0,1.0)]
 
     # PDE system
     pdesys = PDESystem(eqs,bcs,domains,[t,x],[u(t,x),v(t,x)])

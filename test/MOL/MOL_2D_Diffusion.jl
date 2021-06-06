@@ -34,9 +34,9 @@ using ModelingToolkit: Differential
            u(t,x,y_max) ~ analytic_sol_func(t,x,y_max)]
 
     # Space and time domains
-    domains = [t ∈ IntervalDomain(t_min,t_max),
-            x ∈ IntervalDomain(x_min,x_max),
-            y ∈ IntervalDomain(y_min,y_max)]
+    domains = [t ∈ Interval(t_min,t_max),
+            x ∈ Interval(x_min,x_max),
+            y ∈ Interval(y_min,y_max)]
 
     # Space and time domains
     pdesys = PDESystem([eq],bcs,domains,[t,x,y],[u(t,x,y)])
@@ -98,9 +98,9 @@ end
            u(t,x,y_max) ~ analytic_sol_func(t,x,y_max)]
 
     # Space and time domains
-    domains = [t ∈ IntervalDomain(t_min,t_max),
-            x ∈ IntervalDomain(x_min,x_max),
-            y ∈ IntervalDomain(y_min,y_max)]
+    domains = [t ∈ Interval(t_min,t_max),
+            x ∈ Interval(x_min,x_max),
+            y ∈ Interval(y_min,y_max)]
 
     # Space and time domains
     pdesys = PDESystem([eq],bcs,domains,[t,x,y],[u(t,x,y)])
