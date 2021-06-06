@@ -56,7 +56,7 @@ pdesys = PDESystem(eq,bcs,domains,[t,x],[u])
 # Method of lines discretization
 dx = 0.1
 order = 2
-discretization = MOLFiniteDifference(dx,order)
+discretization = MOLFiniteDifference([x=>dx],order)
 
 # Convert the PDE problem into an ODE problem
 prob = discretize(pdesys,discretization)

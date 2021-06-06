@@ -57,6 +57,26 @@ function differential_order(eq, x::Symbolics.Symbolic)
     return filter(!iszero, orders)
 end
 
+# find all the dependent variables given by depvar_ops in an expression
+function get_depvars(eq,depvar_ops)
+    S = Symbolics
+    SU = SymbolicUtils
+    depvars = Set()
+    if eq isa Num
+       eq = eq.val
+    end
+    if S.istree(eq)
+        if eq isa Term && any(u->isequal(operation(eq),u),depvar_ops)
+              push!(depvars, eq)
+        else
+            for o in map(x->get_depvars(x,depvar_ops), SU.arguments(eq))
+                union!(depvars, o)
+            end
+        end
+    end
+    depvars
+end
+
 add_dims(A::AbstractArray, n::Int; dims::Int = 1) = cat(ndims(A) + n, A, dims = dims)
 
 ""

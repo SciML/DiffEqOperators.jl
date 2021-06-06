@@ -1,4 +1,5 @@
 using ModelingToolkit, DiffEqOperators, LinearAlgebra, OrdinaryDiffEq
+using ModelingToolkit: operation, istree, arguments
 
 # Define some variables
 @parameters t x
@@ -56,13 +57,13 @@ discretization = MOLFiniteDifference([x=>dx,y=>dy],t)
 prob = ModelingToolkit.discretize(pdesys,discretization)
 sol = solve(prob,Tsit5())
 
-# Sphere domain
+# Diffusion in a sphere
 @parameters t r
 @variables u(..)
 Dt = Differential(t)
 Dr = Differential(r)
 Drr = Dr^2
-eq  = Dt(u(t,r)) ~ 1/r^2 * Dr(r^2 * Dr(u(t,r)))
+eq  = Dt(u(t,r)) ~ (1/r^2 * Dr(r^2 * Dr(u(t,r))))
 bcs = [u(0,r) ~ - r * (r-1) * sin(r),
        Dr(u(t,0)) ~ 0.0, u(t,1) ~ sin(1)]
 
