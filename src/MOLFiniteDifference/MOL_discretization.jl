@@ -363,3 +363,4 @@ function SciMLBase.discretize(pdesys::ModelingToolkit.PDESystem,discretization::
     simpsys = structural_simplify(sys)
     prob = ODEProblem(simpsys,Pair[],tspan)
 end
+
