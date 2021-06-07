@@ -45,7 +45,7 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
     t = discretization.time
     # Get tspan
     tdomain = pdesys.domain[findfirst(d->isequal(t.val, d.variables),pdesys.domain)]
-    @assert tdomain.domain isa IntervalDomain
+    #@assert tdomain.domain isa IntervalDomain
     tspan = (tdomain.domain.lower,tdomain.domain.upper)
     
     depvar_ops = map(x->operation(x.val),pdesys.depvars)

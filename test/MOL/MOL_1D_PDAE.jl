@@ -28,8 +28,8 @@ using ModelingToolkit: Differential
            v(t,1) ~ exp(-t) * sin(1)]
 
     # Space and time domains
-    domains = [t ∈ Interval(0.0,1.0),
-               x ∈ Interval(0.0,1.0)]
+    domains = [t ∈ IntervalDomain(0.0,1.0),
+               x ∈ IntervalDomain(0.0,1.0)]
 
     # PDE system
     pdesys = PDESystem(eqs,bcs,domains,[t,x],[u(t,x),v(t,x)])
