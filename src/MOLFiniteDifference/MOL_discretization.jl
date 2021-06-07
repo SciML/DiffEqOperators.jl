@@ -115,7 +115,9 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
             space_indices = CartesianIndices(((axes(s)[1] for s in space)...,))
             grid_indices = CartesianIndices(((axes(g)[1] for g in grid)...,))
             depvarsdisc = map(depvars) do u
-                if isequal(arguments(u),[t])
+                if t == nothing
+                    [Num(Variable{Real}(Base.nameof(operation(u)),II.I...)) for II in grid_indices]
+                elseif isequal(arguments(u),[t])
                     [u for II in grid_indices]
                 else
                     [Num(Variable{Symbolics.FnType{Tuple{Any}, Real}}(Base.nameof(operation(u)),II.I...))(t) for II in grid_indices]
@@ -185,7 +187,7 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
             for bc in pdesys.bcs
                 bcdepvar = first(get_depvars(bc.lhs, depvar_ops))
                 if any(u->isequal(operation(u),operation(bcdepvar)),depvars)
-                    if operation(bc.lhs) isa Sym && !any(x -> t != nothing && isequal(x, t.val), arguments(bc.lhs))
+                    if t != nothing && operation(bc.lhs) isa Sym && !any(x -> isequal(x, t.val), arguments(bc.lhs))
                         # initial condition
                         # Assume in the form `u(...) ~ ...` for now
                         i = findfirst(isequal(bc.lhs),initmaps)
@@ -340,7 +342,7 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
             push!(alldepvarsdisc,reduce(vcat,depvarsdisc))
         end
     end
-    u0 = reduce(vcat,u0)
+    u0 = !isempty(u0) ? reduce(vcat,u0) : u0
     bceqs = reduce(vcat,bceqs)
     alleqs = reduce(vcat,alleqs)
     alldepvarsdisc = unique(reduce(vcat,alldepvarsdisc))

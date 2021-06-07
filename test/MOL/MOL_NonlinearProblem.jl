@@ -13,8 +13,8 @@ using ModelingToolkit: Differential
     eq = Dxx(u(x)) ~ 0
     dx = 0.1
 
-    bcs = [u(0) ~ 1,
-           u(1) ~ 1]
+    bcs = [1 ~ u(0),
+           1 ~ u(1)]
 
     # Space and time domains
     domains = [x ∈ IntervalDomain(0.0,1.0)]
