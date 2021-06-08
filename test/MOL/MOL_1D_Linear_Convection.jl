@@ -152,111 +152,111 @@ end
     @test sol_upwind[:, t_f_idx] ≈ asf atol = 0.1;
 end
 
-#@testset "Test 03: Dt(u(t,x)) ~ -Dx(v(t,x)) * u(t,x) - v(t,x) * Dx(u(t,x)); v(t,x) ~ 1" begin
-#    # Parameters, variables, and derivatives
-#    @parameters t x
-#    @variables u(..) v(..)
-#    Dt = Differential(t)
-#    Dx = Differential(x)
-#    t_i = 0.0; t_f = 0.6
-#    x_i = 0.0; x_f = 2.0
+@testset "Test 03: Dt(u(t,x)) ~ -Dx(v(t,x)) * u(t,x) - v(t,x) * Dx(u(t,x)); v(t,x) ~ 1" begin
+    # Parameters, variables, and derivatives
+    @parameters t x
+    @variables u(..) v(..)
+    Dt = Differential(t)
+    Dx = Differential(x)
+    t_i = 0.0; t_f = 0.6
+    x_i = 0.0; x_f = 2.0
 
-#    # Analytic solution
-#    analytic_sol_func(t, x) = (0.5 / (0.2 * sqrt(2.0 * 3.1415))) *
-#                               exp(-(x - t - 0.75)^2 / (2.0 * 0.2^2))
+    # Analytic solution
+    analytic_sol_func(t, x) = (0.5 / (0.2 * sqrt(2.0 * 3.1415))) *
+                               exp(-(x - t - 0.75)^2 / (2.0 * 0.2^2))
 
-#    # 1D PDE and boundary conditions
-#    eq  = [Dt(u(t, x)) ~ -Dx(v(t,x)) * u(t,x) - v(t,x) * Dx(u(t,x)), 
-#           v(t,x) ~ 1.0]
-#    bcs = [u(0.0, x) ~ analytic_sol_func(0.0, x),
-#           u(t, x_i) ~ analytic_sol_func(t, x_i),
-#           u(t, x_f) ~ analytic_sol_func(t, x_f),
-#           v(0,x) ~ 1.0,
-#           v(t,0) ~ 1.0,
-#           v(t,2) ~ 1.0]
+    # 1D PDE and boundary conditions
+    eq  = [Dt(u(t, x)) ~ -Dx(v(t,x)) * u(t,x) - v(t,x) * Dx(u(t,x)), 
+           v(t,x) ~ 1.0]
+    bcs = [u(0.0, x) ~ analytic_sol_func(0.0, x),
+           u(t, x_i) ~ analytic_sol_func(t, x_i),
+           u(t, x_f) ~ analytic_sol_func(t, x_f),
+           v(0,x) ~ 1.0,
+           v(t,0) ~ 1.0,
+           v(t,2) ~ 1.0]
 
-#    # Space and time domains
-#    domains = [t ∈ IntervalDomain(t_i, t_f),
-#               x ∈ IntervalDomain(x_i, x_f)]
+    # Space and time domains
+    domains = [t ∈ IntervalDomain(t_i, t_f),
+               x ∈ IntervalDomain(x_i, x_f)]
 
-#    # PDE system
-#    pdesys = PDESystem(eq, bcs, domains, [t, x], [u(t, x), v(t, x)])
+    # PDE system
+    pdesys = PDESystem(eq, bcs, domains, [t, x], [u(t, x), v(t, x)])
 
-#    # Method of lines discretization
-#    dx = 2 / 80
-#    order = 1
-#    discretization = MOLFiniteDifference([x => dx], t)
-#    discretization_upwind = MOLFiniteDifference([x => dx], t; upwind_order = order)
+    # Method of lines discretization
+    dx = 2 / 80
+    order = 1
+    discretization = MOLFiniteDifference([x => dx], t)
+    discretization_upwind = MOLFiniteDifference([x => dx], t; upwind_order = order)
 
-#    # Convert the PDE problem into an ODE problem
-#    prob = discretize(pdesys, discretization)
-#    prob_upwind = discretize(pdesys, discretization_upwind)
+    # Convert the PDE problem into an ODE problem
+    prob = discretize(pdesys, discretization)
+    prob_upwind = discretize(pdesys, discretization_upwind)
 
-#    # Solve ODE problem
-#    using OrdinaryDiffEq
-#    sol = solve(prob, Euler(), dt = .0025, saveat = 0.1)
-#    sol_upwind = solve(prob_upwind, Euler(), dt = .0025, saveat = 0.1)
+    # Solve ODE problem
+    using OrdinaryDiffEq
+    sol = solve(prob, Euler(), dt = .0025, saveat = 0.1)
+    sol_upwind = solve(prob_upwind, Euler(), dt = .0025, saveat = 0.1)
 
-#    # Test
-#    x_IntervalDomain = domains[2].domain.lower + dx : dx : domains[2].domain.upper - dx
-#    asf = [analytic_sol_func(t_f, x) for x in x_IntervalDomain]
-#    t_f_idx = size(sol)[2]
-#    @test sol[:, t_f_idx] ≈ asf atol = 0.1;
-#    @test sol_upwind[:, t_f_idx] ≈ asf atol = 0.1;
-#end
+    # Test
+    x_IntervalDomain = domains[2].domain.lower + dx : dx : domains[2].domain.upper - dx
+    asf = [analytic_sol_func(t_f, x) for x in x_IntervalDomain]
+    t_f_idx = size(sol)[2]
+    @test sol[:, t_f_idx] ≈ asf atol = 0.1;
+    @test sol_upwind[:, t_f_idx] ≈ asf atol = 0.1;
+end
 
-#@testset "Test 04: Dt(u(t,x)) ~ -Dx(v(t,x)) * u(t,x) - v(t,x) * Dx(u(t,x)); v(t,x) ~ sin(t*x)^2 + cos(t*x)^2 " begin
-#    # Parameters, variables, and derivatives
-#    @parameters t x
-#    @variables u(..) v(..)
-#    Dt = Differential(t)
-#    Dx = Differential(x)
-#    t_i = 0.0; t_f = 0.6
-#    x_i = 0.0; x_f = 2.0
+@testset "Test 04: Dt(u(t,x)) ~ -Dx(v(t,x)) * u(t,x) - v(t,x) * Dx(u(t,x)); v(t,x) ~ sin(t*x)^2 + cos(t*x)^2 " begin
+    # Parameters, variables, and derivatives
+    @parameters t x
+    @variables u(..) v(..)
+    Dt = Differential(t)
+    Dx = Differential(x)
+    t_i = 0.0; t_f = 0.6
+    x_i = 0.0; x_f = 2.0
 
-#    # Analytic solution
-#    analytic_sol_func(t, x) = (0.5 / (0.2 * sqrt(2.0 * 3.1415))) *
-#                               exp(-(x - t - 0.75)^2 / (2.0 * 0.2^2))
+    # Analytic solution
+    analytic_sol_func(t, x) = (0.5 / (0.2 * sqrt(2.0 * 3.1415))) *
+                               exp(-(x - t - 0.75)^2 / (2.0 * 0.2^2))
 
-#    # 1D PDE and boundary conditions
-#    eq  = [Dt(u(t, x)) ~ -Dx(v(t,x)) * u(t,x) - v(t,x) * Dx(u(t,x)), 
-#           v(t,x) ~ sin(t*x)^2 + cos(t*x)^2]
-#    bcs = [u(0.0, x) ~ analytic_sol_func(0.0, x),
-#           u(t, x_i) ~ analytic_sol_func(t, x_i),
-#           u(t, x_f) ~ analytic_sol_func(t, x_f),
-#           v(0,x) ~ 1.0,
-#           v(t,0) ~ 1.0,
-#           v(t,2) ~ 1.0]
+    # 1D PDE and boundary conditions
+    eq  = [Dt(u(t, x)) ~ -Dx(v(t,x)) * u(t,x) - v(t,x) * Dx(u(t,x)), 
+           v(t,x) ~ sin(t*x)^2 + cos(t*x)^2]
+    bcs = [u(0.0, x) ~ analytic_sol_func(0.0, x),
+           u(t, x_i) ~ analytic_sol_func(t, x_i),
+           u(t, x_f) ~ analytic_sol_func(t, x_f),
+           v(0,x) ~ 1.0,
+           v(t,0) ~ 1.0,
+           v(t,2) ~ 1.0]
 
-#    # Space and time domains
-#    domains = [t ∈ IntervalDomain(t_i, t_f),
-#               x ∈ IntervalDomain(x_i, x_f)]
+    # Space and time domains
+    domains = [t ∈ IntervalDomain(t_i, t_f),
+               x ∈ IntervalDomain(x_i, x_f)]
 
-#    # PDE system
-#    pdesys = PDESystem(eq, bcs, domains, [t, x], [u(t, x), v(t, x)])
+    # PDE system
+    pdesys = PDESystem(eq, bcs, domains, [t, x], [u(t, x), v(t, x)])
 
-#    # Method of lines discretization
-#    dx = 2 / 80
-#    order = 1
-#    discretization = MOLFiniteDifference([x => dx], t)
-#    discretization_upwind = MOLFiniteDifference([x => dx], t; upwind_order = order)
+    # Method of lines discretization
+    dx = 2 / 80
+    order = 1
+    discretization = MOLFiniteDifference([x => dx], t)
+    discretization_upwind = MOLFiniteDifference([x => dx], t; upwind_order = order)
 
-#    # Convert the PDE problem into an ODE problem
-#    prob = discretize(pdesys, discretization)
-#    prob_upwind = discretize(pdesys, discretization_upwind)
+    # Convert the PDE problem into an ODE problem
+    prob = discretize(pdesys, discretization)
+    prob_upwind = discretize(pdesys, discretization_upwind)
 
-#    # Solve ODE problem
-#    using OrdinaryDiffEq
-#    sol = solve(prob, Euler(), dt = .0025, saveat = 0.1)
-#    sol_upwind = solve(prob_upwind, Euler(), dt = .0025, saveat = 0.1)
+    # Solve ODE problem
+    using OrdinaryDiffEq
+    sol = solve(prob, Euler(), dt = .0025, saveat = 0.1)
+    sol_upwind = solve(prob_upwind, Euler(), dt = .0025, saveat = 0.1)
 
-#    # Test
-#    x_IntervalDomain = domains[2].domain.lower + dx : dx : domains[2].domain.upper - dx
-#    asf = [analytic_sol_func(t_f, x) for x in x_IntervalDomain]
-#    t_f_idx = size(sol)[2]
-#    @test sol[:, t_f_idx] ≈ asf atol = 0.1;
-#    @test sol_upwind[:, t_f_idx] ≈ asf atol = 0.1;
-#end
+    # Test
+    x_IntervalDomain = domains[2].domain.lower + dx : dx : domains[2].domain.upper - dx
+    asf = [analytic_sol_func(t_f, x) for x in x_IntervalDomain]
+    t_f_idx = size(sol)[2]
+    @test sol[:, t_f_idx] ≈ asf atol = 0.1;
+    @test sol_upwind[:, t_f_idx] ≈ asf atol = 0.1;
+end
 
 
 
