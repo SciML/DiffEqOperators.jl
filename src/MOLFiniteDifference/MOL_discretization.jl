@@ -187,7 +187,22 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
             for bc in pdesys.bcs
                 bcdepvar = first(get_depvars(bc.lhs, depvar_ops))
                 if any(u->isequal(operation(u),operation(bcdepvar)),depvars)
-                    if t != nothing && operation(bc.lhs) isa Sym && !any(x -> isequal(x, t.val), arguments(bc.lhs))
+                    if t == nothing
+                        # Algebraic equations for BCs
+                        i = findfirst(x->occursin(x,bc.lhs),first.(depvarbcmaps))
+                        if i !== nothing
+                            bcargs = arguments(first(depvarbcmaps[i]))
+                            # Replace Differential terms in the bc lhs with the symbolic spatially discretized terms
+                            # TODO: Fix Neumann and Robin on higher dimension
+                            lhs = nspace == 1 ? substitute(bc.lhs,depvarderivbcmaps[i]) : bc.lhs
+
+                            # Replace symbol in the bc lhs with the spatial discretized term
+                            lhs = substitute(lhs,depvarbcmaps[i])
+                            rhs = bc.rhs
+                            lhs = lhs isa Vector ? lhs : [lhs] # handle 1D
+                            push!(bceqs,lhs .~ rhs)
+                        end
+                    elseif operation(bc.lhs) isa Sym && !any(x -> isequal(x, t.val), arguments(bc.lhs))
                         # initial condition
                         # Assume in the form `u(...) ~ ...` for now
                         i = findfirst(isequal(bc.lhs),initmaps)
