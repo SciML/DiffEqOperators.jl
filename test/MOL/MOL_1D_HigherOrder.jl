@@ -1,8 +1,8 @@
 # 1D diffusion problem
 
 # Packages and inclusions
-using ModelingToolkit,DiffEqOperators,LinearAlgebra,Test,OrdinaryDiffEq
-using ModelingToolkit: Differential
+using ModelingToolkit, DiffEqOperators, LinearAlgebra, Test, OrdinaryDiffEq
+using ModelingToolkit: Interval, infimum, supremum
 
 # Beam Equation
 @test_broken begin
@@ -30,8 +30,8 @@ using ModelingToolkit: Differential
            Dx3(u(t, L)) ~ 0]
 
     # Space and time domains
-    domains = [t ∈ IntervalDomain(0.0,1.0),
-               x ∈ IntervalDomain(0.0,L)]
+    domains = [t ∈ Interval(0.0,1.0),
+               x ∈ Interval(0.0,L)]
 
     pdesys = PDESystem(eq,bcs,domains,[t,x],[u(t,x)])
     discretization = MOLFiniteDifference([x=>dx],t, centered_order=4)
@@ -66,8 +66,8 @@ end
            Dx3(u(t, L)) ~ 0]
 
     # Space and time domains
-    domains = [t ∈ IntervalDomain(0.0,1.0),
-               x ∈ IntervalDomain(0.0,L)]
+    domains = [t ∈ Interval(0.0,1.0),
+               x ∈ Interval(0.0,L)]
 
     pdesys = PDESystem(eqs,bcs,domains,[t,x],[u(t,x),v(t,x)])
     discretization = MOLFiniteDifference([x=>dx],t, centered_order=4)
@@ -98,8 +98,8 @@ end
            Dx(u(10,t)) ~ du(10,t)]
 
     # Space and time domains
-    domains = [x ∈ IntervalDomain(-10.0,10.0),
-               t ∈ IntervalDomain(0.0,1.0)]
+    domains = [x ∈ Interval(-10.0,10.0),
+               t ∈ Interval(0.0,1.0)]
     # Discretization
     dx = 0.4; dt = 0.2
 
@@ -111,7 +111,7 @@ end
 
     @test sol.retcode == :Success
 
-    xs = domains[1].domain.lower+dx+dx:dx:domains[1].domain.upper-dx-dx
+    xs = infimum(domains[1].domain)+dx+dx:dx:supremum(domains[1].domain)-dx-dx
     ts = sol.t
 
     u_predict = sol.u

@@ -1,6 +1,7 @@
 # 1D linear convection problem
 
-using ModelingToolkit,DiffEqOperators,DiffEqBase,LinearAlgebra,Test
+using ModelingToolkit, DiffEqOperators, DiffEqBase, LinearAlgebra, Test
+using ModelingToolkit: Interval, infimum, supremum
 
 # Tests
 
@@ -24,8 +25,8 @@ using ModelingToolkit,DiffEqOperators,DiffEqBase,LinearAlgebra,Test
            u(t, x_f) ~ analytic_sol_func(t, x_f)]
 
     # Space and time domains
-    domains = [t ∈ IntervalDomain(t_i, t_f),
-               x ∈ IntervalDomain(x_i, x_f)]
+    domains = [t ∈ Interval(t_i, t_f),
+               x ∈ Interval(x_i, x_f)]
 
     # PDE system
     pdesys = PDESystem(eq, bcs, domains, [t, x], [u(t, x)])
@@ -46,8 +47,9 @@ using ModelingToolkit,DiffEqOperators,DiffEqBase,LinearAlgebra,Test
     sol_upwind = solve(prob_upwind, Euler(), dt = .0025, saveat = 0.1)
 
     # Test
-    x_IntervalDomain = domains[2].domain.lower + dx : dx : domains[2].domain.upper - dx
-    asf = [analytic_sol_func(t_f, x) for x in x_IntervalDomain]
+    #x_interval = infimum(domains[2].domain) + dx : dx : supremum(domains[2].domain) - dx
+    x_interval = infimum(domains[2].domain) + dx : dx : supremum(domains[2].domain) - dx
+    asf = [analytic_sol_func(t_f, x) for x in x_interval]
     t_f_idx = size(sol)[2]
     @test sol[:, t_f_idx] ≈ asf atol = 0.1;
     @test sol_upwind[:, t_f_idx] ≈ asf atol = 0.1;
@@ -73,8 +75,8 @@ end
            u(t, x_f) ~ analytic_sol_func(t, x_f)]
 
     # Space and time domains
-    domains = [t ∈ IntervalDomain(t_i, t_f),
-               x ∈ IntervalDomain(x_i, x_f)]
+    domains = [t ∈ Interval(t_i, t_f),
+               x ∈ Interval(x_i, x_f)]
 
     # PDE system
     pdesys = PDESystem(eq, bcs, domains, [t, x], [u(t, x)])
@@ -95,8 +97,8 @@ end
     sol_upwind = solve(prob_upwind, Euler(), dt = .0025, saveat = 0.1)
 
     # Test
-    x_IntervalDomain = domains[2].domain.lower + dx : dx : domains[2].domain.upper - dx
-    asf = [analytic_sol_func(t_f, x) for x in x_IntervalDomain]
+    x_interval = infimum(domains[2].domain) + dx : dx : supremum(domains[2].domain) - dx
+    asf = [analytic_sol_func(t_f, x) for x in x_interval]
     t_f_idx = size(sol)[2]
     @test sol[:, t_f_idx] ≈ asf atol = 0.1;
     @test sol_upwind[:, t_f_idx] ≈ asf atol = 0.1;
@@ -123,8 +125,8 @@ end
            u(t, x_f) ~ analytic_sol_func(t, x_f)]
 
     # Space and time domains
-    domains = [t ∈ IntervalDomain(t_i, t_f),
-               x ∈ IntervalDomain(x_i, x_f)]
+    domains = [t ∈ Interval(t_i, t_f),
+               x ∈ Interval(x_i, x_f)]
 
     # PDE system
     pdesys = PDESystem(eq, bcs, domains, [t, x], [u(t, x)])
@@ -145,8 +147,8 @@ end
     sol_upwind = solve(prob_upwind, Euler(), dt = .0025, saveat = 0.1)
 
     # Test
-    x_IntervalDomain = domains[2].domain.lower + dx : dx : domains[2].domain.upper - dx
-    asf = [analytic_sol_func(t_f, x) for x in x_IntervalDomain]
+    x_interval = infimum(domains[2].domain) + dx : dx : supremum(domains[2].domain) - dx
+    asf = [analytic_sol_func(t_f, x) for x in x_interval]
     t_f_idx = size(sol)[2]
     @test sol[:, t_f_idx] ≈ asf atol = 0.1;
     @test sol_upwind[:, t_f_idx] ≈ asf atol = 0.1;
@@ -176,8 +178,8 @@ end
            v(t,2) ~ 1.0]
 
     # Space and time domains
-    domains = [t ∈ IntervalDomain(t_i, t_f),
-               x ∈ IntervalDomain(x_i, x_f)]
+    domains = [t ∈ Interval(t_i, t_f),
+               x ∈ Interval(x_i, x_f)]
 
     # PDE system
     pdesys = PDESystem(eq, bcs, domains, [t, x], [u(t, x), v(t, x)])
@@ -198,8 +200,8 @@ end
     sol_upwind = solve(prob_upwind, Euler(), dt = .0025, saveat = 0.1)
 
     # Test
-    x_IntervalDomain = domains[2].domain.lower + dx : dx : domains[2].domain.upper - dx
-    asf = [analytic_sol_func(t_f, x) for x in x_IntervalDomain]
+    x_interval = infimum(domains[2].domain) + dx : dx : supremum(domains[2].domain) - dx
+    asf = [analytic_sol_func(t_f, x) for x in x_interval]
     t_f_idx = size(sol)[2]
     @test sol[:, t_f_idx] ≈ asf atol = 0.1;
     @test sol_upwind[:, t_f_idx] ≈ asf atol = 0.1;
@@ -229,8 +231,8 @@ end
            v(t,2) ~ 1.0]
 
     # Space and time domains
-    domains = [t ∈ IntervalDomain(t_i, t_f),
-               x ∈ IntervalDomain(x_i, x_f)]
+    domains = [t ∈ Interval(t_i, t_f),
+               x ∈ Interval(x_i, x_f)]
 
     # PDE system
     pdesys = PDESystem(eq, bcs, domains, [t, x], [u(t, x), v(t, x)])
@@ -251,8 +253,8 @@ end
     sol_upwind = solve(prob_upwind, Euler(), dt = .0025, saveat = 0.1)
 
     # Test
-    x_IntervalDomain = domains[2].domain.lower + dx : dx : domains[2].domain.upper - dx
-    asf = [analytic_sol_func(t_f, x) for x in x_IntervalDomain]
+    x_interval = infimum(domains[2].domain) + dx : dx : supremum(domains[2].domain) - dx
+    asf = [analytic_sol_func(t_f, x) for x in x_interval]
     t_f_idx = size(sol)[2]
     @test sol[:, t_f_idx] ≈ asf atol = 0.1;
     @test sol_upwind[:, t_f_idx] ≈ asf atol = 0.1;

@@ -4,8 +4,9 @@
 # TODO: Add more complex tests.
 
 # Packages and inclusions
-using ModelingToolkit,DiffEqOperators,LinearAlgebra,Test,OrdinaryDiffEq
-using ModelingToolkit: Differential
+using ModelingToolkit, DiffEqOperators, LinearAlgebra, Test, OrdinaryDiffEq
+using ModelingToolkit: Interval, infimum, supremum
+
 # Tests
 @testset "Test 00: Dt(u(t,x)) ~ Dx(u(t,x)^(-1) * Dx(u(t,x)))" begin 
     # Variables, parameters, and derivatives

@@ -1,8 +1,8 @@
 # 1D diffusion problem
 
 # Packages and inclusions
-using ModelingToolkit,DiffEqOperators,LinearAlgebra,Test,OrdinaryDiffEq
-using ModelingToolkit: Differential
+using ModelingToolkit, DiffEqOperators, LinearAlgebra, Test, OrdinaryDiffEq
+using ModelingToolkit: Interval, infimum, supremum
 
 # Tests
 @testset "Dt(u(t,x)) ~ Dxx(u(t,x)), 0 ~ Dxx(v(t,x)) + sin(x), Dirichlet BCs" begin
@@ -28,8 +28,8 @@ using ModelingToolkit: Differential
            v(t,1) ~ exp(-t) * sin(1)]
 
     # Space and time domains
-    domains = [t ∈ IntervalDomain(0.0,1.0),
-               x ∈ IntervalDomain(0.0,1.0)]
+    domains = [t ∈ Interval(0.0,1.0),
+               x ∈ Interval(0.0,1.0)]
 
     # PDE system
     pdesys = PDESystem(eqs,bcs,domains,[t,x],[u(t,x),v(t,x)])
