@@ -362,10 +362,10 @@ end
 
 function SciMLBase.discretize(pdesys::ModelingToolkit.PDESystem,discretization::DiffEqOperators.MOLFiniteDifference)
     sys, tspan = SciMLBase.symbolic_discretize(pdesys,discretization)
-    simpsys = structural_simplify(sys)
     if tspan == nothing
-        return prob = NonlinearProblem(simpsys,Pair[])
+        return prob = NonlinearProblem(sys, ones(length(sys.states)))
     else
+        simpsys = structural_simplify(sys)
         return prob = ODEProblem(simpsys,Pair[],tspan)
     end
 end
