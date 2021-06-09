@@ -32,7 +32,7 @@ the documentation which contains the unreleased features.
 ## Example 1: Automated Finite Difference Solution to the Heat Equation
 
 ```julia
-using OrdinaryDiffEq, ModelingToolkit, DiffEqOperators
+using OrdinaryDiffEq, ModelingToolkit, DiffEqOperators, DomainSets
 
 # Parameters, variables, and derivatives
 @parameters t x
@@ -47,8 +47,8 @@ bcs = [u(0,x) ~ cos(x),
        u(t,Float64(pi)) ~ -exp(-t)]
 
 # Space and time domains
-domains = [t ∈ IntervalDomain(0.0,1.0),
-           x ∈ IntervalDomain(0.0,Float64(pi))]
+domains = [t ∈ Interval(0.0,1.0),
+           x ∈ Interval(0.0,Float64(pi))]
 
 # PDE system
 pdesys = PDESystem(eq,bcs,domains,[t,x],[u])

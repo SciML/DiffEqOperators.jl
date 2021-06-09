@@ -1,5 +1,6 @@
 using ModelingToolkit, DiffEqOperators, LinearAlgebra, OrdinaryDiffEq
 using ModelingToolkit: operation, istree, arguments
+using DomainSets
 
 # Define some variables
 @parameters t x
@@ -14,8 +15,8 @@ bcs = [u(0,x) ~ - x * (x-1) * sin(x),
        u(t,0) ~ 0.0, u(t,1) ~ 0.0,
        v(t,0) ~ 0.0, v(t,1) ~ 0.0]
 
-domains = [t ∈ IntervalDomain(0.0,1.0),
-           x ∈ IntervalDomain(0.0,1.0)]
+domains = [t ∈ Interval(0.0,1.0),
+           x ∈ Interval(0.0,1.0)]
 
 pdesys = PDESystem(eqs,bcs,domains,[t,x],[u(t,x),v(t,x)])
 discretization = MOLFiniteDifference([x=>0.1],t;grid_align=edge_align)
@@ -46,9 +47,9 @@ bcs = [u(t_min,x,y) ~ analytic_sol_func(t_min,x,y),
        u(t,x,y_max) ~ analytic_sol_func(t,x,y_max)]
 
 # Space and time domains
-domains = [t ∈ IntervalDomain(t_min,t_max),
-           x ∈ IntervalDomain(x_min,x_max),
-           y ∈ IntervalDomain(y_min,y_max)]
+domains = [t ∈ Interval(t_min,t_max),
+           x ∈ Interval(x_min,x_max),
+           y ∈ Interval(y_min,y_max)]
 pdesys = PDESystem([eq],bcs,domains,[t,x,y],[u(t,x,y)])
 
 # Method of lines discretization
@@ -67,8 +68,8 @@ eq  = Dt(u(t,r)) ~ (1/r^2 * Dr(r^2 * Dr(u(t,r))))
 bcs = [u(0,r) ~ - r * (r-1) * sin(r),
        Dr(u(t,0)) ~ 0.0, u(t,1) ~ sin(1)]
 
-domains = [t ∈ IntervalDomain(0.0,1.0),
-           r ∈ IntervalDomain(0.0,1.0)]
+domains = [t ∈ Interval(0.0,1.0),
+           r ∈ Interval(0.0,1.0)]
 
 pdesys = PDESystem(eq,bcs,domains,[t,r],[u(t,r)])
 discretization = MOLFiniteDifference([r=>0.1],t)
