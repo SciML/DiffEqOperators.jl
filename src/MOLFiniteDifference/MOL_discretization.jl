@@ -370,10 +370,7 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
         # At the time of writing, NonlinearProblems require that the system of equations be in this form:
         # 0 ~ ...
         # Thus, before creating a NonlinearSystem we normalize the equations s.t. the lhs is zero.
-        eqs = []
-        for eq in vcat(alleqs,unique(bceqs))
-            push!(eqs, 0 ~ eq.rhs - eq.lhs)
-        end
+        eqs = map(eq -> 0 ~ eq.rhs - eq.lhs, vcat(alleqs,unique(bceqs)))
         sys = NonlinearSystem(eqs,vec(reduce(vcat,vec(alldepvarsdisc))),ps,defaults=Dict(defaults))
         return sys, nothing
     else
