@@ -142,7 +142,7 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
             edgemaps = Dict(bclocs .=> [spacevals[e...] for e in edges])
             initmaps = depvars
             if t != nothing
-                substitute.(depvars,[t=>tspan[1]])
+                initmaps = substitute.(depvars,[t=>tspan[1]])
             end
 
             # Generate map from variable (e.g. u(t,0)) to discretized variable (e.g. u₁(t))
