@@ -1,4 +1,5 @@
 using ModelingToolkit: operation, istree, arguments
+import DomainSets
 
 # Method of lines discretization scheme
 
@@ -28,7 +29,7 @@ function calculate_weights_cartesian(order::Int, x0::T, xs::AbstractVector, idxs
         # We can't activate this assertion for now because the rules try to create the spherical Laplacian
         # before checking whether there is a spherical Laplacian
         # this could be fixed by dispatching on domain type when we have different domain types
-        # but for now everything is an IntervalDomain
+        # but for now everything is an Interval
         # @assert length(x) == 3
         # TODO: nonlinear diffusion in a spherical domain
         i = idxs[2] 
@@ -45,7 +46,7 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
     t = discretization.time
     # Get tspan
     tdomain = pdesys.domain[findfirst(d->isequal(t.val, d.variables),pdesys.domain)]
-    @assert tdomain.domain isa IntervalDomain
+    @assert tdomain.domain isa DomainSets.Interval
     tspan = (tdomain.domain.lower,tdomain.domain.upper)
     
     depvar_ops = map(x->operation(x.val),pdesys.depvars)
