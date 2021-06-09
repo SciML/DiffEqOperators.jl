@@ -6,15 +6,15 @@ using ModelingToolkit: operation, istree, arguments
 
 struct MOLFiniteDifference{T,T2} <: DiffEqBase.AbstractDiscretization
     dxs::T
+    time::T2
     upwind_order::Int
     centered_order::Int
     grid_align::GridAlign
-    time::T2
 end
 
 # Constructors. If no order is specified, both upwind and centered differences will be 2nd order
 MOLFiniteDifference(dxs, time; upwind_order = 1, centered_order = 2, grid_align=center_align) =
-    MOLFiniteDifference(dxs, upwind_order, centered_order, grid_align, time)
+    MOLFiniteDifference(dxs, time, upwind_order, centered_order, grid_align)
 
 function calculate_weights_cartesian(order::Int, x0::T, xs::AbstractVector, idxs::AbstractVector) where T<:Real
         # Cartesian domain: use Fornberg
