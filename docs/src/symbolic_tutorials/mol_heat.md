@@ -24,8 +24,8 @@ bcs = [u(0,x) ~ cos(x),
         u(t,1) ~ exp(-t) * cos(1)]
 
 # Space and time domains
-domains = [t ∈ IntervalDomain(0.0,1.0),
-           x ∈ IntervalDomain(0.0,1.0)]
+domains = [t ∈ Interval(0.0,1.0),
+           x ∈ Interval(0.0,1.0)]
 
 # PDE system
 pdesys = PDESystem(eq,bcs,domains,[t,x],[u(t,x)])
@@ -77,8 +77,8 @@ bcs = [u(0,x) ~ cos(x),
         Dx(u(t,1)) ~ -exp(-t) * sin(1)]
 
 # Space and time domains
-domains = [t ∈ IntervalDomain(0.0,1.0),
-        x ∈ IntervalDomain(0.0,1.0)]
+domains = [t ∈ Interval(0.0,1.0),
+        x ∈ Interval(0.0,1.0)]
 
 # PDE system
 pdesys = PDESystem(eq,bcs,domains,[t,x],[u(t,x)])
@@ -132,8 +132,8 @@ bcs = [u(0,x) ~ sin(x),
         u(t,1.0) + Dx(u(t,1.0)) ~ exp(-t) * (sin(1.0) + cos(1.0))]
 
 # Space and time domains
-domains = [t ∈ IntervalDomain(0.0,1.0),
-        x ∈ IntervalDomain(-1.0,1.0)]
+domains = [t ∈ Interval(0.0,1.0),
+        x ∈ Interval(-1.0,1.0)]
 
 # PDE system
 pdesys = PDESystem(eq,bcs,domains,[t,x],[u(t,x)])
@@ -185,8 +185,8 @@ bcs = [u(0,x) ~ sin(pi*x/2),
        u(t,0) ~ 0.0, Dx(u(t,1)) ~ 0.0,
        v(t,0) ~ 0.0, Dx(v(t,1)) ~ 0.0]
 
-domains = [t ∈ IntervalDomain(0.0,1.0),
-           x ∈ IntervalDomain(0.0,1.0)]
+domains = [t ∈ Interval(0.0,1.0),
+           x ∈ Interval(0.0,1.0)]
 
 pdesys = PDESystem(eqs,bcs,domains,[t,x],[u(t,x),v(t,x)],[Dn=>0.5, Dp=>2])
 discretization = MOLFiniteDifference([x=>0.1],t)

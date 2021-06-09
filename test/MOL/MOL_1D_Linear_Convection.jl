@@ -1,7 +1,7 @@
 # 1D linear convection problem
 
 # Packages and inclusions
-using ModelingToolkit,DiffEqOperators,DiffEqBase,LinearAlgebra,Test
+using ModelingToolkit,DiffEqOperators,DiffEqBase,LinearAlgebra,Test, DomainSets
 
 # Tests
 
@@ -19,8 +19,8 @@ using ModelingToolkit,DiffEqOperators,DiffEqBase,LinearAlgebra,Test
            u(t,2) ~ 0.0]
 
     # Space and time domains
-    domains = [t ∈ IntervalDomain(0.0,0.6),
-               x ∈ IntervalDomain(0.0,2.0)]
+    domains = [t ∈ Interval(0.0,0.6),
+               x ∈ Interval(0.0,2.0)]
 
     # PDE system
     pdesys = PDESystem(eq,bcs,domains,[t,x],[u])
@@ -75,8 +75,8 @@ end
            u(t,2) ~ 0.0]
 
     # Space and time domains
-    domains = [t ∈ IntervalDomain(0.0,0.6),
-               x ∈ IntervalDomain(0.0,2.0)]
+    domains = [t ∈ Interval(0.0,0.6),
+               x ∈ Interval(0.0,2.0)]
 
     # PDE system
     pdesys = PDESystem(eq,bcs,domains,[t,x],[u])
@@ -127,8 +127,8 @@ end
            u(t,2) ~ 0.0]
 
     # Space and time domains
-    domains = [t ∈ IntervalDomain(0.0,0.6),
-               x ∈ IntervalDomain(0.0,2.0)]
+    domains = [t ∈ Interval(0.0,0.6),
+               x ∈ Interval(0.0,2.0)]
 
     # PDE system
     pdesys = PDESystem(eq,bcs,domains,[t,x],[u])
@@ -181,8 +181,8 @@ end
            ]
 
     # Space and time domains
-    domains = [t ∈ IntervalDomain(0.0,0.6),
-               x ∈ IntervalDomain(0.0,2.0)]
+    domains = [t ∈ Interval(0.0,0.6),
+               x ∈ Interval(0.0,2.0)]
 
     # PDE system
     pdesys = PDESystem(eq,bcs,domains,[t,x],[u,v])
@@ -235,8 +235,8 @@ end
            v(t,2) ~ 0.999 + 0.001 * t * 2.0]
 
     # Space and time domains
-    domains = [t ∈ IntervalDomain(0.0,0.6),
-               x ∈ IntervalDomain(0.0,2.0)]
+    domains = [t ∈ Interval(0.0,0.6),
+               x ∈ Interval(0.0,2.0)]
 
     # PDE system
     pdesys = PDESystem(eq,bcs,domains,[t,x],[u,v])

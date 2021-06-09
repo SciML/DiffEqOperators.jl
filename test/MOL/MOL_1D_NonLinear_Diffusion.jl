@@ -4,7 +4,7 @@
 # TODO: Add more complex tests.
 
 # Packages and inclusions
-using ModelingToolkit,DiffEqOperators,LinearAlgebra,Test,OrdinaryDiffEq
+using ModelingToolkit,DiffEqOperators,LinearAlgebra,Test,OrdinaryDiffEq, DomainSets
 using ModelingToolkit: Differential
 # Tests
 @testset "Test 00: Dt(u(t,x)) ~ Dx(u(t,x)^(-1) * Dx(u(t,x)))" begin 
@@ -32,8 +32,8 @@ using ModelingToolkit: Differential
            u(t,x_max) ~ analytic_sol_func(t,x_max)]
 
     # Space and time domains
-    domains = [t ∈ IntervalDomain(t_min,t_max),
-               x ∈ IntervalDomain(x_min,x_max)]
+    domains = [t ∈ Interval(t_min,t_max),
+               x ∈ Interval(x_min,x_max)]
 
     # PDE system
     pdesys = PDESystem([eq],bcs,domains,[t,x],[u(t,x)])
@@ -89,8 +89,8 @@ end
            u(t,x_max) ~ analytic_sol_func(t,x_max)]
 
     # Space and time domains
-    domains = [t ∈ IntervalDomain(t_min,t_max),
-               x ∈ IntervalDomain(x_min,x_max)]
+    domains = [t ∈ Interval(t_min,t_max),
+               x ∈ Interval(x_min,x_max)]
 
     # PDE system
     pdesys = PDESystem([eq],bcs,domains,[t,x],[u(t,x)])
@@ -145,8 +145,8 @@ end
            u(t,x_max) ~ analytic_sol_func(t,x_max)]
 
     # Space and time domains
-    domains = [t ∈ IntervalDomain(t_min,t_max),
-               x ∈ IntervalDomain(x_min,x_max)]
+    domains = [t ∈ Interval(t_min,t_max),
+               x ∈ Interval(x_min,x_max)]
 
     # PDE system
     pdesys = PDESystem([eq],bcs,domains,[t,x],[u(t,x)])
@@ -202,8 +202,8 @@ end
            u(t,x_max) ~ analytic_sol_func(t,x_max)]
 
     # Space and time domains
-    domains = [t ∈ IntervalDomain(t_min,t_max),
-               x ∈ IntervalDomain(x_min,x_max)]
+    domains = [t ∈ Interval(t_min,t_max),
+               x ∈ Interval(x_min,x_max)]
 
     # PDE system
     pdesys = PDESystem([eq],bcs,domains,[t,x],[u(t,x)])
