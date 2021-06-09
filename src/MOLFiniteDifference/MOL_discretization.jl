@@ -1,4 +1,5 @@
-using ModelingToolkit: operation, istree, arguments, Interval, infimum, supremum
+#using ModelingToolkit: operation, istree, arguments, Interval, infimum, supremum
+using ModelingToolkit: operation, istree, arguments
 
 # Method of lines discretization scheme
 
@@ -45,8 +46,9 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
     t = discretization.time
     # Get tspan
     tdomain = pdesys.domain[findfirst(d->isequal(t.val, d.variables),pdesys.domain)]
-    @assert tdomain.domain isa Interval
-    tspan = (infimum(tdomain.domain),supremum(tdomain.domain))
+    #@assert tdomain.domain isa Interval
+    #tspan = (infimum(tdomain.domain),supremum(tdomain.domain))
+    tspan = (tdomain.domain.lower,tdomain.domain.upper)
     
     depvar_ops = map(x->operation(x.val),pdesys.depvars)
     
@@ -86,7 +88,8 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
             space = map(nottime) do x
                 xdomain = pdesys.domain[findfirst(d->isequal(x, d.variables),pdesys.domain)]
                 dx = discretization.dxs[findfirst(dxs->isequal(x, dxs[1].val),discretization.dxs)][2]
-                dx isa Number ? (infimum(xdomain.domain):dx:supremum(xdomain.domain)) : dx
+                #dx isa Number ? (infimum(xdomain.domain):dx:supremum(xdomain.domain)) : dx
+                dx isa Number ? (xdomain.domain.lower:dx:xdomain.domain.upper) : dx
             end
             dxs = map(nottime) do x        
                 dx = discretization.dxs[findfirst(dxs->isequal(x, dxs[1].val),discretization.dxs)][2]
