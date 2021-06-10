@@ -1,5 +1,9 @@
 # 2D linear convection-diffusion problem
 
+# TODO: this test requires discretize first derivatives with a centered scheme
+#       instead of upwind. See https://nbuckman.scripts.mit.edu:444/homepage/wp-content/uploads/2016/03/Convection-Diffusion-Paper-PDF.pdf
+
+
 # Packages and inclusions
 using ModelingToolkit, DiffEqOperators, LinearAlgebra, Test, OrdinaryDiffEq
 using ModelingToolkit: Interval, infimum, supremum
@@ -52,12 +56,13 @@ using ModelingToolkit: Interval, infimum, supremum
 
     # Method of lines discretization
     dx = dy = 0.0217
+    dt = 0.0001
     discretization = MOLFiniteDifference([x => dx, y => dy], t)
     prob = discretize(pdesys, discretization)
 
     # Solve ODE problem
-    sol = solve(prob, Tsit5())
-    
+    sol = solve(prob, Euler(), saveat=0.1, dt=dt)
+
     # Test against exact solution
     dx = dy = 0.05
     Nx = floor(Int64, (x_max - x_min) / dx) + 1
@@ -70,11 +75,11 @@ using ModelingToolkit: Interval, infimum, supremum
     @test asf / m ≈ sol′ / m  atol=0.1 
 
     #Plot
-#    using Plots
-#    heatmap(sol′)
-#    savefig("MOL_2D_Linear_Convection_Diffusion_Test00.png")
-#    heatmap(asf)
-#    savefig("MOL_2D_Linear_Convection_Diffusion_analytic_sol_Test00.png")
+    #using Plots
+    #heatmap(sol′)
+    #savefig("MOL_2D_Linear_Convection_Diffusion_Test00.png")
+    #heatmap(asf)
+    #savefig("MOL_2D_Linear_Convection_Diffusion_analytic_sol_Test00.png")
 
 end
 
