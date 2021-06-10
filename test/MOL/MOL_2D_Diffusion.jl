@@ -38,7 +38,7 @@ using ModelingToolkit: Interval, infimum, supremum
                x ∈ Interval(x_min,x_max),
                y ∈ Interval(y_min,y_max)]
 
-    # Space and time domains
+    # PDE system
     pdesys = PDESystem([eq],bcs,domains,[t,x,y],[u(t,x,y)])
 
     dx = 0.1; dy = 0.2
