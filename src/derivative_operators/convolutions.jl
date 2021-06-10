@@ -24,14 +24,7 @@ end
 
 # Against a standard vector, assume already padded and just apply the stencil
 function convolve_interior!(x_temp::AbstractVector{T1}, x::AbstractVector{T2}, A::DerivativeOperator{T3,N,false}; overwrite = true, add_range = false, offset::Int = 0) where {T1, T2, T3, N}
-    is_vector = false 
-    if T1 == Array{T2,1}                                          # check if output array has vector elements
-        is_vector = true
-        T = promote_type(T2,T3)
-    else
-        T = promote_type(T1,T2,T3)
-    end
-
+    T = promote_type(T1,T2,T3)
     @assert length(x_temp)+2 == length(x)
     stencil = A.stencil_coefs
     coeff   = A.coefficients
@@ -44,11 +37,7 @@ function convolve_interior!(x_temp::AbstractVector{T1}, x::AbstractVector{T2}, A
             for idx in 1:A.stencil_length
                 xtempi += cur_coeff * cur_stencil[idx] * x[i - mid + idx]
             end
-            if is_vector                                 # mutate the corresponding entry of the vector
-                x_temp[i][N] = xtempi + !overwrite*x_temp[i][N]
-            else
-                x_temp[i] = xtempi + !overwrite*x_temp[i]
-            end
+            x_temp[i] = xtempi + !overwrite*x_temp[i]
         end
     else
         for i in [(1+A.boundary_point_count):(A.boundary_point_count+offset); (length(x_temp)-A.boundary_point_count-offset+1):(length(x_temp)-A.boundary_point_count)]
@@ -58,24 +47,13 @@ function convolve_interior!(x_temp::AbstractVector{T1}, x::AbstractVector{T2}, A
             for idx in 1:A.stencil_length
                 xtempi += cur_coeff * cur_stencil[idx] * x[i - mid + idx]
             end
-            if is_vector                                 # mutate the corresponding entry of the vector
-                x_temp[i][N] = xtempi + !overwrite*x_temp[i][N]
-            else
-                x_temp[i] = xtempi + !overwrite*x_temp[i]
-            end
+            x_temp[i] = xtempi + !overwrite*x_temp[i]
         end
     end
 end
 
 function convolve_BC_left!(x_temp::AbstractVector{T1}, x::AbstractVector{T2}, A::DerivativeOperator{T3,N,false}; overwrite = true) where {T1, T2, T3, N}
-
-    is_vector = false
-    if T1 == Array{T2,1}
-        is_vector = true
-        T = promote_type(T2,T3)
-    else
-        T = promote_type(T1,T2,T3)
-    end
+    T = promote_type(T1,T2,T3)
     stencil = A.low_boundary_coefs
     coeff   = A.coefficients
     for i in 1 : A.boundary_point_count
@@ -85,23 +63,12 @@ function convolve_BC_left!(x_temp::AbstractVector{T1}, x::AbstractVector{T2}, A:
         for idx in 2:A.boundary_stencil_length
             xtempi += cur_coeff * cur_stencil[idx] * x[idx]
         end
-        if is_vector
-            x_temp[i][N] = xtempi + !overwrite*x_temp[i][N]
-        else
-            x_temp[i] = xtempi + !overwrite*x_temp[i]
-        end
+        x_temp[i] = xtempi + !overwrite*x_temp[i]
     end
 end
 
 function convolve_BC_right!(x_temp::AbstractVector{T1}, x::AbstractVector{T2}, A::DerivativeOperator{T3,N,false}; overwrite = true) where {T1, T2, T3, N}
-
-    is_vector = false
-    if T1 == Array{T2,1}
-        is_vector = true
-        T = promote_type(T2,T3)
-    else
-        T = promote_type(T1,T2,T3)
-    end
+    T = promote_type(T1,T2,T3)
     stencil = A.high_boundary_coefs
     coeff   = A.coefficients
     for i in 1 : A.boundary_point_count
@@ -111,11 +78,7 @@ function convolve_BC_right!(x_temp::AbstractVector{T1}, x::AbstractVector{T2}, A
         for idx in (A.boundary_stencil_length-1):-1:1
             xtempi += cur_coeff * cur_stencil[end-idx] * x[end-idx]
         end
-        if is_vector
-            x_temp[end-A.boundary_point_count+i][N] = xtempi + !overwrite*x_temp[end-A.boundary_point_count+i][N]
-        else
-            x_temp[end-A.boundary_point_count+i] = xtempi + !overwrite*x_temp[end-A.boundary_point_count+i] 
-        end
+        x_temp[end-A.boundary_point_count+i] = xtempi + !overwrite*x_temp[end-A.boundary_point_count+i]
     end
 end
 

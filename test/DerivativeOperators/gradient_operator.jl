@@ -20,7 +20,7 @@ using DiffEqOperators, Test
         u_analytic[I][3] = 2*z[I[3]+1]
     end
 
-    A = GradientOperator(4,(dx,dy,dz),size(u0).-2)
+    A = Gradient(4,(dx,dy,dz),size(u0).-2)
 
     u = A*u0
 

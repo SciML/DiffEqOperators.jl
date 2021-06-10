@@ -1,13 +1,6 @@
-
-function LinearAlgebra.mul!(x_temp::AbstractArray{Array{T,1},3}, A::CurlOperator, x::AbstractArray{Array{T,1},3}; overwrite = false) where {T<:Real}
-    convolve_BC_left!(x_temp, x, A, overwrite = overwrite)
-    convolve_interior!(x_temp, x, A, overwrite = overwrite)
-    convolve_BC_right!(x_temp, x, A, overwrite = overwrite)
-end
-
 # mul! implementation for the case when output array contains vector elements 
 
-function LinearAlgebra.mul!(x_temp::AbstractArray{Array{T,1}, N2}, A::DerivativeOperator{T,N}, M::AbstractArray{T,N2}; overwrite = true) where {T,N,N2}
+function LinearAlgebra.mul!(x_temp::AbstractArray{Array{T,1}, N2}, A::DerivativeOperator{T,N}, M::Union{AbstractArray{T,N2},AbstractArray{Array{T,1}, N2}}; overwrite = true) where {T,N,N2}
 
     # Check that x_temp has valid dimensions, allowing unnecessary padding in M
     v = zeros(ndims(x_temp))
@@ -45,8 +38,110 @@ function LinearAlgebra.mul!(x_temp::AbstractArray{Array{T,1}, N2}, A::Derivative
     for I in indices
         # replace all elements of idx with corresponding elt of I, except at index N
         Base.replace_tuples!(nidx, idx, idx, otherdims, I)
-        mul!(view(x_temp, idx...), A, view(minimally_padded_M, idx...), overwrite = true)
+        mul!(view(x_temp, idx...), view(minimally_padded_M, idx...), A,  overwrite = true)
     end
+end
+
+##################################################################################
+# Divergence and Gradient convolutions
+##################################################################################
+
+function LinearAlgebra.mul!(x_temp::AbstractVector, x::AbstractVector, A::DerivativeOperator; overwrite = false)
+    convolve_BC_left!(x_temp, A, x, overwrite = overwrite)
+    convolve_interior!(x_temp, A, x, overwrite = overwrite)
+    convolve_BC_right!(x_temp, A, x, overwrite = overwrite)
+end
+
+function convolve_interior!(x_temp::AbstractVector{T1},  A::DerivativeOperator{T3,N,false}, x::AbstractVector{T2}; overwrite = true) where {T1, T2, T3, N}
+    
+    is_divergence = false 
+    if T1 == T2                                          # check if input array has vector elements
+        is_divergence = true
+    end
+
+    @assert length(x_temp)+2 == length(x)
+    stencil = A.stencil_coefs
+    coeff   = A.coefficients
+    mid = div(A.stencil_length,2)
+    for i in (1+A.boundary_point_count) : (length(x_temp)-A.boundary_point_count)
+        xtempi = zero(T3)
+        cur_stencil = eltype(stencil) <: AbstractVector ? stencil[i-A.boundary_point_count] : stencil
+        cur_coeff   = typeof(coeff)   <: AbstractVector ? coeff[i] : coeff isa Number ? coeff : true
+        if is_divergence                                 # mutate the corresponding entry of the vector
+            for idx in 1:A.stencil_length
+                xtempi += cur_coeff * cur_stencil[idx] * x[i - mid + idx][N]
+            end
+        else
+            for idx in 1:A.stencil_length
+                xtempi += cur_coeff * cur_stencil[idx] * x[i - mid + idx]
+            end
+        end
+        x_temp[i][N] = xtempi + !overwrite*x_temp[i][N]
+    end
+end
+
+function convolve_BC_left!(x_temp::AbstractVector{T1}, A::DerivativeOperator{T3,N,false}, x::AbstractVector{T2}; overwrite = true) where {T1, T2,T3, N}
+
+    is_divergence = false 
+    if T1 == T2                                          # check if input array has vector elements
+        is_divergence = true
+    end
+
+    stencil = A.low_boundary_coefs
+    coeff   = A.coefficients
+    for i in 1 : A.boundary_point_count
+        cur_stencil = stencil[i]
+        cur_coeff   = typeof(coeff)   <: AbstractVector ? coeff[i] : coeff isa Number ? coeff : true
+        xtempi = zero(T3)
+        if is_divergence
+            for idx in 1:A.boundary_stencil_length
+                xtempi += cur_coeff * cur_stencil[idx] * x[idx][N]
+            end
+        else
+            for idx in 1:A.boundary_stencil_length
+                xtempi += cur_coeff * cur_stencil[idx] * x[idx]
+            end
+        end
+        x_temp[i][N] = xtempi + !overwrite*x_temp[i][N]
+    end
+end
+
+function convolve_BC_right!(x_temp::AbstractVector{T1}, A::DerivativeOperator{T3,N,false}, x::AbstractVector{T2}; overwrite = true) where {T1, T2, T3, N}
+
+    is_divergence = false 
+    if T1 == T2                                          # check if input array has vector elements
+        is_divergence = true
+    end
+
+    stencil = A.high_boundary_coefs
+    coeff   = A.coefficients
+    for i in 1 : A.boundary_point_count
+        cur_stencil = stencil[i]
+        cur_coeff   = typeof(coeff)   <: AbstractVector ? coeff[i] : coeff isa Number ? coeff : true
+        xtempi = zero(T3)
+        if is_divergence
+            for idx in (A.boundary_stencil_length-1):-1:0
+                xtempi += cur_coeff * cur_stencil[end-idx] * x[end-idx][N]
+            end
+        else
+            for idx in (A.boundary_stencil_length-1):-1:0
+                xtempi += cur_coeff * cur_stencil[end-idx] * x[end-idx]
+            end
+        end
+        x_temp[end-A.boundary_point_count+i][N] = xtempi + !overwrite*x_temp[end-A.boundary_point_count+i][N]
+    end
+end
+
+##################################################################################
+# Curl convolutions
+##################################################################################
+
+# Against a standard vector, assume already padded and just apply the stencil
+
+function LinearAlgebra.mul!(x_temp::AbstractArray{Array{T,1},3}, A::CurlOperator, x::AbstractArray{Array{T,1},3}; overwrite = false) where {T<:Real}
+    convolve_BC_left!(x_temp, x, A, overwrite = overwrite)
+    convolve_interior!(x_temp, x, A, overwrite = overwrite)
+    convolve_BC_right!(x_temp, x, A, overwrite = overwrite)
 end
 
 function convolve_interior!(x_temp::AbstractArray{Array{T,1}, 3}, u::AbstractArray{Array{T,1},3}, A::CurlOperator; overwrite = false) where {T}

@@ -63,9 +63,9 @@ end
 
 export MatrixFreeOperator
 export AnalyticalJacVecOperator, JacVecOperator, getops
-export AbstractDerivativeOperator, DerivativeOperator, CompositeVectorDerivativeOperator,
+export AbstractDerivativeOperator, DerivativeOperator,
        CenteredDifference, UpwindDifference, nonlinear_diffusion, nonlinear_diffusion!,
-       GradientOperator, CurlOperator, Curl
+       GradientOperator, Gradient, CurlOperator, Curl, DivergenceOperator, Divergence
 export DirichletBC, Dirichlet0BC, NeumannBC, Neumann0BC, RobinBC, GeneralBC, MultiDimBC, PeriodicBC,
        MultiDimDirectionalBC, ComposedMultiDimBC
 export compose, decompose, perpsize
