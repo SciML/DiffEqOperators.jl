@@ -276,3 +276,5 @@ xs,ys = [infimum(d.domain):dx:supremum(d.domain) for d in domains]
 u_sol = reshape(sol.u, (length(xs),length(ys)))
 plot(xs, ys, u_sol, linetype=:contourf,title = "solution")
 ```
+![solution](https://user-images.githubusercontent.com/620651/121951649-0b701e00-cd10-11eb-8af8-b203f7f13abc.png)
+
