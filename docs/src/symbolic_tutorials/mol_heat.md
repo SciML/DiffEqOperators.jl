@@ -7,7 +7,7 @@ In this tutorial we will use the symbolic interface to solve the heat equation.
 ### Dirichlet boundary conditions
 
 ```julia
-using OrdinaryDiffEq, ModelingToolkit, DiffEqOperators
+using OrdinaryDiffEq, ModelingToolkit, DiffEqOperators, DomainSets
 # Method of Manufactured Solutions: exact solution
 u_exact = (x,t) -> exp.(-t) * cos.(x)
 
@@ -59,7 +59,7 @@ savefig("plot.png")
 ### Neumann boundary conditions
 
 ```julia
-using OrdinaryDiffEq, ModelingToolkit, DiffEqOperators
+using OrdinaryDiffEq, ModelingToolkit, DiffEqOperators, DomainSets
 # Method of Manufactured Solutions: exact solution
 u_exact = (x,t) -> exp.(-t) * cos.(x)
 
@@ -114,7 +114,7 @@ savefig("plot.png")
 ### Robin boundary conditions
 
 ```julia
-using OrdinaryDiffEq, ModelingToolkit, DiffEqOperators
+using OrdinaryDiffEq, ModelingToolkit, DiffEqOperators, DomainSets
 # Method of Manufactured Solutions
 u_exact = (x,t) -> exp.(-t) * sin.(x)
 
@@ -203,4 +203,76 @@ anim = @animate for i in 1:length(t)
        plot(p1,p2)
 end
 gif(anim, "plot.gif",fps=30)
+```
+
+### Stationary Problems
+
+```julia
+using ModelingToolkit,DiffEqOperators,LinearAlgebra,DomainSets
+using ModelingToolkit: Differential
+using DifferentialEquations
+
+@parameters x
+@variables u(..)
+Dxx = Differential(x)^2
+
+eq = Dxx(u(x)) ~ 0
+dx = 0.1
+
+bcs = [u(0) ~ 1,
+        u(1) ~ 2]
+
+# Space and time domains
+domains = [x ∈ Interval(0.0,1.0)]
+
+pdesys = PDESystem([eq],bcs,domains,[x],[u(x)])
+
+# Note that we pass in `nothing` for the time variable `t` here since we
+# are creating a stationary problem without a dependence on time, only space.
+discretization = MOLFiniteDifference([x=>dx], nothing, centered_order=2)
+prob = discretize(pdesys,discretization)
+sol = solve(prob)
+
+using Plots
+xs = domains[1].domain.lower:dx:domains[1].domain.upper
+plot(xs, sol.u)
+
+```
+
+```julia
+using ModelingToolkit,DiffEqOperators,LinearAlgebra,DomainSets
+using ModelingToolkit: Differential
+using DifferentialEquations
+
+@parameters x y
+@variables u(..)
+Dxx = Differential(x)^2
+Dyy = Differential(y)^2
+
+eq = Dxx(u(x, y)) + Dyy(u(x, y))~ 0
+dx = 0.1
+dy = 0.1
+
+bcs = [u(0,y) ~ 0.0,
+       u(1,y) ~ y,
+       u(x,0) ~ 0.0,
+       u(x,1) ~ x]
+
+# Space and time domains
+domains = [x ∈ Interval(0.0,1.0),
+           y ∈ Interval(0.0,1.0)]
+
+pdesys = PDESystem([eq],bcs,domains,[x,y],[u(x,y)])
+
+# Note that we pass in `nothing` for the time variable `t` here since we
+# are creating a stationary problem without a dependence on time, only space.
+discretization = MOLFiniteDifference([x=>dx,y=>dy], nothing, centered_order=2)
+
+prob = discretize(pdesys,discretization)
+sol = solve(prob)
+
+using Plots
+xs,ys = [infimum(d.domain):dx:supremum(d.domain) for d in domains]
+u_sol = reshape(sol.u, (length(xs),length(ys)))
+plot(xs, ys, u_sol, linetype=:contourf,title = "solution")
 ```
