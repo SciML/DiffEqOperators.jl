@@ -50,7 +50,7 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
     if t != nothing
         tdomain = pdesys.domain[findfirst(d->isequal(t.val, d.variables),pdesys.domain)]
         @assert tdomain.domain isa DomainSets.Interval
-        tspan = (tdomain.domain.lower,tdomain.domain.upper)
+        tspan = (DomainSets.infimum(tdomain.domain), DomainSets.supremum(tdomain.domain))
     end
 
     depvar_ops = map(x->operation(x.val),pdesys.depvars)
@@ -91,7 +91,7 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
             space = map(nottime) do x
                 xdomain = pdesys.domain[findfirst(d->isequal(x, d.variables),pdesys.domain)]
                 dx = discretization.dxs[findfirst(dxs->isequal(x, dxs[1].val),discretization.dxs)][2]
-                dx isa Number ? (xdomain.domain.lower:dx:xdomain.domain.upper) : dx
+                dx isa Number ? (DomainSets.infimum(xdomain.domain):dx:DomainSets.supremum(xdomain.domain)) : dx
             end
             dxs = map(nottime) do x        
                 dx = discretization.dxs[findfirst(dxs->isequal(x, dxs[1].val),discretization.dxs)][2]
