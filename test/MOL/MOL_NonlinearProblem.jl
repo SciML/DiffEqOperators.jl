@@ -1,9 +1,9 @@
 # 1D diffusion problem
 
 # Packages and inclusions
-using ModelingToolkit,DiffEqOperators,LinearAlgebra,Test,OrdinaryDiffEq
+using ModelingToolkit,DiffEqOperators,LinearAlgebra,Test
 using ModelingToolkit: Differential
-using DifferentialEquations
+using NonlinearSolve
 using DomainSets
 
 
@@ -17,7 +17,7 @@ using DomainSets
     ns = NonlinearSystem(eqs, [a, b, c, d], [])
     f = eval(generate_function(ns, [a, b, c, d])[2])
     prob = NonlinearProblem(ns, zeros(4), [])
-    sol = solve(prob)
+    sol = NonlinearSolve.solve(prob, NewtonRaphson())
     @test sol.u ≈ ones(4)
 end
 
@@ -39,7 +39,7 @@ end
     pdesys = PDESystem([eq],bcs,domains,[x],[u(x)])
     discretization = MOLFiniteDifference([x=>dx], nothing, centered_order=2)
     prob = discretize(pdesys,discretization)
-    sol = solve(prob)
+    sol = NonlinearSolve.solve(prob, NewtonRaphson())
 
     @test sol.u ≈ ones(4)
 end
@@ -62,7 +62,7 @@ end
     pdesys = PDESystem([eq],bcs,domains,[x],[u(x)])
     discretization = MOLFiniteDifference([x=>dx], nothing, centered_order=2)
     prob = discretize(pdesys,discretization)
-    sol = solve(prob)
+    sol = NonlinearSolve.solve(prob, NewtonRaphson())
 
     @test sol.u ≈ 1.0:0.1:2.0
 end
@@ -95,20 +95,20 @@ end
     discretization = MOLFiniteDifference([x=>dx,y=>dy], nothing, centered_order=2)
 
     prob = discretize(pdesys,discretization)
-    sol = solve(prob)
+    sol = NonlinearSolve.solve(prob, NewtonRaphson())
     xs,ys = [infimum(d.domain):dx:supremum(d.domain) for d in domains]
     u_sol = reshape(sol.u, (length(xs),length(ys)))
 
     # test boundary
-    @test all(u_sol[:,1] .< eps())
-    @test all(u_sol[1,:] .< eps())
+    @test all(abs.(u_sol[:,1]) .< eps(Float32))
+    @test all(abs.(u_sol[1,:]) .< eps(Float32))
     @test u_sol[:,end] ≈ 0:dy:1.0
     @test u_sol[end,:] ≈ 0:dx:1.0
 
     # test interior with finite differences
     interior = CartesianIndices((axes(xs)[1], axes(ys)[1]))[2:end-1,2:end-1]
     fd = map(interior) do I
-        u_sol[(I - CartesianIndex(1, 0))] + u_sol[(I + CartesianIndex(1,0))] - 2*u_sol[I] < eps(Float32)
+        abs(u_sol[(I - CartesianIndex(1, 0))] + u_sol[(I + CartesianIndex(1,0))] - 2*u_sol[I]) < eps(Float32)
     end
     @test all(fd)
 end
