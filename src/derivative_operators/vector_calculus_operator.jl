@@ -87,10 +87,10 @@ function *(A::DivergenceOperator{T},M::AbstractArray{Array{T,1},N}) where {T<:Re
     
     size_x_temp = [size(M)...].-2
 
-    x_temp = similar(M,size_x_temp...)
+    x_temp = Array{T,length(A.ops)}(undef,size_x_temp...)
     
     for I in CartesianIndices(x_temp)
-        x_temp[I] = zeros(T,N)
+        x_temp[I] = zero(T)
     end
 
     for L in A.ops

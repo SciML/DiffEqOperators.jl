@@ -1,6 +1,6 @@
 # mul! implementation for the case when output array contains vector elements 
 
-function LinearAlgebra.mul!(x_temp::AbstractArray{Array{T,1}, N2}, A::DerivativeOperator{T,N}, M::Union{AbstractArray{T,N2},AbstractArray{Array{T,1}, N2}}; overwrite = true) where {T,N,N2}
+function LinearAlgebra.mul!(x_temp::Union{AbstractArray{T,N2},AbstractArray{Array{T,1}, N2}}, A::DerivativeOperator{T,N}, M::Union{AbstractArray{T,N2},AbstractArray{Array{T,1}, N2}}; overwrite = false) where {T,N,N2}
 
     # Check that x_temp has valid dimensions, allowing unnecessary padding in M
     v = zeros(ndims(x_temp))
@@ -38,7 +38,7 @@ function LinearAlgebra.mul!(x_temp::AbstractArray{Array{T,1}, N2}, A::Derivative
     for I in indices
         # replace all elements of idx with corresponding elt of I, except at index N
         Base.replace_tuples!(nidx, idx, idx, otherdims, I)
-        mul!(view(x_temp, idx...), view(minimally_padded_M, idx...), A,  overwrite = true)
+        mul!(view(x_temp, idx...), view(minimally_padded_M, idx...), A,  overwrite = false)
     end
 end
 
@@ -55,7 +55,7 @@ end
 function convolve_interior!(x_temp::AbstractVector{T1},  A::DerivativeOperator{T3,N,false}, x::AbstractVector{T2}; overwrite = true) where {T1, T2, T3, N}
     
     is_divergence = false 
-    if T1 == T2                                          # check if input array has vector elements
+    if Array{T1,1} == T2                                          # check if input array has vector elements
         is_divergence = true
     end
 
@@ -71,19 +71,20 @@ function convolve_interior!(x_temp::AbstractVector{T1},  A::DerivativeOperator{T
             for idx in 1:A.stencil_length
                 xtempi += cur_coeff * cur_stencil[idx] * x[i - mid + idx][N]
             end
+            x_temp[i] = xtempi + !overwrite*x_temp[i]
         else
             for idx in 1:A.stencil_length
                 xtempi += cur_coeff * cur_stencil[idx] * x[i - mid + idx]
             end
+            x_temp[i][N] = xtempi + !overwrite*x_temp[i][N]
         end
-        x_temp[i][N] = xtempi + !overwrite*x_temp[i][N]
     end
 end
 
 function convolve_BC_left!(x_temp::AbstractVector{T1}, A::DerivativeOperator{T3,N,false}, x::AbstractVector{T2}; overwrite = true) where {T1, T2,T3, N}
 
     is_divergence = false 
-    if T1 == T2                                          # check if input array has vector elements
+    if Array{T1,1} == T2                                          # check if input array has vector elements
         is_divergence = true
     end
 
@@ -97,19 +98,20 @@ function convolve_BC_left!(x_temp::AbstractVector{T1}, A::DerivativeOperator{T3,
             for idx in 1:A.boundary_stencil_length
                 xtempi += cur_coeff * cur_stencil[idx] * x[idx][N]
             end
+            x_temp[i] = xtempi + !overwrite*x_temp[i]
         else
             for idx in 1:A.boundary_stencil_length
                 xtempi += cur_coeff * cur_stencil[idx] * x[idx]
             end
+            x_temp[i][N] = xtempi + !overwrite*x_temp[i][N]
         end
-        x_temp[i][N] = xtempi + !overwrite*x_temp[i][N]
     end
 end
 
 function convolve_BC_right!(x_temp::AbstractVector{T1}, A::DerivativeOperator{T3,N,false}, x::AbstractVector{T2}; overwrite = true) where {T1, T2, T3, N}
 
     is_divergence = false 
-    if T1 == T2                                          # check if input array has vector elements
+    if Array{T1,1} == T2                                          # check if input array has vector elements
         is_divergence = true
     end
 
@@ -123,12 +125,13 @@ function convolve_BC_right!(x_temp::AbstractVector{T1}, A::DerivativeOperator{T3
             for idx in (A.boundary_stencil_length-1):-1:0
                 xtempi += cur_coeff * cur_stencil[end-idx] * x[end-idx][N]
             end
+            x_temp[end-A.boundary_point_count+i] = xtempi + !overwrite*x_temp[end-A.boundary_point_count+i]
         else
             for idx in (A.boundary_stencil_length-1):-1:0
                 xtempi += cur_coeff * cur_stencil[end-idx] * x[end-idx]
             end
+            x_temp[end-A.boundary_point_count+i][N] = xtempi + !overwrite*x_temp[end-A.boundary_point_count+i][N]
         end
-        x_temp[end-A.boundary_point_count+i][N] = xtempi + !overwrite*x_temp[end-A.boundary_point_count+i][N]
     end
 end
 

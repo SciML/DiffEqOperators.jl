@@ -15,14 +15,11 @@ using DiffEqOperators, Test
         u0[I][3] = x[I[1]]^2 + z[I[3]]^2
     end
     
-    # Analytic Divergence of the given vector given by u_analytic = 2x ê₁ + 2y ê₂  + 2z ê₃
+    # Analytic Divergence of the given vector given by u_analytic = 2x + 2y + 2z
     
-    u_analytic = Array{Array{Float64,1},3}(undef,size(u0).-2)
+    u_analytic = Array{Float64}(undef,size(u0).-2)
     for I in CartesianIndices(u_analytic)
-        u_analytic[I] = zeros(Float64,3)
-        u_analytic[I][1] = 2*x[I[1]+1]
-        u_analytic[I][2] = 2*y[I[2]+1]
-        u_analytic[I][3] = 2*z[I[3]+1]
+        u_analytic[I] = 2*x[I[1]+1] + 2*y[I[2]+1] + 2*z[I[3]+1]
     end
     
     A = Divergence(4,(dx,dy,dz),size(u0).-2)
