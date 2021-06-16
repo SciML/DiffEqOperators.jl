@@ -44,7 +44,7 @@ include("derivative_operators/coefficient_functions.jl")
 ### Vector Calculus Operators
 include("derivative_operators/vector_calculus_operator.jl")
 include("derivative_operators/vector_calculus_convolutions.jl")
-include("derivative_operators/vector_calculus_operations.jl")
+include("derivative_operators/vector_algebraic_operations.jl")
 
 ### Composite Operators
 include("composite_operators.jl")
