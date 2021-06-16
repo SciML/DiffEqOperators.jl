@@ -4,6 +4,7 @@ import DomainSets
 # Method of lines discretization scheme
 
 @enum GridAlign center_align edge_align
+
 struct MOLFiniteDifference{T,T2} <: DiffEqBase.AbstractDiscretization
     dxs::T
     time::T2
@@ -45,10 +46,13 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
     pdeeqs = pdesys.eqs isa Vector ? pdesys.eqs : [pdesys.eqs]
     t = discretization.time
     # Get tspan
-    tdomain = pdesys.domain[findfirst(d->isequal(t.val, d.variables),pdesys.domain)]
-    @assert tdomain.domain isa DomainSets.Interval
-    tspan = (tdomain.domain.lower,tdomain.domain.upper)
-    
+    tspan = nothing
+    if t != nothing
+        tdomain = pdesys.domain[findfirst(d->isequal(t.val, d.variables),pdesys.domain)]
+        @assert tdomain.domain isa DomainSets.Interval
+        tspan = (DomainSets.infimum(tdomain.domain), DomainSets.supremum(tdomain.domain))
+    end
+
     depvar_ops = map(x->operation(x.val),pdesys.depvars)
     
     u0 = []
@@ -66,7 +70,7 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
         # Read the independent variables,
         # ignore if the only argument is [t]
         allindvars = Set(filter(xs->!isequal(xs,[t]),map(arguments,depvars)))
-        allnottime = Set(filter(!isempty,map(u->filter(x->!isequal(x,t.val),arguments(u)),depvars)))
+        allnottime = Set(filter(!isempty,map(u->filter(x-> t == nothing || !isequal(x,t.val),arguments(u)),depvars)))
         if isempty(allnottime)
             push!(alleqs,eq)
             push!(alldepvarsdisc,depvars)
@@ -87,7 +91,7 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
             space = map(nottime) do x
                 xdomain = pdesys.domain[findfirst(d->isequal(x, d.variables),pdesys.domain)]
                 dx = discretization.dxs[findfirst(dxs->isequal(x, dxs[1].val),discretization.dxs)][2]
-                dx isa Number ? (xdomain.domain.lower:dx:xdomain.domain.upper) : dx
+                dx isa Number ? (DomainSets.infimum(xdomain.domain):dx:DomainSets.supremum(xdomain.domain)) : dx
             end
             dxs = map(nottime) do x        
                 dx = discretization.dxs[findfirst(dxs->isequal(x, dxs[1].val),discretization.dxs)][2]
@@ -112,7 +116,9 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
             space_indices = CartesianIndices(((axes(s)[1] for s in space)...,))
             grid_indices = CartesianIndices(((axes(g)[1] for g in grid)...,))
             depvarsdisc = map(depvars) do u
-                if isequal(arguments(u),[t])
+                if t == nothing
+                    [Num(Variable{Real}(Base.nameof(operation(u)),II.I...)) for II in grid_indices]
+                elseif isequal(arguments(u),[t])
                     [u for II in grid_indices]
                 else
                     [Num(Variable{Symbolics.FnType{Tuple{Any}, Real}}(Base.nameof(operation(u)),II.I...))(t) for II in grid_indices]
@@ -134,7 +140,10 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
 
             bclocs = map(e->substitute.(indvars,e),edgevals) # location of the boundary conditions e.g. (t,0.0,y)
             edgemaps = Dict(bclocs .=> [spacevals[e...] for e in edges])
-            initmaps = substitute.(depvars,[t=>tspan[1]])
+            initmaps = depvars
+            if t != nothing
+                initmaps = substitute.(depvars,[t=>tspan[1]])
+            end
 
             # Generate map from variable (e.g. u(t,0)) to discretized variable (e.g. u₁(t))
             subvar(depvar) = substitute.((depvar,),edgevals)
@@ -179,7 +188,7 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
             for bc in pdesys.bcs
                 bcdepvar = first(get_depvars(bc.lhs, depvar_ops))
                 if any(u->isequal(operation(u),operation(bcdepvar)),depvars)
-                    if operation(bc.lhs) isa Sym && !any(x -> isequal(x, t.val), arguments(bc.lhs))
+                    if t != nothing && operation(bc.lhs) isa Sym && !any(x -> isequal(x, t.val), arguments(bc.lhs))
                         # initial condition
                         # Assume in the form `u(...) ~ ...` for now
                         i = findfirst(isequal(bc.lhs),initmaps)
@@ -334,7 +343,7 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
             push!(alldepvarsdisc,reduce(vcat,depvarsdisc))
         end
     end
-    u0 = reduce(vcat,u0)
+    u0 = !isempty(u0) ? reduce(vcat,u0) : u0
     bceqs = reduce(vcat,bceqs)
     alleqs = reduce(vcat,alleqs)
     alldepvarsdisc = unique(reduce(vcat,alldepvarsdisc))
@@ -343,12 +352,25 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
     defaults = pdesys.ps === nothing || pdesys.ps === SciMLBase.NullParameters() ? u0 : vcat(u0,pdesys.ps)
     ps = pdesys.ps === nothing || pdesys.ps === SciMLBase.NullParameters() ? Num[] : first.(pdesys.ps)
     # Combine PDE equations and BC equations
-    sys = ODESystem(vcat(alleqs,unique(bceqs)),t,vec(reduce(vcat,vec(alldepvarsdisc))),ps,defaults=Dict(defaults))
-    sys, tspan
+    if t == nothing
+        # At the time of writing, NonlinearProblems require that the system of equations be in this form:
+        # 0 ~ ...
+        # Thus, before creating a NonlinearSystem we normalize the equations s.t. the lhs is zero.
+        eqs = map(eq -> 0 ~ eq.rhs - eq.lhs, vcat(alleqs,unique(bceqs)))
+        sys = NonlinearSystem(eqs,vec(reduce(vcat,vec(alldepvarsdisc))),ps,defaults=Dict(defaults))
+        return sys, nothing
+    else
+        sys = ODESystem(vcat(alleqs,unique(bceqs)),t,vec(reduce(vcat,vec(alldepvarsdisc))),ps,defaults=Dict(defaults))
+        return sys, tspan
+    end
 end
 
 function SciMLBase.discretize(pdesys::ModelingToolkit.PDESystem,discretization::DiffEqOperators.MOLFiniteDifference)
     sys, tspan = SciMLBase.symbolic_discretize(pdesys,discretization)
-    simpsys = structural_simplify(sys)
-    prob = ODEProblem(simpsys,Pair[],tspan)
+    if tspan == nothing
+        return prob = NonlinearProblem(sys, ones(length(sys.states)))
+    else
+        simpsys = structural_simplify(sys)
+        return prob = ODEProblem(simpsys,Pair[],tspan)
+    end
 end
