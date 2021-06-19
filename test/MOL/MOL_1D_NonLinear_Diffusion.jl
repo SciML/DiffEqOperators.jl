@@ -61,6 +61,7 @@ using ModelingToolkit: Interval, infimum, supremum
     #plot(r_space, asf, seriestype = :scatter,label="analytic solution")
     #plot!(r_space, sol′, label="numeric solution")
     #savefig("MOL_NonLinear_Diffusion_1D_Test00.png")
+    
 
 end
 

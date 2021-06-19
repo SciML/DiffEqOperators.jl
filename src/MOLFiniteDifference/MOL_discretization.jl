@@ -181,6 +181,7 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
             for bc in pdesys.bcs
                 bcdepvar = first(get_depvars(bc.lhs, depvar_ops))
                 if any(u->isequal(operation(u),operation(bcdepvar)),depvars)
+
                     if operation(bc.lhs) isa Sym && !any(x -> isequal(x, t.val), arguments(bc.lhs))
                         # initial condition
                         # Assume in the form `u(...) ~ ...` for now
@@ -251,7 +252,7 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
             Imax(order) = last(grid_indices) - I1 * (order÷2)
 
             interior = grid_indices[[let bcs = get_bc_counts(i)
-                                    (1 + first(bcs)):length(g)-last(bcs)
+                                    (1 + first(bcs)):length(g)-last(bcs)#-1
                                     end
                                     for (i,g) in enumerate(grid)]...]
             eqs = vec(map(interior) do II
@@ -289,11 +290,13 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
                                 [nottime[j] => grid[j][II[j]] for j in 1:nspace])
 
                 # Upwind rules #########################################################
-                forward_weights(II,j) = DiffEqOperators.calculate_weights(discretization.upwind_order, 0.0, grid[j][[II[j],II[j]+1]])
                 reverse_weights(II,j) = DiffEqOperators.calculate_weights(discretization.upwind_order, 0.0, grid[j][[II[j]-1,II[j]]])
-                upwinding_rules_tmp = [@rule(*(~~a,$(Differential(iv)),~~b) => IfElse.ifelse(*(~~a..., ~~b...,)>0,
-                                             *(~~a..., ~~b..., dot(reverse_weights(II,j),dv[central_neighbor_idxs(II,j)[1:2]])),
-                                             *(~~a..., ~~b..., dot(forward_weights(II,j),dv[central_neighbor_idxs(II,j)[2:3]]))))
+                forward_weights(II,j) = DiffEqOperators.calculate_weights(discretization.upwind_order, 0.0, grid[j][[II[j],II[j]+1]])
+                #forward_weights(II,j) = -1.0 * reverse_weights(II,j) # TODO: check this function
+                side = 1.0
+                upwinding_rules_tmp = [@rule(*(~~a,$(Differential(iv))(dv),~~b) => Base.ifelse(*(side, ~~a..., ~~b...,)>0,
+                                             *(~~a..., ~~b..., dot(reverse_weights(II,j),depvarsdisc[k][central_neighbor_idxs(II,j,approx_order)[1:2]])),
+                                             *(~~a..., ~~b..., dot(forward_weights(II,j),depvarsdisc[k][central_neighbor_idxs(II,j,approx_order)[2:3]]))))
                                              for (j, iv) in enumerate(nottime) for (k, dv) in enumerate(depvars)]
 
                 ## Discretization of non-linear laplacian. 
@@ -321,13 +324,25 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
                 rhs_arg = (SymbolicUtils.istree(eq.rhs) && SymbolicUtils.operation(eq.rhs) == +) ?
                            SymbolicUtils.arguments(eq.rhs) : [eq.rhs]
                 nonlinlap_rules = []
-                upwinding_rules = []
-                for t in vcat(lhs_arg,rhs_arg)
+                lhs_upwinding_rules = []
+                rhs_upwinding_rules = []
+                for t in vcat(lhs_arg)
+                    side = 1.0
                     for r in upwinding_rules_tmp
                         if r(t) != nothing
-                            push!(upwinding_rules, t => r(t))
+                            push!(lhs_upwinding_rules, t => r(t))
                         end
                     end
+                end
+                for t in vcat(rhs_arg)
+                    side = -1.0
+                    for r in upwinding_rules_tmp
+                        if r(t) != nothing
+                            push!(rhs_upwinding_rules, t => r(t))
+                        end
+                    end
+                end
+                for t in vcat(lhs_arg,rhs_arg)
                     for r in nonlinlap_rules_tmp
                         if r(t) != nothing
                             push!(nonlinlap_rules, t => r(t))
@@ -337,11 +352,12 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
 
                 # Applying rules to the equation #######################################
                 rules = vcat(vec(nonlinlap_rules),
-                             vec(upwinding_rules),
                              vec(central_deriv_rules_cartesian),
                              vec(central_deriv_rules_spherical),
                              valrules)
-                substitute(eq.lhs,rules) ~ substitute(eq.rhs,rules)
+                lhs_tmp = substitute(eq.lhs,lhs_upwinding_rules)
+                rhs_tmp = substitute(eq.rhs,rhs_upwinding_rules)
+                substitute(lhs_tmp,rules) ~ substitute(rhs_tmp,rules)
 
             end)
             push!(alleqs,eqs)
