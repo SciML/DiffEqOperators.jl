@@ -90,6 +90,12 @@ function CenteredDifference{N}(derivative_order::Int,
     offside = 0
 
     coefficients            = coeff_func isa Nothing ? nothing : fill!(Vector{T}(undef,len),0)
+    
+    if coeff_func != nothing
+        compute_coeffs!(coeff_func, coefficients)
+    end
+    
+    
 
     DerivativeOperator{T,N,false,T,typeof(stencil_coefs),
         typeof(low_boundary_coefs),typeof(high_boundary_coefs),typeof(coefficients),
@@ -143,6 +149,11 @@ function CenteredDifference{N}(derivative_order::Int,
 
     coefficients            = coeff_func isa Nothing ? nothing : zeros(T,len)
 
+    if coeff_func != nothing
+        compute_coeffs!(coeff_func, coefficients)
+    end
+               
+        
     DerivativeOperator{T,N,false,typeof(dx),typeof(stencil_coefs),
         typeof(low_boundary_coefs),typeof(high_boundary_coefs),typeof(coefficients),
         typeof(coeff_func)}(
