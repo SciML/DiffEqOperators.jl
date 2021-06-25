@@ -19,7 +19,7 @@ MultiDimBC{dim}(N::Int, approx_order::Int, dx::T) where {dim,T} = finite_stencil
 slice_rmul lets you multiply each vector like strip of an array `u` with a linear operator `A`, sliced along dimension `dim`
 """
 
-@noinline function _slice_rmul!(u_temp::AbstractArray{T,N}, A, u::AbstractArray{T,N}, dim::Int, pre, post) where {T,N}
+@noinline function _slice_rmul!(u_temp::AbstractArray{T,N}, A::AbstractDiffEqLinearOperator, u::AbstractArray{T,N}, dim::Int, pre, post) where {T,N}
     l = length(A)
     for J in post
         for I in pre
@@ -29,7 +29,7 @@ slice_rmul lets you multiply each vector like strip of an array `u` with a linea
     u_temp
 end
 
-function slice_rmul(A, u::AbstractArray{T,N}, dim::Int) where {T,N}
+function slice_rmul(A::AbstractDiffEqLinearOperator, u::AbstractArray{T,N}, dim::Int) where {T,N}
     @assert N != 1
     u_temp = zero(u)
 
