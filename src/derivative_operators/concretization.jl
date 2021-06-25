@@ -163,190 +163,190 @@ function Base.convert(::Type{AbstractMatrix},A::AbstractBC{T}) where T
 end
 
 # Multidimensional BC operators
-_concretize(Q::MultiDimDirectionalBC, M) = _concretize(Q.BCs, M)
+# _concretize(Q::MultiDimDirectionalBC, M) = _concretize(Q.BCs, M)
 
 function _concretize(Q::AbstractArray{T,N}, M) where {T,N}
     return (stencil.(Q, fill(M,size(Q))), affine.(Q))
 end
 
-function LinearAlgebra.Array(Q::MultiDimDirectionalBC{T, B, D, N, L}, s::NTuple{N,G}) where {T, B, D,N,L, G<:Int}
-    @assert size(Q.BCs) == perpindex(s, D) "The size of the BC array in Q, $(size(Q.BCs)) is incompatible with s, $s"
-    blip = zeros(Int64, N)
-    blip[D] = 2
-    s_pad = s.+ blip # extend s in the right direction
-    Q = _concretize(Q.BCs, s[D])
-    ē = unit_indices(N)
-    QL = zeros(T, prod(s_pad), prod(s))
-    Qb = zeros(T, prod(s_pad))
-    ranges = Union{typeof(1:10), Int64}[1:s[i] for i in 1:N]
-    ranges[D] = ranges[D] .+ 1
+# function LinearAlgebra.Array(Q::MultiDimDirectionalBC{T, B, D, N, L}, s::NTuple{N,G}) where {T, B, D,N,L, G<:Int}
+#     @assert size(Q.BCs) == perpindex(s, D) "The size of the BC array in Q, $(size(Q.BCs)) is incompatible with s, $s"
+#     blip = zeros(Int64, N)
+#     blip[D] = 2
+#     s_pad = s.+ blip # extend s in the right direction
+#     Q = _concretize(Q.BCs, s[D])
+#     ē = unit_indices(N)
+#     QL = zeros(T, prod(s_pad), prod(s))
+#     Qb = zeros(T, prod(s_pad))
+#     ranges = Union{typeof(1:10), Int64}[1:s[i] for i in 1:N]
+#     ranges[D] = ranges[D] .+ 1
 
-    interior = CartesianIndices(Tuple(ranges))
-    I1 = CartesianIndex(Tuple(ones(Int64, N)))
-    for I in interior
-        i = cartesian_to_linear(I, s_pad)
-        j = cartesian_to_linear(I-ē[D], s)
-        QL[i,j] = one(T)
-    end
-    ranges[D] = 1
-    lower = CartesianIndices((Tuple(ranges)))
-    ranges[D] = s_pad[D]
-    upper = CartesianIndices((Tuple(ranges)))
-    for K in CartesianIndices(upper)
-        I = CartesianIndex(Tuple(K)[setdiff(1:N, D)])
-        il = cartesian_to_linear(lower[K], s_pad)
-        iu = cartesian_to_linear(upper[K], s_pad)
-        Qb[il] = Q[2][I][1]
-        Qb[iu] = Q[2][I][2]
-        for k in 0:s[D]-1
-            j = cartesian_to_linear(lower[K] + k*ē[D], s)
-            QL[il, j] = Q[1][I][1][k+1]
-            QL[iu, j] = Q[1][I][2][k+1]
-        end
-    end
+#     interior = CartesianIndices(Tuple(ranges))
+#     I1 = CartesianIndex(Tuple(ones(Int64, N)))
+#     for I in interior
+#         i = cartesian_to_linear(I, s_pad)
+#         j = cartesian_to_linear(I-ē[D], s)
+#         QL[i,j] = one(T)
+#     end
+#     ranges[D] = 1
+#     lower = CartesianIndices((Tuple(ranges)))
+#     ranges[D] = s_pad[D]
+#     upper = CartesianIndices((Tuple(ranges)))
+#     for K in CartesianIndices(upper)
+#         I = CartesianIndex(Tuple(K)[setdiff(1:N, D)])
+#         il = cartesian_to_linear(lower[K], s_pad)
+#         iu = cartesian_to_linear(upper[K], s_pad)
+#         Qb[il] = Q[2][I][1]
+#         Qb[iu] = Q[2][I][2]
+#         for k in 0:s[D]-1
+#             j = cartesian_to_linear(lower[K] + k*ē[D], s)
+#             QL[il, j] = Q[1][I][1][k+1]
+#             QL[iu, j] = Q[1][I][2][k+1]
+#         end
+#     end
 
-    return (QL, Qb)
-end
+#     return (QL, Qb)
+# end
 
 """
 This is confusing, but it does work.
 """
-function LinearAlgebra.Array(Q::ComposedMultiDimBC{T, B, N,M} , s::NTuple{N,G}) where {T, B, N, M, G<:Int}
-    for d in 1:N
-        @assert size(Q.BCs[d]) == perpindex(s, d) "The size of the BC array in Q along dimension $d, $(size(Q.BCs[d])) is incompatible with s, $s"
-    end
-    s_pad = s.+2
-    Q = Tuple(_concretize.(Q.BCs, s)) #essentially, finding the first and last rows of the matrix part and affine part for every atomic BC
+# function LinearAlgebra.Array(Q::ComposedMultiDimBC{T, B, N,M} , s::NTuple{N,G}) where {T, B, N, M, G<:Int}
+#     for d in 1:N
+#         @assert size(Q.BCs[d]) == perpindex(s, d) "The size of the BC array in Q along dimension $d, $(size(Q.BCs[d])) is incompatible with s, $s"
+#     end
+#     s_pad = s.+2
+#     Q = Tuple(_concretize.(Q.BCs, s)) #essentially, finding the first and last rows of the matrix part and affine part for every atomic BC
 
-    QL = zeros(T, prod(s_pad), prod(s))
-    Qb = zeros(T, prod(s_pad))
+#     QL = zeros(T, prod(s_pad), prod(s))
+#     Qb = zeros(T, prod(s_pad))
 
-    ranges = Union{typeof(1:10), Int64}[2:s_pad[i]-1 for i in 1:N] #Set up indices corresponding to the interior
-    interior = CartesianIndices(Tuple(ranges))
+#     ranges = Union{typeof(1:10), Int64}[2:s_pad[i]-1 for i in 1:N] #Set up indices corresponding to the interior
+#     interior = CartesianIndices(Tuple(ranges))
 
-    ē = unit_indices(N) #setup unit indices in each direction
-    I1 = CartesianIndex(Tuple(ones(Int64, N))) #set up the ones index
-    for I in interior #loop over interior
-        i = cartesian_to_linear(I, s_pad) #find the index on the padded side
-        j = cartesian_to_linear(I-I1, s)  #find the index on the unpadded side
-        QL[i,j] = one(T)  #create a padded identity matrix
-    end
-    for dim in 1:N #Loop over boundaries
-        r_ = deepcopy(ranges)
-        r_[dim] = 1
-        lower = CartesianIndices((Tuple(r_))) #set up upper and lower indices
-        r_[dim] = s_pad[dim]
-        upper = CartesianIndices((Tuple(r_)))
-        for K in CartesianIndices(upper) #for every element of the boundaries
-            I = CartesianIndex(Tuple(K)[setdiff(1:N, dim)]) #convert K to 2D index for indexing the BC arrays
-            il = cartesian_to_linear(lower[K], s_pad) #Translate to linear indices
-            iu = cartesian_to_linear(upper[K], s_pad) # ditto
-            Qb[il] = Q[dim][2][I][1] #store the affine parts in indices corresponding with the lower index boundary
-            Qb[iu] = Q[dim][2][I][2] #ditto with upper index
-            for k in 1:s[dim] #loop over the direction orthogonal to the boundary
-                j = cartesian_to_linear(lower[K] + k*ē[dim]-I1, s) #Find the linear index this element of the boundary stencil should be at on the unpadded side
-                QL[il, j] = Q[dim][1][I][1][k]
-                QL[iu, j] = Q[dim][1][I][2][k]
-            end
-        end
-    end
+#     ē = unit_indices(N) #setup unit indices in each direction
+#     I1 = CartesianIndex(Tuple(ones(Int64, N))) #set up the ones index
+#     for I in interior #loop over interior
+#         i = cartesian_to_linear(I, s_pad) #find the index on the padded side
+#         j = cartesian_to_linear(I-I1, s)  #find the index on the unpadded side
+#         QL[i,j] = one(T)  #create a padded identity matrix
+#     end
+#     for dim in 1:N #Loop over boundaries
+#         r_ = deepcopy(ranges)
+#         r_[dim] = 1
+#         lower = CartesianIndices((Tuple(r_))) #set up upper and lower indices
+#         r_[dim] = s_pad[dim]
+#         upper = CartesianIndices((Tuple(r_)))
+#         for K in CartesianIndices(upper) #for every element of the boundaries
+#             I = CartesianIndex(Tuple(K)[setdiff(1:N, dim)]) #convert K to 2D index for indexing the BC arrays
+#             il = cartesian_to_linear(lower[K], s_pad) #Translate to linear indices
+#             iu = cartesian_to_linear(upper[K], s_pad) # ditto
+#             Qb[il] = Q[dim][2][I][1] #store the affine parts in indices corresponding with the lower index boundary
+#             Qb[iu] = Q[dim][2][I][2] #ditto with upper index
+#             for k in 1:s[dim] #loop over the direction orthogonal to the boundary
+#                 j = cartesian_to_linear(lower[K] + k*ē[dim]-I1, s) #Find the linear index this element of the boundary stencil should be at on the unpadded side
+#                 QL[il, j] = Q[dim][1][I][1][k]
+#                 QL[iu, j] = Q[dim][1][I][2][k]
+#             end
+#         end
+#     end
 
-    return (QL, Qb)
-end
+#     return (QL, Qb)
+# end
 
 """
 See comments on the `Array` method for this type for an idea of what is going on.
 """
-function SparseArrays.SparseMatrixCSC(Q::MultiDimDirectionalBC{T, B, D, N, L}, s::NTuple{N,G}) where {T, B, D,N,L, G<:Int}
-    @assert size(Q.BCs) == perpindex(s, D) "The size of the BC array in Q, $(size(Q.BCs)) is incompatible with s, $s"
-    blip = zeros(Int64, N)
-    blip[D] = 2
-    s_pad = s.+ blip # extend s in the right direction
-    Q = _concretize(Q.BCs, s[D])
-    ē = unit_indices(N)
-    QL = spzeros(T, prod(s_pad), prod(s))
-    Qb = spzeros(T, prod(s_pad))
-    ranges = Union{typeof(1:10), Int64}[1:s[i] for i in 1:N]
-    ranges[D] = ranges[D] .+ 1
+# function SparseArrays.SparseMatrixCSC(Q::MultiDimDirectionalBC{T, B, D, N, L}, s::NTuple{N,G}) where {T, B, D,N,L, G<:Int}
+#     @assert size(Q.BCs) == perpindex(s, D) "The size of the BC array in Q, $(size(Q.BCs)) is incompatible with s, $s"
+#     blip = zeros(Int64, N)
+#     blip[D] = 2
+#     s_pad = s.+ blip # extend s in the right direction
+#     Q = _concretize(Q.BCs, s[D])
+#     ē = unit_indices(N)
+#     QL = spzeros(T, prod(s_pad), prod(s))
+#     Qb = spzeros(T, prod(s_pad))
+#     ranges = Union{typeof(1:10), Int64}[1:s[i] for i in 1:N]
+#     ranges[D] = ranges[D] .+ 1
 
-    interior = CartesianIndices(Tuple(ranges))
-    I1 = CartesianIndex(Tuple(ones(Int64, N)))
-    for I in interior
-        i = cartesian_to_linear(I, s_pad)
-        j = cartesian_to_linear(I-ē[D], s)
-        QL[i,j] = one(T)
-    end
-    ranges[D] = 1
-    lower = CartesianIndices((Tuple(ranges)))
-    ranges[D] = s_pad[D]
-    upper = CartesianIndices((Tuple(ranges)))
-    for K in CartesianIndices(upper)
-        I = CartesianIndex(Tuple(K)[setdiff(1:N, D)])
-        il = cartesian_to_linear(lower[K], s_pad)
-        iu = cartesian_to_linear(upper[K], s_pad)
-        Qb[il] = Q[2][I][1]
-        Qb[iu] = Q[2][I][2]
-        for k in 0:s[D]-1
-            j = cartesian_to_linear(lower[K] + k*ē[D], s)
-            QL[il, j] = Q[1][I][1][k+1]
-            QL[iu, j] = Q[1][I][2][k+1]
-        end
-    end
+#     interior = CartesianIndices(Tuple(ranges))
+#     I1 = CartesianIndex(Tuple(ones(Int64, N)))
+#     for I in interior
+#         i = cartesian_to_linear(I, s_pad)
+#         j = cartesian_to_linear(I-ē[D], s)
+#         QL[i,j] = one(T)
+#     end
+#     ranges[D] = 1
+#     lower = CartesianIndices((Tuple(ranges)))
+#     ranges[D] = s_pad[D]
+#     upper = CartesianIndices((Tuple(ranges)))
+#     for K in CartesianIndices(upper)
+#         I = CartesianIndex(Tuple(K)[setdiff(1:N, D)])
+#         il = cartesian_to_linear(lower[K], s_pad)
+#         iu = cartesian_to_linear(upper[K], s_pad)
+#         Qb[il] = Q[2][I][1]
+#         Qb[iu] = Q[2][I][2]
+#         for k in 0:s[D]-1
+#             j = cartesian_to_linear(lower[K] + k*ē[D], s)
+#             QL[il, j] = Q[1][I][1][k+1]
+#             QL[iu, j] = Q[1][I][2][k+1]
+#         end
+#     end
 
-    return (QL, Qb)
-end
-
-
-function SparseArrays.SparseMatrixCSC(Q::ComposedMultiDimBC{T, B, N,M}, s::NTuple{N,G}) where {T, B, N, M, G<:Int}
-    for d in 1:N
-        @assert size(Q.BCs[d]) == perpindex(s, d) "The size of the BC array in Q along dimension $d, $(size(Q.BCs[d])) is incompatible with s, $s"
-    end
-    s_pad = s.+2
-    Q = Tuple(_concretize.(Q.BCs, s)) #essentially, finding the first and last rows of the matrix part and affine part for every atomic BC
-
-    QL = spzeros(T, prod(s_pad), prod(s))
-    Qb = spzeros(T, prod(s_pad))
-
-    ranges = Union{typeof(1:10), Int64}[2:s_pad[i]-1 for i in 1:N] #Set up indices corresponding to the interior
-    interior = CartesianIndices(Tuple(ranges))
-
-    ē = unit_indices(N) #setup unit indices in each direction
-    I1 = CartesianIndex(Tuple(ones(Int64, N))) #set up the ones index
-    for I in interior #loop over interior
-        i = cartesian_to_linear(I, s_pad) #find the index on the padded side
-        j = cartesian_to_linear(I-I1, s)  #find the index on the unpadded side
-        QL[i,j] = one(T)  #create a padded identity matrix
-    end
-    for dim in 1:N #Loop over boundaries
-        r_ = deepcopy(ranges)
-        r_[dim] = 1
-        lower = CartesianIndices((Tuple(r_))) #set up upper and lower indices
-        r_[dim] = s_pad[dim]
-        upper = CartesianIndices((Tuple(r_)))
-        for K in CartesianIndices(upper) #for every element of the boundaries
-            I = CartesianIndex(Tuple(K)[setdiff(1:N, dim)]) #convert K to 2D index for indexing the BC arrays
-            il = cartesian_to_linear(lower[K], s_pad) #Translate to linear indices
-            iu = cartesian_to_linear(upper[K], s_pad) # ditto
-            Qb[il] = Q[dim][2][I][1] #store the affine parts in indices corresponding with the lower index boundary
-            Qb[iu] = Q[dim][2][I][2] #ditto with upper index
-            for k in 1:s[dim] #loop over the direction orthogonal to the boundary
-                j = cartesian_to_linear(lower[K] + k*ē[dim]-I1, s) #Find the linear index this element of the boundary stencil should be at on the unpadded side
-                QL[il, j] = Q[dim][1][I][1][k]
-                QL[iu, j] = Q[dim][1][I][2][k]
-            end
-        end
-    end
-
-    return (QL, Qb)
-end
-
-SparseArrays.sparse(Q::MultiDimDirectionalBC, s) = SparseMatrixCSC(Q, s)
-SparseArrays.sparse(Q::ComposedMultiDimBC, s) = SparseMatrixCSC(Q, s)
+#     return (QL, Qb)
+# end
 
 
-function BandedMatrices.BandedMatrix(Q:: MultiDimensionalBC, M) where {T, B, D,N,K}
-    throw("Banded Matrix cocnretization not yet supported for MultiDimensionalBCs")
-end
+# function SparseArrays.SparseMatrixCSC(Q::ComposedMultiDimBC{T, B, N,M}, s::NTuple{N,G}) where {T, B, N, M, G<:Int}
+#     for d in 1:N
+#         @assert size(Q.BCs[d]) == perpindex(s, d) "The size of the BC array in Q along dimension $d, $(size(Q.BCs[d])) is incompatible with s, $s"
+#     end
+#     s_pad = s.+2
+#     Q = Tuple(_concretize.(Q.BCs, s)) #essentially, finding the first and last rows of the matrix part and affine part for every atomic BC
+
+#     QL = spzeros(T, prod(s_pad), prod(s))
+#     Qb = spzeros(T, prod(s_pad))
+
+#     ranges = Union{typeof(1:10), Int64}[2:s_pad[i]-1 for i in 1:N] #Set up indices corresponding to the interior
+#     interior = CartesianIndices(Tuple(ranges))
+
+#     ē = unit_indices(N) #setup unit indices in each direction
+#     I1 = CartesianIndex(Tuple(ones(Int64, N))) #set up the ones index
+#     for I in interior #loop over interior
+#         i = cartesian_to_linear(I, s_pad) #find the index on the padded side
+#         j = cartesian_to_linear(I-I1, s)  #find the index on the unpadded side
+#         QL[i,j] = one(T)  #create a padded identity matrix
+#     end
+#     for dim in 1:N #Loop over boundaries
+#         r_ = deepcopy(ranges)
+#         r_[dim] = 1
+#         lower = CartesianIndices((Tuple(r_))) #set up upper and lower indices
+#         r_[dim] = s_pad[dim]
+#         upper = CartesianIndices((Tuple(r_)))
+#         for K in CartesianIndices(upper) #for every element of the boundaries
+#             I = CartesianIndex(Tuple(K)[setdiff(1:N, dim)]) #convert K to 2D index for indexing the BC arrays
+#             il = cartesian_to_linear(lower[K], s_pad) #Translate to linear indices
+#             iu = cartesian_to_linear(upper[K], s_pad) # ditto
+#             Qb[il] = Q[dim][2][I][1] #store the affine parts in indices corresponding with the lower index boundary
+#             Qb[iu] = Q[dim][2][I][2] #ditto with upper index
+#             for k in 1:s[dim] #loop over the direction orthogonal to the boundary
+#                 j = cartesian_to_linear(lower[K] + k*ē[dim]-I1, s) #Find the linear index this element of the boundary stencil should be at on the unpadded side
+#                 QL[il, j] = Q[dim][1][I][1][k]
+#                 QL[iu, j] = Q[dim][1][I][2][k]
+#             end
+#         end
+#     end
+
+#     return (QL, Qb)
+# end
+
+# SparseArrays.sparse(Q::MultiDimDirectionalBC, s) = SparseMatrixCSC(Q, s)
+# SparseArrays.sparse(Q::ComposedMultiDimBC, s) = SparseMatrixCSC(Q, s)
+
+
+# function BandedMatrices.BandedMatrix(Q:: MultiDimensionalBC, M) where {T, B, D,N,K}
+#     throw("Banded Matrix cocnretization not yet supported for MultiDimensionalBCs")
+# end
 
 ################################################################################
 # Higher-Dimensional DerivativeOperator Concretizations

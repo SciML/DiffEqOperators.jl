@@ -140,13 +140,17 @@ end
     # Test for consistency of GhostDerivativeOperator*M with L*(Q*M)
 
     M = rand(N,10)
-    Qx = MultiDimBC{1}(Q, size(M))
-    Am = L*Qx
+    s = size(M)
+
+    ghost_LQM = zeros(N,10)
+    for i in 1:size(M,2)
+        mul!(view(ghost_LQM,:,i), L*Q, M[:,i])
+    end
+
     LQM = zeros(N,10)
     for i in 1:10
         mul!(view(LQM,:,i), L, Q*M[:,i])
     end
-    ghost_LQM = Am*M
     @test ghost_LQM ≈ LQM
 
     u = rand(N + 2)
@@ -365,16 +369,15 @@ end
     @test f.(x) ≈ ghost_f ≈ analytic_f
 
     # Check that left division with matrices works
-    M = [f2.(x) f2.(x)]
-    Qx = MultiDimBC{1}(Q, size(M))
+    # M = [f2.(x) f2.(x)]
+    # Qx = MultiDimBC{1}(Q, size(M))
+    # Am = L*Qx
+    # ghost_fM = Am \ M
+    # s = size(M)
+    # analytic_fM = analytic_Am \ reshape(M, prod(s))
+    # @test ghost_fM ≈ reshape(analytic_fM, s)
 
-    Am = L*Qx
-    ghost_fM = Am \ M
-    s = size(M)
-    analytic_fM = analytic_Am \ reshape(M, prod(s))
-    @test ghost_fM ≈ reshape(analytic_fM, s)
-
-    fM_temp = zeros(N,2)
+    # fM_temp = zeros(N,2)
 
     # Test \ Inhomogenous BC
     # f(x) = -x^2 + x + 4.0
@@ -408,24 +411,24 @@ end
     @test f.(x) ≈ ghost_f ≈ analytic_f
 
     # Check \ for Matrix
-    M2 = [f2.(x) 2.0*f2.(x) 10.0*f2.(x)]
+    # M2 = [f2.(x) 2.0*f2.(x) 10.0*f2.(x)]
 
-    s = size(M2)
-    Qx = MultiDimBC{1}(Q, size(M2))
+    # s = size(M2)
+    # Qx = MultiDimBC{1}(Q, size(M2))
 
-    analytic_QLm, analytic_Qbm = Array(Qx, s)
+    # analytic_QLm, analytic_Qbm = Array(Qx, s)
 
-    analytic_ALm = analytic_Lm*analytic_QLm
-    analytic_Abm = analytic_Lm*analytic_Qbm
+    # analytic_ALm = analytic_Lm*analytic_QLm
+    # analytic_Abm = analytic_Lm*analytic_Qbm
 
-    Am = L*Qx
-    analytic_M = analytic_ALm \ (reshape(M2 , prod(s)).- analytic_Abm)
-    ghost_M = Am \ M2
-    @test reshape(analytic_M, s) ≈ ghost_M
+    # Am = L*Qx
+    # analytic_M = analytic_ALm \ (reshape(M2 , prod(s)).- analytic_Abm)
+    # ghost_M = Am \ M2
+    # @test reshape(analytic_M, s) ≈ ghost_M
 
-    # Additionally test that A\M2 ≈ [f, 2.0(f-4.0)+4.0, 10.0(f-4.0)+4.0]
-    M = [f.(x) 2.0*(f.(x) .- 4.0).+4.0 10.0*(f.(x) .- 4.0).+4.0]
-    @test M ≈ reshape(analytic_M, s) ≈ ghost_M
+    # # Additionally test that A\M2 ≈ [f, 2.0(f-4.0)+4.0, 10.0(f-4.0)+4.0]
+    # M = [f.(x) 2.0*(f.(x) .- 4.0).+4.0 10.0*(f.(x) .- 4.0).+4.0]
+    # @test M ≈ reshape(analytic_M, s) ≈ ghost_M
 end
 
 @testset "Test Left Division L4 (fourth order)" begin
@@ -478,14 +481,14 @@ end
     _cond(A::GhostDerivativeOperator, u) = cond(sparse(A,length(u))[1] |> Array)
     @test norm(analytic_u - ghost_u) / norm(ghost_u) < _cond(A,u) * eps() #
 
-    M2 = [u 2.0*u 10.0*u]
-    s = size(M2)
-    Qx = MultiDimBC{1}(Q, size(M2))
-    Am = L*Qx
-    #Somehow the operator is singular
-    @test_broken analytic_M = analytic_Am \ (reshape(M2, prod(s)) .- repeat(analytic_Ab, 3))
-    @test_broken ghost_M = Am \ M2
-    @test_broken reshape(analytic_M, s) ≈ ghost_M
+    # M2 = [u 2.0*u 10.0*u]
+    # s = size(M2)
+    # Qx = MultiDimBC{1}(Q, size(M2))
+    # Am = L*Qx
+    # #Somehow the operator is singular
+    # @test_broken analytic_M = analytic_Am \ (reshape(M2, prod(s)) .- repeat(analytic_Ab, 3))
+    # @test_broken ghost_M = Am \ M2
+    # @test_broken reshape(analytic_M, s) ≈ ghost_M
 
 end
 
