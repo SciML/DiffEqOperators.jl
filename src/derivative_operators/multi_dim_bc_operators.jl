@@ -132,8 +132,7 @@ function Base.:*(Q::ComposedMultiDimBC{T, S, N, K}, u::AbstractArray{T, N}) wher
     Ds = getaxis.(Q.stencils)
     for i in 1:length(Q.stencils)
         lower,upper = slice_rmul(Q.stencils[i], u, Ds[i])
-        u1 = BoundaryPaddedArray{T, Ds[i], N, N-1, typeof(u), Union{typeof(lower), typeof(upper)}}(lower, upper, u)
-        u = Array(u1)
+        u = Array(BoundaryPaddedArray{T, Ds[i], N, N-1, typeof(u), Union{typeof(lower), typeof(upper)}}(lower, upper, u))
     end 
     return u 
 end
