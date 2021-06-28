@@ -5,20 +5,21 @@ struct MultiDimDirectionalBC{T<:Real,S, D, N} <: MultiDimensionalBC{T, N}
     stls :: S
     l :: T
     r :: T
+    coeff :: Number
 end
 
 struct ComposedMultiDimBC{T, S, N, M} <: MultiDimensionalBC{T, N}
-    stencils::S
+    BCs :: S
+    coeff :: Number
 end
 
-struct MultiDimBC{N} end
+struct MultiDimBC{dim} end
 
-MultiDimBC{dim}(N::Int, approx_order::Int, dx::T) where {dim,T} = finite_stencil(approx_order,dx,dim,N)
+MultiDimBC{dim}(N::Int, approx_order::Int, dx::T; coeff::Number = 1) where {dim,T} = finite_stencil(approx_order,dx,dim,N,coeff)
 
 """
 slice_rmul lets you multiply each vector like strip of an array `u` with a linear operator `A`, sliced along dimension `dim`
 """
-
 @noinline function _slice_rmul!(u_temp::AbstractArray{T,N}, A::AbstractDiffEqLinearOperator, u::AbstractArray{T,N}, dim::Int, pre, post) where {T,N}
     l = length(A)
     for J in post
@@ -48,8 +49,8 @@ end
                 tmp1 += A.stls[i]*u[I, i, J]
                 tmp2 += A.stls[i+len]*u[I,size(u,dim)-len+i,J]
             end
-            tmp1 = -tmp1*(A.l) + u[I,1,J]
-            tmp2 = tmp2*(A.r) + u[I,size(u,dim),J]
+            tmp1 = A.coeff*(-tmp1*(A.l) + u[I,1,J])
+            tmp2 = A.coeff*(tmp2*(A.r) + u[I,size(u,dim),J])
             lower[I,J], upper[I,J] = tmp1, tmp2
         end
     end
@@ -70,14 +71,13 @@ finite_stencil produces 2 stencils for computing derivates at the start & end of
 It internally produces MultiDimDirectionalBC structure with the produced stencils and lower, upper BV step size.
 Finally MultiDimDirectionalBC uses extrapolation for predicting BVs.
 """
-
-function finite_stencil(approx_order,dx::Union{T,AbstractArray{T}},D,N) where{T}
+function finite_stencil(approx_order,dx::Union{T,AbstractArray{T}},D,N,coeff) where{T}
     stencil_length = 1 + approx_order
 
     if typeof(dx) <: Array
         x = [0.0, cumsum(dx)...]
-        _upwind_coefs = (convert(SVector{stencil_length, T}, calculate_weights(1, x[2], x[2:1+stencil_length])))
-        _downwind_coefs = (convert(SVector{stencil_length,T}, calculate_weights(1, x[end-1], x[end-stencil_length:end-1])))
+        _upwind_coefs = convert(SVector{stencil_length, T}, calculate_weights(1, x[2], x[2:1+stencil_length]))
+        _downwind_coefs = convert(SVector{stencil_length,T}, calculate_weights(1, x[end-1], x[end-stencil_length:end-1]))
         stencil_coefs = [_upwind_coefs ; _downwind_coefs]
     else
         dummy_x = 0.0 : approx_order
@@ -85,7 +85,7 @@ function finite_stencil(approx_order,dx::Union{T,AbstractArray{T}},D,N) where{T}
         _downwind_coefs = convert(SVector{stencil_length, T}, (1/dx) * calculate_weights(1, Float64(approx_order), dummy_x))
         stencil_coefs = [_upwind_coefs ; _downwind_coefs]
     end
-    MultiDimDirectionalBC{T,typeof(stencil_coefs), D, N}(stencil_coefs,dx[begin],dx[end])
+    MultiDimDirectionalBC{T,typeof(stencil_coefs), D, N}(stencil_coefs,dx[begin],dx[end],coeff)
 end
 
 
@@ -98,16 +98,16 @@ Q = compose(Qx, Qy) # 2D Domain
 Creates a ComposedMultiDimBC operator, Q, that extends every boundary when applied to a `u` with a compatible size and number of dimensions.
 Qx Qy and Qz can be passed in any order, as long as there is exactly one BC operator that extends each dimension.
 """
-function compose(stencils::MultiDimDirectionalBC...)
-    T = eltype(stencils[1].stls)
-    N = ndims(stencils[1])
-    dims = getaxis.(stencils)
+function compose(BCs::MultiDimDirectionalBC...)
+    T = eltype(BCs[1].stls)
+    N = ndims(BCs[1])
+    dims = getaxis.(BCs)
     for D in dims
         length(setdiff(dims, D)) == (length(dims)-1) || throw(ArgumentError("There are multiple boundary conditions that extend along $D - make sure every dimension has a unique extension"))
     end
-    stencils = stencils[sortperm([dims...])]
+    BCs = BCs[sortperm([dims...])]
 
-    ComposedMultiDimBC{T, Union{eltype.(stencil for stencil in stencils)...}, N,N-1}(stencils)
+    ComposedMultiDimBC{T, Union{eltype.(BC for BC in BCs)...}, N,N-1}(BCs,1)
 end
 
 """
@@ -115,7 +115,7 @@ Qx, Qy,... = decompose(Q::ComposedMultiDimBC{T,N,M})
 -------------------------------------------------------------------------------------
 Decomposes a ComposedMultiDimBC in to components that extend along each dimension individually
 """
-decompose(Q::ComposedMultiDimBC) = Tuple([Q.stencils[i] for i in 1:ndims(Q)])
+decompose(Q::ComposedMultiDimBC) = Tuple([Q.BCs[i] for i in 1:ndims(Q)])
 
 Base.:+(BCs::MultiDimDirectionalBC...) = compose(BCs...)
 
@@ -125,18 +125,20 @@ Base.ndims(Q::MultiDimensionalBC{T,N}) where {T,N} = N
 
 function Base.:*(Q::MultiDimDirectionalBC{T, S, D, N}, u::AbstractArray{T, N}) where {T, S, D, N}
     lower, upper = slice_rmul(Q, u, D)
-    return BoundaryPaddedArray{T, D, N, N-1, typeof(u), Union{typeof(lower), typeof(upper)}}(lower, upper, u)
+    return BoundaryPaddedArray{T, D, N, N-1, typeof(u), Union{typeof(lower), typeof(upper)}}(lower, upper, Q.coeff*u)
 end
 
 function Base.:*(Q::ComposedMultiDimBC{T, S, N, K}, u::AbstractArray{T, N}) where {T, S, N, K}
-    Ds = getaxis.(Q.stencils)
-    for i in 1:length(Q.stencils)
-        lower,upper = slice_rmul(Q.stencils[i], u, Ds[i])
+    Ds = getaxis.(Q.BCs)
+    for i in 1:length(Q.BCs)
+        lower,upper = slice_rmul(Q.BCs[i], u, Ds[i])
         u = Array(BoundaryPaddedArray{T, Ds[i], N, N-1, typeof(u), Union{typeof(lower), typeof(upper)}}(lower, upper, u))
     end 
-    return u 
+    return Q.coeff*u 
 end
 
+*(c::Number, Q::MultiDimDirectionalBC{T, S, D, N}) where {T,S,D,N} = MultiDimDirectionalBC{T,S, D, N}(Q.stls,Q.l,Q.r,c*Q.coeff)
+*(c::Number, Q::ComposedMultiDimBC{T, S, N, K}) where {T,S,N,K} = ComposedMultiDimBC{T,S, N, K}(Q.BCs,c*Q.coeff)
 
 # abstract type MultiDimensionalBC{T, N} <: AbstractBC{T} end
 

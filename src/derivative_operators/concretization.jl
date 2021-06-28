@@ -208,9 +208,9 @@ end
 #     return (QL, Qb)
 # end
 
-"""
-This is confusing, but it does work.
-"""
+# """
+# This is confusing, but it does work.
+# """
 # function LinearAlgebra.Array(Q::ComposedMultiDimBC{T, B, N,M} , s::NTuple{N,G}) where {T, B, N, M, G<:Int}
 #     for d in 1:N
 #         @assert size(Q.BCs[d]) == perpindex(s, d) "The size of the BC array in Q along dimension $d, $(size(Q.BCs[d])) is incompatible with s, $s"
@@ -254,9 +254,9 @@ This is confusing, but it does work.
 #     return (QL, Qb)
 # end
 
-"""
-See comments on the `Array` method for this type for an idea of what is going on.
-"""
+# """
+# See comments on the `Array` method for this type for an idea of what is going on.
+# """
 # function SparseArrays.SparseMatrixCSC(Q::MultiDimDirectionalBC{T, B, D, N, L}, s::NTuple{N,G}) where {T, B, D,N,L, G<:Int}
 #     @assert size(Q.BCs) == perpindex(s, D) "The size of the BC array in Q, $(size(Q.BCs)) is incompatible with s, $s"
 #     blip = zeros(Int64, N)
