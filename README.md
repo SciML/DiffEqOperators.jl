@@ -37,8 +37,8 @@ using OrdinaryDiffEq, ModelingToolkit, DiffEqOperators, DomainSets
 # Parameters, variables, and derivatives
 @parameters t x
 @variables u(..)
-@derivatives Dt'~t
-@derivatives Dxx''~x
+Dt = Differential(t)
+Dxx = Differential(x)^2
 
 # 1D PDE and boundary conditions
 eq  = Dt(u(t,x)) ~ Dxx(u(t,x))
@@ -51,12 +51,12 @@ domains = [t ∈ Interval(0.0,1.0),
            x ∈ Interval(0.0,Float64(pi))]
 
 # PDE system
-pdesys = PDESystem(eq,bcs,domains,[t,x],[u])
+pdesys = PDESystem(eq,bcs,domains,[t,x],[u(t,x)])
 
 # Method of lines discretization
 dx = 0.1
 order = 2
-discretization = MOLFiniteDifference([x=>dx],order)
+discretization = MOLFiniteDifference([x=>dx],t;centered_order=order)
 
 # Convert the PDE problem into an ODE problem
 prob = discretize(pdesys,discretization)
