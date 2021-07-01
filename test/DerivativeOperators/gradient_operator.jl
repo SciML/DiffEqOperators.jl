@@ -5,9 +5,9 @@ using DiffEqOperators, Test
     s = x, y, z = (-5:1.25:5, -5:1.25:5, -5:1.25:5)
     dx = dy = dz = x[2] - x[1]
 
-    ricker(x::T, y::T, z::T) where T = x^2 + y^2 + z^2
+    f(x::T, y::T, z::T) where T = x^2 + y^2 + z^2
 
-    u0 = [ricker(X, Y, Z) for X in x, Y in y, Z in z]
+    u0 = [f(X, Y, Z) for X in x, Y in y, Z in z]
 
     # Analytic Gradient of the function is given by u_analytic = 2x ê₁ + 2y ê₂  + 2z ê₃
 
@@ -28,4 +28,22 @@ using DiffEqOperators, Test
         @test u[I] ≈ u_analytic[I] atol=1e-3
     end
 
+    # check for multiplication with constant
+
+    u1 = 2*A*u0
+    
+    for I in CartesianIndices(u)
+        @test u1[I] ≈ 2*u[I] atol=1e-3
+    end
+    
+    # check for non-uniform grid
+    dx = dy = dz = 1.25*ones(10)
+
+    A = Gradient(4,(dx,dy,dz),size(u0).-2)
+
+    u = A*u0
+
+    for I in CartesianIndices(u)
+        @test u[I] ≈ u_analytic[I] atol=1e-3
+    end
 end

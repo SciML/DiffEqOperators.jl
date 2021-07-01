@@ -10,7 +10,7 @@ function dot(A::AbstractArray{Array{T,1},N},B::AbstractArray{Array{T,1},N}) wher
         end
     end
 
-    return u;
+    return u
 end
 
 function dot!(u::AbstractArray{T,N}, A::AbstractArray{Array{T,1},N},B::AbstractArray{Array{T,1},N}) where {T<:Real,N}
@@ -23,7 +23,7 @@ function dot!(u::AbstractArray{T,N}, A::AbstractArray{Array{T,1},N},B::AbstractA
         end
     end
 
-    return u;
+    return u
 end
 
 function cross(A::AbstractArray{Array{T,1},3},B::AbstractArray{Array{T,1},3}) where {T<:Real}
@@ -37,7 +37,7 @@ function cross(A::AbstractArray{Array{T,1},3},B::AbstractArray{Array{T,1},3}) wh
         end
     end
 
-    return u;
+    return u
 end
 
 function cross!(u::AbstractArray{Array{T,1},3},A::AbstractArray{Array{T,1},3},B::AbstractArray{Array{T,1},3}) where {T<:Real}
@@ -50,9 +50,14 @@ function cross!(u::AbstractArray{Array{T,1},3},A::AbstractArray{Array{T,1},3},B:
         end
     end
 
-    return u;
+    return u
 end
 
 function norm(A::AbstractArray{Array{T,1},N}) where {T<:Real,N}
-    return dot(A,A).^(0.5);
+    return dot(A,A).^(0.5)
+end
+
+function norm!(u::AbstractArray{T,N},A::AbstractArray{Array{T,1},N}) where {T<:Real,N}
+    dot!(u,A,A)
+    u .= u.^0.5
 end

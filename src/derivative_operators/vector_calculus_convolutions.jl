@@ -179,7 +179,7 @@ function convolve_interior!(x_temp::AbstractArray{Array{T,1}, 3}, u::AbstractArr
     for I in R1
         x = zeros(T,3)
         cur_stencil_1 = eltype(stencil_1) <: AbstractArray ? stencil_1[I[1]-bpc] : stencil_1
-        cur_coeff_1   = typeof(coeff_1)   <: AbstractArray ? coeff_1[I[1]] : true
+        cur_coeff_1   = typeof(coeff_1)   <: AbstractArray ? coeff_1[I[1]] : coeff_1 isa Number ? coeff_1 : true
         for idx in 1:(A.ops[1].stencil_length)
             x[2] += -cur_coeff_1*cur_stencil_1[idx]*u[I+e[1]*(idx-mid)][3]
             x[3] += cur_coeff_1*cur_stencil_1[idx]*u[I+e[1]*(idx-mid)][2]
@@ -192,7 +192,7 @@ function convolve_interior!(x_temp::AbstractArray{Array{T,1}, 3}, u::AbstractArr
     for I in R2
         x = zeros(T,3)
         cur_stencil_2 = eltype(stencil_2) <: AbstractArray ? stencil_2[I[2]-bpc] : stencil_2
-        cur_coeff_2   = typeof(coeff_2)   <: AbstractArray ? coeff_2[I[2]] : true
+        cur_coeff_2   = typeof(coeff_2)   <: AbstractArray ? coeff_2[I[2]] : coeff_2 isa Number ? coeff_2 : true
         for idx in 1:(A.ops[2].stencil_length)
             x[1] += cur_coeff_2*cur_stencil_2[idx]*u[I+e[2]*(idx-mid)][3]
             x[3] += -cur_coeff_2*cur_stencil_2[idx]*u[I+e[2]*(idx-mid)][1]
@@ -205,7 +205,7 @@ function convolve_interior!(x_temp::AbstractArray{Array{T,1}, 3}, u::AbstractArr
     for I in R3
         x = zeros(T,3)
         cur_stencil_3 = eltype(stencil_3) <: AbstractArray ? stencil_3[I[3]-bpc] : stencil_3
-        cur_coeff_3   = typeof(coeff_3)   <: AbstractArray ? coeff_3[I[3]] : true
+        cur_coeff_3   = typeof(coeff_3)   <: AbstractArray ? coeff_3[I[3]] : coeff_3 isa Number ? coeff_3 : true
         for idx in 1:(A.ops[3].stencil_length)
             x[1] += -cur_coeff_3*cur_stencil_3[idx]*u[I+e[3]*(idx-mid)][2]
             x[2] += cur_coeff_3*cur_stencil_3[idx]*u[I+e[3]*(idx-mid)][1]

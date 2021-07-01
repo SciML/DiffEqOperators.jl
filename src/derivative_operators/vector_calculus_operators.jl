@@ -2,7 +2,7 @@
 
 # Operator for calculating gradients of a N-dimensional function
 
-struct GradientOperator{T,N,O} <:AbstractDiffEqCompositeOperator{T}
+struct GradientOperator{T,N,O}
     ops :: O
 end
 
@@ -18,7 +18,7 @@ end
 
 # Operator for calculating curls of a given 3-dimensional vector stored as space-tensor
 
-struct CurlOperator{T,O} <: AbstractDiffEqCompositeOperator{T}
+struct CurlOperator{T,O}
     ops :: O
 end 
 
@@ -36,7 +36,7 @@ end
 
 # Operator for calculating divergence of a given N-dimensional vector stored as space-tensor
 
-struct DivergenceOperator{T,N,O} <: AbstractDiffEqCompositeOperator{T}
+struct DivergenceOperator{T,N,O}
     ops :: O
 end
 
@@ -98,4 +98,25 @@ function *(A::DivergenceOperator{T},M::AbstractArray{Array{T,1},N}) where {T<:Re
     end
 
     return x_temp
+end
+
+function *(c::Number, A::GradientOperator{T,N}) where {T,N} 
+    ops = permutedims([c*A.ops[i] for i in 1:N])
+    GradientOperator{T,N,typeof(ops)}(
+        ops
+        )
+end
+
+function *(c::Number, A::CurlOperator{T}) where {T} 
+    ops = permutedims([c*A.ops[i] for i in 1:3])
+    CurlOperator{T,typeof(ops)}(
+        ops
+        )
+end
+
+function *(c::Number, A::DivergenceOperator{T,N}) where {T,N} 
+    ops = permutedims([c*A.ops[i] for i in 1:N])
+    DivergenceOperator{T,N,typeof(ops)}(
+        ops
+        )
 end

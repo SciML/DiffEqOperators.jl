@@ -29,4 +29,24 @@ using DiffEqOperators, Test
     for I in CartesianIndices(u)
         @test u[I] ≈ u_analytic[I] atol=1e-3
     end    
+    
+    # check for multiplication with constant
+
+    u1 = 2*A*u0
+    
+    for I in CartesianIndices(u)
+        @test u1[I] ≈ 2*u[I] atol=1e-3
+    end
+    
+    # check for non-uniform grid
+    
+    dx = dy = dz = 1.25*ones(10)
+
+    A = Divergence(4,(dx,dy,dz),size(u0).-2)
+    
+    u = A*u0
+    
+    for I in CartesianIndices(u)
+        @test u[I] ≈ u_analytic[I] atol=1e-3
+    end
 end

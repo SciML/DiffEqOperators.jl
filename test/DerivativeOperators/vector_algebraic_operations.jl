@@ -66,8 +66,12 @@ using DiffEqOperators, Test
         u_analytic3[I] = (x[I[1]]^2 + y[I[2]]^2 + z[I[3]]^2)^0.5
     end
 
+    u3 = Array{Float64}(undef,size(u0))
+
     N = norm(u1);
+    norm!(u3,u1)
     for I in CartesianIndices(u_analytic3)
         @test N[I] ≈ u_analytic3[I] atol=1e-3
+        @test u3[I] ≈ u_analytic3[I] atol=1e-3
     end
 end

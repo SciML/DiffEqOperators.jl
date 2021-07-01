@@ -95,7 +95,7 @@ CenteredDifference{N}(derivative_order::Int,
                       len::Int, coeff_func=nothing)
 
 UpwindDifference{N}(derivative_order::Int,
-                    approximation_order::Int, dx
+                    approximation_order::Int, dx,
                     len::Int, coeff_func=nothing; offside::Int=0)
 ```
 

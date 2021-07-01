@@ -42,7 +42,7 @@ include("derivative_operators/derivative_operator_functions.jl")
 include("derivative_operators/coefficient_functions.jl")
 
 ### Vector Calculus Operators
-include("derivative_operators/vector_calculus_operator.jl")
+include("derivative_operators/vector_calculus_operators.jl")
 include("derivative_operators/vector_calculus_convolutions.jl")
 include("derivative_operators/vector_algebraic_operations.jl")
 
@@ -69,7 +69,7 @@ export AbstractDerivativeOperator, DerivativeOperator,
        GradientOperator, Gradient, CurlOperator, Curl, DivergenceOperator, Divergence
 export DirichletBC, Dirichlet0BC, NeumannBC, Neumann0BC, RobinBC, GeneralBC, MultiDimBC, PeriodicBC,
        MultiDimDirectionalBC, ComposedMultiDimBC
-export compose, decompose, perpsize, norm, dot, cross, dot!, cross!
+export compose, decompose, perpsize, norm, norm!, dot, cross, dot!, cross!
 export discretize, symbolic_discretize
 
 export GhostDerivativeOperator
