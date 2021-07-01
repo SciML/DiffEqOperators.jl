@@ -69,7 +69,7 @@ export AbstractDerivativeOperator, DerivativeOperator,
        GradientOperator, Gradient, CurlOperator, Curl, DivergenceOperator, Divergence
 export DirichletBC, Dirichlet0BC, NeumannBC, Neumann0BC, RobinBC, GeneralBC, MultiDimBC, PeriodicBC,
        MultiDimDirectionalBC, ComposedMultiDimBC
-export compose, decompose, perpsize, norm, norm!, dot, cross, dot!, cross!
+export compose, decompose, perpsize, square_norm, square_norm!, dot, cross, dot!, cross!
 export discretize, symbolic_discretize
 
 export GhostDerivativeOperator

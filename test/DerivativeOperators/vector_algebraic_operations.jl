@@ -1,6 +1,6 @@
 using DiffEqOperators, Test
 
-@testset "Dot, Cross and Norm of vectors" begin
+@testset "Dot, Cross and L2-Norm of vectors" begin
     s = x, y, z = (-5:1.25:5, -5:1.25:5, -5:1.25:5)
     dx = dy = dz = x[2] - x[1]
     
@@ -58,7 +58,7 @@ using DiffEqOperators, Test
         @test C[I] ≈ u_analytic2[I] atol=1e-3
     end
 
-    # Analytic norm of the u1 is given by u_analytic3 = (x^2 + y^2 + z^2)^(0.5)
+    # Analytic L2-norm of the u1 is given by u_analytic3 = (x^2 + y^2 + z^2)^(0.5)
 
     u_analytic3 = Array{Float64}(undef,size(u0))
     for I in CartesianIndices(u_analytic3)
@@ -68,8 +68,8 @@ using DiffEqOperators, Test
 
     u3 = Array{Float64}(undef,size(u0))
 
-    N = norm(u1);
-    norm!(u3,u1)
+    N = square_norm(u1);
+    square_norm!(u3,u1)
     for I in CartesianIndices(u_analytic3)
         @test N[I] ≈ u_analytic3[I] atol=1e-3
         @test u3[I] ≈ u_analytic3[I] atol=1e-3

@@ -53,11 +53,11 @@ function cross!(u::AbstractArray{Array{T,1},3},A::AbstractArray{Array{T,1},3},B:
     return u
 end
 
-function norm(A::AbstractArray{Array{T,1},N}) where {T<:Real,N}
+function square_norm(A::AbstractArray{Array{T,1},N}) where {T<:Real,N}
     return dot(A,A).^(0.5)
 end
 
-function norm!(u::AbstractArray{T,N},A::AbstractArray{Array{T,1},N}) where {T<:Real,N}
+function square_norm!(u::AbstractArray{T,N},A::AbstractArray{Array{T,1},N}) where {T<:Real,N}
     dot!(u,A,A)
     u .= u.^0.5
 end

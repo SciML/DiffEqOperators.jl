@@ -6,7 +6,7 @@ holding its component along that direction. Defining such entries at all grid po
 creation of a n-dim matrix.
 
 Various operators and functions have been introduced to carry out common calculus operations like 
-`Gradient`, `Curl` , `norm` etc. for those.
+`Gradient`, `Curl` , `square_norm` etc. for those.
 
 #### Operators
 
@@ -55,8 +55,8 @@ dot!(u::AbstractArray{T,N}, A::AbstractArray{Array{T,1},N},B::AbstractArray{Arra
 cross(A::AbstractArray{Array{T,1},3},B::AbstractArray{Array{T,1},3})
 cross!(u::AbstractArray{Array{T,1},3},A::AbstractArray{Array{T,1},3},B::AbstractArray{Array{T,1},3})
 
-norm(A::AbstractArray{Array{T,1},N})
-norm!(u::AbstractArray{T,N},A::AbstractArray{Array{T,1},N})
+square_norm(A::AbstractArray{Array{T,1},N})
+square_norm!(u::AbstractArray{T,N},A::AbstractArray{Array{T,1},N})
 ```
 
 `A` and  `B` are Tensors of same sizes. The output would be a `N`-dim Matrix storing the corresponding
