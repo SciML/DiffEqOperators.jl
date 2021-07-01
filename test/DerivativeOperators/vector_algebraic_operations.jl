@@ -30,8 +30,8 @@ using DiffEqOperators, Test
     end
     
     u = Array{Float64}(undef,size(u0))
-    D = dot(u0,u1)
-    dot!(u,u0,u1)
+    D = dot_product(u0,u1)
+    dot_product!(u,u0,u1)
 
     for I in CartesianIndices(u)
         @test u[I] ≈ u_analytic[I] atol=1e-3
@@ -50,8 +50,8 @@ using DiffEqOperators, Test
 
     u2 = Array{Array{Float64,1},3}(undef,size(u0))
 
-    C = cross(u0,u1)
-    cross!(u2,u0,u1)
+    C = cross_product(u0,u1)
+    cross_product!(u2,u0,u1)
 
     for I in CartesianIndices(u2)
         @test u2[I] ≈ u_analytic2[I] atol=1e-3

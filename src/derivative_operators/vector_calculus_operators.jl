@@ -62,7 +62,7 @@ function *(A::GradientOperator{T},M::AbstractArray{T,N}) where {T<:Real,N}
     end
 
     for L in A.ops
-        mul!(x_temp, L, M)
+        mul!(x_temp, true, L, M)
     end
 
     return x_temp
@@ -94,7 +94,7 @@ function *(A::DivergenceOperator{T},M::AbstractArray{Array{T,1},N}) where {T<:Re
     end
 
     for L in A.ops
-        mul!(x_temp, L, M)
+        mul!(x_temp, true, L, M)
     end
 
     return x_temp

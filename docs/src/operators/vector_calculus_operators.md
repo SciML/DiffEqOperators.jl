@@ -49,11 +49,11 @@ The arguements are :
 Some common functions used in Vector calculus have been provided :
 
 ```julia
-dot(A::AbstractArray{Array{T,1},N},B::AbstractArray{Array{T,1},N})
-dot!(u::AbstractArray{T,N}, A::AbstractArray{Array{T,1},N},B::AbstractArray{Array{T,1},N})
+dot_product(A::AbstractArray{Array{T,1},N},B::AbstractArray{Array{T,1},N})
+dot_product!(u::AbstractArray{T,N}, A::AbstractArray{Array{T,1},N},B::AbstractArray{Array{T,1},N})
 
-cross(A::AbstractArray{Array{T,1},3},B::AbstractArray{Array{T,1},3})
-cross!(u::AbstractArray{Array{T,1},3},A::AbstractArray{Array{T,1},3},B::AbstractArray{Array{T,1},3})
+cross_product(A::AbstractArray{Array{T,1},3},B::AbstractArray{Array{T,1},3})
+cross_product!(u::AbstractArray{Array{T,1},3},A::AbstractArray{Array{T,1},3},B::AbstractArray{Array{T,1},3})
 
 square_norm(A::AbstractArray{Array{T,1},N})
 square_norm!(u::AbstractArray{T,N},A::AbstractArray{Array{T,1},N})

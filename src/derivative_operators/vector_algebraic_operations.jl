@@ -1,5 +1,5 @@
 
-function dot(A::AbstractArray{Array{T,1},N},B::AbstractArray{Array{T,1},N}) where {T<:Real,N}
+function dot_product(A::AbstractArray{Array{T,1},N},B::AbstractArray{Array{T,1},N}) where {T<:Real,N}
     size(A) === size(B) || throw(ArgumentError("Vectors must have the same shape"))
     u = Array{T,N}(undef,size(A)...)
     
@@ -13,7 +13,7 @@ function dot(A::AbstractArray{Array{T,1},N},B::AbstractArray{Array{T,1},N}) wher
     return u
 end
 
-function dot!(u::AbstractArray{T,N}, A::AbstractArray{Array{T,1},N},B::AbstractArray{Array{T,1},N}) where {T<:Real,N}
+function dot_product!(u::AbstractArray{T,N}, A::AbstractArray{Array{T,1},N},B::AbstractArray{Array{T,1},N}) where {T<:Real,N}
     (size(A) === size(B) && size(A) === size(u)) || throw(ArgumentError("Vectors must have the same shape"))
     
     for I in CartesianIndices(u)
@@ -26,7 +26,7 @@ function dot!(u::AbstractArray{T,N}, A::AbstractArray{Array{T,1},N},B::AbstractA
     return u
 end
 
-function cross(A::AbstractArray{Array{T,1},3},B::AbstractArray{Array{T,1},3}) where {T<:Real}
+function cross_product(A::AbstractArray{Array{T,1},3},B::AbstractArray{Array{T,1},3}) where {T<:Real}
     size(A) === size(B) || throw(ArgumentError("Vectors must have the same shape"))
     u = similar(A)
     
@@ -40,7 +40,7 @@ function cross(A::AbstractArray{Array{T,1},3},B::AbstractArray{Array{T,1},3}) wh
     return u
 end
 
-function cross!(u::AbstractArray{Array{T,1},3},A::AbstractArray{Array{T,1},3},B::AbstractArray{Array{T,1},3}) where {T<:Real}
+function cross_product!(u::AbstractArray{Array{T,1},3},A::AbstractArray{Array{T,1},3},B::AbstractArray{Array{T,1},3}) where {T<:Real}
     (size(A) === size(B) && size(A) === size(u))|| throw(ArgumentError("Vectors must have the same shape"))
     
     for I in CartesianIndices(u)
@@ -54,10 +54,10 @@ function cross!(u::AbstractArray{Array{T,1},3},A::AbstractArray{Array{T,1},3},B:
 end
 
 function square_norm(A::AbstractArray{Array{T,1},N}) where {T<:Real,N}
-    return dot(A,A).^(0.5)
+    return dot_product(A,A).^(0.5)
 end
 
 function square_norm!(u::AbstractArray{T,N},A::AbstractArray{Array{T,1},N}) where {T<:Real,N}
-    dot!(u,A,A)
+    dot_product!(u,A,A)
     u .= u.^0.5
 end

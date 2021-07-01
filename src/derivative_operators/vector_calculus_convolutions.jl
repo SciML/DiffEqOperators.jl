@@ -1,6 +1,6 @@
 # mul! implementation for the case when output array contains vector elements 
 
-function LinearAlgebra.mul!(x_temp::Union{AbstractArray{T,N2},AbstractArray{Array{T,1}, N2}}, A::DerivativeOperator{T,N}, M::Union{AbstractArray{T,N2},AbstractArray{Array{T,1}, N2}}; overwrite = false) where {T,N,N2}
+function LinearAlgebra.mul!(x_temp::AbstractArray{T1,N2}, has_vector::Bool, A::DerivativeOperator{T2,N}, M::AbstractArray{T3,N2}; overwrite = false) where {T1,T2,T3,N,N2}
 
     # Check that x_temp has valid dimensions, allowing unnecessary padding in M
     v = zeros(ndims(x_temp))
@@ -38,7 +38,7 @@ function LinearAlgebra.mul!(x_temp::Union{AbstractArray{T,N2},AbstractArray{Arra
     for I in indices
         # replace all elements of idx with corresponding elt of I, except at index N
         Base.replace_tuples!(nidx, idx, idx, otherdims, I)
-        mul!(view(x_temp, idx...), view(minimally_padded_M, idx...), A,  overwrite = false)
+        mul!(view(x_temp, idx...), true, A, view(minimally_padded_M, idx...), overwrite = false)
     end
 end
 
@@ -46,7 +46,7 @@ end
 # Divergence and Gradient convolutions
 ##################################################################################
 
-function LinearAlgebra.mul!(x_temp::AbstractVector, x::AbstractVector, A::DerivativeOperator; overwrite = false)
+function LinearAlgebra.mul!(x_temp::AbstractVector, has_vector::Bool, A::DerivativeOperator,x::AbstractVector; overwrite = false)
     convolve_BC_left!(x_temp, A, x, overwrite = overwrite)
     convolve_interior!(x_temp, A, x, overwrite = overwrite)
     convolve_BC_right!(x_temp, A, x, overwrite = overwrite)
