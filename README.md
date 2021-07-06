@@ -32,13 +32,13 @@ the documentation which contains the unreleased features.
 ## Example 1: Automated Finite Difference Solution to the Heat Equation
 
 ```julia
-using OrdinaryDiffEq, ModelingToolkit, DiffEqOperators
+using OrdinaryDiffEq, ModelingToolkit, DiffEqOperators, DomainSets
 
 # Parameters, variables, and derivatives
 @parameters t x
 @variables u(..)
-@derivatives Dt'~t
-@derivatives Dxx''~x
+Dt = Differential(t)
+Dxx = Differential(x)^2
 
 # 1D PDE and boundary conditions
 eq  = Dt(u(t,x)) ~ Dxx(u(t,x))
@@ -47,16 +47,16 @@ bcs = [u(0,x) ~ cos(x),
        u(t,Float64(pi)) ~ -exp(-t)]
 
 # Space and time domains
-domains = [t ∈ IntervalDomain(0.0,1.0),
-           x ∈ IntervalDomain(0.0,Float64(pi))]
+domains = [t ∈ Interval(0.0,1.0),
+           x ∈ Interval(0.0,Float64(pi))]
 
 # PDE system
-pdesys = PDESystem(eq,bcs,domains,[t,x],[u])
+pdesys = PDESystem(eq,bcs,domains,[t,x],[u(t,x)])
 
 # Method of lines discretization
 dx = 0.1
 order = 2
-discretization = MOLFiniteDifference(dx,order)
+discretization = MOLFiniteDifference([x=>dx],t;centered_order=order)
 
 # Convert the PDE problem into an ODE problem
 prob = discretize(pdesys,discretization)

@@ -43,6 +43,7 @@ if GROUP == "All" || GROUP == "MOLFiniteDifference"
     @time @safetestset "MOLFiniteDifference Interface: 2D Diffusion" begin include("MOL/MOL_2D_Diffusion.jl") end
     @time @safetestset "MOLFiniteDifference Interface: 1D HigherOrder" begin include("MOL/MOL_1D_HigherOrder.jl") end
     @time @safetestset "MOLFiniteDifference Interface: 1D Partial DAE" begin include("MOL/MOL_1D_PDAE.jl") end
+    @time @safetestset "MOLFiniteDifference Interface: Stationary Nonlinear Problems" begin include("MOL/MOL_NonlinearProblem.jl") end
 end
 
 if GROUP == "All" || GROUP == "Misc"
