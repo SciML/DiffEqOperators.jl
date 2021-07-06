@@ -30,7 +30,7 @@ function calculate_weights_spherical(order::Int, x0::T, x::AbstractVector, idxs:
     # We can't activate this assertion for now because the rules try to create the spherical Laplacian
     # before checking whether there is a spherical Laplacian
     # this could be fixed by dispatching on domain type when we have different domain types
-    # but for now everything is an IntervalDomain
+    # but for now everything is an Interval
     # @assert length(x) == 3
     # TODO: nonlinear diffusion in a spherical domain
     i = idxs[2] 
@@ -315,16 +315,24 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
                 # Independent variable rules
                 r_mid_indep(II, j, l) = [nottime[j] => iv_mid(II, j, l) for j in 1:length(nottime)]
                 # Replacement rules: new approach
-                rules = [@rule ($(Differential(iv))(*(~~a, $(Differential(iv))(dv), ~~b))) =>
-                        dot([Num(substitute(substitute(*(~~a..., ~~b...), r_mid_dep(II, j, k, -1)), r_mid_indep(II, j, -1))),
-                            Num(substitute(substitute(*(~~a..., ~~b...), r_mid_dep(II, j, k, 1)), r_mid_indep(II, j, 1)))],
-                            [-b1(II, j, k), b2(II, j, k)])
-                        for (j, iv) in enumerate(nottime) for (k, dv) in enumerate(depvars)]
+                cartesian_deriv_rules = [@rule ($(Differential(iv))(*(~~a, $(Differential(iv))(dv), ~~b))) =>
+                                        dot([Num(substitute(substitute(*(~~a..., ~~b...), r_mid_dep(II, j, k, -1)), r_mid_indep(II, j, -1))),
+                                            Num(substitute(substitute(*(~~a..., ~~b...), r_mid_dep(II, j, k, 1)), r_mid_indep(II, j, 1)))],
+                                            [-b1(II, j, k), b2(II, j, k)])
+                                        for (j, iv) in enumerate(nottime) for (k, dv) in enumerate(depvars)]
+                spherical_deriv_rules = [@rule (~a) * ($(Differential(iv))($(Differential(iv))(dv)*(iv^2)))*((iv^2)^-1) =>
+                                         (~a) * central_deriv_spherical(II, j, k)
+                                         for (j, iv) in enumerate(nottime) for (k, dv) in enumerate(depvars)]
                 rhs_arg = istree(eq.rhs) && (SymbolicUtils.operation(eq.rhs) == +) ? SymbolicUtils.arguments(eq.rhs) : [eq.rhs]
                 lhs_arg = istree(eq.lhs) && (SymbolicUtils.operation(eq.lhs) == +) ? SymbolicUtils.arguments(eq.lhs) : [eq.lhs]
                 nonlinlap_rules = []
                 for t in vcat(lhs_arg,rhs_arg)
-                    for r in rules
+                    for r in cartesian_deriv_rules
+                        if r(t) !== nothing
+                            push!(nonlinlap_rules, t => r(t))
+                        end
+                    end
+                    for r in spherical_deriv_rules
                         if r(t) !== nothing
                             push!(nonlinlap_rules, t => r(t))
                         end
