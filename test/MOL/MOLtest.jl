@@ -467,15 +467,28 @@ function count_differentials(term, x::Symbolics.Symbolic)
 prob = discretize(pdesys,discretization) # This gives an ODEProblem since it's time-dependent
 sol = solve(prob,Tsit5())
 
-import ModelingToolkit
+using ModelingToolkit, SymbolicUtils
 
 @parameters t r
 @variables u(..)
+@syms t r u(t,r)
+Dr = Differential(r.val)
 
-Dt = Differential(t)
-Dr = Differential(r)
+uu = u.val
+tt = t.val
+rr = r.val
+rule_1 = @rule *(~~a, $(Dr)(uu(tt,rr))) => uu(tt,rr)
+rule_1(2*Dr(uu(tt,rr)))
+rule_1a = @rule *(~~a, $(Dr)(u(t,r))) => u(t,r)
+rule_1a(2*Dr(u(t,r)))
+rule_1(2*Dr(u(t,r)))
+rule_1a(2*Dr(uu(tt,rr)))
 
+eq = 4 * (Differential(r)(r^2 * u(t,r)))
+rule_2 = @rule *(~~a, $(Differential(r))(~b)) => *(~~a, Differential(r)(rule_1(~b)))
+rule_2(eq)===nothing
 eq  = 1/r^2 * Dr(r^2 * Dr(u(t,r)))
 
-rules = Differential(r)(r^2*Differential(r)(u(t,r)))/r^2 => "out"
+rules = Differential(r)(r^2*Differential(r)(u(t,r)))/r^2 => 100
 substitute(eq,rules)
+
