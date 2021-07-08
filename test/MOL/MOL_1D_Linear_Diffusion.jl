@@ -1,8 +1,8 @@
 # 1D diffusion problem
 
 # Packages and inclusions
-using ModelingToolkit, DiffEqOperators, LinearAlgebra, Test, OrdinaryDiffEq
-using ModelingToolkit: Interval, infimum, supremum
+using ModelingToolkit,DiffEqOperators,LinearAlgebra,Test,OrdinaryDiffEq, DomainSets
+using ModelingToolkit: Differential
 
 # Tests
 @testset "Test 00: Dt(u(t,x)) ~ Dxx(u(t,x))" begin

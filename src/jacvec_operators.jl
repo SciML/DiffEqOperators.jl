@@ -140,6 +140,11 @@ function LinearAlgebra.mul!(du::AbstractVector,L::JacVecOperator,x::AbstractVect
     end
 end
 
+function Base.resize!(J::JacVecOperator,i)
+    resize!(J.cache1,i)
+    resize!(J.cache2,i)
+end
+
 ### AnalyticalOperator Implementation
 
 mutable struct AnalyticalJacVecOperator{T,F,uType,P,tType,O} <: DiffEqBase.AbstractDiffEqLinearOperator{T}

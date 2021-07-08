@@ -1,8 +1,8 @@
 # 1D diffusion problem
 
 # Packages and inclusions
-using ModelingToolkit, DiffEqOperators, LinearAlgebra, Test, OrdinaryDiffEq
-using ModelingToolkit: Interval, infimum, supremum
+using ModelingToolkit,DiffEqOperators,LinearAlgebra,Test,OrdinaryDiffEq, DomainSets
+using ModelingToolkit: Differential
 
 # Tests
 @testset "Dt(u(t,x)) ~ Dxx(u(t,x)), 0 ~ Dxx(v(t,x)) + sin(x), Dirichlet BCs" begin

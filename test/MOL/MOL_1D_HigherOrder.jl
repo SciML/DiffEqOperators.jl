@@ -1,8 +1,8 @@
 # 1D diffusion problem
 
 # Packages and inclusions
-using ModelingToolkit, DiffEqOperators, LinearAlgebra, Test, OrdinaryDiffEq
-using ModelingToolkit: Interval, infimum, supremum
+using ModelingToolkit,DiffEqOperators,LinearAlgebra,Test,OrdinaryDiffEq, DomainSets
+using ModelingToolkit: Differential
 
 # Beam Equation
 @test_broken begin
@@ -111,7 +111,7 @@ end
 
 #    @test sol.retcode == :Success
 
-#    xs = infimum(domains[1].domain)+dx+dx:dx:supremum(domains[1].domain)-dx-dx
+#    xs = domains[1].domain.lower+dx+dx:dx:domains[1].domain.upper-dx-dx
 #    ts = sol.t
 
 #    u_predict = sol.u
@@ -120,3 +120,4 @@ end
 #    @test_broken u_diff[:] ≈ zeros(length(u_diff)) atol=0.01;
 #    #plot(xs, u_diff)
 #end
+

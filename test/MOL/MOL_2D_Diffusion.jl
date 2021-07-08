@@ -1,8 +1,8 @@
 # 2D diffusion problem
 
 # Packages and inclusions
-using ModelingToolkit, DiffEqOperators, LinearAlgebra, Test, OrdinaryDiffEq
-using ModelingToolkit: Interval, infimum, supremum
+using ModelingToolkit,DiffEqOperators,LinearAlgebra,Test,OrdinaryDiffEq, DomainSets
+using ModelingToolkit: Differential
 
 # Tests
 @testset "Test 00: Dt(u(t,x,y)) ~ Dxx(u(t,x,y)) + Dyy(u(t,x,y))" begin
@@ -37,6 +37,7 @@ using ModelingToolkit: Interval, infimum, supremum
     domains = [t ∈ Interval(t_min,t_max),
                x ∈ Interval(x_min,x_max),
                y ∈ Interval(y_min,y_max)]
+
 
     # PDE system
     pdesys = PDESystem([eq],bcs,domains,[t,x,y],[u(t,x,y)])

@@ -1,7 +1,8 @@
 # 1D linear convection problem
 
-using ModelingToolkit, DiffEqOperators, DiffEqBase, LinearAlgebra, Test
-using ModelingToolkit: Interval, infimum, supremum
+# Packages and inclusions
+using ModelingToolkit,DiffEqOperators,DiffEqBase,LinearAlgebra,Test, DomainSets
+
 
 # Tests
 
@@ -27,6 +28,7 @@ using ModelingToolkit: Interval, infimum, supremum
     # Space and time domains
     domains = [t ∈ Interval(t_i, t_f),
                x ∈ Interval(x_i, x_f)]
+
 
     # PDE system
     pdesys = PDESystem(eq, bcs, domains, [t, x], [u(t, x)])
@@ -62,7 +64,7 @@ using ModelingToolkit: Interval, infimum, supremum
 end
 
 @testset "Test 01: Dt(u(t,x)) ~ -Dx(u(t,x)) + 0.01" begin
-    # Parameters, variables, and derivatives
+   # Parameters, variables, and derivatives
     @parameters t x
     @variables u(..)
     Dt = Differential(t)
@@ -83,6 +85,7 @@ end
     # Space and time domains
     domains = [t ∈ Interval(t_i, t_f),
                x ∈ Interval(x_i, x_f)]
+
 
     # PDE system
     pdesys = PDESystem(eq, bcs, domains, [t, x], [u(t, x)])
@@ -107,8 +110,15 @@ end
     asf = [analytic_sol_func(t_f, x) for x in x_interval]
     t_f_idx = size(sol)[2]
     m = max(asf...)
-    @test sol[:, t_f_idx] / m  ≈ asf / m atol = 0.5;
+    @test sol[:, t_f_idx] ≈ asf / m atol = 0.5;
     @test sol_upwind[:, t_f_idx] / m ≈ asf / m atol = 0.5;
+
+    #using Plots
+    #plot(sol[:, t_f_idx])
+    #savefig("sol[:, t_f_idx]")
+    #plot(sol_upwind[:, t_f_idx])
+    #savefig("sol_upwind[:, t_f_idx]")
+
 end
 
 @testset "Test 02: Dt(u(t,x)) ~ -c * Dx(u(t,x))" begin

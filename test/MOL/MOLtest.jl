@@ -1,6 +1,6 @@
-# Packages and inclusions
-using ModelingToolkit, DiffEqOperators, LinearAlgebra, Test, OrdinaryDiffEq
-using ModelingToolkit: Interval, infimum, supremum
+using ModelingToolkit, DiffEqOperators, LinearAlgebra, OrdinaryDiffEq
+using ModelingToolkit: operation, istree, arguments
+using DomainSets
 
 # Define some variables
 @parameters t x
