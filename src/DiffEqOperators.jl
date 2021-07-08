@@ -1,5 +1,6 @@
 module DiffEqOperators
 
+using Base: Number
 import Base: +, -, *, /, \, size, getindex, setindex!, Matrix, convert, ==
 using DiffEqBase, StaticArrays, LinearAlgebra
 import LinearAlgebra: mul!, ldiv!, lmul!, rmul!, axpy!, opnorm, factorize, I
@@ -69,7 +70,8 @@ export AbstractDerivativeOperator, DerivativeOperator,
        GradientOperator, Gradient, CurlOperator, Curl, DivergenceOperator, Divergence
 export DirichletBC, Dirichlet0BC, NeumannBC, Neumann0BC, RobinBC, GeneralBC, MultiDimBC, PeriodicBC,
        MultiDimDirectionalBC, ComposedMultiDimBC
-export compose, decompose, perpsize, square_norm, square_norm!, dot_product, cross_product, dot_product!, cross_product!
+export compose, decompose, perpsize, square_norm, square_norm!, dot_product, dot_product!, cross_product,
+       cross_product!
 export discretize, symbolic_discretize
 
 export GhostDerivativeOperator

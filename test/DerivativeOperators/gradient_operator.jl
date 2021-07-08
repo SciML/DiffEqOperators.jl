@@ -11,13 +11,12 @@ using DiffEqOperators, Test
 
     # Analytic Gradient of the function is given by u_analytic = 2x ê₁ + 2y ê₂  + 2z ê₃
 
-    u_analytic = Array{Array{Float64,1},3}(undef,size(u0).-2)
+    u_analytic = zeros(Float64,(size(u0).-2)...,3)
 
-    for I in CartesianIndices(u_analytic)
-        u_analytic[I] = zeros(Float64,3)
-        u_analytic[I][1] = 2*x[I[1]+1]
-        u_analytic[I][2] = 2*y[I[2]+1]
-        u_analytic[I][3] = 2*z[I[3]+1]
+    for i in 1:length(x)-2, j in 1:length(y)-2, k in 1:length(z)-2
+        u_analytic[i,j,k,1] = 2*x[i+1]
+        u_analytic[i,j,k,2] = 2*y[j+1]
+        u_analytic[i,j,k,3] = 2*z[k+1]
     end
 
     A = Gradient(4,(dx,dy,dz),size(u0).-2)

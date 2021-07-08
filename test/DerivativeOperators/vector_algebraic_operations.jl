@@ -7,29 +7,29 @@ using DiffEqOperators, Test
     # Vector u0 = (x^2) ê₁ + (y^2) ê₂  + (z^2) ê₃
     # Vector u1 = (x) ê₁ + (y) ê₂  + (z) ê₃
 
-    u0 = Array{Array{Float64,1},3}(undef,length(x),length(y),length(z))
-    for I in CartesianIndices(u0)
-        u0[I] = zeros(Float64,3)
-        u0[I][1] = x[I[1]]^2
-        u0[I][2] = y[I[2]]^2
-        u0[I][3] = z[I[3]]^2
+    u0 = zeros(Float64,length(x),length(y),length(z),3)
+
+    for i in 1:length(x), j in 1:length(y), k in 1:length(z)
+        u0[i,j,k,1] = x[i]^2
+        u0[i,j,k,2] = y[j]^2
+        u0[i,j,k,3] = z[k]^2
     end
-    u1 = Array{Array{Float64,1},3}(undef,length(x),length(y),length(z))
-    for I in CartesianIndices(u0)
-        u1[I] = zeros(Float64,3)
-        u1[I][1] = x[I[1]]
-        u1[I][2] = y[I[2]]
-        u1[I][3] = z[I[3]]
+
+    u1 = zeros(Float64,length(x),length(y),length(z),3)
+    for i in 1:length(x), j in 1:length(y), k in 1:length(z)
+        u1[i,j,k,1] = x[i]
+        u1[i,j,k,2] = y[j]
+        u1[i,j,k,3] = z[k]
     end
     
-    # Analytic dot of u0 & u1 is given by u_analytic = x^3 + y^3 + z^3
+    # Analytic dot u0 ⋅ u1 is given by u_analytic = x^3 + y^3 + z^3
     
-    u_analytic = Array{Float64}(undef,size(u0))
+    u_analytic = zeros(Float64,size(u0)[1:end-1]...)
     for I in CartesianIndices(u_analytic)
         u_analytic[I] = x[I[1]]^3 + y[I[2]]^3 + z[I[3]]^3
     end
     
-    u = Array{Float64}(undef,size(u0))
+    u = zeros(Float64,size(u0)[1:end-1]...)
     D = dot_product(u0,u1)
     dot_product!(u,u0,u1)
 
@@ -38,17 +38,16 @@ using DiffEqOperators, Test
         @test D[I] ≈ u_analytic[I] atol=1e-3
     end
 
-    # Analytic cross u0xu1 is given by u_analytic2 = yz(y-z)ê₁ + xz(z-x)ê₂ + xy(x-y)ê₃
+    # Analytic cross u0 × u1 is given by u_analytic2 = yz(y-z)ê₁ + xz(z-x)ê₂ + xy(x-y)ê₃
     
-    u_analytic2 = Array{Array{Float64,1},3}(undef,size(u0))
-    for I in CartesianIndices(u_analytic2)
-        u_analytic2[I] = zeros(Float64,3)
-        u_analytic2[I][1] = y[I[2]]*z[I[3]]*(y[I[2]]-z[I[3]])
-        u_analytic2[I][2] = x[I[1]]*z[I[3]]*(z[I[3]]-x[I[1]])
-        u_analytic2[I][3] = x[I[1]]*y[I[2]]*(x[I[1]]-y[I[2]])
+    u_analytic2 = zeros(Float64,size(u0))
+    for i in 1:length(x), j in 1:length(y), k in 1:length(z)
+        u_analytic2[i,j,k,1] = y[j]*z[k]*(y[j]-z[k])
+        u_analytic2[i,j,k,2] = x[i]*z[k]*(z[k]-x[i])
+        u_analytic2[i,j,k,3] = x[i]*y[j]*(x[i]-y[j])
     end
 
-    u2 = Array{Array{Float64,1},3}(undef,size(u0))
+    u2 = zeros(Float64,size(u0))
 
     C = cross_product(u0,u1)
     cross_product!(u2,u0,u1)
@@ -58,15 +57,14 @@ using DiffEqOperators, Test
         @test C[I] ≈ u_analytic2[I] atol=1e-3
     end
 
-    # Analytic L2-norm of the u1 is given by u_analytic3 = (x^2 + y^2 + z^2)^(0.5)
+    # Analytic L2-norm of u1 is given by u_analytic3 = (x^2 + y^2 + z^2)^(0.5)
 
-    u_analytic3 = Array{Float64}(undef,size(u0))
+    u_analytic3 = zeros(Float64,size(u0)[1:end-1]...)
     for I in CartesianIndices(u_analytic3)
-        u_analytic3[I] = zero(Float64)
         u_analytic3[I] = (x[I[1]]^2 + y[I[2]]^2 + z[I[3]]^2)^0.5
     end
 
-    u3 = Array{Float64}(undef,size(u0))
+    u3 = zeros(Float64,size(u1)[1:end-1]...)
 
     N = square_norm(u1);
     square_norm!(u3,u1)

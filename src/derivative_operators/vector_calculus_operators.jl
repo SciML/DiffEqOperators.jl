@@ -55,43 +55,29 @@ function *(A::GradientOperator{T},M::AbstractArray{T,N}) where {T<:Real,N}
     
     size_x_temp = [size(M)...].-2
 
-    x_temp = Array{Array{T,1},length(A.ops)}(undef,size_x_temp...)
-    
-    for I in CartesianIndices(x_temp)
-        x_temp[I] = zeros(T,length(A.ops))
-    end
+    x_temp = zeros(T,size_x_temp...,N)
 
     for L in A.ops
-        mul!(x_temp, true, L, M)
+        mul!(x_temp, false, L, M)
     end
 
     return x_temp
 end
 
-function *(A::CurlOperator{T},M::AbstractArray{Array{T,1},3}) where {T<:Real}
-    
+function *(A::CurlOperator{T},M::AbstractArray{T,4}) where {T<:Real}
+
     size_x_temp = [size(M)...].-2
-
-    x_temp = similar(M,size_x_temp...)
-    
-    for I in CartesianIndices(x_temp)
-        x_temp[I] = zeros(T,3)
-    end
-
-    mul!(x_temp, A, M,overwrite = false)
-
+    size_x_temp[4] += 2
+    x_temp = zeros(T,size_x_temp...)
+    mul!(x_temp, A, M, overwrite = false)
     return x_temp
 end
 
-function *(A::DivergenceOperator{T},M::AbstractArray{Array{T,1},N}) where {T<:Real, N}
+function *(A::DivergenceOperator{T},M::AbstractArray{T,N}) where {T<:Real, N}
     
-    size_x_temp = [size(M)...].-2
+    size_x_temp = [size(M)[1:end-1]...].-2
 
-    x_temp = Array{T,length(A.ops)}(undef,size_x_temp...)
-    
-    for I in CartesianIndices(x_temp)
-        x_temp[I] = zero(T)
-    end
+    x_temp = zeros(T,size_x_temp...)
 
     for L in A.ops
         mul!(x_temp, true, L, M)
