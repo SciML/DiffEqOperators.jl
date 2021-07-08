@@ -19,7 +19,7 @@ if GROUP == "All" || GROUP == "OperatorInterface"
     @time @safetestset "Validate Regular Derivative Operators" begin include("DerivativeOperators/regular_operator_validation.jl") end
     @time @safetestset "Validate and Compare Generic Operators" begin include("DerivativeOperators/generic_operator_validation.jl") end
     @time @safetestset "Validate Boundary Padded Array Concretization" begin include("DerivativeOperators/boundary_padded_array.jl") end
-    #@time @safetestset "Validate Higher Dimensional Boundary Extension" begin include("DerivativeOperators/multi_dim_bc_test.jl") end
+    @time @safetestset "Validate Higher Dimensional Boundary Extension" begin include("DerivativeOperators/multi_dim_bc_test.jl") end
     @time @safetestset "2nd order check" begin include("DerivativeOperators/2nd_order_check.jl") end
     @time @safetestset "Non-linear Diffusion" begin include("DerivativeOperators/Fast_Diffusion.jl") end
     @time @safetestset "KdV" begin include("DerivativeOperators/KdV.jl") end # 2-Soliton case needs implementation

@@ -12,7 +12,10 @@ Dyy = CenteredDifference{2}(2, 4, dy, length(y))
 Dzz = CenteredDifference{3}(2, 4, dz, length(z))
 
 A = Dxx+Dyy+Dzz
-Q = compose(Dirichlet0BC(Float64, length.(s))...)
+q1 = MultiDimBC{1}(3,6,dx)
+q2 = MultiDimBC{2}(3,6,dy)
+q3 = MultiDimBC{3}(3,6,dz)
+Q = compose(q1,q2,q3)
 
 dt = dx/(sqrt(3)*3e8)
 t = 0.0:dt:10/3e8
