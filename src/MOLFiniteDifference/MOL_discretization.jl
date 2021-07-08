@@ -320,7 +320,7 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
                                             Num(substitute(substitute(*(~~a..., ~~b...), r_mid_dep(II, j, k, 1)), r_mid_indep(II, j, 1)))],
                                             [-b1(II, j, k), b2(II, j, k)])
                                         for (j, iv) in enumerate(nottime) for (k, dv) in enumerate(depvars)]
-                spherical_deriv_rules = [@rule (~a) * ($(Differential(iv))($(Differential(iv))(dv)*(iv^2)))*(iv^-2) =>
+                spherical_deriv_rules = [@rule (~a) * ($(Differential(iv))($(Differential(iv))(dv)*(iv^2)))*((iv^2)^-1) =>
                                          (~a) * central_deriv_spherical(II, j, k)
                                          for (j, iv) in enumerate(nottime) for (k, dv) in enumerate(depvars)]
                 rhs_arg = istree(eq.rhs) && (SymbolicUtils.operation(eq.rhs) == +) ? SymbolicUtils.arguments(eq.rhs) : [eq.rhs]
