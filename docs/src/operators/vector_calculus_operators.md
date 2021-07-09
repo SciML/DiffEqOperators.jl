@@ -41,7 +41,7 @@ The arguments are :
   If `coeff_func` is an `AbstractArray` with length matching `len`, then the coefficients
   are constant but spatially dependent.
 
-#### Functions
+## Functions
 
 Some common functions used in Vector calculus that have been made available are :
 
