@@ -32,6 +32,10 @@ if GROUP == "All" || GROUP == "OperatorInterface"
     @time @safetestset "Upwind Operator Interface" begin include("DerivativeOperators/upwind_operators_interface.jl") end
     @time @safetestset "Basic SDO Examples" begin include("DerivativeOperators/BasicSDOExamples.jl") end
     @time @safetestset "3D laplacian Test" begin include("DerivativeOperators/3D_laplacian.jl") end
+    @time @safetestset "Gradient Operator Test" begin include("DerivativeOperators/gradient_operator.jl") end
+    @time @safetestset "Curl Operator Test" begin include("DerivativeOperators/curl_operator.jl") end
+    @time @safetestset "Divergence Operator Test" begin include("DerivativeOperators/divergence_operator.jl") end
+    @time @safetestset "Vector Algebraic Operations Test" begin include("DerivativeOperators/vector_algebraic_operations.jl") end
     # @time @safetestset "Linear Complementarity Problem Examples" begin include("DerivativeOperators/lcp.jl"); include("DerivativeOperators/lcp_split.jl") end
 end
 

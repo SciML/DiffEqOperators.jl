@@ -1,5 +1,6 @@
 module DiffEqOperators
 
+using Base: Number
 import Base: +, -, *, /, \, size, getindex, setindex!, Matrix, convert, ==
 using DiffEqBase, StaticArrays, LinearAlgebra
 import LinearAlgebra: mul!, ldiv!, lmul!, rmul!, axpy!, opnorm, factorize, I
@@ -41,6 +42,11 @@ include("derivative_operators/ghost_derivative_operator.jl")
 include("derivative_operators/derivative_operator_functions.jl")
 include("derivative_operators/coefficient_functions.jl")
 
+### Vector Calculus Operators
+include("derivative_operators/vector_calculus_operators.jl")
+include("derivative_operators/vector_calculus_convolutions.jl")
+include("derivative_operators/vector_algebraic_operations.jl")
+
 ### Composite Operators
 include("composite_operators.jl")
 include("docstrings.jl")
@@ -60,10 +66,12 @@ end
 export MatrixFreeOperator
 export AnalyticalJacVecOperator, JacVecOperator, getops
 export AbstractDerivativeOperator, DerivativeOperator,
-       CenteredDifference, UpwindDifference, nonlinear_diffusion, nonlinear_diffusion!
+       CenteredDifference, UpwindDifference, nonlinear_diffusion, nonlinear_diffusion!,
+       GradientOperator, Gradient, CurlOperator, Curl, DivergenceOperator, Divergence
 export DirichletBC, Dirichlet0BC, NeumannBC, Neumann0BC, RobinBC, GeneralBC, MultiDimBC, PeriodicBC,
        MultiDimDirectionalBC, ComposedMultiDimBC
-export compose, decompose, perpsize
+export compose, decompose, perpsize, square_norm, square_norm!, dot_product, dot_product!, cross_product,
+       cross_product!
 export discretize, symbolic_discretize
 
 export GhostDerivativeOperator
