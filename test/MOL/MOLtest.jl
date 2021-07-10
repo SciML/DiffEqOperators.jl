@@ -64,7 +64,7 @@ sol = solve(prob,Tsit5())
 Dt = Differential(t)
 Dr = Differential(r)
 Drr = Dr^2
-eq  = Dt(u(t,r)) ~ (1/r^2 * Dr(r^2 * Dr(u(t,r))))
+eq  = Dt(u(t,r)) ~ 0.6 * (1/r^2 * Dr(r^2 * Dr(u(t,r))))
 bcs = [u(0,r) ~ - r * (r-1) * sin(r),
        Dr(u(t,0)) ~ 0.0, u(t,1) ~ sin(1)]
 
