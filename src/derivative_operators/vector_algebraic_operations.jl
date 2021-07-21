@@ -35,10 +35,8 @@ function cross_product!(u::AbstractArray{T1,4},A::AbstractArray{T2,4},B::Abstrac
     
     (size(A) === size(B) && size(A) === size(u))|| throw(ArgumentError("Vectors must have the same shape"))
     s = size(u)
-    for p in 1:s[1],q in 1:s[2],r in 1:s[3]
-        for i in 1:3
-            u[p,q,r,i] = A[p,q,r,i%3 + 1]*B[p,q,r,(i+1)%3 + 1] - A[p,q,r,(i+1)%3 + 1]*B[p,q,r,i%3 + 1]
-        end
+    for i in 1:3, r in 1:s[3], q in 1:s[2], p in 1:s[1]
+        u[p,q,r,i] = A[p,q,r,i%3 + 1]*B[p,q,r,(i+1)%3 + 1] - A[p,q,r,(i+1)%3 + 1]*B[p,q,r,i%3 + 1]
     end
 end
 

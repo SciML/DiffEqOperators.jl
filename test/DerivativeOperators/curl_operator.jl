@@ -9,7 +9,7 @@ using DiffEqOperators, Test
     
     u0 = zeros(Float64,length(x),length(y),length(z),3)
 
-    for i in 1:length(x), j in 1:length(y), k in 1:length(z)
+    for k in 1:length(z), j in 1:length(y), i in 1:length(x)
         u0[i,j,k,1] = y[j]^2 + z[k]^2
         u0[i,j,k,2] = x[i]^2 + z[k]^2
         u0[i,j,k,3] = x[i]^2 + y[j]^2
@@ -17,7 +17,7 @@ using DiffEqOperators, Test
     
     # Analytic Curl of the given vector given by u_analytic = 2(y-z) ê₁ + 2(z-x) ê₂  + 2(x-y) ê₃
     u_analytic = zeros(Float64,length(x)-2,length(y)-2,length(z)-2,3)
-    for i in 1:length(x)-2, j in 1:length(y)-2, k in 1:length(z)-2 
+    for k in 1:length(z)-2, j in 1:length(y)-2, i in 1:length(x)-2 
         u_analytic[i,j,k,1] = 2*(y[j+1] - z[k+1])
         u_analytic[i,j,k,2] = 2*(z[k+1] - x[i+1])
         u_analytic[i,j,k,3] = 2*(x[i+1] - y[j+1])
