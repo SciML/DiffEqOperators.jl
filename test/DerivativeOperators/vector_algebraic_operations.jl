@@ -9,14 +9,14 @@ using DiffEqOperators, Test
 
     u0 = zeros(Float64,length(x),length(y),length(z),3)
 
-    for i in 1:length(x), j in 1:length(y), k in 1:length(z)
+    for k in 1:length(z), j in 1:length(y), i in 1:length(x)
         u0[i,j,k,1] = x[i]^2
         u0[i,j,k,2] = y[j]^2
         u0[i,j,k,3] = z[k]^2
     end
 
     u1 = zeros(Float64,length(x),length(y),length(z),3)
-    for i in 1:length(x), j in 1:length(y), k in 1:length(z)
+    for k in 1:length(z), j in 1:length(y), i in 1:length(x)
         u1[i,j,k,1] = x[i]
         u1[i,j,k,2] = y[j]
         u1[i,j,k,3] = z[k]
@@ -41,7 +41,7 @@ using DiffEqOperators, Test
     # Analytic cross u0 × u1 is given by u_analytic2 = yz(y-z)ê₁ + xz(z-x)ê₂ + xy(x-y)ê₃
     
     u_analytic2 = zeros(Float64,size(u0))
-    for i in 1:length(x), j in 1:length(y), k in 1:length(z)
+    for k in 1:length(z), j in 1:length(y), i in 1:length(x)
         u_analytic2[i,j,k,1] = y[j]*z[k]*(y[j]-z[k])
         u_analytic2[i,j,k,2] = x[i]*z[k]*(z[k]-x[i])
         u_analytic2[i,j,k,3] = x[i]*y[j]*(x[i]-y[j])
