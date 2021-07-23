@@ -92,12 +92,11 @@ function convolve_interior!(x_temp::AbstractVector{T1},  A::DerivativeOperator{T
     T = promote_type(T1,T2)
     @assert length(x_temp)+2 == length(x)
     stencil = A.stencil_coefs
-    # coeff   = A.coefficients
     coeff = typeof(A.coefficients)   <: AbstractArray ? A.coefficients : A.coefficients*ones(SVector{length(x_temp)})
 
     mid = div(A.stencil_length,2)
     if eltype(stencil) <: AbstractVector
-        @turbo for i in (1+A.boundary_point_count) : (length(x_temp)-A.boundary_point_count)
+        for i in (1+A.boundary_point_count) : (length(x_temp)-A.boundary_point_count)
             xtempi = zero(T)
             cur_stencil = stencil[i-A.boundary_point_count]
             cur_coeff   = coeff[i]
@@ -182,7 +181,7 @@ function convolve_interior!(x_temp::AbstractArray{T1}, A::GradientOperator{T2,2}
 
     if eltype(stencil_1) <: AbstractArray
         # Along 1st axis
-        @turbo for j in 1:s[2], i in 1+bpc:s[1]-bpc 
+        for j in 1:s[2], i in 1+bpc:s[1]-bpc 
             cur_stencil_1 = stencil_1[i-bpc]
             cur_coeff_1   = coeff_1[i]
             x_temp1 = zero(T)
@@ -192,7 +191,7 @@ function convolve_interior!(x_temp::AbstractArray{T1}, A::GradientOperator{T2,2}
                 x_temp[i,j,1] += x_temp1
         end
         # Along 2nd axis
-        @turbo for j in 1+bpc : s[2]-bpc , i in 1:s[1]  
+        for j in 1+bpc : s[2]-bpc , i in 1:s[1]  
             cur_stencil_2 = stencil_2[j-bpc]
             cur_coeff_2   = coeff_2[j]
             x_temp2 = zero(T)
@@ -239,7 +238,7 @@ function convolve_BC_left!(x_temp::AbstractArray{T1}, A::GradientOperator{T2,2},
     # Compute derivatives along particular axis and aggregate the outputs
 
     # Along 1st axis
-    @turbo for j in 1:s[2], i in 1:bpc 
+    for j in 1:s[2], i in 1:bpc 
         cur_stencil_1 = stencil_1[i]
         cur_coeff_1   = coeff_1[i]
         x_temp1 = zero(T)
@@ -249,7 +248,7 @@ function convolve_BC_left!(x_temp::AbstractArray{T1}, A::GradientOperator{T2,2},
         x_temp[i,j,1] += x_temp1
     end
     # Along 2nd axis
-    @turbo for j in 1:bpc , i in 1:s[1]  
+    for j in 1:bpc , i in 1:s[1]  
         cur_stencil_2 = stencil_2[j]
         cur_coeff_2   = coeff_2[j]
         x_temp2 = zero(T)
@@ -275,7 +274,7 @@ function convolve_BC_right!(x_temp::AbstractArray{T1}, A::GradientOperator{T2,2}
 
     # Compute derivatives along particular axis and aggregate the outputs
     # Along 1st axis
-    @turbo for j in 1:s[2], i in s[1]-bpc+1 : s[1]
+    for j in 1:s[2], i in s[1]-bpc+1 : s[1]
         cur_stencil_1 = stencil_1[i - s[1] + bpc]
         cur_coeff_1   = coeff_1[i]
         x_temp1 = zero(T)
@@ -285,7 +284,7 @@ function convolve_BC_right!(x_temp::AbstractArray{T1}, A::GradientOperator{T2,2}
         x_temp[i,j,1] += x_temp1
     end
     # Along 2nd axis
-    @turbo for j in s[2]-bpc+1 : s[2] , i in 1:s[1]  
+    for j in s[2]-bpc+1 : s[2] , i in 1:s[1]  
         cur_stencil_2 = stencil_2[j - s[2] + bpc]
         cur_coeff_2   = coeff_2[j]
         x_temp2 = zero(T)
@@ -314,8 +313,8 @@ function convolve_interior!(x_temp::AbstractArray{T1}, A::DivergenceOperator{T2,
 
     if eltype(stencil_1) <: AbstractArray
         
-            # Along 1st axis
-            @turbo for j in 1:s[2], i in 1+bpc:s[1]-bpc 
+        # Along 1st axis
+        for j in 1:s[2], i in 1+bpc:s[1]-bpc 
             cur_stencil_1 = stencil_1[i-bpc]
             cur_coeff_1   = coeff_1[i]
             x_temp1 = zero(T)
@@ -325,7 +324,7 @@ function convolve_interior!(x_temp::AbstractArray{T1}, A::DivergenceOperator{T2,
             x_temp[i,j] += x_temp1
         end
         # Along 2nd axis
-        @turbo for j in 1+bpc : s[2]-bpc , i in 1:s[1]  
+        for j in 1+bpc : s[2]-bpc , i in 1:s[1]  
             cur_stencil_2 = stencil_2[j-bpc]
             cur_coeff_2   = coeff_2[j]
             x_temp2 = zero(T)
@@ -371,7 +370,7 @@ function convolve_BC_left!(x_temp::AbstractArray{T1}, A::DivergenceOperator{T2,2
 
     # Compute derivatives along particular axis and aggregate the outputs
     # Along 1st axis
-    @turbo for j in 1:s[2], i in 1:bpc 
+    for j in 1:s[2], i in 1:bpc 
         cur_stencil_1 = stencil_1[i]
         cur_coeff_1   = coeff_1[i]
         x_temp1 = zero(T)
@@ -381,7 +380,7 @@ function convolve_BC_left!(x_temp::AbstractArray{T1}, A::DivergenceOperator{T2,2
         x_temp[i,j] += x_temp1
     end
     # Along 2nd axis
-    @turbo for j in 1:bpc , i in 1:s[1]  
+    for j in 1:bpc , i in 1:s[1]  
         cur_stencil_2 = stencil_2[j]
         cur_coeff_2   = coeff_2[j]
         x_temp2 = zero(T)
@@ -408,7 +407,7 @@ function convolve_BC_right!(x_temp::AbstractArray{T1}, A::DivergenceOperator{T2,
     # Compute derivatives along particular axis and aggregate the outputs
 
     # Along 1st axis
-    @turbo for j in 1:s[2], i in s[1]-bpc+1 : s[1]
+    for j in 1:s[2], i in s[1]-bpc+1 : s[1]
         cur_stencil_1 = stencil_1[i - s[1] + bpc]
         cur_coeff_1   = coeff_1[i]
         x_temp1 = zero(T)
@@ -418,7 +417,7 @@ function convolve_BC_right!(x_temp::AbstractArray{T1}, A::DivergenceOperator{T2,
         x_temp[i,j] += x_temp1
     end
     # Along 2nd axis
-    @turbo for j in s[2]-bpc+1 : s[2] , i in 1:s[1]  
+    for j in s[2]-bpc+1 : s[2] , i in 1:s[1]  
         cur_stencil_2 = stencil_2[j - s[2] + bpc]
         cur_coeff_2   = coeff_2[j]
         x_temp2 = zero(T)
@@ -450,7 +449,7 @@ function convolve_interior!(x_temp::AbstractArray{T1}, A::GradientOperator{T2,3}
 
     if eltype(stencil_1) <: AbstractArray
         # Along 1st axis
-        @turbo for k in 1:s[3], j in 1:s[2], i in 1+bpc:s[1]-bpc 
+        for k in 1:s[3], j in 1:s[2], i in 1+bpc:s[1]-bpc 
             cur_stencil_1 = stencil_1[i-bpc]
             cur_coeff_1   = coeff_1[i]
             x_temp1 = zero(T)
@@ -460,7 +459,7 @@ function convolve_interior!(x_temp::AbstractArray{T1}, A::GradientOperator{T2,3}
             x_temp[i,j,k,1] += x_temp1
         end
         # Along 2nd axis
-        @turbo for k in 1:s[3], j in 1+bpc : s[2]-bpc , i in 1:s[1]  
+        for k in 1:s[3], j in 1+bpc : s[2]-bpc , i in 1:s[1]  
             cur_stencil_2 = stencil_2[j-bpc]
             cur_coeff_2   = coeff_2[j]
             x_temp2 = zero(T)
@@ -470,7 +469,7 @@ function convolve_interior!(x_temp::AbstractArray{T1}, A::GradientOperator{T2,3}
             x_temp[i,j,k,2] += x_temp2
         end
         # Along 3rd axis
-        @turbo for k in 1+bpc : s[3]-bpc, j in 1:s[2] , i in 1:s[1]  
+        for k in 1+bpc : s[3]-bpc, j in 1:s[2] , i in 1:s[1]  
             cur_stencil_3 = stencil_3[k-bpc]
             cur_coeff_3   = coeff_3[k]
             x_temp3 = zero(T)
@@ -527,7 +526,7 @@ function convolve_BC_left!(x_temp::AbstractArray{T1}, A::GradientOperator{T2,3},
     # Compute derivatives along particular axis and aggregate the outputs
 
     # Along 1st axis
-    @turbo for k in 1:s[3], j in 1:s[2], i in 1:bpc 
+    for k in 1:s[3], j in 1:s[2], i in 1:bpc 
         cur_stencil_1 = stencil_1[i]
         cur_coeff_1   = coeff_1[i]
         x_temp1 = zero(T)
@@ -537,7 +536,7 @@ function convolve_BC_left!(x_temp::AbstractArray{T1}, A::GradientOperator{T2,3},
         x_temp[i,j,k,1] += x_temp1
     end
     # Along 2nd axis
-    @turbo for k in 1:s[3], j in 1:bpc , i in 1:s[1]  
+    for k in 1:s[3], j in 1:bpc , i in 1:s[1]  
         cur_stencil_2 = stencil_2[j]
         cur_coeff_2   = coeff_2[j]
         x_temp2 = zero(T)
@@ -547,7 +546,7 @@ function convolve_BC_left!(x_temp::AbstractArray{T1}, A::GradientOperator{T2,3},
         x_temp[i,j,k,2] += x_temp2
     end
     # Along 3rd axis
-    @turbo for k in 1:bpc, j in 1:s[2] , i in 1:s[1]  
+    for k in 1:bpc, j in 1:s[2] , i in 1:s[1]  
         cur_stencil_3 = stencil_3[k]
         cur_coeff_3   = coeff_3[k]
         x_temp3 = zero(T)
@@ -575,7 +574,7 @@ function convolve_BC_right!(x_temp::AbstractArray{T1}, A::GradientOperator{T2,3}
 
     # Compute derivatives along particular axis and aggregate the outputs
     # Along 1st axis
-    @turbo for k in 1:s[3], j in 1:s[2], i in s[1]-bpc+1 : s[1]
+    for k in 1:s[3], j in 1:s[2], i in s[1]-bpc+1 : s[1]
         cur_stencil_1 = stencil_1[i - s[1] + bpc]
         cur_coeff_1   = coeff_1[i]
         x_temp1 = zero(T)
@@ -585,7 +584,7 @@ function convolve_BC_right!(x_temp::AbstractArray{T1}, A::GradientOperator{T2,3}
         x_temp[i,j,k,1] += x_temp1
     end
     # Along 2nd axis
-    @turbo for k in 1:s[3], j in s[2]-bpc+1 : s[2] , i in 1:s[1]  
+    for k in 1:s[3], j in s[2]-bpc+1 : s[2] , i in 1:s[1]  
         cur_stencil_2 = stencil_2[j - s[2] + bpc]
         cur_coeff_2   = coeff_2[j]
         x_temp2 = zero(T)
@@ -595,7 +594,7 @@ function convolve_BC_right!(x_temp::AbstractArray{T1}, A::GradientOperator{T2,3}
         x_temp[i,j,k,2] += x_temp2
     end
     # Along 3rd axis
-    @turbo for k in s[3]-bpc+1 : s[3], j in 1:s[2] , i in 1:s[1]  
+    for k in s[3]-bpc+1 : s[3], j in 1:s[2] , i in 1:s[1]  
         cur_stencil_3 = stencil_3[k - s[3] + bpc]
         cur_coeff_3   = coeff_3[k]
         x_temp3 = zero(T)
@@ -626,7 +625,7 @@ function convolve_interior!(x_temp::AbstractArray{T1}, A::DivergenceOperator{T2,
 
     if eltype(stencil_1) <: AbstractArray
         # Along 1st axis
-        @turbo for k in 1:s[3], j in 1:s[2], i in 1+bpc:s[1]-bpc 
+        for k in 1:s[3], j in 1:s[2], i in 1+bpc:s[1]-bpc 
             cur_stencil_1 = stencil_1[i-bpc]
             cur_coeff_1   = coeff_1[i]
             x_temp1 = zero(T)
@@ -636,7 +635,7 @@ function convolve_interior!(x_temp::AbstractArray{T1}, A::DivergenceOperator{T2,
                 x_temp[i,j,k] += x_temp1
         end
         # Along 2nd axis
-        @turbo for k in 1:s[3], j in 1+bpc : s[2]-bpc , i in 1:s[1]  
+        for k in 1:s[3], j in 1+bpc : s[2]-bpc , i in 1:s[1]  
             cur_stencil_2 = stencil_2[j-bpc]
             cur_coeff_2   = coeff_2[j]
             x_temp2 = zero(T)
@@ -646,7 +645,7 @@ function convolve_interior!(x_temp::AbstractArray{T1}, A::DivergenceOperator{T2,
             x_temp[i,j,k] += x_temp2
         end
         # Along 3rd axis
-        @turbo for k in 1+bpc : s[3]-bpc, j in 1:s[2] , i in 1:s[1]  
+        for k in 1+bpc : s[3]-bpc, j in 1:s[2] , i in 1:s[1]  
             cur_stencil_3 = stencil_3[k-bpc]
             cur_coeff_3   = coeff_3[k]
             x_temp3 = zero(T)
@@ -703,7 +702,7 @@ function convolve_BC_left!(x_temp::AbstractArray{T1}, A::DivergenceOperator{T2,3
     # Compute derivatives along particular axis and aggregate the outputs
 
     # Along 1st axis
-    @turbo for k in 1:s[3], j in 1:s[2], i in 1:bpc 
+    for k in 1:s[3], j in 1:s[2], i in 1:bpc 
         cur_stencil_1 = stencil_1[i]
         cur_coeff_1   = coeff_1[i]
         x_temp1 = zero(T)
@@ -713,7 +712,7 @@ function convolve_BC_left!(x_temp::AbstractArray{T1}, A::DivergenceOperator{T2,3
         x_temp[i,j,k] += x_temp1
     end
     # Along 2nd axis
-    @turbo for k in 1:s[3], j in 1:bpc , i in 1:s[1]  
+    for k in 1:s[3], j in 1:bpc , i in 1:s[1]  
         cur_stencil_2 = stencil_2[j]
         cur_coeff_2   = coeff_2[j]
         x_temp2 = zero(T)
@@ -723,7 +722,7 @@ function convolve_BC_left!(x_temp::AbstractArray{T1}, A::DivergenceOperator{T2,3
         x_temp[i,j,k] += x_temp2
     end
     # Along 3rd axis
-    @turbo for k in 1:bpc, j in 1:s[2] , i in 1:s[1]  
+    for k in 1:bpc, j in 1:s[2] , i in 1:s[1]  
         cur_stencil_3 = stencil_3[k]
         cur_coeff_3   = coeff_3[k]
         x_temp3 = zero(T)
@@ -751,7 +750,7 @@ function convolve_BC_right!(x_temp::AbstractArray{T1}, A::DivergenceOperator{T2,
 
     # Compute derivatives along particular axis and aggregate the outputs
     # Along 1st axis
-    @turbo for k in 1:s[3], j in 1:s[2], i in s[1]-bpc+1 : s[1]
+    for k in 1:s[3], j in 1:s[2], i in s[1]-bpc+1 : s[1]
         cur_stencil_1 = stencil_1[i - s[1] + bpc]
         cur_coeff_1   = coeff_1[i]
         x_temp1 = zero(T)
@@ -761,7 +760,7 @@ function convolve_BC_right!(x_temp::AbstractArray{T1}, A::DivergenceOperator{T2,
         x_temp[i,j,k] += x_temp1
     end
     # Along 2nd axis
-    @turbo for k in 1:s[3], j in s[2]-bpc+1 : s[2] , i in 1:s[1]  
+    for k in 1:s[3], j in s[2]-bpc+1 : s[2] , i in 1:s[1]  
         cur_stencil_2 = stencil_2[j - s[2] + bpc]
         cur_coeff_2   = coeff_2[j]
         x_temp2 = zero(T)
@@ -771,7 +770,7 @@ function convolve_BC_right!(x_temp::AbstractArray{T1}, A::DivergenceOperator{T2,
         x_temp[i,j,k] += x_temp2
     end
     # Along 3rd axis
-    @turbo for k in s[3]-bpc+1 : s[3], j in 1:s[2] , i in 1:s[1]  
+    for k in s[3]-bpc+1 : s[3], j in 1:s[2] , i in 1:s[1]  
         cur_stencil_3 = stencil_3[k - s[3] + bpc]
         cur_coeff_3   = coeff_3[k]
         x_temp3 = zero(T)
@@ -812,7 +811,7 @@ function convolve_interior!(x_temp::AbstractArray{T,4}, u::AbstractArray{T,4}, A
 
     if eltype(stencil_1) <: AbstractArray
         # Along 1st axis
-        @turbo for k in 1:s[3], j in 1:s[2], i in 1+bpc:s[1]-bpc 
+        for k in 1:s[3], j in 1:s[2], i in 1+bpc:s[1]-bpc 
             cur_stencil_1 = stencil_1[i-bpc]
             cur_coeff_1   = coeff_1[i]
             x_temp2 = zero(T)
@@ -826,7 +825,7 @@ function convolve_interior!(x_temp::AbstractArray{T,4}, u::AbstractArray{T,4}, A
         end
 
         # Along 2nd axis
-        @turbo for k in 1:s[3], j in 1+bpc : s[2]-bpc , i in 1:s[1]  
+        for k in 1:s[3], j in 1+bpc : s[2]-bpc , i in 1:s[1]  
             cur_stencil_2 = stencil_2[j-bpc]
             cur_coeff_2   = coeff_2[j]
             x_temp1 = zero(T)
@@ -840,7 +839,7 @@ function convolve_interior!(x_temp::AbstractArray{T,4}, u::AbstractArray{T,4}, A
         end
 
         # Along 3rd axis
-        @turbo for k in 1+bpc : s[3]-bpc, j in 1 : s[2] , i in 1 : s[1]  
+        for k in 1+bpc : s[3]-bpc, j in 1 : s[2] , i in 1 : s[1]  
             cur_stencil_3 = stencil_3[k-bpc]
             cur_coeff_3   = coeff_3[k]
             x_temp2 = zero(T)
@@ -908,7 +907,7 @@ function convolve_BC_left!(x_temp::AbstractArray{T,4}, u::AbstractArray{T,4}, A:
     bpc = A.ops[1].boundary_point_count
 
     # Compute derivatives in particular dimensions and aggregate the outputs
-    @turbo for  k in 1:s[3], j in 1:s[2] , i in 1 : bpc
+    for  k in 1:s[3], j in 1:s[2] , i in 1 : bpc
         cur_stencil_1 = stencil_1[i]
         cur_coeff_1   = coeff_1[i]
         x_temp2 = zero(T)
@@ -921,7 +920,7 @@ function convolve_BC_left!(x_temp::AbstractArray{T,4}, u::AbstractArray{T,4}, A:
         x_temp[i,j,k,2] += x_temp2
     end
 
-    @turbo for k in 1:s[3], j in 1:bpc , i in 1:s[1]
+    for k in 1:s[3], j in 1:bpc , i in 1:s[1]
         cur_stencil_2 = stencil_2[j]
         cur_coeff_2   = coeff_2[j]
         x_temp1 = zero(T)
@@ -934,7 +933,7 @@ function convolve_BC_left!(x_temp::AbstractArray{T,4}, u::AbstractArray{T,4}, A:
         x_temp[i,j,k,3] += x_temp3
     end
 
-    @turbo for k in 1:bpc, j in 1:s[2] , i in 1:s[1]
+    for k in 1:bpc, j in 1:s[2] , i in 1:s[1]
         cur_stencil_3 = stencil_3[k]
         cur_coeff_3   = coeff_3[k]
         x_temp2 = zero(T)
@@ -963,7 +962,7 @@ function convolve_BC_right!(x_temp::AbstractArray{T,4}, u::AbstractArray{T,4}, A
     bstl = A.ops[1].boundary_stencil_length
 
     # Compute derivatives in particular dimensions and aggregate the outputs
-    @turbo for k in 1 : s[3], j in 1 : s[2] ,i in s[1]-bpc+1 : s[1]
+    for k in 1 : s[3], j in 1 : s[2] ,i in s[1]-bpc+1 : s[1]
         cur_stencil_1 = stencil_1[i - s[1] + bpc]
         cur_coeff_1   = coeff_1[i]
         x_temp2 = zero(T)
@@ -976,7 +975,7 @@ function convolve_BC_right!(x_temp::AbstractArray{T,4}, u::AbstractArray{T,4}, A
         x_temp[i,j,k,2] += x_temp2
     end
 
-    @turbo for k in 1 : s[3], j in s[2]-bpc+1 : s[2] , i in 1 : s[1]
+    for k in 1 : s[3], j in s[2]-bpc+1 : s[2] , i in 1 : s[1]
         cur_stencil_2 = stencil_2[j - s[2] + bpc]
         cur_coeff_2   = coeff_2[j]
         x_temp1 = zero(T)
@@ -989,7 +988,7 @@ function convolve_BC_right!(x_temp::AbstractArray{T,4}, u::AbstractArray{T,4}, A
         x_temp[i,j,k,3] += x_temp3
     end
 
-    @turbo for k in s[3]-bpc+1 : s[3], j in 1 : s[2] , i in 1 : s[1]
+    for k in s[3]-bpc+1 : s[3], j in 1 : s[2] , i in 1 : s[1]
         cur_stencil_3 = stencil_3[k - s[3] + bpc]
         cur_coeff_3   = coeff_3[k]
         x_temp1 = zero(T)
