@@ -26,6 +26,17 @@ using DiffEqOperators, Test
     for I in CartesianIndices(u)
         @test u[I] ≈ u_analytic[I] atol=1e-3
     end
+
+    # check for non-uniform grid
+    dx = dy = 1.25*ones(10)
+
+    A = Gradient(4,(dx,dy),size(u0).-2)
+
+    u = A*u0
+
+    for I in CartesianIndices(u)
+        @test u[I] ≈ u_analytic[I] atol=1e-3
+    end
 end
 
 @testset "Gradient Operation on a 3-dimensional function" begin

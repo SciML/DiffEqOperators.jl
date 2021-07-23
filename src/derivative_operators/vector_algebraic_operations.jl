@@ -13,11 +13,13 @@ function dot_product!(u::AbstractArray{T1,N}, A::AbstractArray{T2,N2},B::Abstrac
     (size(A) === size(B)) || throw(ArgumentError("Vectors must have the same shape"))
     (N === N2-1) || throw(ArgumentError("Output should be scalar matrix, one dimension less than input"))
     
-    for I in CartesianIndices(u)
-        u[I] =  A[I,1]*B[I,1]
-        for i in 2:N
-            u[I] += A[I,i]*B[I,i]
+    T = promote_type(T1,T2,T3)
+    @turbo for I in CartesianIndices(u)
+        x_temp = zero(T)
+        for i in 1:N
+            x_temp += A[I,i]*B[I,i]
         end
+        u[I] = x_temp
     end
     return u
 end
@@ -35,8 +37,11 @@ function cross_product!(u::AbstractArray{T1,4},A::AbstractArray{T2,4},B::Abstrac
     
     (size(A) === size(B) && size(A) === size(u))|| throw(ArgumentError("Vectors must have the same shape"))
     s = size(u)
-    for i in 1:3, r in 1:s[3], q in 1:s[2], p in 1:s[1]
-        u[p,q,r,i] = A[p,q,r,i%3 + 1]*B[p,q,r,(i+1)%3 + 1] - A[p,q,r,(i+1)%3 + 1]*B[p,q,r,i%3 + 1]
+
+    @turbo for r in 1:s[3], q in 1:s[2], p in 1:s[1]
+        u[p,q,r,1] = A[p,q,r,2]*B[p,q,r,3] - A[p,q,r,3]*B[p,q,r,2]
+        u[p,q,r,2] = A[p,q,r,3]*B[p,q,r,1] - A[p,q,r,1]*B[p,q,r,3]
+        u[p,q,r,3] = A[p,q,r,1]*B[p,q,r,2] - A[p,q,r,2]*B[p,q,r,1]
     end
 end
 
