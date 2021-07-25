@@ -26,7 +26,19 @@ using DiffEqOperators, Test
     
     for I in CartesianIndices(u)
         @test u[I] ≈ u_analytic[I] atol = 1e-3
-    end    
+    end
+    
+    # check for non-uniform grid
+    
+    dx = dy = 1.25*ones(10)
+
+    A = Divergence(4,(dx,dy),size(u0)[1:end-1].-2)
+    
+    u = A*u0
+    
+    for I in CartesianIndices(u)
+        @test u[I] ≈ u_analytic[I] atol=1e-3
+    end
 end
 
 @testset "Divergence operation for a 3D Vector" begin
