@@ -11,7 +11,7 @@
 
 index(i::Int, N::Int) = i + div(N, 2) + 1
 
-struct DerivativeOperator{T<:Real,N,Wind,T2,S1,S2,S3<:SArray,T3,F} <: AbstractDerivativeOperator{T}
+struct DerivativeOperator{T<:Real,N,Wind,T2,S1,S2,S3,T3,F} <: AbstractDerivativeOperator{T}
     derivative_order        :: Int
     approximation_order     :: Int
     dx                      :: T2
@@ -64,7 +64,7 @@ struct CenteredDifference{N} end
 
 function CenteredDifference{N}(derivative_order::Int,
                             approximation_order::Int, dx::T,
-                            len::Int, coeff_func=nothing) where {T<:Real,N}
+                            len::Int, coeff_func=1) where {T<:Real,N}
     @assert approximation_order>1 "approximation_order must be greater than 1."
     stencil_length          = derivative_order + approximation_order - 1 + (derivative_order+approximation_order)%2
     boundary_stencil_length = derivative_order + approximation_order
@@ -80,12 +80,13 @@ function CenteredDifference{N}(derivative_order::Int,
 
     stencil_coefs           = convert(SVector{stencil_length, T}, (1/dx^derivative_order) * calculate_weights(derivative_order, zero(T), dummy_x))
     _low_boundary_coefs     = SVector{boundary_stencil_length, T}[convert(SVector{boundary_stencil_length, T}, (1/dx^derivative_order) * calculate_weights(derivative_order, oneunit(T)*x0, left_boundary_x)) for x0 in L_boundary_deriv_spots]
-    low_boundary_coefs      = convert(SVector{boundary_point_count},_low_boundary_coefs)
+    low_boundary_coefs      = convert(HybridArray{Tuple{StaticArrays.Dynamic()}},_low_boundary_coefs)
+    # low_boundary_coefs     = HybridMatrix{boundary_point_count, StaticArrays.Dynamic()}([convert(SVector{boundary_stencil_length, T}, (1/dx^derivative_order) * calculate_weights(derivative_order, oneunit(T)*x0, left_boundary_x)) for x0 in L_boundary_deriv_spots])
 
     # _high_boundary_coefs    = SVector{boundary_stencil_length, T}[convert(SVector{boundary_stencil_length, T}, (1/dx^derivative_order) * calculate_weights(derivative_order, oneunit(T)*x0, reverse(right_boundary_x))) for x0 in R_boundary_deriv_spots]
-    # high_boundary_coefs      = convert(SVector{boundary_point_count},reverse(_high_boundary_coefs))
+    # high_boundary_coefs      = convert(HybridArray{Tuple{StaticArrays.Dynamic()}},reverse(_high_boundary_coefs))
 
-    high_boundary_coefs      = convert(SVector{boundary_point_count},reverse(map(reverse, _low_boundary_coefs*(-1)^derivative_order)))
+    high_boundary_coefs      = convert(HybridArray{Tuple{StaticArrays.Dynamic()}},reverse(map(reverse, _low_boundary_coefs*(-1)^derivative_order)))
 
     offside = 0
 
@@ -123,7 +124,7 @@ end
 
 function CenteredDifference{N}(derivative_order::Int,
                             approximation_order::Int, dx::AbstractVector{T},
-                            len::Int, coeff_func=nothing) where {T<:Real,N}
+                            len::Int, coeff_func=1) where {T<:Real,N}
 
     stencil_length          = derivative_order + approximation_order - 1 + (derivative_order+approximation_order)%2
     boundary_stencil_length = derivative_order + approximation_order

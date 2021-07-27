@@ -2,7 +2,7 @@ module DiffEqOperators
 
 using Base: Number
 import Base: +, -, *, /, \, size, getindex, setindex!, Matrix, convert, ==
-using DiffEqBase, StaticArrays, LinearAlgebra
+using DiffEqBase, StaticArrays, HybridArrays, LinearAlgebra
 import LinearAlgebra: mul!, ldiv!, lmul!, rmul!, axpy!, opnorm, factorize, I
 import DiffEqBase: update_coefficients!, isconstant
 using SciMLBase: AbstractDiffEqLinearOperator, AbstractDiffEqCompositeOperator, DiffEqScaledOperator

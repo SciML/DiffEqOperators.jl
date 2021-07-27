@@ -92,7 +92,7 @@ function convolve_interior!(x_temp::AbstractVector{T1},  A::DerivativeOperator{T
     T = promote_type(T1,T2)
     @assert length(x_temp)+2 == length(x)
     stencil = A.stencil_coefs
-    coeff = typeof(A.coefficients)   <: AbstractArray ? A.coefficients : A.coefficients*ones(SVector{length(x_temp)})
+    coeff = A.coefficients
 
     mid = div(A.stencil_length,2)
     if eltype(stencil) <: AbstractVector
@@ -124,7 +124,7 @@ function convolve_BC_left!(x_temp::AbstractVector{T1}, A::DerivativeOperator{T2}
     coeff   = A.coefficients
     for i in 1 : A.boundary_point_count
         cur_stencil = stencil[i]
-        cur_coeff   = typeof(coeff)   <: AbstractVector ? coeff[i] : coeff isa Number ? coeff : true
+        cur_coeff   = coeff[i]
         xtempi = zero(T)
         for idx in 1:A.boundary_stencil_length
             xtempi += cur_coeff * cur_stencil[idx] * x[idx]
@@ -140,7 +140,7 @@ function convolve_BC_right!(x_temp::AbstractVector{T1}, A::DerivativeOperator{T2
     coeff   = A.coefficients
     for i in 1 : A.boundary_point_count
         cur_stencil = stencil[i]
-        cur_coeff   = typeof(coeff)   <: AbstractVector ? coeff[i] : coeff isa Number ? coeff : true
+        cur_coeff   = coeff[i]
         xtempi = zero(T)
         for idx in (A.boundary_stencil_length-1):-1:0
             xtempi += cur_coeff * cur_stencil[end-idx] * x[end-idx]
@@ -174,8 +174,8 @@ function convolve_interior!(x_temp::AbstractArray{T1}, A::GradientOperator{T2,2}
     stencil_1 = A.ops[1].stencil_coefs
     stencil_2 = A.ops[2].stencil_coefs
 
-    coeff_1 = typeof(A.ops[1].coefficients)   <: AbstractArray ? A.ops[1].coefficients : A.ops[1].coefficients*ones(SVector{s[1]})
-    coeff_2 = typeof(A.ops[2].coefficients)   <: AbstractArray ? A.ops[2].coefficients : A.ops[2].coefficients*ones(SVector{s[2]})
+    coeff_1 = A.ops[1].coefficients
+    coeff_2 = A.ops[2].coefficients
       
     # Compute derivatives along particular axis and aggregate the outputs
 
@@ -230,15 +230,15 @@ function convolve_BC_left!(x_temp::AbstractArray{T1}, A::GradientOperator{T2,2},
     stencil_1 = A.ops[1].low_boundary_coefs
     stencil_2 = A.ops[2].low_boundary_coefs
 
-    coeff_1 = typeof(A.ops[1].coefficients)   <: AbstractArray ? A.ops[1].coefficients : A.ops[1].coefficients*ones(SVector{s[1]})
-    coeff_2 = typeof(A.ops[2].coefficients)   <: AbstractArray ? A.ops[2].coefficients : A.ops[2].coefficients*ones(SVector{s[2]})
+    coeff_1 = A.ops[1].coefficients
+    coeff_2 = A.ops[2].coefficients
 
     bpc = A.ops[1].boundary_point_count
 
     # Compute derivatives along particular axis and aggregate the outputs
 
     # Along 1st axis
-    for j in 1:s[2], i in 1:bpc 
+    @turbo for j in 1:s[2], i in 1:bpc 
         cur_stencil_1 = stencil_1[i]
         cur_coeff_1   = coeff_1[i]
         x_temp1 = zero(T)
@@ -248,7 +248,7 @@ function convolve_BC_left!(x_temp::AbstractArray{T1}, A::GradientOperator{T2,2},
         x_temp[i,j,1] += x_temp1
     end
     # Along 2nd axis
-    for j in 1:bpc , i in 1:s[1]  
+    @turbo for j in 1:bpc , i in 1:s[1]  
         cur_stencil_2 = stencil_2[j]
         cur_coeff_2   = coeff_2[j]
         x_temp2 = zero(T)
@@ -266,15 +266,15 @@ function convolve_BC_right!(x_temp::AbstractArray{T1}, A::GradientOperator{T2,2}
     stencil_1 = A.ops[1].high_boundary_coefs
     stencil_2 = A.ops[2].high_boundary_coefs
 
-    coeff_1 = typeof(A.ops[1].coefficients)   <: AbstractArray ? A.ops[1].coefficients : A.ops[1].coefficients*ones(SVector{s[1]})
-    coeff_2 = typeof(A.ops[2].coefficients)   <: AbstractArray ? A.ops[2].coefficients : A.ops[2].coefficients*ones(SVector{s[2]})
+    coeff_1 = A.ops[1].coefficients
+    coeff_2 = A.ops[2].coefficients
 
     bpc = A.ops[1].boundary_point_count
     bstl = A.ops[1].boundary_stencil_length
 
     # Compute derivatives along particular axis and aggregate the outputs
     # Along 1st axis
-    for j in 1:s[2], i in s[1]-bpc+1 : s[1]
+    @turbo for j in 1:s[2], i in s[1]-bpc+1 : s[1]
         cur_stencil_1 = stencil_1[i - s[1] + bpc]
         cur_coeff_1   = coeff_1[i]
         x_temp1 = zero(T)
@@ -284,7 +284,7 @@ function convolve_BC_right!(x_temp::AbstractArray{T1}, A::GradientOperator{T2,2}
         x_temp[i,j,1] += x_temp1
     end
     # Along 2nd axis
-    for j in s[2]-bpc+1 : s[2] , i in 1:s[1]  
+    @turbo for j in s[2]-bpc+1 : s[2] , i in 1:s[1]  
         cur_stencil_2 = stencil_2[j - s[2] + bpc]
         cur_coeff_2   = coeff_2[j]
         x_temp2 = zero(T)
@@ -306,8 +306,8 @@ function convolve_interior!(x_temp::AbstractArray{T1}, A::DivergenceOperator{T2,
     stencil_1 = A.ops[1].stencil_coefs
     stencil_2 = A.ops[2].stencil_coefs
 
-    coeff_1 = typeof(A.ops[1].coefficients)   <: AbstractArray ? A.ops[1].coefficients : A.ops[1].coefficients*ones(SVector{s[1]})
-    coeff_2 = typeof(A.ops[2].coefficients)   <: AbstractArray ? A.ops[2].coefficients : A.ops[2].coefficients*ones(SVector{s[2]})
+    coeff_1 = A.ops[1].coefficients
+    coeff_2 = A.ops[2].coefficients
       
     # Compute derivatives along particular axis and aggregate the outputs
 
@@ -363,8 +363,8 @@ function convolve_BC_left!(x_temp::AbstractArray{T1}, A::DivergenceOperator{T2,2
     stencil_1 = A.ops[1].low_boundary_coefs
     stencil_2 = A.ops[2].low_boundary_coefs
 
-    coeff_1 = typeof(A.ops[1].coefficients)   <: AbstractArray ? A.ops[1].coefficients : A.ops[1].coefficients*ones(SVector{s[1]})
-    coeff_2 = typeof(A.ops[2].coefficients)   <: AbstractArray ? A.ops[2].coefficients : A.ops[2].coefficients*ones(SVector{s[2]})
+    coeff_1 = A.ops[1].coefficients
+    coeff_2 = A.ops[2].coefficients
 
     bpc = A.ops[1].boundary_point_count
 
@@ -398,8 +398,8 @@ function convolve_BC_right!(x_temp::AbstractArray{T1}, A::DivergenceOperator{T2,
     stencil_1 = A.ops[1].high_boundary_coefs
     stencil_2 = A.ops[2].high_boundary_coefs
 
-    coeff_1 = typeof(A.ops[1].coefficients)   <: AbstractArray ? A.ops[1].coefficients : A.ops[1].coefficients*ones(SVector{s[1]})
-    coeff_2 = typeof(A.ops[2].coefficients)   <: AbstractArray ? A.ops[2].coefficients : A.ops[2].coefficients*ones(SVector{s[2]})
+    coeff_1 = A.ops[1].coefficients
+    coeff_2 = A.ops[2].coefficients
 
     bpc = A.ops[1].boundary_point_count
     bstl = A.ops[1].boundary_stencil_length
@@ -441,9 +441,9 @@ function convolve_interior!(x_temp::AbstractArray{T1}, A::GradientOperator{T2,3}
     stencil_2 = A.ops[2].stencil_coefs
     stencil_3 = A.ops[3].stencil_coefs
 
-    coeff_1 = typeof(A.ops[1].coefficients)   <: AbstractArray ? A.ops[1].coefficients : A.ops[1].coefficients*ones(SVector{s[1]})
-    coeff_2 = typeof(A.ops[2].coefficients)   <: AbstractArray ? A.ops[2].coefficients : A.ops[2].coefficients*ones(SVector{s[2]})
-    coeff_3 = typeof(A.ops[3].coefficients)   <: AbstractArray ? A.ops[3].coefficients : A.ops[3].coefficients*ones(SVector{s[3]})
+    coeff_1 = A.ops[1].coefficients
+    coeff_2 = A.ops[2].coefficients
+    coeff_3 = A.ops[3].coefficients
 
     # Compute derivatives along particular axis and aggregate the outputs
 
@@ -517,9 +517,9 @@ function convolve_BC_left!(x_temp::AbstractArray{T1}, A::GradientOperator{T2,3},
     stencil_2 = A.ops[2].low_boundary_coefs
     stencil_3 = A.ops[3].low_boundary_coefs
 
-    coeff_1 = typeof(A.ops[1].coefficients)   <: AbstractArray ? A.ops[1].coefficients : A.ops[1].coefficients*ones(SVector{s[1]})
-    coeff_2 = typeof(A.ops[2].coefficients)   <: AbstractArray ? A.ops[2].coefficients : A.ops[2].coefficients*ones(SVector{s[2]})
-    coeff_3 = typeof(A.ops[3].coefficients)   <: AbstractArray ? A.ops[3].coefficients : A.ops[3].coefficients*ones(SVector{s[3]})
+    coeff_1 = A.ops[1].coefficients
+    coeff_2 = A.ops[2].coefficients
+    coeff_3 = A.ops[3].coefficients
 
     bpc = A.ops[1].boundary_point_count
 
@@ -565,9 +565,9 @@ function convolve_BC_right!(x_temp::AbstractArray{T1}, A::GradientOperator{T2,3}
     stencil_2 = A.ops[2].high_boundary_coefs
     stencil_3 = A.ops[3].high_boundary_coefs
 
-    coeff_1 = typeof(A.ops[1].coefficients)   <: AbstractArray ? A.ops[1].coefficients : A.ops[1].coefficients*ones(SVector{s[1]})
-    coeff_2 = typeof(A.ops[2].coefficients)   <: AbstractArray ? A.ops[2].coefficients : A.ops[2].coefficients*ones(SVector{s[2]})
-    coeff_3 = typeof(A.ops[3].coefficients)   <: AbstractArray ? A.ops[3].coefficients : A.ops[3].coefficients*ones(SVector{s[3]})
+    coeff_1 = A.ops[1].coefficients
+    coeff_2 = A.ops[2].coefficients
+    coeff_3 = A.ops[3].coefficients
 
     bpc = A.ops[1].boundary_point_count
     bstl = A.ops[1].boundary_stencil_length
@@ -617,9 +617,9 @@ function convolve_interior!(x_temp::AbstractArray{T1}, A::DivergenceOperator{T2,
     stencil_2 = A.ops[2].stencil_coefs
     stencil_3 = A.ops[3].stencil_coefs
 
-    coeff_1 = typeof(A.ops[1].coefficients)   <: AbstractArray ? A.ops[1].coefficients : A.ops[1].coefficients*ones(SVector{s[1]})
-    coeff_2 = typeof(A.ops[2].coefficients)   <: AbstractArray ? A.ops[2].coefficients : A.ops[2].coefficients*ones(SVector{s[2]})
-    coeff_3 = typeof(A.ops[3].coefficients)   <: AbstractArray ? A.ops[3].coefficients : A.ops[3].coefficients*ones(SVector{s[3]})
+    coeff_1 = A.ops[1].coefficients
+    coeff_2 = A.ops[2].coefficients
+    coeff_3 = A.ops[3].coefficients
 
     # Compute derivatives along particular axis and aggregate the outputs
 
@@ -693,9 +693,9 @@ function convolve_BC_left!(x_temp::AbstractArray{T1}, A::DivergenceOperator{T2,3
     stencil_2 = A.ops[2].low_boundary_coefs
     stencil_3 = A.ops[3].low_boundary_coefs
 
-    coeff_1 = typeof(A.ops[1].coefficients)   <: AbstractArray ? A.ops[1].coefficients : A.ops[1].coefficients*ones(SVector{s[1]})
-    coeff_2 = typeof(A.ops[2].coefficients)   <: AbstractArray ? A.ops[2].coefficients : A.ops[2].coefficients*ones(SVector{s[2]})
-    coeff_3 = typeof(A.ops[3].coefficients)   <: AbstractArray ? A.ops[3].coefficients : A.ops[3].coefficients*ones(SVector{s[3]})
+    coeff_1 = A.ops[1].coefficients
+    coeff_2 = A.ops[2].coefficients
+    coeff_3 = A.ops[3].coefficients
 
     bpc = A.ops[1].boundary_point_count
 
@@ -741,9 +741,9 @@ function convolve_BC_right!(x_temp::AbstractArray{T1}, A::DivergenceOperator{T2,
     stencil_2 = A.ops[2].high_boundary_coefs
     stencil_3 = A.ops[3].high_boundary_coefs
 
-    coeff_1 = typeof(A.ops[1].coefficients)   <: AbstractArray ? A.ops[1].coefficients : A.ops[1].coefficients*ones(SVector{s[1]})
-    coeff_2 = typeof(A.ops[2].coefficients)   <: AbstractArray ? A.ops[2].coefficients : A.ops[2].coefficients*ones(SVector{s[2]})
-    coeff_3 = typeof(A.ops[3].coefficients)   <: AbstractArray ? A.ops[3].coefficients : A.ops[3].coefficients*ones(SVector{s[3]})
+    coeff_1 = A.ops[1].coefficients
+    coeff_2 = A.ops[2].coefficients
+    coeff_3 = A.ops[3].coefficients
 
     bpc = A.ops[1].boundary_point_count
     bstl = A.ops[1].boundary_stencil_length
@@ -800,9 +800,9 @@ function convolve_interior!(x_temp::AbstractArray{T,4}, u::AbstractArray{T,4}, A
     stencil_2 = A.ops[2].stencil_coefs
     stencil_3 = A.ops[3].stencil_coefs
 
-    coeff_1 = typeof(A.ops[1].coefficients)   <: AbstractArray ? A.ops[1].coefficients : A.ops[1].coefficients*ones(SVector{s[1]})
-    coeff_2 = typeof(A.ops[2].coefficients)   <: AbstractArray ? A.ops[2].coefficients : A.ops[2].coefficients*ones(SVector{s[2]})
-    coeff_3 = typeof(A.ops[3].coefficients)   <: AbstractArray ? A.ops[3].coefficients : A.ops[3].coefficients*ones(SVector{s[3]})
+    coeff_1 = A.ops[1].coefficients
+    coeff_2 = A.ops[2].coefficients
+    coeff_3 = A.ops[3].coefficients
 
     bpc = A.ops[1].boundary_point_count
     mid = div(A.ops[1].stencil_length,2)
@@ -900,9 +900,9 @@ function convolve_BC_left!(x_temp::AbstractArray{T,4}, u::AbstractArray{T,4}, A:
     stencil_2 = A.ops[2].low_boundary_coefs
     stencil_3 = A.ops[3].low_boundary_coefs
 
-    coeff_1 = typeof(A.ops[1].coefficients)   <: AbstractArray ? A.ops[1].coefficients : A.ops[1].coefficients*ones(SVector{s[1]})
-    coeff_2 = typeof(A.ops[2].coefficients)   <: AbstractArray ? A.ops[2].coefficients : A.ops[2].coefficients*ones(SVector{s[2]})
-    coeff_3 = typeof(A.ops[3].coefficients)   <: AbstractArray ? A.ops[3].coefficients : A.ops[3].coefficients*ones(SVector{s[3]})
+    coeff_1 = A.ops[1].coefficients
+    coeff_2 = A.ops[2].coefficients
+    coeff_3 = A.ops[3].coefficients
 
     bpc = A.ops[1].boundary_point_count
 
@@ -954,9 +954,9 @@ function convolve_BC_right!(x_temp::AbstractArray{T,4}, u::AbstractArray{T,4}, A
     stencil_2 = A.ops[2].high_boundary_coefs
     stencil_3 = A.ops[3].high_boundary_coefs
 
-    coeff_1 = typeof(A.ops[1].coefficients)   <: AbstractArray ? A.ops[1].coefficients : A.ops[1].coefficients*ones(SVector{s[1]})
-    coeff_2 = typeof(A.ops[2].coefficients)   <: AbstractArray ? A.ops[2].coefficients : A.ops[2].coefficients*ones(SVector{s[2]})
-    coeff_3 = typeof(A.ops[3].coefficients)   <: AbstractArray ? A.ops[3].coefficients : A.ops[3].coefficients*ones(SVector{s[3]})
+    coeff_1 = A.ops[1].coefficients
+    coeff_2 = A.ops[2].coefficients
+    coeff_3 = A.ops[3].coefficients
 
     bpc = A.ops[1].boundary_point_count
     bstl = A.ops[1].boundary_stencil_length
