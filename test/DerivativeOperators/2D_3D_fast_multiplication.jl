@@ -1505,7 +1505,7 @@ end
     M_temp = zeros(N+2,N,N)
     mul!(M_temp, A, M)
     # Need to figure out why this test is exploding
-    @test_broken M_temp ≈ ((Ly2*M)[:,1:N,2:N+1]+(Ly3*M)[:,1:N,2:N+1]+(Ly4*M)[:,1:N,2:N+1]+(Lz2*M)[:,2:N+1,1:N]+(Lz3*M)[:,2:N+1,1:N]+(Lz4*M)[:,2:N+1,1:N])
+    @test M_temp ≈ ((Ly2*M)[:,1:N,2:N+1]+(Ly3*M)[:,1:N,2:N+1]+(Ly4*M)[:,1:N,2:N+1]+(Lz2*M)[:,2:N+1,1:N]+(Lz3*M)[:,2:N+1,1:N]+(Lz4*M)[:,2:N+1,1:N])
 
     ############################################################################
     # Tests to isolate the above problem
@@ -1538,17 +1538,17 @@ end
     A = Ly2 + Ly3 + Ly4 + Lz2 + Lz3
     M_temp = zeros(N+2,N,N)
     mul!(M_temp, A, M)
-    @test_broken M_temp ≈ ((Ly2*M)[:,1:N,2:N+1]+(Ly3*M)[:,1:N,2:N+1]+(Ly4*M)[:,1:N,2:N+1]+(Lz2*M)[:,2:N+1,1:N]+(Lz3*M)[:,2:N+1,1:N])
+    @test M_temp ≈ ((Ly2*M)[:,1:N,2:N+1]+(Ly3*M)[:,1:N,2:N+1]+(Ly4*M)[:,1:N,2:N+1]+(Lz2*M)[:,2:N+1,1:N]+(Lz3*M)[:,2:N+1,1:N])
 
     A = Ly2 + Ly3 + Ly4 + Lz2 + Lz4
     M_temp = zeros(N+2,N,N)
     mul!(M_temp, A, M)
-    @test_broken M_temp ≈ ((Ly2*M)[:,1:N,2:N+1]+(Ly3*M)[:,1:N,2:N+1]+(Ly4*M)[:,1:N,2:N+1]+(Lz2*M)[:,2:N+1,1:N]+(Lz4*M)[:,2:N+1,1:N])
+    @test M_temp ≈ ((Ly2*M)[:,1:N,2:N+1]+(Ly3*M)[:,1:N,2:N+1]+(Ly4*M)[:,1:N,2:N+1]+(Lz2*M)[:,2:N+1,1:N]+(Lz4*M)[:,2:N+1,1:N])
 
     A = Ly2 + Ly3 + Ly4 + Lz3 + Lz4
     M_temp = zeros(N+2,N,N)
     mul!(M_temp, A, M)
-    @test_broken M_temp ≈ ((Ly2*M)[:,1:N,2:N+1]+(Ly3*M)[:,1:N,2:N+1]+(Ly4*M)[:,1:N,2:N+1]+(Lz3*M)[:,2:N+1,1:N]+(Lz4*M)[:,2:N+1,1:N])
+    @test M_temp ≈ ((Ly2*M)[:,1:N,2:N+1]+(Ly3*M)[:,1:N,2:N+1]+(Ly4*M)[:,1:N,2:N+1]+(Lz3*M)[:,2:N+1,1:N]+(Lz4*M)[:,2:N+1,1:N])
 
 
     ###
@@ -1556,7 +1556,7 @@ end
     A = Ly2 + Ly3 + Ly4 + Lz2 + Lz2
     M_temp = zeros(N+2,N,N)
     mul!(M_temp, A, M)
-    @test_broken M_temp ≈ ((Ly2*M)[:,1:N,2:N+1]+(Ly3*M)[:,1:N,2:N+1]+(Ly4*M)[:,1:N,2:N+1]+(Lz2*M)[:,2:N+1,1:N]+(Lz2*M)[:,2:N+1,1:N])
+    @test M_temp ≈ ((Ly2*M)[:,1:N,2:N+1]+(Ly3*M)[:,1:N,2:N+1]+(Ly4*M)[:,1:N,2:N+1]+(Lz2*M)[:,2:N+1,1:N]+(Lz2*M)[:,2:N+1,1:N])
     # It appears that multiple z operators with some y operators is causing the issues
 
     ###
@@ -1574,25 +1574,25 @@ end
     A = Lz2 + Lz3 + Lz4 + Ly3
     M_temp = zeros(N+2,N,N)
     mul!(M_temp, A, M)
-    @test_broken M_temp ≈ ((Ly3*M)[:,1:N,2:N+1]+(Lz2*M)[:,2:N+1,1:N]+(Lz3*M)[:,2:N+1,1:N]+(Lz4*M)[:,2:N+1,1:N])
+    @test M_temp ≈ ((Ly3*M)[:,1:N,2:N+1]+(Lz2*M)[:,2:N+1,1:N]+(Lz3*M)[:,2:N+1,1:N]+(Lz4*M)[:,2:N+1,1:N])
     # It seems that the y paddign could be the issue
 
     A = Lz2 + Lz3 + Lz4 + Ly4
     M_temp = zeros(N+2,N,N)
     mul!(M_temp, A, M)
-    @test_broken M_temp ≈ ((Ly4*M)[:,1:N,2:N+1]+(Lz2*M)[:,2:N+1,1:N]+(Lz3*M)[:,2:N+1,1:N]+(Lz4*M)[:,2:N+1,1:N])
+    @test M_temp ≈ ((Ly4*M)[:,1:N,2:N+1]+(Lz2*M)[:,2:N+1,1:N]+(Lz3*M)[:,2:N+1,1:N]+(Lz4*M)[:,2:N+1,1:N])
     # It seems that the y paddign could be the issue
 
     A = Lz2 + Lz3 + Lz4 + Ly4 + Ly3
     M_temp = zeros(N+2,N,N)
     mul!(M_temp, A, M)
-    @test_broken M_temp ≈ ((Ly3*M)[:,1:N,2:N+1]+(Ly4*M)[:,1:N,2:N+1]+(Lz2*M)[:,2:N+1,1:N]+(Lz3*M)[:,2:N+1,1:N]+(Lz4*M)[:,2:N+1,1:N])
+    @test M_temp ≈ ((Ly3*M)[:,1:N,2:N+1]+(Ly4*M)[:,1:N,2:N+1]+(Lz2*M)[:,2:N+1,1:N]+(Lz3*M)[:,2:N+1,1:N]+(Lz4*M)[:,2:N+1,1:N])
     # It seems that the y paddign could be the issue
 
     A = Lz2 + Lz3 + Lz4 + Ly4 + Ly2
     M_temp = zeros(N+2,N,N)
     mul!(M_temp, A, M)
-    @test_broken M_temp ≈ ((Ly2*M)[:,1:N,2:N+1]+(Ly4*M)[:,1:N,2:N+1]+(Lz2*M)[:,2:N+1,1:N]+(Lz3*M)[:,2:N+1,1:N]+(Lz4*M)[:,2:N+1,1:N])
+    @test M_temp ≈ ((Ly2*M)[:,1:N,2:N+1]+(Ly4*M)[:,1:N,2:N+1]+(Lz2*M)[:,2:N+1,1:N]+(Lz3*M)[:,2:N+1,1:N]+(Lz4*M)[:,2:N+1,1:N])
     # It seems that the y paddign could be the issue
 
     ###
@@ -1600,7 +1600,7 @@ end
     A = Lz2 + Lz3 +Ly3
     M_temp = zeros(N+2,N,N)
     mul!(M_temp, A, M)
-    @test_broken M_temp ≈ ((Ly3*M)[:,1:N,2:N+1]+(Lz2*M)[:,2:N+1,1:N]+(Lz3*M)[:,2:N+1,1:N])
+    @test M_temp ≈ ((Ly3*M)[:,1:N,2:N+1]+(Lz2*M)[:,2:N+1,1:N]+(Lz3*M)[:,2:N+1,1:N])
 
     A = Lz3 +Ly3
     M_temp = zeros(N+2,N,N)
