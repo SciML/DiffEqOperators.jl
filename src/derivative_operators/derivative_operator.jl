@@ -81,7 +81,6 @@ function CenteredDifference{N}(derivative_order::Int,
     stencil_coefs           = convert(SVector{stencil_length, T}, (1/dx^derivative_order) * calculate_weights(derivative_order, zero(T), dummy_x))
     _low_boundary_coefs     = SVector{boundary_stencil_length, T}[convert(SVector{boundary_stencil_length, T}, (1/dx^derivative_order) * calculate_weights(derivative_order, oneunit(T)*x0, left_boundary_x)) for x0 in L_boundary_deriv_spots]
     low_boundary_coefs      = convert(HybridArray{Tuple{StaticArrays.Dynamic()}},_low_boundary_coefs)
-    # low_boundary_coefs     = HybridMatrix{boundary_point_count, StaticArrays.Dynamic()}([convert(SVector{boundary_stencil_length, T}, (1/dx^derivative_order) * calculate_weights(derivative_order, oneunit(T)*x0, left_boundary_x)) for x0 in L_boundary_deriv_spots])
 
     # _high_boundary_coefs    = SVector{boundary_stencil_length, T}[convert(SVector{boundary_stencil_length, T}, (1/dx^derivative_order) * calculate_weights(derivative_order, oneunit(T)*x0, reverse(right_boundary_x))) for x0 in R_boundary_deriv_spots]
     # high_boundary_coefs      = convert(HybridArray{Tuple{StaticArrays.Dynamic()}},reverse(_high_boundary_coefs))
@@ -90,11 +89,9 @@ function CenteredDifference{N}(derivative_order::Int,
 
     offside = 0
 
-    coefficients            = coeff_func isa Nothing ? nothing : fill!(Vector{T}(undef,len),0)
+    coefficients            = fill!(Vector{T}(undef,len),0)
     
-    if coeff_func != nothing
-        compute_coeffs!(coeff_func, coefficients)
-    end
+    compute_coeffs!(coeff_func, coefficients)
     
     
 
@@ -141,18 +138,16 @@ function CenteredDifference{N}(derivative_order::Int,
     stencil_coefs           = [convert(SVector{stencil_length, T}, calculate_weights(derivative_order, zero(T), generate_coordinates(i, stencil_x, dummy_x, dx))) for i in interior_x]
     _low_boundary_coefs     = SVector{boundary_stencil_length, T}[convert(SVector{boundary_stencil_length, T},
                                                                   calculate_weights(derivative_order, low_boundary_x[i+1], low_boundary_x)) for i in 1:boundary_point_count]
-    low_boundary_coefs      = convert(SVector{boundary_point_count},_low_boundary_coefs)
+    low_boundary_coefs      = convert(HybridArray{Tuple{StaticArrays.Dynamic()}},_low_boundary_coefs)
     _high_boundary_coefs     = SVector{boundary_stencil_length, T}[convert(SVector{boundary_stencil_length, T},
                                                                   calculate_weights(derivative_order, high_boundary_x[end-i], high_boundary_x)) for i in boundary_point_count:-1:1]
-    high_boundary_coefs      = convert(SVector{boundary_point_count},_high_boundary_coefs)
+    high_boundary_coefs      = convert(HybridArray{Tuple{StaticArrays.Dynamic()}},_high_boundary_coefs)
 
     offside = 0
 
-    coefficients            = coeff_func isa Nothing ? nothing : zeros(T,len)
+    coefficients            = zeros(T,len)
 
-    if coeff_func != nothing
-        compute_coeffs!(coeff_func, coefficients)
-    end
+    compute_coeffs!(coeff_func, coefficients)
                
         
     DerivativeOperator{T,N,false,typeof(dx),typeof(stencil_coefs),
@@ -199,7 +194,7 @@ julia> Array(L2 * Q)[1]
 """
 function UpwindDifference{N}(derivative_order::Int,
                              approximation_order::Int, dx::T,
-                             len::Int, coeff_func=nothing; offside::Int=0) where {T<:Real,N}
+                             len::Int, coeff_func=1; offside::Int=0) where {T<:Real,N}
 
     @assert offside > -1 "Number of offside points should be non-negative"
     @assert offside <= div(derivative_order + approximation_order - 1,2) "Number of offside points should not exceed the primary wind points"
@@ -215,17 +210,15 @@ function UpwindDifference{N}(derivative_order::Int,
     low_boundary_x         = 0.0:(boundary_stencil_length-1)
     L_boundary_deriv_spots = 1.0:boundary_stencil_length - 2.0 - offside
     _low_boundary_coefs     = SVector{boundary_stencil_length, T}[convert(SVector{boundary_stencil_length, T}, (1/dx^derivative_order) * calculate_weights(derivative_order, oneunit(T)*x0, low_boundary_x)) for x0 in L_boundary_deriv_spots]
-    low_boundary_coefs      = convert(SVector{boundary_point_count},_low_boundary_coefs)
+    low_boundary_coefs      = convert(HybridArray{Tuple{StaticArrays.Dynamic()}},_low_boundary_coefs)
 
     high_boundary_x         = 0.0:-1.0:-(boundary_stencil_length-1.0)
     R_boundary_deriv_spots = -1.0:-1.0:-(boundary_stencil_length-2.0)
     _high_boundary_coefs     = SVector{boundary_stencil_length, T}[convert(SVector{boundary_stencil_length, T}, ((-1/dx)^derivative_order) * calculate_weights(derivative_order, oneunit(T)*x0, high_boundary_x)) for x0 in R_boundary_deriv_spots]
-    high_boundary_coefs = convert(SVector{boundary_point_count + offside},_high_boundary_coefs)
+    high_boundary_coefs = convert(HybridArray{Tuple{StaticArrays.Dynamic()}},_high_boundary_coefs)
 
     coefficients = zeros(T,len)
-    if coeff_func != nothing
-        compute_coeffs!(coeff_func, coefficients)
-    end
+    compute_coeffs!(coeff_func, coefficients)
 
     DerivativeOperator{T,N,true,T,typeof(stencil_coefs),
         typeof(low_boundary_coefs),typeof(high_boundary_coefs),Vector{T},
@@ -242,7 +235,7 @@ end
 # TODO implement the non-uniform grid
 function UpwindDifference{N}(derivative_order::Int,
                           approximation_order::Int, dx::AbstractVector{T},
-                          len::Int, coeff_func=nothing; offside::Int=0) where {T<:Real,N}
+                          len::Int, coeff_func=1; offside::Int=0) where {T<:Real,N}
 
     @assert offside > -1 "Number of offside points should be non-negative"
     @assert offside <= div(derivative_order + approximation_order - 1,2) "Number of offside points should not exceed the primary wind points"
@@ -282,9 +275,7 @@ function UpwindDifference{N}(derivative_order::Int,
 
     # Compute coefficients
     coefficients = zeros(T,len)
-    if coeff_func != nothing
-        compute_coeffs!(coeff_func, coefficients)
-    end
+    compute_coeffs!(coeff_func, coefficients)
 
     DerivativeOperator{T,N,true,typeof(dx),typeof(stencil_coefs),
         typeof(low_boundary_coefs),typeof(high_boundary_coefs),Vector{T},
