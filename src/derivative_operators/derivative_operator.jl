@@ -135,7 +135,7 @@ function CenteredDifference{N}(derivative_order::Int,
     # Because it's a N x (N+2) operator, the last stencil on the sides are the [b,0,x,x,x,x] stencils, not the [0,x,x,x,x,x] stencils, since we're never solving for the derivative at the boundary point.
     deriv_spots             = (-div(stencil_length,2)+1) : -1
 
-    stencil_coefs           = [convert(SVector{stencil_length, T}, calculate_weights(derivative_order, zero(T), generate_coordinates(i, stencil_x, dummy_x, dx))) for i in interior_x]
+    stencil_coefs           = convert(HybridArray{Tuple{StaticArrays.Dynamic()}},[convert(SVector{stencil_length, T}, calculate_weights(derivative_order, zero(T), generate_coordinates(i, stencil_x, dummy_x, dx))) for i in interior_x])
     _low_boundary_coefs     = SVector{boundary_stencil_length, T}[convert(SVector{boundary_stencil_length, T},
                                                                   calculate_weights(derivative_order, low_boundary_x[i+1], low_boundary_x)) for i in 1:boundary_point_count]
     low_boundary_coefs      = convert(HybridArray{Tuple{StaticArrays.Dynamic()}},_low_boundary_coefs)
