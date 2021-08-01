@@ -11,7 +11,7 @@
 
 index(i::Int, N::Int) = i + div(N, 2) + 1
 
-struct DerivativeOperator{T<:Real,N,Wind,T2,S1,S2,S3<:SArray,T3,F} <: AbstractDerivativeOperator{T}
+struct DerivativeOperator{T<:Real,N,Wind,T2,S1,S2,S3,T3,F} <: AbstractDerivativeOperator{T}
     derivative_order        :: Int
     approximation_order     :: Int
     dx                      :: T2
@@ -64,7 +64,7 @@ struct CenteredDifference{N} end
 
 function CenteredDifference{N}(derivative_order::Int,
                             approximation_order::Int, dx::T,
-                            len::Int, coeff_func=nothing) where {T<:Real,N}
+                            len::Int, coeff_func=1) where {T<:Real,N}
     @assert approximation_order>1 "approximation_order must be greater than 1."
     stencil_length          = derivative_order + approximation_order - 1 + (derivative_order+approximation_order)%2
     boundary_stencil_length = derivative_order + approximation_order
@@ -83,17 +83,13 @@ function CenteredDifference{N}(derivative_order::Int,
     low_boundary_coefs      = convert(SVector{boundary_point_count},_low_boundary_coefs)
 
     # _high_boundary_coefs    = SVector{boundary_stencil_length, T}[convert(SVector{boundary_stencil_length, T}, (1/dx^derivative_order) * calculate_weights(derivative_order, oneunit(T)*x0, reverse(right_boundary_x))) for x0 in R_boundary_deriv_spots]
-    # high_boundary_coefs      = convert(SVector{boundary_point_count},reverse(_high_boundary_coefs))
-
     high_boundary_coefs      = convert(SVector{boundary_point_count},reverse(map(reverse, _low_boundary_coefs*(-1)^derivative_order)))
 
     offside = 0
 
-    coefficients            = coeff_func isa Nothing ? nothing : fill!(Vector{T}(undef,len),0)
+    coefficients            = fill!(Vector{T}(undef,len),0)
     
-    if coeff_func != nothing
-        compute_coeffs!(coeff_func, coefficients)
-    end
+    compute_coeffs!(coeff_func, coefficients)
     
     
 
@@ -123,7 +119,7 @@ end
 
 function CenteredDifference{N}(derivative_order::Int,
                             approximation_order::Int, dx::AbstractVector{T},
-                            len::Int, coeff_func=nothing) where {T<:Real,N}
+                            len::Int, coeff_func=1) where {T<:Real,N}
 
     stencil_length          = derivative_order + approximation_order - 1 + (derivative_order+approximation_order)%2
     boundary_stencil_length = derivative_order + approximation_order
@@ -147,11 +143,9 @@ function CenteredDifference{N}(derivative_order::Int,
 
     offside = 0
 
-    coefficients            = coeff_func isa Nothing ? nothing : zeros(T,len)
+    coefficients            = zeros(T,len)
 
-    if coeff_func != nothing
-        compute_coeffs!(coeff_func, coefficients)
-    end
+    compute_coeffs!(coeff_func, coefficients)
                
         
     DerivativeOperator{T,N,false,typeof(dx),typeof(stencil_coefs),
@@ -198,7 +192,7 @@ julia> Array(L2 * Q)[1]
 """
 function UpwindDifference{N}(derivative_order::Int,
                              approximation_order::Int, dx::T,
-                             len::Int, coeff_func=nothing; offside::Int=0) where {T<:Real,N}
+                             len::Int, coeff_func=1; offside::Int=0) where {T<:Real,N}
 
     @assert offside > -1 "Number of offside points should be non-negative"
     @assert offside <= div(derivative_order + approximation_order - 1,2) "Number of offside points should not exceed the primary wind points"
@@ -222,9 +216,7 @@ function UpwindDifference{N}(derivative_order::Int,
     high_boundary_coefs = convert(SVector{boundary_point_count + offside},_high_boundary_coefs)
 
     coefficients = zeros(T,len)
-    if coeff_func != nothing
-        compute_coeffs!(coeff_func, coefficients)
-    end
+    compute_coeffs!(coeff_func, coefficients)
 
     DerivativeOperator{T,N,true,T,typeof(stencil_coefs),
         typeof(low_boundary_coefs),typeof(high_boundary_coefs),Vector{T},
@@ -241,7 +233,7 @@ end
 # TODO implement the non-uniform grid
 function UpwindDifference{N}(derivative_order::Int,
                           approximation_order::Int, dx::AbstractVector{T},
-                          len::Int, coeff_func=nothing; offside::Int=0) where {T<:Real,N}
+                          len::Int, coeff_func=1; offside::Int=0) where {T<:Real,N}
 
     @assert offside > -1 "Number of offside points should be non-negative"
     @assert offside <= div(derivative_order + approximation_order - 1,2) "Number of offside points should not exceed the primary wind points"
@@ -281,9 +273,7 @@ function UpwindDifference{N}(derivative_order::Int,
 
     # Compute coefficients
     coefficients = zeros(T,len)
-    if coeff_func != nothing
-        compute_coeffs!(coeff_func, coefficients)
-    end
+    compute_coeffs!(coeff_func, coefficients)
 
     DerivativeOperator{T,N,true,typeof(dx),typeof(stencil_coefs),
         typeof(low_boundary_coefs),typeof(high_boundary_coefs),Vector{T},

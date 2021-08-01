@@ -63,7 +63,7 @@ end
     push!(vec_op_ans, ones(3))
 
     # Check constructors
-    @test UpwindDifference(1, 1, 1., 3).coefficients + ones(3) - ones(3) ≈ zeros(3)
+    @test UpwindDifference(1, 1, 1., 3, 0.).coefficients + ones(3) - ones(3) ≈ zeros(3)
     @test CenteredDifference(2, 2, 1., 3, 0.).coefficients + ones(3) - ones(3) ≈ zeros(3)
     for (L, op_ans) in zip(vec_op, vec_op_ans)
         @test L.coefficients ≈ op_ans
