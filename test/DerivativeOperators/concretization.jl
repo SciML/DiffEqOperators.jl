@@ -222,3 +222,28 @@ end
       @test vec(L3*M) ≈ Array(L3, size(M))*vec(M) ≈ sparse(L3,size(M))*vec(M) ≈ BandedMatrix(L3, size(M))*vec(M) ≈ BandedBlockBandedMatrix(L3,size(M))*vec(M) ≈ vec(K3*M) ≈ Array(K3, size(M))*vec(M) ≈ sparse(K3,size(M))*vec(M) ≈ BandedMatrix(K3, size(M))*vec(M) ≈ BandedBlockBandedMatrix(K3,size(M))*vec(M)
 
 end
+
+@testset "BC concretizations" begin
+
+      M = rand(20)
+      L1 = CenteredDifference(1,2,1.0,20)
+      L2 = CenteredDifference(1,2,1.0,18)
+
+      deriv_start, deriv_end = (L2*M)[1], (L2*M)[end]
+      params = [1.0,0.5]
+      left_RBC = params[1]*M[1] - params[2]*deriv_start
+      right_RBC = params[1]*M[end] + params[2]*deriv_end
+      bc1 = Dirichlet0BC(Float64)
+      bc2 = DirichletBC(0.0,0.0)
+      bc3 = NeumannBC((deriv_start,deriv_end),1.0,1)
+      bc4 = RobinBC((params[1],-params[2],left_RBC), (params[1],params[2],right_RBC),1.0,1)
+      bc5 = GeneralBC([-left_RBC,params[1],-params[2]],[-right_RBC,params[1],params[2]],1.0,1)
+      bc6 = PeriodicBC(Float64)
+
+      @test L1*bc1*M ≈ L1*(Array(bc1, length(M))[1]*vec(M) + Array(bc1, length(M))[2]) ≈ L1*(sparse(bc1, length(M))[1]*vec(M) + sparse(bc1, length(M))[2]) ≈ L1*(BandedMatrix(bc1, length(M))[1]*vec(M) + BandedMatrix(bc1, length(M))[2])
+      @test L1*bc2*M ≈ L1*(Array(bc2, length(M))[1]*vec(M) + Array(bc2, length(M))[2]) ≈ L1*(sparse(bc2, length(M))[1]*vec(M) + sparse(bc2, length(M))[2]) ≈ L1*(BandedMatrix(bc2, length(M))[1]*vec(M) + BandedMatrix(bc2, length(M))[2])
+      @test L1*bc3*M ≈ L1*(Array(bc3, length(M))[1]*vec(M) + Array(bc3, length(M))[2]) ≈ L1*(sparse(bc3, length(M))[1]*vec(M) + sparse(bc3, length(M))[2]) ≈ L1*(BandedMatrix(bc3, length(M))[1]*vec(M) + BandedMatrix(bc3, length(M))[2])
+      @test L1*bc4*M ≈ L1*(Array(bc4, length(M))[1]*vec(M) + Array(bc4, length(M))[2]) ≈ L1*(sparse(bc4, length(M))[1]*vec(M) + sparse(bc4, length(M))[2]) ≈ L1*(BandedMatrix(bc4, length(M))[1]*vec(M) + BandedMatrix(bc4, length(M))[2])
+      @test L1*bc5*M ≈ L1*(Array(bc5, length(M))[1]*vec(M) + Array(bc5, length(M))[2]) ≈ L1*(sparse(bc5, length(M))[1]*vec(M) + sparse(bc5, length(M))[2]) ≈ L1*(BandedMatrix(bc5, length(M))[1]*vec(M) + BandedMatrix(bc5, length(M))[2])
+      @test L1*bc6*M ≈ L1*(Array(bc6, length(M))[1]*vec(M) + Array(bc6, length(M))[2]) ≈ L1*(sparse(bc6, length(M))[1]*vec(M) + sparse(bc6, length(M))[2]) ≈ L1*(BandedMatrix(bc6, length(M))[1]*vec(M) + BandedMatrix(bc6, length(M))[2])
+end

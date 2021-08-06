@@ -116,14 +116,29 @@ function LinearAlgebra.Array(Q::AffineBC{T}, N::Int) where {T}
 end
 
 function SparseArrays.SparseMatrixCSC(Q::AffineBC{T}, N::Int) where {T}
-    Q_L = [transpose(Q.a_l) transpose(zeros(T, N-length(Q.a_l))); Diagonal(ones(T,N)); transpose(zeros(T, N-length(Q.a_r))) transpose(Q.a_r)]
-    Q_b = [Q.b_l; zeros(T,N); Q.b_r]
-    return (Q_L, Q_b)
+    Q_l = spzeros(T, N+2, N)
+    for i in 1:N
+        Q_l[i+1,i] = one(T)
+    end
+
+    a_r = Q.a_r[findfirst(!iszero, Q.a_r) isa Nothing ? something(end-1:end) : something(findfirst(!iszero, Q.a_r):end)]
+    a_l = Q.a_l[findfirst(!iszero, Q.a_l) isa Nothing ? something(end-1:end) : something(findfirst(!iszero, Q.a_l):end)]
+    for (j,e) ∈ enumerate(a_l)
+        BandedMatrices.inbands_setindex!(Q_l, e, 1, j)
+    end
+    for (j,e) ∈ enumerate(a_r)
+        BandedMatrices.inbands_setindex!(Q_l, e, N+2, N-length(a_r)+j)
+    end
+    
+    Q_b = spzeros(T,N+2)
+    Q_b[1] = Q.b_l
+    Q_b[N+2] = Q.b_r
+    return (Q_l,Q_b)
 end
 
 function BandedMatrices.BandedMatrix(Q::AffineBC{T}, N::Int) where {T}
-    a_r = Q.a_r[something(findfirst(!iszero, Q.a_r):end)]
-    a_l = Q.a_l[something(findfirst(!iszero, Q.a_l):end)]
+    a_r = Q.a_r[findfirst(!iszero, Q.a_r) isa Nothing ? something(end-1:end) : something(findfirst(!iszero, Q.a_r):end)]
+    a_l = Q.a_l[findfirst(!iszero, Q.a_l) isa Nothing ? something(end-1:end) : something(findfirst(!iszero, Q.a_l):end)]
 
     l = max(count(!iszero, a_r)+1, 1)
     u = max(count(!iszero, a_l)-1, -1)
@@ -144,15 +159,21 @@ function SparseArrays.sparse(Q::AffineBC{T}, N::Int) where {T}
 end
 
 LinearAlgebra.Array(Q::PeriodicBC{T}, N::Int) where T = (Array([transpose(zeros(T, N-1)) one(T); Diagonal(ones(T,N)); one(T) transpose(zeros(T, N-1))]), zeros(T, N+2))
-SparseArrays.SparseMatrixCSC(Q::PeriodicBC{T}, N::Int) where T = ([transpose(zeros(T, N-1)) one(T); Diagonal(ones(T,N)); one(T) transpose(zeros(T, N-1))], zeros(T, N+2))
+function SparseArrays.SparseMatrixCSC(Q::PeriodicBC{T}, N::Int) where T
+    Q_l = spzeros(T,N+2,N)
+    for i in 1:N
+       Q_l[i+1,i] = one(T)
+    end
+    Q_l[1, end] = one(T)
+    Q_l[end, 1] = one(T)
+    Q_b = spzeros(T,N+2)
+    return (Q_l,Q_b)
+end
 SparseArrays.sparse(Q::PeriodicBC{T}, N::Int) where T = SparseMatrixCSC(Q,N)
 function BandedMatrices.BandedMatrix(Q::PeriodicBC{T}, N::Int) where T #Not recommended!
-    Q_array = BandedMatrix{T}(Eye(N), (N-1, N-1))
+    Q_array = BandedMatrix{T}((-1 => ones(T,N),), (N+2, N), (N+1,N+1))
     Q_array[1, end] = one(T)
-    Q_array[1, 1] = zero(T)
     Q_array[end, 1] = one(T)
-    Q_array[end, end] = zero(T)
-
     return (Q_array, zeros(T, N+2))
 end
 
@@ -571,7 +592,7 @@ function SparseArrays.SparseMatrixCSC(A::DerivativeOperator{T,N,true}, len::Int=
         cur_coeff   = coeff[i]
         if cur_coeff >= 0 && (i+stl <= len+2) && i >= offside
             cur_stencil = stencils
-            L[i,i+1-offside : i+stl-offside] = cur_coeff*cur_stencil
+            L[i,i+1-offside:i+stl-offside] = cur_coeff*cur_stencil
         else
             cur_stencil = downwind_stencils[i]
             L[i,1:bstl] = cur_coeff * cur_stencil
