@@ -225,11 +225,12 @@ end
 
 @testset "BC concretizations" begin
 
-      M = rand(20)
-      L1 = CenteredDifference(1,2,1.0,20)
-      L2 = CenteredDifference(1,2,1.0,18)
+      M2 = rand(11)
+      M = M2[2:10] 
+      L1 = CenteredDifference(2,2,1.0,9)
+      L2 = CenteredDifference(1,2,1.0,9)
 
-      deriv_start, deriv_end = (L2*M)[1], (L2*M)[end]
+      deriv_start, deriv_end = (L2*M2)[1], (L2*M2)[end]
       params = [1.0,0.5]
       left_RBC = params[1]*M[1] - params[2]*deriv_start
       right_RBC = params[1]*M[end] + params[2]*deriv_end

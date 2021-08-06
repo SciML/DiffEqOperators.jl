@@ -121,8 +121,8 @@ function SparseArrays.SparseMatrixCSC(Q::AffineBC{T}, N::Int) where {T}
         Q_l[i+1,i] = one(T)
     end
 
-    a_r = Q.a_r[findfirst(!iszero, Q.a_r) isa Nothing ? something(end-1:end) : something(findfirst(!iszero, Q.a_r):end)]
-    a_l = Q.a_l[findfirst(!iszero, Q.a_l) isa Nothing ? something(end-1:end) : something(findfirst(!iszero, Q.a_l):end)]
+    a_r = Q.a_r[findfirst(!iszero, Q.a_r) isa Nothing ? something(end+1:end) : something(findfirst(!iszero, Q.a_r):end)]
+    a_l = Q.a_l[findfirst(!iszero, Q.a_l) isa Nothing ? something(end+1:end) : something(findfirst(!iszero, Q.a_l):end)]
     for (j,e) ∈ enumerate(a_l)
         BandedMatrices.inbands_setindex!(Q_l, e, 1, j)
     end
@@ -137,8 +137,8 @@ function SparseArrays.SparseMatrixCSC(Q::AffineBC{T}, N::Int) where {T}
 end
 
 function BandedMatrices.BandedMatrix(Q::AffineBC{T}, N::Int) where {T}
-    a_r = Q.a_r[findfirst(!iszero, Q.a_r) isa Nothing ? something(end-1:end) : something(findfirst(!iszero, Q.a_r):end)]
-    a_l = Q.a_l[findfirst(!iszero, Q.a_l) isa Nothing ? something(end-1:end) : something(findfirst(!iszero, Q.a_l):end)]
+    a_r = Q.a_r[findfirst(!iszero, Q.a_r) isa Nothing ? something(end+1:end) : something(findfirst(!iszero, Q.a_r):end)]
+    a_l = Q.a_l[findfirst(!iszero, Q.a_l) isa Nothing ? something(end+1:end) : something(findfirst(!iszero, Q.a_l):end)]
 
     l = max(count(!iszero, a_r)+1, 1)
     u = max(count(!iszero, a_l)-1, -1)
