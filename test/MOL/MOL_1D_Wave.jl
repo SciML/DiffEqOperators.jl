@@ -46,7 +46,8 @@ using ModelingToolkit: Differential
     # Test against exact solution
     for i in 1:length(sol)
         exact = u_exact(x_sol, t_sol[i])
-        u_approx = sol.u[i]
+        # non-differential states only (ode_sys_lowering creates additional differential states)
+        u_approx = sol.u[i][1:28]
         @test all(isapprox.(u_approx, exact, atol=0.01))
     end
 # end
