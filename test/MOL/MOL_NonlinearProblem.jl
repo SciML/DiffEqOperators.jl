@@ -1,4 +1,4 @@
-# 1D diffusion problem
+# 1D nonlinear problem
 
 # Packages and inclusions
 using ModelingToolkit,DiffEqOperators,LinearAlgebra,Test

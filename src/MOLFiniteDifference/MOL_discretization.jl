@@ -140,7 +140,10 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
 
             bclocs = map(e->substitute.(indvars,e),edgevals) # location of the boundary conditions e.g. (t,0.0,y)
             edgemaps = Dict(bclocs .=> [spacevals[e...] for e in edges])
-            initmaps = substitute.(depvars,[t=>tspan[1]])
+            
+            if t != nothing
+                initmaps = substitute.(depvars,[t=>tspan[1]])
+            end
 
             # Generate map from variable (e.g. u(t,0)) to discretized variable (e.g. u₁(t))
             subvar(depvar) = substitute.((depvar,),edgevals)
@@ -188,12 +191,12 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
                 if any(u->isequal(operation(u),operation(bcdepvar)),depvars)
                     # Check whether the bc is an initial condition
                     is_ic = false
-                    if operation(bc.lhs) isa Sym && !any(x -> isequal(x, t.val), arguments(bc.lhs))
+                    if t != nothing && operation(bc.lhs) isa Sym && !any(x -> isequal(x, t.val), arguments(bc.lhs))
                         # Look for u(t,0) case
                         depvar = bc.lhs # e.g. u(t,0)
                         bcop = identity
                         is_ic = true
-                    elseif operation(bc.lhs) isa Differential
+                    elseif t != nothing && operation(bc.lhs) isa Differential
                         # Look for Dt(u(t,0)) case
                         depvar = arguments(bc.lhs)[1] # e.g. u(t,0)
                         if operation(depvar) isa Sym && !any(x -> isequal(x, t.val), arguments(depvar))
@@ -201,7 +204,7 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
                             is_ic = true
                         end
                     end
-                    if t != nothing && is_ic
+                    if is_ic
                         # initial condition
                         # Assume in the form `u(...) ~ ...` or `Dt(u(...)) ~ ...` for now
                         # find the index of the depvar
@@ -391,7 +394,7 @@ end
 function SciMLBase.discretize(pdesys::ModelingToolkit.PDESystem,discretization::DiffEqOperators.MOLFiniteDifference)
     sys, tspan = SciMLBase.symbolic_discretize(pdesys,discretization)
     # Lower order for higher-order ODEs (e.g. wave equation)
-    sys = ode_order_lowering(sys)
+    sys = sys isa NonlinearSystem ? sys : ode_order_lowering(sys)
     if tspan == nothing
         return prob = NonlinearProblem(sys, ones(length(sys.states)))
     else
