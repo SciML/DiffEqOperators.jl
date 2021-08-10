@@ -53,7 +53,7 @@ SparseArrays.sparse(A::DerivativeOperator{T}, N::Int=A.len) where T = SparseMatr
 function BandedMatrices.BandedMatrix(A::DerivativeOperator{T}, N::Int=A.len) where T
     stencil_length = A.stencil_length
     bstl = A.boundary_stencil_length
-    L = BandedMatrix{T}(Zeros(N, N+2), (max(stencil_length-3,0,bstl),max(stencil_length-1,0,bstl)))
+    L = BandedMatrix{T}(Zeros(N, N+2), (bstl-3,bstl-1))
     copyto!(L, A, N)
 end
 
@@ -116,15 +116,40 @@ function LinearAlgebra.Array(Q::AffineBC{T}, N::Int) where {T}
 end
 
 function SparseArrays.SparseMatrixCSC(Q::AffineBC{T}, N::Int) where {T}
-    Q_L = [transpose(Q.a_l) transpose(zeros(T, N-length(Q.a_l))); Diagonal(ones(T,N)); transpose(zeros(T, N-length(Q.a_r))) transpose(Q.a_r)]
-    Q_b = [Q.b_l; zeros(T,N); Q.b_r]
-    return (Q_L, Q_b)
+    Q_l = spzeros(T, N+2, N)
+    for i in 1:N
+        Q_l[i+1,i] = one(T)
+    end
+
+    a_r = Q.a_r[findfirst(!iszero, Q.a_r) isa Nothing ? something(end+1:end) : something(findfirst(!iszero, Q.a_r):end)]
+    a_l = Q.a_l[findfirst(!iszero, Q.a_l) isa Nothing ? something(end+1:end) : something(findfirst(!iszero, Q.a_l):end)]
+    for (j,e) ∈ enumerate(a_l)
+        BandedMatrices.inbands_setindex!(Q_l, e, 1, j)
+    end
+    for (j,e) ∈ enumerate(a_r)
+        BandedMatrices.inbands_setindex!(Q_l, e, N+2, N-length(a_r)+j)
+    end
+    
+    Q_b = spzeros(T,N+2)
+    Q_b[1] = Q.b_l
+    Q_b[N+2] = Q.b_r
+    return (Q_l,Q_b)
 end
 
 function BandedMatrices.BandedMatrix(Q::AffineBC{T}, N::Int) where {T}
-    Q_l = BandedMatrix{T}(Eye(N), (length(Q.a_r)-1, length(Q.a_l)-1))
-    BandedMatrices.inbands_setindex!(Q_l, Q.a_l, 1, 1:length(Q.a_l))
-    BandedMatrices.inbands_setindex!(Q_l, Q.a_r, N, (N-length(Q.a_r)+1):N)
+    a_r = Q.a_r[findfirst(!iszero, Q.a_r) isa Nothing ? something(end+1:end) : something(findfirst(!iszero, Q.a_r):end)]
+    a_l = Q.a_l[findfirst(!iszero, Q.a_l) isa Nothing ? something(end+1:end) : something(findfirst(!iszero, Q.a_l):end)]
+
+    l = max(count(!iszero, a_r)+1, 1)
+    u = max(count(!iszero, a_l)-1, -1)
+
+    Q_l = BandedMatrix((-1 => ones(T,N),), (N+2,N), (l, u))
+    for (j,e) ∈ enumerate(a_l)
+        BandedMatrices.inbands_setindex!(Q_l, e, 1, j)
+    end
+    for (j,e) ∈ enumerate(a_r)
+        BandedMatrices.inbands_setindex!(Q_l, e, N+2, N-length(a_r)+j)
+    end
     Q_b = [Q.b_l; zeros(T,N); Q.b_r]
     return (Q_l, Q_b)
 end
@@ -134,15 +159,21 @@ function SparseArrays.sparse(Q::AffineBC{T}, N::Int) where {T}
 end
 
 LinearAlgebra.Array(Q::PeriodicBC{T}, N::Int) where T = (Array([transpose(zeros(T, N-1)) one(T); Diagonal(ones(T,N)); one(T) transpose(zeros(T, N-1))]), zeros(T, N+2))
-SparseArrays.SparseMatrixCSC(Q::PeriodicBC{T}, N::Int) where T = ([transpose(zeros(T, N-1)) one(T); Diagonal(ones(T,N)); one(T) transpose(zeros(T, N-1))], zeros(T, N+2))
+function SparseArrays.SparseMatrixCSC(Q::PeriodicBC{T}, N::Int) where T
+    Q_l = spzeros(T,N+2,N)
+    for i in 1:N
+       Q_l[i+1,i] = one(T)
+    end
+    Q_l[1, end] = one(T)
+    Q_l[end, 1] = one(T)
+    Q_b = spzeros(T,N+2)
+    return (Q_l,Q_b)
+end
 SparseArrays.sparse(Q::PeriodicBC{T}, N::Int) where T = SparseMatrixCSC(Q,N)
 function BandedMatrices.BandedMatrix(Q::PeriodicBC{T}, N::Int) where T #Not recommended!
-    Q_array = BandedMatrix{T}(Eye(N), (N-1, N-1))
+    Q_array = BandedMatrix{T}((-1 => ones(T,N),), (N+2, N), (N+1,N+1))
     Q_array[1, end] = one(T)
-    Q_array[1, 1] = zero(T)
     Q_array[end, 1] = one(T)
-    Q_array[end, end] = zero(T)
-
     return (Q_array, zeros(T, N+2))
 end
 
@@ -442,6 +473,7 @@ function LinearAlgebra.Array(A::DerivativeOperator{T,N,true}, len::Int=A.len) wh
     stl = A.stencil_length
     bstl = A.boundary_stencil_length
     coeff   = A.coefficients
+    offside = A.offside
 
     # downwind stencils at low boundary
     downwind_stencils = A.low_boundary_coefs
@@ -452,35 +484,42 @@ function LinearAlgebra.Array(A::DerivativeOperator{T,N,true}, len::Int=A.len) wh
 
     for i in 1:bpc
         cur_coeff   = coeff[i]
-        if cur_coeff >= 0
+        if cur_coeff >= 0 && (i+stl <= len+2) && i >= offside
             cur_stencil = stencils
-            L[i,i+1:i+stl] = cur_coeff*cur_stencil
+            L[i,i+1-offside:i+stl-offside] = cur_coeff*cur_stencil
         else
             cur_stencil = downwind_stencils[i]
             L[i,1:bstl] = cur_coeff * cur_stencil
         end
     end
 
-    for i in bpc+1:len-bpc
+    for i in bpc+1 : len-bpc-offside
         cur_coeff   = coeff[i]
         cur_stencil = stencils
         cur_stencil = cur_coeff >= 0 ? cur_stencil : ((-1)^A.derivative_order)*reverse(cur_stencil)
         if cur_coeff >= 0
-            L[i,i+1:i+stl] = cur_coeff * cur_stencil
+            L[i,i+1-offside:i+stl-offside] = cur_coeff * cur_stencil
         else
-            L[i,i-stl+2:i+1] = cur_coeff * cur_stencil
+            L[i,i-stl+2+offside:i+1+offside] = cur_coeff * cur_stencil
         end
     end
 
-    for i in len-bpc+1:len
-        cur_coeff   = coeff[i]
-        if cur_coeff < 0
+    for i in 1 : bpc+offside
+        cur_coeff   = coeff[len-bpc+i-offside]
+        if cur_coeff < 0 && (len+2-stl-bpc+i >= 1) && (i <= bpc+1)
             cur_stencil = stencils
             cur_stencil = ((-1)^A.derivative_order)*reverse(cur_stencil)
-            L[i,i-stl+2:i+1] = cur_coeff * cur_stencil
+            L[len-bpc+i-offside,i+len-stl-bpc+2:i+len-bpc+1] = cur_coeff * cur_stencil
+        elseif cur_coeff < 0 && (len+2-stl-bpc+i >= 1) && (i > bpc + 1)
+            cur_stencil = upwind_stencils[bpc + offside + 1 - i]
+            cur_stencil = ((-1)^A.derivative_order)*reverse(cur_stencil)
+            L[len-bpc+i-offside ,len-bstl+3:len+2] = cur_coeff * cur_stencil
+        elseif cur_coeff >=0 && i < offside + 1 
+            cur_stencil = stencils
+            L[len-bpc+i-offside,len-stl+i-offside+3:len+i-offside+2] = cur_coeff * cur_stencil
         else
-            cur_stencil = upwind_stencils[i-len+bpc]
-            L[i,len-bstl+3:len+2] = cur_coeff * cur_stencil
+            cur_stencil = upwind_stencils[i]
+            L[len-bpc+i-offside,len-bstl+3:len+2] = cur_coeff * cur_stencil
         end
     end
     return L
@@ -493,31 +532,40 @@ function LinearAlgebra.Array(A::DerivativeOperator{T,N,true,M}, len::Int=A.len) 
     stl = A.stencil_length
     bstl = A.boundary_stencil_length
     coeff   = A.coefficients
+    offside = A.offside
 
     for i in 1:bpc
         cur_coeff   = coeff[i]
-        if cur_coeff >= 0
+        if cur_coeff >= 0 && offside == 0
             L[i,i+1:i+stl] = cur_coeff * A.low_boundary_coefs[1,i]
+        elseif cur_coeff >= 0 && i < offside 
+            L[i,1:stl] = cur_coeff * A.low_boundary_coefs[1,i]
+        elseif cur_coeff >= 0 && i >= offside
+            L[i,i+1-offside:i+stl-offside] = cur_coeff * A.low_boundary_coefs[1,i]
         else
             L[i,1:bstl] = cur_coeff * A.low_boundary_coefs[2,i]
         end
     end
 
-    for i in bpc+1:len-bpc
+    for i in bpc+1:len-bpc-offside
         cur_coeff   = coeff[i]
         if cur_coeff >= 0
-            L[i,i+1:i+stl] = cur_coeff * A.stencil_coefs[1,i-bpc]
+            L[i,i+1-offside:i+stl-offside] = cur_coeff * A.stencil_coefs[1,i-bpc]
         else
-            L[i,i-stl+2:i+1] = cur_coeff * A.stencil_coefs[2,i-bpc]
+            L[i,i-stl+2+offside:i+1+offside] = cur_coeff * A.stencil_coefs[2,i-bpc]
         end
     end
 
-    for i in len-bpc+1:len
+    for i in len-bpc+1-offside:len
         cur_coeff   = coeff[i]
-        if cur_coeff < 0
-            L[i,i-stl+2:i+1] = cur_coeff * A.high_boundary_coefs[2,i-len+bpc]
+        if cur_coeff < 0 && i <= len - offside
+            L[i,i-stl+2+offside:i+1+offside] = cur_coeff * A.high_boundary_coefs[2,i-len+bpc+offside]
+        elseif cur_coeff < 0
+            L[i,len-stl+3:len+2] = cur_coeff * A.high_boundary_coefs[2,i-len+bpc+offside]
+        elseif cur_coeff >=0 && i <= len - bpc
+            L[i,i-bstl+2+offside:i+1+offside] = cur_coeff * A.stencil_coefs[1,i-bpc]
         else
-            L[i,len-bstl+3:len+2] = cur_coeff * A.high_boundary_coefs[1,i-len+bpc]
+            L[i,len-bstl+3:len+2] = cur_coeff * A.high_boundary_coefs[1,i-len+bpc+offside]
         end
     end
     return L
@@ -531,6 +579,7 @@ function SparseArrays.SparseMatrixCSC(A::DerivativeOperator{T,N,true}, len::Int=
     stl = A.stencil_length
     bstl = A.boundary_stencil_length
     coeff   = A.coefficients
+    offside = A.offside
 
     # downwind stencils at low boundary
     downwind_stencils = A.low_boundary_coefs
@@ -541,35 +590,42 @@ function SparseArrays.SparseMatrixCSC(A::DerivativeOperator{T,N,true}, len::Int=
 
     for i in 1:bpc
         cur_coeff   = coeff[i]
-        if cur_coeff >= 0
+        if cur_coeff >= 0 && (i+stl <= len+2) && i >= offside
             cur_stencil = stencils
-            L[i,i+1:i+stl] = cur_coeff*cur_stencil
+            L[i,i+1-offside:i+stl-offside] = cur_coeff*cur_stencil
         else
             cur_stencil = downwind_stencils[i]
             L[i,1:bstl] = cur_coeff * cur_stencil
         end
     end
 
-    for i in bpc+1:len-bpc
+    for i in bpc+1 : len-bpc-offside
         cur_coeff   = coeff[i]
         cur_stencil = stencils
         cur_stencil = cur_coeff >= 0 ? cur_stencil : ((-1)^A.derivative_order)*reverse(cur_stencil)
         if cur_coeff >= 0
-            L[i,i+1:i+stl] = cur_coeff * cur_stencil
+            L[i,i+1-offside:i+stl-offside] = cur_coeff * cur_stencil
         else
-            L[i,i-stl+2:i+1] = cur_coeff * cur_stencil
+            L[i,i-stl+2+offside:i+1+offside] = cur_coeff * cur_stencil
         end
     end
 
-    for i in len-bpc+1:len
-        cur_coeff   = coeff[i]
-        if cur_coeff < 0
+    for i in 1 : bpc+offside
+        cur_coeff   = coeff[len-bpc+i-offside]
+        if cur_coeff < 0 && (len+2-stl-bpc+i >= 1) && (i <= bpc+1)
             cur_stencil = stencils
             cur_stencil = ((-1)^A.derivative_order)*reverse(cur_stencil)
-            L[i,i-stl+2:i+1] = cur_coeff * cur_stencil
+            L[len-bpc+i-offside,i+len-stl-bpc+2:i+len-bpc+1 ] = cur_coeff * cur_stencil
+        elseif cur_coeff < 0 && (len+2-stl-bpc+i >= 1) && (i > bpc + 1)
+            cur_stencil = upwind_stencils[bpc + offside + 1 - i]
+            cur_stencil = ((-1)^A.derivative_order)*reverse(cur_stencil)
+            L[len-bpc+i-offside,len-bstl+3:len+2] = cur_coeff * cur_stencil
+        elseif cur_coeff >=0 && i < offside + 1 
+            cur_stencil = stencils
+            L[len-bpc+i-offside,len-stl+i-offside+3:len+i-offside+2] = cur_coeff * cur_stencil
         else
-            cur_stencil = upwind_stencils[i-len+bpc]
-            L[i,len-bstl+3:len+2] = cur_coeff * cur_stencil
+            cur_stencil = upwind_stencils[i]
+            L[len-bpc+i-offside,len-bstl+3:len+2] = cur_coeff * cur_stencil
         end
     end
     return L
@@ -582,31 +638,40 @@ function SparseArrays.SparseMatrixCSC(A::DerivativeOperator{T,N,true,M}, len::In
     stl = A.stencil_length
     bstl = A.boundary_stencil_length
     coeff   = A.coefficients
+    offside = A.offside
 
     for i in 1:bpc
         cur_coeff   = coeff[i]
-        if cur_coeff >= 0
+        if cur_coeff >= 0 && offside == 0
             L[i,i+1:i+stl] = cur_coeff * A.low_boundary_coefs[1,i]
+        elseif cur_coeff >= 0 && i < offside 
+            L[i,1:stl] = cur_coeff * A.low_boundary_coefs[1,i]
+        elseif cur_coeff >= 0 && i >= offside
+            L[i,i+1-offside:i+stl-offside] = cur_coeff * A.low_boundary_coefs[1,i]
         else
             L[i,1:bstl] = cur_coeff * A.low_boundary_coefs[2,i]
         end
     end
 
-    for i in bpc+1:len-bpc
+    for i in bpc+1:len-bpc-offside
         cur_coeff   = coeff[i]
         if cur_coeff >= 0
-            L[i,i+1:i+stl] = cur_coeff * A.stencil_coefs[1,i-bpc]
+            L[i,i+1-offside:i+stl-offside] = cur_coeff * A.stencil_coefs[1,i-bpc]
         else
-            L[i,i-stl+2:i+1] = cur_coeff * A.stencil_coefs[2,i-bpc]
+            L[i,i-stl+2+offside:i+1+offside] = cur_coeff * A.stencil_coefs[2,i-bpc]
         end
     end
 
-    for i in len-bpc+1:len
+    for i in len-bpc+1-offside:len
         cur_coeff   = coeff[i]
-        if cur_coeff < 0
-            L[i,i-stl+2:i+1] = cur_coeff * A.high_boundary_coefs[2,i-len+bpc]
+        if cur_coeff < 0 && i <= len - offside
+            L[i,i-stl+2+offside:i+1+offside] = cur_coeff * A.high_boundary_coefs[2,i-len+bpc+offside]
+        elseif cur_coeff < 0
+            L[i,len-stl+3:len+2] = cur_coeff * A.high_boundary_coefs[2,i-len+bpc+offside]
+        elseif cur_coeff >=0 && i <= len - bpc
+            L[i,i-bstl+2+offside:i+1+offside] = cur_coeff * A.stencil_coefs[1,i-bpc]
         else
-            L[i,len-bstl+3:len+2] = cur_coeff * A.high_boundary_coefs[1,i-len+bpc]
+            L[i,len-bstl+3:len+2] = cur_coeff * A.high_boundary_coefs[1,i-len+bpc+offside]
         end
     end
     return L
@@ -619,6 +684,8 @@ function BandedMatrices.BandedMatrix(A::DerivativeOperator{T,N,true}, len::Int=A
     stl = A.stencil_length
     bstl = A.boundary_stencil_length
     coeff   = A.coefficients
+    offside = A.offside
+
     L = BandedMatrix{T}(Zeros(len, len+2), (stl-2, stl))
 
     # downwind stencils at low boundary
@@ -630,35 +697,42 @@ function BandedMatrices.BandedMatrix(A::DerivativeOperator{T,N,true}, len::Int=A
 
     for i in 1:bpc
         cur_coeff   = coeff[i]
-        if cur_coeff >= 0
+        if cur_coeff >= 0 && (i+stl <= len+2) && i >= offside
             cur_stencil = stencils
-            L[i,i+1:i+stl] = cur_coeff*cur_stencil
+            L[i,i+1-offside:i+stl-offside] = cur_coeff*cur_stencil
         else
             cur_stencil = downwind_stencils[i]
             L[i,1:bstl] = cur_coeff * cur_stencil
         end
     end
 
-    for i in bpc+1:len-bpc
+    for i in bpc+1 : len-bpc-offside
         cur_coeff   = coeff[i]
         cur_stencil = stencils
         cur_stencil = cur_coeff >= 0 ? cur_stencil : ((-1)^A.derivative_order)*reverse(cur_stencil)
         if cur_coeff >= 0
-            L[i,i+1:i+stl] = cur_coeff * cur_stencil
+            L[i,i+1-offside:i+stl-offside] = cur_coeff * cur_stencil
         else
-            L[i,i-stl+2:i+1] = cur_coeff * cur_stencil
+            L[i,i-stl+2+offside:i+1+offside] = cur_coeff * cur_stencil
         end
     end
 
-    for i in len-bpc+1:len
-        cur_coeff   = coeff[i]
-        if cur_coeff < 0
+    for i in 1 : bpc+offside
+        cur_coeff   = coeff[len-bpc+i-offside]
+        if cur_coeff < 0 && (len+2-stl-bpc+i >= 1) && (i <= bpc+1)
             cur_stencil = stencils
             cur_stencil = ((-1)^A.derivative_order)*reverse(cur_stencil)
-            L[i,i-stl+2:i+1] = cur_coeff * cur_stencil
+            L[len-bpc+i-offside,i+len-stl-bpc+2:i+len-bpc+1] = cur_coeff * cur_stencil
+        elseif cur_coeff < 0 && (len+2-stl-bpc+i >= 1) && (i > bpc + 1)
+            cur_stencil = upwind_stencils[bpc + offside + 1 - i]
+            cur_stencil = ((-1)^A.derivative_order)*reverse(cur_stencil)
+            L[len-bpc+i-offside,len-bstl+3:len+2] = cur_coeff * cur_stencil
+        elseif cur_coeff >=0 && i < offside + 1 
+            cur_stencil = stencils
+            L[len-bpc+i-offside,len-stl+i-offside+3:len+i-offside+2] = cur_coeff * cur_stencil
         else
-            cur_stencil = upwind_stencils[i-len+bpc]
-            L[i,len-bstl+3:len+2] = cur_coeff * cur_stencil
+            cur_stencil = upwind_stencils[i]
+            L[len-bpc+i-offside,len-bstl+3:len+2] = cur_coeff * cur_stencil
         end
     end
     return L
@@ -671,32 +745,41 @@ function BandedMatrices.BandedMatrix(A::DerivativeOperator{T,N,true,M}, len::Int
     stl = A.stencil_length
     bstl = A.boundary_stencil_length
     coeff   = A.coefficients
+    offside = A.offside
     L = BandedMatrix{T}(Zeros(len, len+2), (stl-2, stl))
 
     for i in 1:bpc
         cur_coeff   = coeff[i]
-        if cur_coeff >= 0
+        if cur_coeff >= 0 && offside == 0
             L[i,i+1:i+stl] = cur_coeff * A.low_boundary_coefs[1,i]
+        elseif cur_coeff >= 0 && i < offside 
+            L[i,1:stl] = cur_coeff * A.low_boundary_coefs[1,i]
+        elseif cur_coeff >= 0 && i >= offside
+            L[i,i+1-offside:i+stl-offside] = cur_coeff * A.low_boundary_coefs[1,i]
         else
             L[i,1:bstl] = cur_coeff * A.low_boundary_coefs[2,i]
         end
     end
 
-    for i in bpc+1:len-bpc
+    for i in bpc+1:len-bpc-offside
         cur_coeff   = coeff[i]
         if cur_coeff >= 0
-            L[i,i+1:i+stl] = cur_coeff * A.stencil_coefs[1,i-bpc]
+            L[i,i+1-offside:i+stl-offside] = cur_coeff * A.stencil_coefs[1,i-bpc]
         else
-            L[i,i-stl+2:i+1] = cur_coeff * A.stencil_coefs[2,i-bpc]
+            L[i,i-stl+2+offside:i+1+offside] = cur_coeff * A.stencil_coefs[2,i-bpc]
         end
     end
 
-    for i in len-bpc+1:len
+    for i in len-bpc+1-offside:len
         cur_coeff   = coeff[i]
-        if cur_coeff < 0
-            L[i,i-stl+2:i+1] = cur_coeff * A.high_boundary_coefs[2,i-len+bpc]
+        if cur_coeff < 0 && i <= len - offside
+            L[i,i-stl+2+offside:i+1+offside] = cur_coeff * A.high_boundary_coefs[2,i-len+bpc+offside]
+        elseif cur_coeff < 0
+            L[i,len-stl+3:len+2] = cur_coeff * A.high_boundary_coefs[2,i-len+bpc+offside]
+        elseif cur_coeff >=0 && i <= len - bpc
+            L[i,i-bstl+2+offside:i+1+offside] = cur_coeff * A.stencil_coefs[1,i-bpc]
         else
-            L[i,len-bstl+3:len+2] = cur_coeff * A.high_boundary_coefs[1,i-len+bpc]
+            L[i,len-bstl+3:len+2] = cur_coeff * A.high_boundary_coefs[1,i-len+bpc+offside]
         end
     end
     return L

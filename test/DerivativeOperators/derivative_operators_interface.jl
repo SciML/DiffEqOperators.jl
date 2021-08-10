@@ -307,7 +307,7 @@ end
 
         # Operators are defined such that
         # B must be applied to F from the left
-        @test all(abs.(B * F') .<= 1e-9)
+        @test all(abs.(B * F') .<= 1e-8)
         @test all(abs.(A * (B * F')') .<= 1e-4)
 
         G = [x^2+y^2 for x = xarr, y = yarr]

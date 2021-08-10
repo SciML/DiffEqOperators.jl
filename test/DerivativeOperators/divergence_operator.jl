@@ -30,7 +30,7 @@ using DiffEqOperators, Test
     
     # check for non-uniform grid
     
-    dx = dy = 1.25*ones(10)
+    dx = dy = 1.25*ones(length(s[1])-1)
 
     A = Divergence(4,(dx,dy),size(u0)[1:end-1].-2)
     
@@ -80,7 +80,7 @@ end
     
     # check for non-uniform grid
     
-    dx = dy = dz = 1.25*ones(10)
+    dx = dy = dz = 1.25*ones(length(s[1])-1)
 
     A = Divergence(4,(dx,dy,dz),size(u0)[1:end-1].-2)
     
