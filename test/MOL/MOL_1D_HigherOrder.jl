@@ -117,8 +117,6 @@ end
     u_predict = sol.u
     u_real = [[u_analytic(x, t) for x in xs] for t in ts]
     u_diff = u_real - u_predict
-    for i in 1:length(u_diff)
-       @test_broken u_diff[i] ≈ zeros(length(u_diff[i])) atol=0.3;
-    end
+    @test_broken u_diff[:] ≈ zeros(length(u_diff)) atol=0.01;
     #plot(xs, u_diff)
 end
