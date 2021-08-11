@@ -155,23 +155,29 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
             # depvarderivbcmaps will dictate what to replace the Differential terms with in the bcs
             if nspace == 1
                 # 1D system
-                left_weights(j) = DiffEqOperators.calculate_weights(discretization.upwind_order, grid[j][1], grid[j][1:2])
-                right_weights(j) = DiffEqOperators.calculate_weights(discretization.upwind_order, grid[j][end], grid[j][end-1:end])
-                central_neighbor_idxs(II,j) = [II-CartesianIndex((1:nspace.==j)...),II,II+CartesianIndex((1:nspace.==j)...)]
-                left_idxs = central_neighbor_idxs(CartesianIndex(2),1)[1:2]
-                right_idxs(j) = central_neighbor_idxs(CartesianIndex(length(grid[j])-1),1)[end-1:end]
+                bc_der_orders = filter(!iszero,sort(unique([count_differentials(bc.lhs, nottime[1]) for bc in pdesys.bcs])))
+                left_weights(d_order,j) = DiffEqOperators.calculate_weights(d_order, grid[j][1], grid[j][1:1+d_order])
+                right_weights(d_order,j) = DiffEqOperators.calculate_weights(d_order, grid[j][end], grid[j][end-d_order:end])
+                # central_neighbor_idxs(II,j) = [II-CartesianIndex((1:nspace.==j)...),II,II+CartesianIndex((1:nspace.==j)...)]
+                left_idxs(d_order) = CartesianIndices(grid[1])[1:1+d_order]
+                right_idxs(d_order,j) = CartesianIndices(grid[j])[end-d_order:end]
                 # Constructs symbolic spatially discretized terms of the form e.g. au₂ - bu₁
-                derivars = [[dot(left_weights(1),depvar[left_idxs]), dot(right_weights(1),depvar[right_idxs(1)])]
-                for depvar in depvarsdisc]
+                derivars = [[[dot(left_weights(d,1),depvar[left_idxs(d)]), dot(right_weights(d,1),depvar[right_idxs(d,1)])] for d in bc_der_orders]
+                                for depvar in depvarsdisc]
                 # Create list of all the symbolic Differential terms evaluated at boundary e.g. Differential(x)(u(t,0))
-                subderivar(depvar,s) = substitute.((Differential(s)(depvar),),edgevals)
+                subderivar(depvar,d,s) = substitute.(((Differential(s)^d)(depvar),),edgevals)
                 # Create map of symbolic Differential terms with symbolic spatially discretized terms
-                depvarderivbcmaps = reduce(vcat,[subderivar(depvar, s) .=> derivars[i]
-                                                for (i, depvar) in enumerate(depvars) for s in nottime])
+                depvarderivbcmaps = []
+                for (k,s) in enumerate(nottime)
+                    rs = (subderivar(depvar,bc_der_orders[j],s) .=> derivars[i][j] for j in 1:length(bc_der_orders), (i,depvar) in enumerate(depvars))
+                    for r in rs
+                        push!(depvarderivbcmaps, r)
+                    end
+                end
                 
                 if grid_align == edge_align
                     # Constructs symbolic spatially discretized terms of the form e.g. (u₁ + u₂) / 2 
-                    bcvars = [[dot(ones(2)/2,depvar[left_idxs]), dot(ones(2)/2,depvar[right_idxs(1)])]
+                    bcvars = [[dot(ones(2)/2,depvar[left_idxs(1)]), dot(ones(2)/2,depvar[right_idxs(1,1)])]
                             for depvar in depvarsdisc]
                     # replace u(t,0) with (u₁ + u₂) / 2, etc
                     depvarbcmaps = reduce(vcat,[subvar(depvar) .=> bcvars[i]
@@ -183,7 +189,8 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
                 # TODO: Fix Neumann and Robin on higher dimension
                 depvarderivbcmaps = []
             end
-
+            bc_d_orders = filter(!iszero,sort(unique([count_differentials(bc.lhs, nottime[1]) for bc in pdesys.bcs])))
+            d_max = length(bc_d_orders) == 0 ? 0 : bc_d_orders[end]
             # Generate initial conditions and bc equations
             for bc in pdesys.bcs
                 bcdepvar = first(get_depvars(bc.lhs, depvar_ops))
@@ -202,7 +209,9 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
                             bcargs = arguments(first(depvarbcmaps[i]))
                             # Replace Differential terms in the bc lhs with the symbolic spatially discretized terms
                             # TODO: Fix Neumann and Robin on higher dimension
-                            lhs = nspace == 1 ? substitute(bc.lhs,depvarderivbcmaps[i]) : bc.lhs
+                            j = findfirst(isequal(count_differentials(bc.lhs, nottime[1])),bc_d_orders)
+                            k = i%2 == 0 ? 2 : 1
+                            lhs = nspace == 1 ? (j isa Nothing ? bc.lhs : substitute(bc.lhs,depvarderivbcmaps[j + d_max*Int(floor((i-1)/2))][k])) : bc.lhs
 
                             # Replace symbol in the bc lhs with the spatial discretized term
                             lhs = substitute(lhs,depvarbcmaps[i])

@@ -117,7 +117,7 @@ function convolve_interior!(x_temp::AbstractVector{T}, x::AbstractVector{T}, A::
     for i in (1+A.boundary_point_count) : (length(x_temp)-A.boundary_point_count - A.offside)
         xtempi = zero(T)
         cur_stencil = stencil
-        cur_coeff   = typeof(coeff)   <: AbstractVector ? coeff[i] : coeff isa Number ? coeff : true
+        cur_coeff   = coeff[i]
         cur_stencil = cur_coeff >= 0 ? cur_stencil : A.derivative_order % 2 == 0 ? reverse(cur_stencil) : -1*reverse(cur_stencil)
         for idx in 1:A.stencil_length
             x_idx = cur_coeff < 0 ? x[i - A.stencil_length + 1 + idx + A.offside] : x[i + idx - A.offside]
