@@ -189,8 +189,10 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
                 # TODO: Fix Neumann and Robin on higher dimension
                 depvarderivbcmaps = []
             end
-            bc_d_orders = filter(!iszero,sort(unique([count_differentials(bc.lhs, nottime[1]) for bc in pdesys.bcs])))
-            d_max = length(bc_d_orders) == 0 ? 0 : bc_d_orders[end]
+            # All unique order of derivates in BCs
+            bc_der_orders = filter(!iszero,sort(unique([count_differentials(bc.lhs, nottime[1]) for bc in pdesys.bcs])))
+            # no. of different orders in BCs 
+            n = length(bc_der_orders)
             # Generate initial conditions and bc equations
             for bc in pdesys.bcs
                 bcdepvar = first(get_depvars(bc.lhs, depvar_ops))
@@ -209,9 +211,10 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
                             bcargs = arguments(first(depvarbcmaps[i]))
                             # Replace Differential terms in the bc lhs with the symbolic spatially discretized terms
                             # TODO: Fix Neumann and Robin on higher dimension
-                            j = findfirst(isequal(count_differentials(bc.lhs, nottime[1])),bc_d_orders)
+                            # Update: Fixed for 1D systems
+                            j = findfirst(isequal(count_differentials(bc.lhs, nottime[1])),bc_der_orders)
                             k = i%2 == 0 ? 2 : 1
-                            lhs = nspace == 1 ? (j isa Nothing ? bc.lhs : substitute(bc.lhs,depvarderivbcmaps[j + d_max*Int(floor((i-1)/2))][k])) : bc.lhs
+                            lhs = nspace == 1 ? (j isa Nothing ? bc.lhs : substitute(bc.lhs,depvarderivbcmaps[j + n*Int(floor((i-1)/2))][k])) : bc.lhs
 
                             # Replace symbol in the bc lhs with the spatial discretized term
                             lhs = substitute(lhs,depvarbcmaps[i])
