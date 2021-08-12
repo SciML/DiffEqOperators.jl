@@ -120,3 +120,51 @@ end
     @test_broken u_diff[:] ≈ zeros(length(u_diff)) atol=0.01;
     #plot(xs, u_diff)
 end
+
+@testset "KdV Single Soliton equation" begin
+    @parameters x, t
+    @variables u(..)
+    Dt = Differential(t)
+    Dx = Differential(x)
+    Dx2 = Differential(x)^2
+    Dx3 = Differential(x)^3
+
+    α = 6
+    β = 1
+    eq = Dt(u(x,t)) ~ -α*u(x,t)*Dx(u(x,t)) - β*Dx3(u(x,t)) 
+
+    u_analytic(x,t;z = (x - t)/2) =  1/2*sech(z)^2
+    du(x,t;z = (x-t)/2) = 1/2*tanh(z)*sech(z)^2
+    ddu(x,t; z= (x-t)/2) = 1/4*(2*tanh(z)^2 + sech(z)^2)*sech(z)^2
+    bcs = [u(x,0) ~ u_analytic(x,0),
+           u(-10,t) ~ u_analytic(-10,t),
+           u(10,t) ~ u_analytic(10,t),
+           Dx(u(-10,t)) ~ du(-10,t),
+           Dx(u(10,t)) ~ du(10,t),
+           Dx2(u(-10,t)) ~ ddu(-10,t),
+           Dx2(u(10,t)) ~ ddu(10,t)]
+
+    # Space and time domains
+    domains = [x ∈ Interval(-10.0,10.0),
+               t ∈ Interval(0.0,1.0)]
+    # Discretization
+    dx = 0.4; dt = 0.2
+
+    discretization = MOLFiniteDifference([x=>dx],t;centered_order=4,grid_align=center_align)
+    pdesys = PDESystem(eq,bcs,domains,[x,t],[u(x,t)])
+    prob = discretize(pdesys,discretization)
+
+    sol = solve(prob,Tsit5(),saveat=0.1,dt=dt)
+
+    @test sol.retcode == :Success
+
+    xs = domains[1].domain.lower+dx+dx+dx:dx:domains[1].domain.upper-dx-dx
+    ts = sol.t
+
+    u_predict = sol.u
+    u_real = [[u_analytic(x, t) for x in xs] for t in ts]
+    u_diff = u_real - u_predict
+    for i in 1:length(u_diff)
+    	@test u_diff[i] ≈ zeros(length(u_diff[i])) atol=0.05;
+    end
+end
