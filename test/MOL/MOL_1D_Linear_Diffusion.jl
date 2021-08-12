@@ -59,6 +59,37 @@ using ModelingToolkit: Differential
             @test all(isapprox.(u_approx, exact, atol=0.01))
         end
     end
+    
+    @parameters t x
+    
+    # BCs with 2nd order Neumann
+    bcs = [u(0,x) ~ cos(x),
+           Dxx(u(t,0)) ~ -exp(-t),
+           Dxx(u(t,Float64(π))) ~ exp(-t)]
+
+    pdesys = PDESystem(eq,bcs,domains,[t,x],[u(t,x)])
+
+    for disc in [discretization, discretization_edge, discretization_centered, discretization_centered_order4]
+        # Convert the PDE problem into an ODE problem
+        prob = discretize(pdesys,disc)
+
+        # Solve ODE problem
+        sol = solve(prob,Tsit5(),saveat=0.1)
+
+        if disc.grid_align == center_align
+            x = dx[2:end-1]
+        else
+            x = (dx[1:end-1]+dx[2:end])/2
+        end
+        t = sol.t
+
+        # Test against exact solution
+        for i in 1:length(sol)
+            exact = u_exact(x, t[i])
+            u_approx = sol.u[i]
+            @test all(isapprox.(u_approx, exact, atol=0.01))
+        end
+    end
 end
 
 
@@ -496,7 +527,7 @@ end
     end
 end
 
-@testset "Test 10: linear diffusion, two variables, mixed BCs" begin
+@testset "Test 10: linear diffusion, two variables, mixed & higher order BCs" begin
     # Method of Manufactured Solutions
     u_exact = (x,t) -> exp.(-t) * cos.(x)
     v_exact = (x,t) -> exp.(-t) * sin.(x)
@@ -507,6 +538,7 @@ end
     Dt = Differential(t)
     Dx = Differential(x)
     Dxx = Dx^2
+    Dxxx = Dx^3
 
     # 1D PDE and boundary conditions
     eqs = [Dt(u(t,x)) ~ Dxx(u(t,x)),
@@ -545,6 +577,33 @@ end
         @test all(isapprox.(u_exact(x_sol, t_sol[i]), sol.u[i][1:l-2], atol=0.01))
         @test all(isapprox.(v_exact(x_sol, t_sol[i]), sol.u[i][l-1:end], atol=0.01))
     end
+
+    @parameters t x
+
+    # BCs with 3rd order Neumann
+    bcs = [u(0,x) ~ cos(x),
+           v(0,x) ~ sin(x),
+           u(t,0) ~ exp(-t),
+           Dxxx(u(t,1)) ~ exp(-t) * sin(1),
+           Dxxx(v(t,0)) ~ -exp(-t),
+           v(t,1) ~ exp(-t) * sin(1)]
+
+    pdesys = PDESystem(eqs,bcs,domains,[t,x],[u(t,x),v(t,x)])
+
+    prob = discretize(pdesys,discretization)
+
+    # Solve ODE problem
+    sol = solve(prob,Tsit5(),saveat=0.1)
+
+    x_sol = dx[2:end-1]
+    t_sol = sol.t
+
+    # Test against exact solution
+    for i in 1:length(sol)
+        @test all(isapprox.(u_exact(x_sol, t_sol[i]), sol.u[i][1:l-2], atol=0.01))
+        @test all(isapprox.(v_exact(x_sol, t_sol[i]), sol.u[i][l-1:end], atol=0.01))
+    end
+
 end
 
 @testset "Test 11: linear diffusion, two variables, mixed BCs, with parameters" begin
