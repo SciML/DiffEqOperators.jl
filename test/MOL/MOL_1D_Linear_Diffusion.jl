@@ -496,7 +496,7 @@ end
     end
 end
 
-@testset "Test 10: linear diffusion, two variables, mixed & higher order BCs" begin
+@testset "Test 10: linear diffusion, two variables, mixed BCs" begin
     # Method of Manufactured Solutions
     u_exact = (x,t) -> exp.(-t) * cos.(x)
     v_exact = (x,t) -> exp.(-t) * sin.(x)
@@ -507,7 +507,6 @@ end
     Dt = Differential(t)
     Dx = Differential(x)
     Dxx = Dx^2
-    Dxxx = Dx^3
 
     # 1D PDE and boundary conditions
     eqs = [Dt(u(t,x)) ~ Dxx(u(t,x)),
