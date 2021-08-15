@@ -74,28 +74,28 @@ end
     prob = discretize(pdesys,discretization)
 end
 
-@testset "Kuramoto–Sivashinsky equation" begin
+@testset "KdV Single Soliton equation" begin
     @parameters x, t
     @variables u(..)
     Dt = Differential(t)
     Dx = Differential(x)
     Dx2 = Differential(x)^2
     Dx3 = Differential(x)^3
-    Dx4 = Differential(x)^4
 
-    α = 1
-    β = 4
-    γ = 1
-    eq = Dt(u(x,t)) ~ -u(x,t)*Dx(u(x,t)) - α*Dx2(u(x,t)) - β*Dx3(u(x,t)) - γ*Dx4(u(x,t))
+    α = 6
+    β = 1
+    eq = Dt(u(x,t)) ~ -α*u(x,t)*Dx(u(x,t)) - β*Dx3(u(x,t)) 
 
-    u_analytic(x,t;z = -x/2+t) = 11 + 15*tanh(z) -15*tanh(z)^2 - 15*tanh(z)^3
-    du(x,t;z = -x/2+t) = 15/2*(tanh(z) + 1)*(3*tanh(z) - 1)*sech(z)^2
-
+    u_analytic(x,t;z = (x - t)/2) =  1/2*sech(z)^2
+    du(x,t;z = (x-t)/2) = 1/2*tanh(z)*sech(z)^2
+    ddu(x,t; z= (x-t)/2) = 1/4*(2*tanh(z)^2 + sech(z)^2)*sech(z)^2
     bcs = [u(x,0) ~ u_analytic(x,0),
            u(-10,t) ~ u_analytic(-10,t),
            u(10,t) ~ u_analytic(10,t),
            Dx(u(-10,t)) ~ du(-10,t),
-           Dx(u(10,t)) ~ du(10,t)]
+           Dx(u(10,t)) ~ du(10,t),
+           Dx2(u(-10,t)) ~ ddu(-10,t),
+           Dx2(u(10,t)) ~ ddu(10,t)]
 
     # Space and time domains
     domains = [x ∈ Interval(-10.0,10.0),
@@ -111,12 +111,10 @@ end
 
     @test sol.retcode == :Success
 
-    xs = domains[1].domain.lower+dx+dx:dx:domains[1].domain.upper-dx-dx
+    xs = domains[1].domain.lower+dx+dx+dx:dx:domains[1].domain.upper-dx-dx
     ts = sol.t
 
     u_predict = sol.u
     u_real = [[u_analytic(x, t) for x in xs] for t in ts]
-    u_diff = u_real - u_predict
-    @test_broken u_diff[:] ≈ zeros(length(u_diff)) atol=0.01;
-    #plot(xs, u_diff)
+    @test all(isapprox.(u_predict, u_real, rtol = 0.03))
 end
