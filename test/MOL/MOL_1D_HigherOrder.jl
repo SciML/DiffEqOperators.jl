@@ -33,7 +33,7 @@ using ModelingToolkit: Differential
     domains = [t ∈ Interval(0.0,1.0),
                x ∈ Interval(0.0,L)]
 
-    pdesys = PDESystem(eq,bcs,domains,[t,x],[u(t,x)])
+    @named pdesys = PDESystem(eq,bcs,domains,[t,x],[u(t,x)])
     discretization = MOLFiniteDifference([x=>dx],t, centered_order=4)
     prob = discretize(pdesys,discretization)
 end
@@ -69,7 +69,7 @@ end
     domains = [t ∈ Interval(0.0,1.0),
                x ∈ Interval(0.0,L)]
 
-    pdesys = PDESystem(eqs,bcs,domains,[t,x],[u(t,x),v(t,x)])
+    @named pdesys = PDESystem(eqs,bcs,domains,[t,x],[u(t,x),v(t,x)])
     discretization = MOLFiniteDifference([x=>dx],t, centered_order=4)
     prob = discretize(pdesys,discretization)
 end
@@ -104,7 +104,7 @@ end
     dx = 0.4; dt = 0.2
 
     discretization = MOLFiniteDifference([x=>dx],t;centered_order=4,grid_align=center_align)
-    pdesys = PDESystem(eq,bcs,domains,[x,t],[u(x,t)])
+    @named pdesys = PDESystem(eq,bcs,domains,[x,t],[u(x,t)])
     prob = discretize(pdesys,discretization)
 
     sol = solve(prob,Tsit5(),saveat=0.1,dt=dt)

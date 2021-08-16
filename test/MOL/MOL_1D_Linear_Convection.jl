@@ -23,7 +23,7 @@ using ModelingToolkit,DiffEqOperators,DiffEqBase,LinearAlgebra,Test, DomainSets
                x ∈ Interval(0.0,2.0)]
 
     # PDE system
-    pdesys = PDESystem(eq,bcs,domains,[t,x],[u])
+    @named pdesys = PDESystem(eq,bcs,domains,[t,x],[u])
 
     # Method of lines discretization
     dx = 2/80
@@ -79,7 +79,7 @@ end
                x ∈ Interval(0.0,2.0)]
 
     # PDE system
-    pdesys = PDESystem(eq,bcs,domains,[t,x],[u])
+    @named pdesys = PDESystem(eq,bcs,domains,[t,x],[u])
 
     # Method of lines discretization
     dx = 2/80
@@ -131,7 +131,7 @@ end
                x ∈ Interval(0.0,2.0)]
 
     # PDE system
-    pdesys = PDESystem(eq,bcs,domains,[t,x],[u])
+    @named pdesys = PDESystem(eq,bcs,domains,[t,x],[u])
 
     # Method of lines discretization
     dx = 2/80
@@ -185,7 +185,7 @@ end
                x ∈ Interval(0.0,2.0)]
 
     # PDE system
-    pdesys = PDESystem(eq,bcs,domains,[t,x],[u,v])
+    @named pdesys = PDESystem(eq,bcs,domains,[t,x],[u,v])
 
     # Method of lines discretization
     dx = 2/80
@@ -239,7 +239,7 @@ end
                x ∈ Interval(0.0,2.0)]
 
     # PDE system
-    pdesys = PDESystem(eq,bcs,domains,[t,x],[u,v])
+    @named pdesys = PDESystem(eq,bcs,domains,[t,x],[u,v])
 
     # Method of lines discretization
     dx = 2/80

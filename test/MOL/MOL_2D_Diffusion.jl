@@ -39,7 +39,7 @@ using ModelingToolkit: Differential
             y ∈ Interval(y_min,y_max)]
 
     # Space and time domains
-    pdesys = PDESystem([eq],bcs,domains,[t,x,y],[u(t,x,y)])
+    @named pdesys = PDESystem([eq],bcs,domains,[t,x,y],[u(t,x,y)])
 
     dx = 0.1; dy = 0.2
     
@@ -103,7 +103,7 @@ end
             y ∈ Interval(y_min,y_max)]
 
     # Space and time domains
-    pdesys = PDESystem([eq],bcs,domains,[t,x,y],[u(t,x,y)])
+    @named pdesys = PDESystem([eq],bcs,domains,[t,x,y],[u(t,x,y)])
 
     # Method of lines discretization
     dx = 0.1; dy = 0.2
