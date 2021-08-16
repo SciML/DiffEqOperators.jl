@@ -28,7 +28,7 @@ domains = [t ∈ Interval(0.0,1.0),
            x ∈ Interval(0.0,1.0)]
 
 # PDE system
-pdesys = PDESystem(eq,bcs,domains,[t,x],[u(t,x)])
+@named pdesys = PDESystem(eq,bcs,domains,[t,x],[u(t,x)])
 
 # Method of lines discretization
 dx = 0.1
@@ -81,7 +81,7 @@ domains = [t ∈ Interval(0.0,1.0),
         x ∈ Interval(0.0,1.0)]
 
 # PDE system
-pdesys = PDESystem(eq,bcs,domains,[t,x],[u(t,x)])
+@named pdesys = PDESystem(eq,bcs,domains,[t,x],[u(t,x)])
 
 # Method of lines discretization
 # Need a small dx here for accuracy
@@ -136,7 +136,7 @@ domains = [t ∈ Interval(0.0,1.0),
         x ∈ Interval(-1.0,1.0)]
 
 # PDE system
-pdesys = PDESystem(eq,bcs,domains,[t,x],[u(t,x)])
+@named pdesys = PDESystem(eq,bcs,domains,[t,x],[u(t,x)])
 
 # Method of lines discretization
 # Need a small dx here for accuracy
@@ -188,7 +188,7 @@ bcs = [u(0,x) ~ sin(pi*x/2),
 domains = [t ∈ Interval(0.0,1.0),
            x ∈ Interval(0.0,1.0)]
 
-pdesys = PDESystem(eqs,bcs,domains,[t,x],[u(t,x),v(t,x)],[Dn=>0.5, Dp=>2])
+@named pdesys = PDESystem(eqs,bcs,domains,[t,x],[u(t,x),v(t,x)],[Dn=>0.5, Dp=>2])
 discretization = MOLFiniteDifference([x=>0.1],t)
 prob = discretize(pdesys,discretization) # This gives an ODEProblem since it's time-dependent
 sol = solve(prob,Tsit5())
@@ -225,7 +225,7 @@ bcs = [u(0) ~ 1,
 # Space and time domains
 domains = [x ∈ Interval(0.0,1.0)]
 
-pdesys = PDESystem([eq],bcs,domains,[x],[u(x)])
+@named pdesys = PDESystem([eq],bcs,domains,[x],[u(x)])
 
 # Note that we pass in `nothing` for the time variable `t` here since we
 # are creating a stationary problem without a dependence on time, only space.
@@ -262,7 +262,7 @@ bcs = [u(0,y) ~ 0.0,
 domains = [x ∈ Interval(0.0,1.0),
            y ∈ Interval(0.0,1.0)]
 
-pdesys = PDESystem([eq],bcs,domains,[x,y],[u(x,y)])
+@named pdesys = PDESystem([eq],bcs,domains,[x,y],[u(x,y)])
 
 # Note that we pass in `nothing` for the time variable `t` here since we
 # are creating a stationary problem without a dependence on time, only space.
