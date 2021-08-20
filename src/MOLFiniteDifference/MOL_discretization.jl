@@ -117,13 +117,20 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
             grid_indices = CartesianIndices(((axes(g)[1] for g in grid)...,))
             depvarsdisc = map(depvars) do u
                 if t == nothing
-                    [Num(Variable{Real}(Base.nameof(operation(u)),II.I...)) for II in grid_indices]
+                    @show "here1"
+                    sym = nameof(operation(u))
+                    collect(first(@variables $sym[collect(axes(g)[1] for g in grid)...]))
                 elseif isequal(arguments(u),[t])
+                    @show "here2"
                     [u for II in grid_indices]
                 else
-                    [Num(Variable{Symbolics.FnType{Tuple{Any}, Real}}(Base.nameof(operation(u)),II.I...))(t) for II in grid_indices]
+                    sym = nameof(operation(u))
+                    @show collect(axes(g)[1] for g in grid)
+                    @show @variables $sym[collect(axes(g)[1] for g in grid)...](t)
+                    collect(first(@variables $sym[collect(axes(g)[1] for g in grid)...](t)))
                 end
             end
+            @show depvarsdisc
             spacevals = map(y->[Pair(nottime[i],space[i][y.I[i]]) for i in 1:nspace],space_indices)
             gridvals = map(y->[Pair(nottime[i],grid[i][y.I[i]]) for i in 1:nspace],grid_indices)
 

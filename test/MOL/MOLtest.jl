@@ -8,7 +8,7 @@ using DomainSets
 Dt = Differential(t)
 Dx = Differential(x)
 Dxx = Differential(x)^2
-eqs  = [Dt(u(t,x)) ~ Dxx(u(t,x)), 
+eqs  = [Dt(u(t,x)) ~ Dxx(u(t,x)),
         Dt(v(t,x)) ~ Dxx(v(t,x))]
 bcs = [u(0,x) ~ - x * (x-1) * sin(x),
        v(0,x) ~ - x * (x-1) * sin(x),
@@ -58,6 +58,7 @@ discretization = MOLFiniteDifference([x=>dx,y=>dy],t)
 prob = ModelingToolkit.discretize(pdesys,discretization)
 sol = solve(prob,Tsit5())
 
+#=
 # Diffusion in a sphere
 @parameters t r
 @variables u(..)
@@ -73,5 +74,7 @@ domains = [t ∈ Interval(0.0,1.0),
 
 @named pdesys = PDESystem(eq,bcs,domains,[t,r],[u(t,r)])
 discretization = MOLFiniteDifference([r=>0.1],t)
-prob = discretize(pdesys,discretization) # This gives an ODEProblem since it's time-dependent
+prob = discretize(pdesys,discretization
+) # This gives an ODEProblem since it's time-dependent
 sol = solve(prob,Tsit5())
+=#

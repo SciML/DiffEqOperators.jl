@@ -450,6 +450,7 @@ end
     end
 end
 
+#=
 @testset "Test 08: Dt(u(t,r)) ~ 4/r^2 * Dr(r^2 * Dr(u(t,r))) (Spherical Laplacian)" begin
     # Method of Manufactured Solutions
     # general solution of the spherical Laplacian equation
@@ -495,6 +496,7 @@ end
         @test all(isapprox.(u_approx, exact, atol=0.01))
     end
 end
+=#
 
 @testset "Test 10: linear diffusion, two variables, mixed BCs" begin
     # Method of Manufactured Solutions
@@ -555,7 +557,7 @@ end
     Dx = Differential(x)
     Dxx = Differential(x)^2
 
-    eqs  = [Dt(u(t,x)) ~ Dn * Dxx(u(t,x)) + u(t,x)*v(t,x), 
+    eqs  = [Dt(u(t,x)) ~ Dn * Dxx(u(t,x)) + u(t,x)*v(t,x),
             Dt(v(t,x)) ~ Dp * Dxx(v(t,x)) - u(t,x)*v(t,x)]
     bcs = [u(0,x) ~ sin(pi*x/2),
         v(0,x) ~ sin(pi*x/2),
