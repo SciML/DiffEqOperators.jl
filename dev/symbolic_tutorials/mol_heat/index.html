@@ -20,7 +20,7 @@ domains = [t ∈ Interval(0.0,1.0),
            x ∈ Interval(0.0,1.0)]
 
 # PDE system
-pdesys = PDESystem(eq,bcs,domains,[t,x],[u(t,x)])
+@named pdesys = PDESystem(eq,bcs,domains,[t,x],[u(t,x)])
 
 # Method of lines discretization
 dx = 0.1
@@ -68,7 +68,7 @@ domains = [t ∈ Interval(0.0,1.0),
         x ∈ Interval(0.0,1.0)]
 
 # PDE system
-pdesys = PDESystem(eq,bcs,domains,[t,x],[u(t,x)])
+@named pdesys = PDESystem(eq,bcs,domains,[t,x],[u(t,x)])
 
 # Method of lines discretization
 # Need a small dx here for accuracy
@@ -117,7 +117,7 @@ domains = [t ∈ Interval(0.0,1.0),
         x ∈ Interval(-1.0,1.0)]
 
 # PDE system
-pdesys = PDESystem(eq,bcs,domains,[t,x],[u(t,x)])
+@named pdesys = PDESystem(eq,bcs,domains,[t,x],[u(t,x)])
 
 # Method of lines discretization
 # Need a small dx here for accuracy
@@ -161,7 +161,7 @@ bcs = [u(0,x) ~ sin(pi*x/2),
 domains = [t ∈ Interval(0.0,1.0),
            x ∈ Interval(0.0,1.0)]
 
-pdesys = PDESystem(eqs,bcs,domains,[t,x],[u(t,x),v(t,x)],[Dn=&gt;0.5, Dp=&gt;2])
+@named pdesys = PDESystem(eqs,bcs,domains,[t,x],[u(t,x),v(t,x)],[Dn=&gt;0.5, Dp=&gt;2])
 discretization = MOLFiniteDifference([x=&gt;0.1],t)
 prob = discretize(pdesys,discretization) # This gives an ODEProblem since it&#39;s time-dependent
 sol = solve(prob,Tsit5())
@@ -192,7 +192,7 @@ bcs = [u(0) ~ 1,
 # Space and time domains
 domains = [x ∈ Interval(0.0,1.0)]
 
-pdesys = PDESystem([eq],bcs,domains,[x],[u(x)])
+@named pdesys = PDESystem([eq],bcs,domains,[x],[u(x)])
 
 # Note that we pass in `nothing` for the time variable `t` here since we
 # are creating a stationary problem without a dependence on time, only space.
@@ -225,7 +225,7 @@ bcs = [u(0,y) ~ 0.0,
 domains = [x ∈ Interval(0.0,1.0),
            y ∈ Interval(0.0,1.0)]
 
-pdesys = PDESystem([eq],bcs,domains,[x,y],[u(x,y)])
+@named pdesys = PDESystem([eq],bcs,domains,[x,y],[u(x,y)])
 
 # Note that we pass in `nothing` for the time variable `t` here since we
 # are creating a stationary problem without a dependence on time, only space.
@@ -237,4 +237,4 @@ sol = solve(prob)
 using Plots
 xs,ys = [infimum(d.domain):dx:supremum(d.domain) for d in domains]
 u_sol = reshape(sol.u, (length(xs),length(ys)))
-plot(xs, ys, u_sol, linetype=:contourf,title = &quot;solution&quot;)</code></pre><p><img src="https://user-images.githubusercontent.com/620651/121951649-0b701e00-cd10-11eb-8af8-b203f7f13abc.png" alt="solution"/></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../../">« DiffEqOperators.jl: Linear operators for Scientific Machine Learning</a><a class="docs-footer-nextpage" href="../../operator_tutorials/kdv/">Solving KdV Solitons with Upwinding Operators »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.5 on <span class="colophon-date" title="Monday 16 August 2021 11:50">Monday 16 August 2021</span>. Using Julia version 1.6.2.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+plot(xs, ys, u_sol, linetype=:contourf,title = &quot;solution&quot;)</code></pre><p><img src="https://user-images.githubusercontent.com/620651/121951649-0b701e00-cd10-11eb-8af8-b203f7f13abc.png" alt="solution"/></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../../">« DiffEqOperators.jl: Linear operators for Scientific Machine Learning</a><a class="docs-footer-nextpage" href="../../operator_tutorials/kdv/">Solving KdV Solitons with Upwinding Operators »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.5 on <span class="colophon-date" title="Wednesday 25 August 2021 04:09">Wednesday 25 August 2021</span>. Using Julia version 1.6.2.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
