@@ -32,7 +32,7 @@ using ModelingToolkit: Differential
                x ∈ Interval(0.0,1.0)]
 
     # PDE system
-    pdesys = PDESystem(eqs,bcs,domains,[t,x],[u(t,x),v(t,x)])
+    @named pdesys = PDESystem(eqs,bcs,domains,[t,x],[u(t,x),v(t,x)])
 
     # Method of lines discretization
     l = 20

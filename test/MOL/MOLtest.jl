@@ -8,7 +8,7 @@ using DomainSets
 Dt = Differential(t)
 Dx = Differential(x)
 Dxx = Differential(x)^2
-eqs  = [Dt(u(t,x)) ~ Dxx(u(t,x)), 
+eqs  = [Dt(u(t,x)) ~ Dxx(u(t,x)),
         Dt(v(t,x)) ~ Dxx(v(t,x))]
 bcs = [u(0,x) ~ - x * (x-1) * sin(x),
        v(0,x) ~ - x * (x-1) * sin(x),
@@ -18,7 +18,7 @@ bcs = [u(0,x) ~ - x * (x-1) * sin(x),
 domains = [t ∈ Interval(0.0,1.0),
            x ∈ Interval(0.0,1.0)]
 
-pdesys = PDESystem(eqs,bcs,domains,[t,x],[u(t,x),v(t,x)])
+@named pdesys = PDESystem(eqs,bcs,domains,[t,x],[u(t,x),v(t,x)])
 discretization = MOLFiniteDifference([x=>0.1],t;grid_align=edge_align)
 prob = discretize(pdesys,discretization) # This gives an ODEProblem since it's time-dependent
 sol = solve(prob,Tsit5())
@@ -50,7 +50,7 @@ bcs = [u(t_min,x,y) ~ analytic_sol_func(t_min,x,y),
 domains = [t ∈ Interval(t_min,t_max),
            x ∈ Interval(x_min,x_max),
            y ∈ Interval(y_min,y_max)]
-pdesys = PDESystem([eq],bcs,domains,[t,x,y],[u(t,x,y)])
+@named pdesys = PDESystem([eq],bcs,domains,[t,x,y],[u(t,x,y)])
 
 # Method of lines discretization
 dx = 0.1; dy = 0.2
@@ -58,6 +58,7 @@ discretization = MOLFiniteDifference([x=>dx,y=>dy],t)
 prob = ModelingToolkit.discretize(pdesys,discretization)
 sol = solve(prob,Tsit5())
 
+#=
 # Diffusion in a sphere
 @parameters t r
 @variables u(..)
@@ -71,7 +72,9 @@ bcs = [u(0,r) ~ - r * (r-1) * sin(r),
 domains = [t ∈ Interval(0.0,1.0),
            r ∈ Interval(0.0,1.0)]
 
-pdesys = PDESystem(eq,bcs,domains,[t,r],[u(t,r)])
+@named pdesys = PDESystem(eq,bcs,domains,[t,r],[u(t,r)])
 discretization = MOLFiniteDifference([r=>0.1],t)
-prob = discretize(pdesys,discretization) # This gives an ODEProblem since it's time-dependent
+prob = discretize(pdesys,discretization
+) # This gives an ODEProblem since it's time-dependent
 sol = solve(prob,Tsit5())
+=#
