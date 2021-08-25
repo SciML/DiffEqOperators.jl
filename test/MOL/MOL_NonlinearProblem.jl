@@ -14,7 +14,7 @@ using DomainSets
            0 ~ a + c - 2*b,
            0 ~ b + d - 2*c,
            0 ~ d - 1]
-    ns = NonlinearSystem(eqs, [a, b, c, d], [])
+    @named ns = NonlinearSystem(eqs, [a, b, c, d], [])
     f = eval(generate_function(ns, [a, b, c, d])[2])
     prob = NonlinearProblem(ns, zeros(4), [])
     sol = NonlinearSolve.solve(prob, NewtonRaphson())
