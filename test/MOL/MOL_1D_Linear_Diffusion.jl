@@ -450,7 +450,6 @@ end
     end
 end
 
-#=
 @testset "Test 08: Dt(u(t,r)) ~ 4/r^2 * Dr(r^2 * Dr(u(t,r))) (Spherical Laplacian)" begin
     # Method of Manufactured Solutions
     # general solution of the spherical Laplacian equation
@@ -496,7 +495,6 @@ end
         @test all(isapprox.(u_approx, exact, atol=0.01))
     end
 end
-=#
 
 @testset "Test 10: linear diffusion, two variables, mixed BCs" begin
     # Method of Manufactured Solutions
