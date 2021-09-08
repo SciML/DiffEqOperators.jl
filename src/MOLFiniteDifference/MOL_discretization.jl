@@ -1,4 +1,4 @@
-using ModelingToolkit: operation, istree, arguments
+using ModelingToolkit: operation, istree, arguments, variable
 import DomainSets
 
 # Method of lines discretization scheme
@@ -117,11 +117,11 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
             grid_indices = CartesianIndices(((axes(g)[1] for g in grid)...,))
             depvarsdisc = map(depvars) do u
                 if t == nothing
-                    [Num(Variable{Real}(Base.nameof(operation(u)),II.I...)) for II in grid_indices]
+                    [Num(variable(Base.nameof(operation(u)),II.I...; T=Real)) for II in grid_indices]
                 elseif isequal(arguments(u),[t])
                     [u for II in grid_indices]
                 else
-                    [Num(Variable{Symbolics.FnType{Tuple{Any}, Real}}(Base.nameof(operation(u)),II.I...))(t) for II in grid_indices]
+                    [Num(variable(Base.nameof(operation(u)),II.I...; T=Symbolics.FnType{Tuple{Any}, Real}))(t) for II in grid_indices]
                 end
             end
             spacevals = map(y->[Pair(nottime[i],space[i][y.I[i]]) for i in 1:nspace],space_indices)
@@ -332,7 +332,7 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
                                             Num(substitute(substitute(*(~~a..., ~~b...), r_mid_dep(II, j, k, 1)), r_mid_indep(II, j, 1)))],
                                             [-b1(II, j, k), b2(II, j, k)])
                                         for (j, iv) in enumerate(nottime) for (k, dv) in enumerate(depvars)]
-                spherical_deriv_rules = [@rule (~a) * ($(Differential(iv))($(Differential(iv))(dv)*(iv^2)))*((iv^2)^-1) =>
+                spherical_deriv_rules = [@rule (~a) * (iv^-2) * ($(Differential(iv))((iv^2)*$(Differential(iv))(dv))) =>
                                          (~a) * central_deriv_spherical(II, j, k)
                                          for (j, iv) in enumerate(nottime) for (k, dv) in enumerate(depvars)]
                 rhs_arg = istree(eq.rhs) && (SymbolicUtils.operation(eq.rhs) == +) ? SymbolicUtils.arguments(eq.rhs) : [eq.rhs]
@@ -377,10 +377,10 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
         # 0 ~ ...
         # Thus, before creating a NonlinearSystem we normalize the equations s.t. the lhs is zero.
         eqs = map(eq -> 0 ~ eq.rhs - eq.lhs, vcat(alleqs,unique(bceqs)))
-        sys = NonlinearSystem(eqs,vec(reduce(vcat,vec(alldepvarsdisc))),ps,defaults=Dict(defaults))
+        @named sys = NonlinearSystem(eqs,vec(reduce(vcat,vec(alldepvarsdisc))),ps,defaults=Dict(defaults))
         return sys, nothing
     else
-        sys = ODESystem(vcat(alleqs,unique(bceqs)),t,vec(reduce(vcat,vec(alldepvarsdisc))),ps,defaults=Dict(defaults))
+        @named sys = ODESystem(vcat(alleqs,unique(bceqs)),t,vec(reduce(vcat,vec(alldepvarsdisc))),ps,defaults=Dict(defaults))
         return sys, tspan
     end
 end

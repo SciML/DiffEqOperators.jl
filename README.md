@@ -51,7 +51,7 @@ domains = [t ∈ Interval(0.0,1.0),
            x ∈ Interval(0.0,Float64(pi))]
 
 # PDE system
-pdesys = PDESystem(eq,bcs,domains,[t,x],[u(t,x)])
+@named pdesys = PDESystem(eq,bcs,domains,[t,x],[u(t,x)])
 
 # Method of lines discretization
 dx = 0.1

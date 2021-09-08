@@ -36,7 +36,7 @@ using ModelingToolkit: Differential
                x ∈ Interval(x_min,x_max)]
 
     # PDE system
-    pdesys = PDESystem([eq],bcs,domains,[t,x],[u(t,x)])
+    @named pdesys = PDESystem([eq],bcs,domains,[t,x],[u(t,x)])
 
     # Method of lines discretization
     dx = 0.01
@@ -93,7 +93,7 @@ end
                x ∈ Interval(x_min,x_max)]
 
     # PDE system
-    pdesys = PDESystem([eq],bcs,domains,[t,x],[u(t,x)])
+    @named pdesys = PDESystem([eq],bcs,domains,[t,x],[u(t,x)])
 
     # Method of lines discretization
     dx = 0.01
@@ -149,7 +149,7 @@ end
                x ∈ Interval(x_min,x_max)]
 
     # PDE system
-    pdesys = PDESystem([eq],bcs,domains,[t,x],[u(t,x)])
+    @named pdesys = PDESystem([eq],bcs,domains,[t,x],[u(t,x)])
 
     # Method of lines discretization
     dx = 0.01
@@ -206,7 +206,7 @@ end
                x ∈ Interval(x_min,x_max)]
 
     # PDE system
-    pdesys = PDESystem([eq],bcs,domains,[t,x],[u(t,x)])
+    @named pdesys = PDESystem([eq],bcs,domains,[t,x],[u(t,x)])
 
     # Method of lines discretization
     dx = 0.01
