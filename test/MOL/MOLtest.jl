@@ -2,7 +2,7 @@ using ModelingToolkit, DiffEqOperators, LinearAlgebra, OrdinaryDiffEq
 using ModelingToolkit: operation, istree, arguments
 using DomainSets
 
-# Define some variables
+# # Define some variables
 @parameters t x
 @variables u(..) v(..)
 Dt = Differential(t)
@@ -58,7 +58,6 @@ discretization = MOLFiniteDifference([x=>dx,y=>dy],t)
 prob = ModelingToolkit.discretize(pdesys,discretization)
 sol = solve(prob,Tsit5())
 
-#=
 # Diffusion in a sphere
 @parameters t r
 @variables u(..)
@@ -74,7 +73,5 @@ domains = [t ∈ Interval(0.0,1.0),
 
 @named pdesys = PDESystem(eq,bcs,domains,[t,r],[u(t,r)])
 discretization = MOLFiniteDifference([r=>0.1],t)
-prob = discretize(pdesys,discretization
-) # This gives an ODEProblem since it's time-dependent
+prob = discretize(pdesys,discretization) # This gives an ODEProblem since it's time-dependent
 sol = solve(prob,Tsit5())
-=#
