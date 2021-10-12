@@ -4,7 +4,7 @@ const GROUP = get(ENV, "GROUP", "All")
 const is_APPVEYOR = Sys.iswindows() && haskey(ENV,"APPVEYOR")
 const is_TRAVIS = haskey(ENV,"TRAVIS")
 
-Start Test Script
+# Start Test Script
 
 @time begin
 
