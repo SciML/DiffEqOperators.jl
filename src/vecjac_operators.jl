@@ -17,6 +17,10 @@ function num_vecjac!(
     cache2 = similar(v);
     compute_f0 = true,
 )
+    if DiffEqBase.numargs(f) != 2
+        du .= num_jacvec(f, x, v)
+        return du
+    end
     compute_f0 && (f(cache1, x))
     T = eltype(x)
     # Should it be min? max? mean?
@@ -155,6 +159,7 @@ function LinearAlgebra.mul!(
     L::VecJacOperator,
     x::AbstractVector,
 )
+    du = reshape(du, size(L.u))
     let p = L.p, t = L.t
         if L.cache1 === nothing
             if L.autodiff
@@ -164,13 +169,11 @@ function LinearAlgebra.mul!(
                     auto_vecjac!(du, _u -> L.f(_u, p, t), L.u, x)
                 end
             else
-                num_vecjac!(
-                    du,
-                    (_du, _u) -> L.f(_du, _u, p, t),
-                    L.u,
-                    x;
-                    compute_f0 = false,
-                )
+                if DiffEqBase.numargs(L.f) == 4
+                    num_vecjac!(du, (_du, _u) -> L.f(_du, _u, p, t), L.u, x; compute_f0 = false)
+                else
+                    num_vecjac!(du, _u -> L.f(_u, p, t), L.u, x; compute_f0 = false)
+                end
             end
         else
             if L.autodiff
@@ -180,18 +183,15 @@ function LinearAlgebra.mul!(
                     auto_vecjac!(du, _u -> L.f(_u, p, t), L.u, x, L.cache1, L.cache2)
                 end
             else
-                num_vecjac!(
-                    du,
-                    (_du, _u) -> L.f(_du, _u, p, t),
-                    L.u,
-                    x,
-                    L.cache1,
-                    L.cache2;
-                    compute_f0 = true,
-                )
+                if DiffEqBase.numargs(L.f) == 4
+                    num_vecjac!(du, (_du, _u) -> L.f(_du, _u, p, t), L.u, x, L.cache1, L.cache2; compute_f0 = true)
+                else
+                    num_vecjac!(du, _u -> L.f(_u, p, t), L.u, x, L.cache1, L.cache2; compute_f0 = true)
+                end
             end
         end
     end
+    return vec(du)
 end
 
 function Base.resize!(J::VecJacOperator, i)

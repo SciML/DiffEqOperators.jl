@@ -9,7 +9,7 @@ function auto_jacvec!(du, f, x, v,
                  cache2 = similar(cache1))
     cache1 .= ForwardDiff.Dual{JacVecTag}.(x, reshape(v, size(x)))
     f(cache2,cache1)
-    du .= vec(ForwardDiff.partials.(cache2, 1))
+    du .= ForwardDiff.partials.(cache2, 1)
 end
 
 function auto_jacvec(f, x, v)
@@ -17,8 +17,8 @@ function auto_jacvec(f, x, v)
     ForwardDiff.partials.(vec(f(ForwardDiff.Dual{JacVecTag}.(x, vv))), 1)
 end
 
-function num_jacvec!(du,f,x,v,cache1 = similar(v),
-                 cache2 = similar(v);
+function num_jacvec!(du,f,x,v,cache1 = similar(du),
+                 cache2 = similar(du);
                  compute_f0 = true)
     compute_f0 && (f(cache1,x))
     T = eltype(x)
@@ -30,7 +30,7 @@ function num_jacvec!(du,f,x,v,cache1 = similar(v),
     @. x -= ϵ*vv # restore x
     cache1 = vec(cache1)
     cache2 = vec(cache2)
-    @. du = (cache2 - cache1)/ϵ
+    du .= reshape((cache2 .- cache1) ./ ϵ, size(du))
 end
 
 function num_jacvec(f,x,v,f0=nothing)
@@ -109,21 +109,23 @@ function Base.:*(L::JacVecOperator,x::AbstractVector)
 end
 
 function LinearAlgebra.mul!(du::AbstractVector,L::JacVecOperator,x::AbstractVector)
+    du = reshape(du, size(L.u))
     let p=L.p,t=L.t
         if L.cache1 === nothing
             if L.autodiff
                 auto_jacvec!(du,(_du,_u)->L.f(_du,_u,p,t),L.u,x)
             else
-                num_jacvec!(du,(_du,_u)->L.f(_du,_u,p,t),L.u,x;compute_f0=false)
+                num_jacvec!(du,(_du,_u)->L.f(_du,_u,p,t),L.u,x;compute_f0=true)
             end
         else
             if L.autodiff
                 auto_jacvec!(du,(_du,_u)->L.f(_du,_u,p,t),L.u,x,L.cache1,L.cache2)
             else
-                num_jacvec!(du,(_du,_u)->L.f(_du,_u,p,t),L.u,x,L.cache1,L.cache2;compute_f0=false)
+                num_jacvec!(du,(_du,_u)->L.f(_du,_u,p,t),L.u,x,L.cache1,L.cache2;compute_f0=true)
             end
         end
     end
+    return vec(du)
 end
 
 function Base.resize!(J::JacVecOperator,i)
