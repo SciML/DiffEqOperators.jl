@@ -105,7 +105,7 @@ function Base.:*(L::JacVecOperator,x::AbstractVector)
     if DiffEqBase.numargs(L.f) == 3
         return L.autodiff ? auto_jacvec(_u->L.f(_u,L.p,L.t),L.u,x) : num_jacvec(_u->L.f(_u,L.p,L.t),L.u,x)
     end
-    return mul!(similar(L.u), L, x)
+    return mul!(similar(vec(L.u)), L, x)
 end
 
 function LinearAlgebra.mul!(du::AbstractVector,L::JacVecOperator,x::AbstractVector)
