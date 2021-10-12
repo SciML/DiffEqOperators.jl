@@ -1,5 +1,5 @@
 function auto_vecjac!(du, f, x, v, cache1 = nothing, cache2 = nothing)
-    DiffEqBase.numargs(f) != 1 && error("For inplace function use autodiff = false")
+    !hasmethod(f, (typeof(x),)) && error("For inplace function use autodiff = false")
     du .= auto_vecjac(f, x, v)
 end
 
@@ -148,8 +148,8 @@ end
 
 
 function Base.:*(L::VecJacOperator,x::AbstractVector)
-    if DiffEqBase.numargs(L.f) == 3
-        return L.autodiff ? auto_vecjac(_u->L.f(_u,L.p,L.t),L.u,x) : num_vecjac(_u->L.f(_u,L.p,L.t),L.u,x)
+    if hasmethod(L.f, typeof.((L.u, L.p, L.t)))
+        return L.autodiff ? auto_vecjac(_u -> L.f(_u, L.p, L.t), L.u, x) : num_vecjac(_u -> L.f(_u, L.p, L.t), L.u, x)
     end
     return mul!(similar(vec(L.u)), L, x)
 end
@@ -163,27 +163,29 @@ function LinearAlgebra.mul!(
     let p = L.p, t = L.t
         if L.cache1 === nothing
             if L.autodiff
-                if DiffEqBase.numargs(L.f) == 4
-                    auto_vecjac!(du, (_du, _u) -> L.f(_du, _u, p, t), L.u, x)
-                else
+                # For autodiff prefer non-inplace function
+                if hasmethod(L.f, typeof.((L.u, L.p, L.t)))
                     auto_vecjac!(du, _u -> L.f(_u, p, t), L.u, x)
+                else
+                    auto_vecjac!(du, (_du, _u) -> L.f(_du, _u, p, t), L.u, x)
                 end
             else
-                if DiffEqBase.numargs(L.f) == 4
-                    num_vecjac!(du, (_du, _u) -> L.f(_du, _u, p, t), L.u, x; compute_f0 = false)
+                if hasmethod(L.f, typeof.((du, L.u, L.p, L.t)))
+                    num_vecjac!(du, (_du, _u) -> L.f(_du, _u, p, t), L.u, x; compute_f0 = true)
                 else
-                    num_vecjac!(du, _u -> L.f(_u, p, t), L.u, x; compute_f0 = false)
+                    num_vecjac!(du, _u -> L.f(_u, p, t), L.u, x; compute_f0 = true)
                 end
             end
         else
             if L.autodiff
-                if DiffEqBase.numargs(L.f) == 4
-                    auto_vecjac!(du, (_du, _u) -> L.f(_du, _u, p, t), L.u, x, L.cache1, L.cache2)
-                else
+                # For autodiff prefer non-inplace function
+                if hasmethod(L.f, typeof.((L.u, L.p, L.t)))
                     auto_vecjac!(du, _u -> L.f(_u, p, t), L.u, x, L.cache1, L.cache2)
+                else
+                    auto_vecjac!(du, (_du, _u) -> L.f(_du, _u, p, t), L.u, x, L.cache1, L.cache2)
                 end
             else
-                if DiffEqBase.numargs(L.f) == 4
+                if hasmethod(L.f, typeof.((du, L.u, L.p, L.t)))
                     num_vecjac!(du, (_du, _u) -> L.f(_du, _u, p, t), L.u, x, L.cache1, L.cache2; compute_f0 = true)
                 else
                     num_vecjac!(du, _u -> L.f(_u, p, t), L.u, x, L.cache1, L.cache2; compute_f0 = true)
