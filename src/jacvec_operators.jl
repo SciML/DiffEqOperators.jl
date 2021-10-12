@@ -42,25 +42,6 @@ function num_jacvec(f,x,v,f0=nothing)
     (f(x.+ϵ.*vv) .- f(x))./ϵ |> vec
 end
 
-
-#=
-### vecjec
-### Not useful right now
-
-"""
-    vecjac(f, x, v) -> u
-``v'J(f(x))``
-"""
-function vecjac(f, x, v)
-    tp = ReverseDiff.InstructionTape()
-    tx = ReverseDiff.track(x, tp)
-    ty = f(tx)
-    ReverseDiff.increment_deriv!(ty, v)
-    ReverseDiff.reverse_pass!(tp)
-    return ReverseDiff.deriv(tx)'
-end
-=#
-
 ### Operator Implementation
 
 mutable struct JacVecOperator{T,F,T1,T2,uType,P,tType,O} <: DiffEqBase.AbstractDiffEqLinearOperator{T}
@@ -120,7 +101,12 @@ function (L::JacVecOperator)(du,u,p,t::Number)
     mul!(du,L,u)
 end
 
-Base.:*(L::JacVecOperator,x::AbstractVector) = L.autodiff ? auto_jacvec(_u->L.f(_u,L.p,L.t),L.u,x) : num_jacvec(_u->L.f(_u,L.p,L.t),L.u,x)
+function Base.:*(L::JacVecOperator,x::AbstractVector)
+    if DiffEqBase.numargs(L.f) == 3
+        return L.autodiff ? auto_jacvec(_u->L.f(_u,L.p,L.t),L.u,x) : num_jacvec(_u->L.f(_u,L.p,L.t),L.u,x)
+    end
+    return mul!(similar(du), L, x)
+end
 
 function LinearAlgebra.mul!(du::AbstractVector,L::JacVecOperator,x::AbstractVector)
     let p=L.p,t=L.t

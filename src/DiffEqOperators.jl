@@ -8,6 +8,7 @@ import DiffEqBase: update_coefficients!, isconstant
 using SciMLBase: AbstractDiffEqLinearOperator, AbstractDiffEqCompositeOperator, DiffEqScaledOperator
 import SciMLBase: getops
 using SparseArrays, ForwardDiff, BandedMatrices, NNlib, LazyArrays, BlockBandedMatrices, LoopVectorization
+using Zygote
 using LazyBandedMatrices, ModelingToolkit
 using RuntimeGeneratedFunctions
 RuntimeGeneratedFunctions.init(@__MODULE__)
@@ -19,6 +20,7 @@ abstract type AbstractMatrixFreeOperator{T} <: AbstractDiffEqLinearOperator{T} e
 ### Matrix-free Operators
 include("matrixfree_operators.jl")
 include("jacvec_operators.jl")
+include("vecjac_operators.jl")
 
 ### Utilities
 include("utils.jl")
@@ -65,6 +67,7 @@ end
 
 export MatrixFreeOperator
 export AnalyticalJacVecOperator, JacVecOperator, getops
+export VecJacOperator
 export AbstractDerivativeOperator, DerivativeOperator,
        CenteredDifference, UpwindDifference, nonlinear_diffusion, nonlinear_diffusion!,
        GradientOperator, Gradient, CurlOperator, Curl, DivergenceOperator, Divergence
