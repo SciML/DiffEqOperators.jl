@@ -1,11 +1,12 @@
 function auto_vecjac!(du, f, x, v, cache1 = nothing, cache2 = nothing)
-    !hasmethod(f, (typeof(x),)) && error("For inplace function use autodiff = false")
+    !hasmethod(f, (typeof(x),)) &&
+        error("For inplace function use autodiff = false")
     du .= auto_vecjac(f, x, v)
 end
 
 function auto_vecjac(f, x, v)
     vv, back = Zygote.pullback(f, x)
-    return vec(back(reshape(v, size(vv)))[1])
+    return back(reshape(v, size(vv)))[1]
 end
 
 function num_vecjac!(
@@ -26,11 +27,11 @@ function num_vecjac!(
     # Should it be min? max? mean?
     ϵ = sqrt(eps(real(T))) * max(one(real(T)), abs(norm(x)))
     vv = reshape(v, size(x))
-    for i in 1:length(x)
+    for i = 1:length(x)
         x[i] += ϵ
         f(cache2, x)
         x[i] -= ϵ
-        du[i] = (((cache2 .- cache1) ./ ϵ)' * vv)[1]
+        du[i] = (((cache2 .- cache1) ./ ϵ)'*vv)[1]
     end
     return du
 end
@@ -42,11 +43,11 @@ function num_vecjac(f, x, v, f0 = nothing)
     # Should it be min? max? mean?
     ϵ = sqrt(eps(real(T))) * max(one(real(T)), abs(norm(x)))
     du = similar(x)
-    for i in 1:length(x)
+    for i = 1:length(x)
         x[i] += ϵ
         f0 = f(x)
         x[i] -= ϵ
-        du[i] = (((f0 .- _f0) ./ ϵ)' * vv)[1]
+        du[i] = (((f0 .- _f0) ./ ϵ)'*vv)[1]
     end
     return du
 end
@@ -147,9 +148,12 @@ function (L::VecJacOperator)(du, u, p, t::Number)
 end
 
 
-function Base.:*(L::VecJacOperator,x::AbstractVector)
+function Base.:*(L::VecJacOperator, x::AbstractVector)
     if hasmethod(L.f, typeof.((L.u, L.p, L.t)))
-        return L.autodiff ? auto_vecjac(_u -> L.f(_u, L.p, L.t), L.u, x) : num_vecjac(_u -> L.f(_u, L.p, L.t), L.u, x)
+        return vec(
+            L.autodiff ? auto_vecjac(_u -> L.f(_u, L.p, L.t), L.u, x) :
+            num_vecjac(_u -> L.f(_u, L.p, L.t), L.u, x),
+        )
     end
     return mul!(similar(vec(L.u)), L, x)
 end
@@ -171,24 +175,66 @@ function LinearAlgebra.mul!(
                 end
             else
                 if hasmethod(L.f, typeof.((du, L.u, L.p, L.t)))
-                    num_vecjac!(du, (_du, _u) -> L.f(_du, _u, p, t), L.u, x; compute_f0 = true)
+                    num_vecjac!(
+                        du,
+                        (_du, _u) -> L.f(_du, _u, p, t),
+                        L.u,
+                        x;
+                        compute_f0 = true,
+                    )
                 else
-                    num_vecjac!(du, _u -> L.f(_u, p, t), L.u, x; compute_f0 = true)
+                    num_vecjac!(
+                        du,
+                        _u -> L.f(_u, p, t),
+                        L.u,
+                        x;
+                        compute_f0 = true,
+                    )
                 end
             end
         else
             if L.autodiff
                 # For autodiff prefer non-inplace function
                 if hasmethod(L.f, typeof.((L.u, L.p, L.t)))
-                    auto_vecjac!(du, _u -> L.f(_u, p, t), L.u, x, L.cache1, L.cache2)
+                    auto_vecjac!(
+                        du,
+                        _u -> L.f(_u, p, t),
+                        L.u,
+                        x,
+                        L.cache1,
+                        L.cache2,
+                    )
                 else
-                    auto_vecjac!(du, (_du, _u) -> L.f(_du, _u, p, t), L.u, x, L.cache1, L.cache2)
+                    auto_vecjac!(
+                        du,
+                        (_du, _u) -> L.f(_du, _u, p, t),
+                        L.u,
+                        x,
+                        L.cache1,
+                        L.cache2,
+                    )
                 end
             else
                 if hasmethod(L.f, typeof.((du, L.u, L.p, L.t)))
-                    num_vecjac!(du, (_du, _u) -> L.f(_du, _u, p, t), L.u, x, L.cache1, L.cache2; compute_f0 = true)
+                    num_vecjac!(
+                        du,
+                        (_du, _u) -> L.f(_du, _u, p, t),
+                        L.u,
+                        x,
+                        L.cache1,
+                        L.cache2;
+                        compute_f0 = true,
+                    )
                 else
-                    num_vecjac!(du, _u -> L.f(_u, p, t), L.u, x, L.cache1, L.cache2; compute_f0 = true)
+                    num_vecjac!(
+                        du,
+                        _u -> L.f(_u, p, t),
+                        L.u,
+                        x,
+                        L.cache1,
+                        L.cache2;
+                        compute_f0 = true,
+                    )
                 end
             end
         end
