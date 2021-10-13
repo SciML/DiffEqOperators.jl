@@ -1,4 +1,4 @@
-using DiffEqBase, DiffEqOperators, LinearAlgebra, Test
+using DiffEqBase, DiffEqOperators, LinearAlgebra, Zygote, Test
 const A = rand(Float32, 300, 300)
 f(du, u, p, t) = mul!(du, A, u)
 f(u, p, t) = A * u
