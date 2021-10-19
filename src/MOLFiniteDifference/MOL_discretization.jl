@@ -339,9 +339,10 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
                                          for (j, iv) in enumerate(nottime) for (k, dv) in enumerate(depvars)]
 
                 # r^-2 needs to be handled separately
-                append!(spherical_deriv_rules,[@rule *(~~a, (iv^-2) * ($(Differential(iv))((iv^2)*$(Differential(iv))(dv))), ~~b) =>
+                spherical_deriv_rules = vcat(vec(spherical_deriv_rules),vec(
+                                        [@rule *(~~a, (iv^-2) * ($(Differential(iv))((iv^2)*$(Differential(iv))(dv))), ~~b) =>
                                          *(~a..., central_deriv_spherical(II, j, k), ~b...)
-                                         for (j, iv) in enumerate(nottime) for (k, dv) in enumerate(depvars)])
+                                         for (j, iv) in enumerate(nottime) for (k, dv) in enumerate(depvars)]))
 
                 rhs_arg = istree(eq.rhs) && (SymbolicUtils.operation(eq.rhs) == +) ? SymbolicUtils.arguments(eq.rhs) : [eq.rhs]
                 lhs_arg = istree(eq.lhs) && (SymbolicUtils.operation(eq.lhs) == +) ? SymbolicUtils.arguments(eq.lhs) : [eq.lhs]
