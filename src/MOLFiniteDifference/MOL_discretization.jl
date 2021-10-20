@@ -334,6 +334,14 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
                                             Num(substitute(substitute(*(~~a..., ~~b...), r_mid_dep(II, j, k, 1)), r_mid_indep(II, j, 1)))],
                                             [-b1(II, j, k), b2(II, j, k)])
                                         for (j, iv) in enumerate(nottime) for (k, dv) in enumerate(depvars)]
+
+                cartesian_deriv_rules = vcat(vec(cartesian_deriv_rules),vec(
+                                        [@rule ($(Differential(iv))($(Differential(iv))(dv)/~a)) =>
+                                        dot([Num(substitute(substitute(1/~a, r_mid_dep(II, j, k, -1)), r_mid_indep(II, j, -1))),
+                                            Num(substitute(substitute(1/~a, r_mid_dep(II, j, k, 1)), r_mid_indep(II, j, 1)))],
+                                            [-b1(II, j, k), b2(II, j, k)])
+                                        for (j, iv) in enumerate(nottime) for (k, dv) in enumerate(depvars)]))
+
                 spherical_deriv_rules = [@rule *(~~a, ($(Differential(iv))((iv^2)*$(Differential(iv))(dv))), ~~b) / (iv^2) =>
                                          *(~a..., central_deriv_spherical(II, j, k), ~b...)
                                          for (j, iv) in enumerate(nottime) for (k, dv) in enumerate(depvars)]
