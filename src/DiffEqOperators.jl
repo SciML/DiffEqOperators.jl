@@ -7,6 +7,7 @@ import LinearAlgebra: mul!, ldiv!, lmul!, rmul!, axpy!, opnorm, factorize, I
 import DiffEqBase: update_coefficients!, isconstant
 using SciMLBase: AbstractDiffEqLinearOperator, AbstractDiffEqCompositeOperator, DiffEqScaledOperator
 import SciMLBase: getops
+using Zygote # SparseDiffTools has conditional dep on Zygote
 using SparseDiffTools
 using SparseArrays, ForwardDiff, BandedMatrices, NNlib, LazyArrays, BlockBandedMatrices, LoopVectorization
 using LazyBandedMatrices, ModelingToolkit
