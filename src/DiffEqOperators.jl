@@ -7,8 +7,8 @@ import LinearAlgebra: mul!, ldiv!, lmul!, rmul!, axpy!, opnorm, factorize, I
 import DiffEqBase: update_coefficients!, isconstant
 using SciMLBase: AbstractDiffEqLinearOperator, AbstractDiffEqCompositeOperator, DiffEqScaledOperator
 import SciMLBase: getops
+using SparseDiffTools
 using SparseArrays, ForwardDiff, BandedMatrices, NNlib, LazyArrays, BlockBandedMatrices, LoopVectorization
-using Zygote
 using LazyBandedMatrices, ModelingToolkit
 using RuntimeGeneratedFunctions
 RuntimeGeneratedFunctions.init(@__MODULE__)

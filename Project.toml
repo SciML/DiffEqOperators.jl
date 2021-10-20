@@ -19,10 +19,10 @@ NonlinearSolve = "8913a72c-1f9b-4ce2-8d82-65094dcecaec"
 RuntimeGeneratedFunctions = "7e49a35a-f44a-4d26-94aa-eba1b4ca6b47"
 SciMLBase = "0bca4576-84f4-4d90-8ffe-ffa030f20462"
 SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
+SparseDiffTools = "47a9eef4-7e08-11e9-0b38-333d64bd3804"
 StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 SuiteSparse = "4607b0f0-06f3-5cda-b6b1-a6196a1729e9"
 SymbolicUtils = "d1185830-fcd6-423d-90d6-eec64667417b"
-Zygote = "e88e6eb3-aa80-5325-afca-941959d7151f"
 
 [compat]
 BandedMatrices = "0.15.11, 0.16"
