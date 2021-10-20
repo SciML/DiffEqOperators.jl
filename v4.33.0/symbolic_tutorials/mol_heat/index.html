@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Solving the Heat Equation · DiffEqOperators.jl</title><script data-outdated-warner src="../../assets/warner.js"></script><link rel="canonical" href="https://diffeqoperators.sciml.ai/stable/symbolic_tutorials/mol_heat/"/><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.039/juliamono-regular.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.11/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="../.."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../../assets/documenter.js"></script><script src="../../siteinfo.js"></script><script src="../../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../../assets/themeswap.js"></script><link href="../../assets/favicon.ico" rel="icon" type="image/x-icon"/></head><body><div id="documenter"><nav class="docs-sidebar"><a class="docs-logo" href="../../"><img src="../../assets/logo.png" alt="DiffEqOperators.jl logo"/></a><div class="docs-package-name"><span class="docs-autofit"><a href="../../">DiffEqOperators.jl</a></span></div><form class="docs-search" action="../../search/"><input class="docs-search-query" id="documenter-search-query" name="q" type="text" placeholder="Search docs"/></form><ul class="docs-menu"><li><a class="tocitem" href="../../">DiffEqOperators.jl: Linear operators for Scientific Machine Learning</a></li><li><span class="tocitem">Symbolic Tutorials</span><ul><li class="is-active"><a class="tocitem" href>Solving the Heat Equation</a></li></ul></li><li><span class="tocitem">Operator Tutorials</span><ul><li><a class="tocitem" href="../../operator_tutorials/kdv/">Solving KdV Solitons with Upwinding Operators</a></li></ul></li><li><span class="tocitem">Operators</span><ul><li><a class="tocitem" href="../../operators/operator_overview/">Operator Overview</a></li><li><a class="tocitem" href="../../operators/derivative_operators/">Derivative Operators</a></li><li><a class="tocitem" href="../../operators/vector_calculus_operators/">Vector Calculus Operators</a></li><li><a class="tocitem" href="../../operators/jacobian_vector_product/">Jacobian-Vector Product Operators</a></li><li><a class="tocitem" href="../../operators/matrix_free_operators/">Matrix-Free Operators</a></li></ul></li><li><span class="tocitem">Symbolic PDE Solver</span><ul><li><a class="tocitem" href="../../symbolic/molfinitedifference/">Symbolic Method of Lines Discretizations</a></li></ul></li><li><span class="tocitem">Nonlinear Derivatives</span><ul><li><a class="tocitem" href="../../nonlinear_derivatives/nonlinear_diffusion/">Nonlinear Diffusion</a></li></ul></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">Symbolic Tutorials</a></li><li class="is-active"><a href>Solving the Heat Equation</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Solving the Heat Equation</a></li></ul></nav><div class="docs-right"><a class="docs-edit-link" href="https://github.com/SciML/DiffEqOperators.jl/blob/master/docs/src/symbolic_tutorials/mol_heat.md" title="Edit on GitHub"><span class="docs-icon fab"></span><span class="docs-label is-hidden-touch">Edit on GitHub</span></a><a class="docs-settings-button fas fa-cog" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-sidebar-button fa fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a></div></header><article class="content" id="documenter-page"><h1 id="Solving-the-Heat-Equation"><a class="docs-heading-anchor" href="#Solving-the-Heat-Equation">Solving the Heat Equation</a><a id="Solving-the-Heat-Equation-1"></a><a class="docs-heading-anchor-permalink" href="#Solving-the-Heat-Equation" title="Permalink"></a></h1><h4 id="Note:-This-uses-a-currently-unreleased-interface-that-is-still-a-work-in-progress.-Use-at-your-own-risk!"><a class="docs-heading-anchor" href="#Note:-This-uses-a-currently-unreleased-interface-that-is-still-a-work-in-progress.-Use-at-your-own-risk!">Note: This uses a currently unreleased interface that is still a work in progress. Use at your own risk!</a><a id="Note:-This-uses-a-currently-unreleased-interface-that-is-still-a-work-in-progress.-Use-at-your-own-risk!-1"></a><a class="docs-heading-anchor-permalink" href="#Note:-This-uses-a-currently-unreleased-interface-that-is-still-a-work-in-progress.-Use-at-your-own-risk!" title="Permalink"></a></h4><p>In this tutorial we will use the symbolic interface to solve the heat equation.</p><h3 id="Dirichlet-boundary-conditions"><a class="docs-heading-anchor" href="#Dirichlet-boundary-conditions">Dirichlet boundary conditions</a><a id="Dirichlet-boundary-conditions-1"></a><a class="docs-heading-anchor-permalink" href="#Dirichlet-boundary-conditions" title="Permalink"></a></h3><pre><code class="language-julia hljs">using OrdinaryDiffEq, ModelingToolkit, DiffEqOperators, DomainSets
+# Method of Manufactured Solutions: exact solution
+u_exact = (x,t) -&gt; exp.(-t) * cos.(x)
+
+# Parameters, variables, and derivatives
+@parameters t x
+@variables u(..)
+Dt = Differential(t)
+Dxx = Differential(x)^2
+
+# 1D PDE and boundary conditions
+eq  = Dt(u(t,x)) ~ Dxx(u(t,x))
+bcs = [u(0,x) ~ cos(x),
+        u(t,0) ~ exp(-t),
+        u(t,1) ~ exp(-t) * cos(1)]
+
+# Space and time domains
+domains = [t ∈ Interval(0.0,1.0),
+           x ∈ Interval(0.0,1.0)]
+
+# PDE system
+@named pdesys = PDESystem(eq,bcs,domains,[t,x],[u(t,x)])
+
+# Method of lines discretization
+dx = 0.1
+order = 2
+discretization = MOLFiniteDifference([x=&gt;dx],t)
+
+# Convert the PDE problem into an ODE problem
+prob = discretize(pdesys,discretization)
+
+# Solve ODE problem
+using OrdinaryDiffEq
+sol = solve(prob,Tsit5(),saveat=0.2)
+
+# Plot results and compare with exact solution
+x = (0:dx:1)[2:end-1]
+t = sol.t
+
+using Plots
+plt = plot()
+
+for i in 1:length(t)
+    plot!(x,sol.u[i],label=&quot;Numerical, t=$(t[i])&quot;)
+    scatter!(x, u_exact(x, t[i]),label=&quot;Exact, t=$(t[i])&quot;)
+end
+display(plt)
+savefig(&quot;plot.png&quot;)</code></pre><h3 id="Neumann-boundary-conditions"><a class="docs-heading-anchor" href="#Neumann-boundary-conditions">Neumann boundary conditions</a><a id="Neumann-boundary-conditions-1"></a><a class="docs-heading-anchor-permalink" href="#Neumann-boundary-conditions" title="Permalink"></a></h3><pre><code class="language-julia hljs">using OrdinaryDiffEq, ModelingToolkit, DiffEqOperators, DomainSets
+# Method of Manufactured Solutions: exact solution
+u_exact = (x,t) -&gt; exp.(-t) * cos.(x)
+
+# Parameters, variables, and derivatives
+@parameters t x
+@variables u(..)
+Dt = Differential(t)
+Dx = Differential(x)
+Dxx = Differential(x)^2
+
+# 1D PDE and boundary conditions
+eq  = Dt(u(t,x)) ~ Dxx(u(t,x))
+bcs = [u(0,x) ~ cos(x),
+        Dx(u(t,0)) ~ 0.0,
+        Dx(u(t,1)) ~ -exp(-t) * sin(1)]
+
+# Space and time domains
+domains = [t ∈ Interval(0.0,1.0),
+        x ∈ Interval(0.0,1.0)]
+
+# PDE system
+@named pdesys = PDESystem(eq,bcs,domains,[t,x],[u(t,x)])
+
+# Method of lines discretization
+# Need a small dx here for accuracy
+dx = 0.01
+order = 2
+discretization = MOLFiniteDifference([x=&gt;dx],t)
+
+# Convert the PDE problem into an ODE problem
+prob = discretize(pdesys,discretization)
+
+# Solve ODE problem
+using OrdinaryDiffEq
+sol = solve(prob,Tsit5(),saveat=0.2)
+
+# Plot results and compare with exact solution
+x = (0:dx:1)[2:end-1]
+t = sol.t
+
+using Plots
+plt = plot()
+
+for i in 1:length(t)
+    plot!(x,sol.u[i],label=&quot;Numerical, t=$(t[i])&quot;,lw=12)
+    scatter!(x, u_exact(x, t[i]),label=&quot;Exact, t=$(t[i])&quot;)
+end
+display(plt)
+savefig(&quot;plot.png&quot;)</code></pre><h3 id="Robin-boundary-conditions"><a class="docs-heading-anchor" href="#Robin-boundary-conditions">Robin boundary conditions</a><a id="Robin-boundary-conditions-1"></a><a class="docs-heading-anchor-permalink" href="#Robin-boundary-conditions" title="Permalink"></a></h3><pre><code class="language-julia hljs">using OrdinaryDiffEq, ModelingToolkit, DiffEqOperators, DomainSets
+# Method of Manufactured Solutions
+u_exact = (x,t) -&gt; exp.(-t) * sin.(x)
+
+# Parameters, variables, and derivatives
+@parameters t x
+@variables u(..)
+Dt = Differential(t)
+Dx = Differential(x)
+Dxx = Differential(x)^2
+
+# 1D PDE and boundary conditions
+eq  = Dt(u(t,x)) ~ Dxx(u(t,x))
+bcs = [u(0,x) ~ sin(x),
+        u(t,-1.0) + 3Dx(u(t,-1.0)) ~ exp(-t) * (sin(-1.0) + 3cos(-1.0)),
+        u(t,1.0) + Dx(u(t,1.0)) ~ exp(-t) * (sin(1.0) + cos(1.0))]
+
+# Space and time domains
+domains = [t ∈ Interval(0.0,1.0),
+        x ∈ Interval(-1.0,1.0)]
+
+# PDE system
+@named pdesys = PDESystem(eq,bcs,domains,[t,x],[u(t,x)])
+
+# Method of lines discretization
+# Need a small dx here for accuracy
+dx = 0.05
+order = 2
+discretization = MOLFiniteDifference([x=&gt;dx],t)
+
+# Convert the PDE problem into an ODE problem
+prob = discretize(pdesys,discretization)
+
+# Solve ODE problem
+using OrdinaryDiffEq
+sol = solve(prob,Tsit5(),saveat=0.2)
+
+# Plot results and compare with exact solution
+x = (-1:dx:1)[2:end-1]
+t = sol.t
+
+using Plots
+plt = plot()
+
+for i in 1:length(t)
+    plot!(x,sol.u[i],label=&quot;Numerical, t=$(t[i])&quot;)
+    scatter!(x, u_exact(x, t[i]),label=&quot;Exact, t=$(t[i])&quot;)
+end
+display(plt)
+savefig(&quot;plot.png&quot;)</code></pre><h3 id="Adding-parameters"><a class="docs-heading-anchor" href="#Adding-parameters">Adding parameters</a><a id="Adding-parameters-1"></a><a class="docs-heading-anchor-permalink" href="#Adding-parameters" title="Permalink"></a></h3><p>We can also build up more complicated systems with multiple dependent variables and parameters as follows</p><pre><code class="language-julia hljs">@parameters t x
+@parameters Dn, Dp
+@variables u(..) v(..)
+Dt = Differential(t)
+Dx = Differential(x)
+Dxx = Differential(x)^2
+
+eqs  = [Dt(u(t,x)) ~ Dn * Dxx(u(t,x)) + u(t,x)*v(t,x), 
+        Dt(v(t,x)) ~ Dp * Dxx(v(t,x)) - u(t,x)*v(t,x)]
+bcs = [u(0,x) ~ sin(pi*x/2),
+       v(0,x) ~ sin(pi*x/2),
+       u(t,0) ~ 0.0, Dx(u(t,1)) ~ 0.0,
+       v(t,0) ~ 0.0, Dx(v(t,1)) ~ 0.0]
+
+domains = [t ∈ Interval(0.0,1.0),
+           x ∈ Interval(0.0,1.0)]
+
+@named pdesys = PDESystem(eqs,bcs,domains,[t,x],[u(t,x),v(t,x)],[Dn=&gt;0.5, Dp=&gt;2])
+discretization = MOLFiniteDifference([x=&gt;0.1],t)
+prob = discretize(pdesys,discretization) # This gives an ODEProblem since it&#39;s time-dependent
+sol = solve(prob,Tsit5())
+
+x = (0:0.1:1)[2:end-1]
+t = sol.t
+
+using Plots
+anim = @animate for i in 1:length(t)
+       p1 = plot(x,sol.u[i][1:9],label=&quot;u, t=$(t[i])&quot;;legend=false,xlabel=&quot;x&quot;,ylabel=&quot;u&quot;,ylim=[0,1])
+       p2 = plot(x,sol.u[i][10:end],label=&quot;v, t=$(t[i])&quot;;legend=false,xlabel=&quot;x&quot;,ylabel=&quot;v&quot;,ylim=[0,1])
+       plot(p1,p2)
+end
+gif(anim, &quot;plot.gif&quot;,fps=30)</code></pre><h3 id="Stationary-Problems"><a class="docs-heading-anchor" href="#Stationary-Problems">Stationary Problems</a><a id="Stationary-Problems-1"></a><a class="docs-heading-anchor-permalink" href="#Stationary-Problems" title="Permalink"></a></h3><pre><code class="language-julia hljs">using ModelingToolkit,DiffEqOperators,LinearAlgebra,DomainSets
+using ModelingToolkit: Differential
+using DifferentialEquations
+
+@parameters x
+@variables u(..)
+Dxx = Differential(x)^2
+
+eq = Dxx(u(x)) ~ 0
+dx = 0.1
+
+bcs = [u(0) ~ 1,
+        u(1) ~ 2]
+
+# Space and time domains
+domains = [x ∈ Interval(0.0,1.0)]
+
+@named pdesys = PDESystem([eq],bcs,domains,[x],[u(x)])
+
+# Note that we pass in `nothing` for the time variable `t` here since we
+# are creating a stationary problem without a dependence on time, only space.
+discretization = MOLFiniteDifference([x=&gt;dx], nothing, centered_order=2)
+prob = discretize(pdesys,discretization)
+sol = solve(prob)
+
+using Plots
+xs = domains[1].domain.lower:dx:domains[1].domain.upper
+plot(xs, sol.u)
+</code></pre><pre><code class="language-julia hljs">using ModelingToolkit,DiffEqOperators,LinearAlgebra,DomainSets
+using ModelingToolkit: Differential
+using DifferentialEquations
+
+@parameters x y
+@variables u(..)
+Dxx = Differential(x)^2
+Dyy = Differential(y)^2
+
+eq = Dxx(u(x, y)) + Dyy(u(x, y))~ 0
+dx = 0.1
+dy = 0.1
+
+bcs = [u(0,y) ~ 0.0,
+       u(1,y) ~ y,
+       u(x,0) ~ 0.0,
+       u(x,1) ~ x]
+
+# Space and time domains
+domains = [x ∈ Interval(0.0,1.0),
+           y ∈ Interval(0.0,1.0)]
+
+@named pdesys = PDESystem([eq],bcs,domains,[x,y],[u(x,y)])
+
+# Note that we pass in `nothing` for the time variable `t` here since we
+# are creating a stationary problem without a dependence on time, only space.
+discretization = MOLFiniteDifference([x=&gt;dx,y=&gt;dy], nothing, centered_order=2)
+
+prob = discretize(pdesys,discretization)
+sol = solve(prob)
+
+using Plots
+xs,ys = [infimum(d.domain):dx:supremum(d.domain) for d in domains]
+u_sol = reshape(sol.u, (length(xs),length(ys)))
+plot(xs, ys, u_sol, linetype=:contourf,title = &quot;solution&quot;)</code></pre><p><img src="https://user-images.githubusercontent.com/620651/121951649-0b701e00-cd10-11eb-8af8-b203f7f13abc.png" alt="solution"/></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../../">« DiffEqOperators.jl: Linear operators for Scientific Machine Learning</a><a class="docs-footer-nextpage" href="../../operator_tutorials/kdv/">Solving KdV Solitons with Upwinding Operators »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.10 on <span class="colophon-date" title="Wednesday 20 October 2021 19:05">Wednesday 20 October 2021</span>. Using Julia version 1.6.3.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
