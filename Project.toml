@@ -1,7 +1,7 @@
 name = "DiffEqOperators"
 uuid = "9fdde737-9c7f-55bf-ade8-46b3f136cc48"
 authors = ["Chris Rackauckas <accounts@chrisrackauckas.com>"]
-version = "4.32.0"
+version = "4.33.0"
 
 [deps]
 BandedMatrices = "aae01518-5342-5314-be14-df237901396f"
@@ -16,6 +16,7 @@ LoopVectorization = "bdcacae8-1622-11e9-2a5c-532679323890"
 ModelingToolkit = "961ee093-0014-501f-94e3-6117800e7a78"
 NNlib = "872c559c-99b0-510c-b3b7-b6c96a88d5cd"
 NonlinearSolve = "8913a72c-1f9b-4ce2-8d82-65094dcecaec"
+Requires = "ae029012-a4dd-5104-9daa-d747884805df"
 RuntimeGeneratedFunctions = "7e49a35a-f44a-4d26-94aa-eba1b4ca6b47"
 SciMLBase = "0bca4576-84f4-4d90-8ffe-ffa030f20462"
 SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
@@ -23,7 +24,6 @@ SparseDiffTools = "47a9eef4-7e08-11e9-0b38-333d64bd3804"
 StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 SuiteSparse = "4607b0f0-06f3-5cda-b6b1-a6196a1729e9"
 SymbolicUtils = "d1185830-fcd6-423d-90d6-eec64667417b"
-Zygote = "e88e6eb3-aa80-5325-afca-941959d7151f"
 
 [compat]
 BandedMatrices = "0.15.11, 0.16"
@@ -39,6 +39,7 @@ NNlib = "0.6, 0.7"
 NonlinearSolve = "0.3.7"
 RuntimeGeneratedFunctions = "0.4, 0.5"
 SciMLBase = "1.11"
+SparseDiffTools = "1.17"
 StaticArrays = "0.10, 0.11, 0.12, 1.0"
 SymbolicUtils = "0.11, 0.12, 0.13, 0.14, 0.15, 0.16"
 julia = "1"
@@ -51,6 +52,7 @@ Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 SafeTestsets = "1bc83da4-3b8d-516f-aca4-4fe02f6d838f"
 SpecialFunctions = "276daf66-3868-5448-9aa4-cd146d93841b"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+Zygote = "e88e6eb3-aa80-5325-afca-941959d7151f"
 
 [targets]
-test = ["FillArrays", "OrdinaryDiffEq", "Parameters", "Random", "SafeTestsets", "SpecialFunctions", "Test"]
+test = ["FillArrays", "OrdinaryDiffEq", "Parameters", "Random", "SafeTestsets", "SpecialFunctions", "Test", "Zygote"]

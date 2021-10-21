@@ -7,11 +7,11 @@ import LinearAlgebra: mul!, ldiv!, lmul!, rmul!, axpy!, opnorm, factorize, I
 import DiffEqBase: update_coefficients!, isconstant
 using SciMLBase: AbstractDiffEqLinearOperator, AbstractDiffEqCompositeOperator, DiffEqScaledOperator
 import SciMLBase: getops
-using Zygote # SparseDiffTools has conditional dep on Zygote
 using SparseDiffTools
 using SparseArrays, ForwardDiff, BandedMatrices, NNlib, LazyArrays, BlockBandedMatrices, LoopVectorization
 using LazyBandedMatrices, ModelingToolkit
 using RuntimeGeneratedFunctions
+using Requires
 RuntimeGeneratedFunctions.init(@__MODULE__)
 
 abstract type AbstractDiffEqAffineOperator{T} end
@@ -21,7 +21,6 @@ abstract type AbstractMatrixFreeOperator{T} <: AbstractDiffEqLinearOperator{T} e
 ### Matrix-free Operators
 include("matrixfree_operators.jl")
 include("jacvec_operators.jl")
-include("vecjac_operators.jl")
 
 ### Utilities
 include("utils.jl")
@@ -66,9 +65,16 @@ for T in [DiffEqScaledOperator, DiffEqOperatorCombination, DiffEqOperatorComposi
   (L::T)(du,u,p,t) = (update_coefficients!(L,u,p,t); mul!(du,L,u))
 end
 
+function __init__()
+  @require Zygote = "e88e6eb3-aa80-5325-afca-941959d7151f" begin
+    export VecJacOperator
+
+    include("vecjac_operators.jl")
+  end
+end
+
 export MatrixFreeOperator
 export AnalyticalJacVecOperator, JacVecOperator, getops
-export VecJacOperator
 export AbstractDerivativeOperator, DerivativeOperator,
        CenteredDifference, UpwindDifference, nonlinear_diffusion, nonlinear_diffusion!,
        GradientOperator, Gradient, CurlOperator, Curl, DivergenceOperator, Divergence
