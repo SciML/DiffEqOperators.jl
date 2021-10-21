@@ -22,6 +22,7 @@ makedocs(
             "operators/operator_overview.md",
             "operators/derivative_operators.md",
             "operators/vector_calculus_operators.md",
+            "operators/vector_jacobian_product.md",
             "operators/jacobian_vector_product.md",
             "operators/matrix_free_operators.md"
         ],

@@ -7,9 +7,11 @@ import LinearAlgebra: mul!, ldiv!, lmul!, rmul!, axpy!, opnorm, factorize, I
 import DiffEqBase: update_coefficients!, isconstant
 using SciMLBase: AbstractDiffEqLinearOperator, AbstractDiffEqCompositeOperator, DiffEqScaledOperator
 import SciMLBase: getops
+using SparseDiffTools
 using SparseArrays, ForwardDiff, BandedMatrices, NNlib, LazyArrays, BlockBandedMatrices, LoopVectorization
 using LazyBandedMatrices, ModelingToolkit
 using RuntimeGeneratedFunctions
+using Requires
 RuntimeGeneratedFunctions.init(@__MODULE__)
 
 abstract type AbstractDiffEqAffineOperator{T} end
@@ -61,6 +63,14 @@ include("MOLFiniteDifference/MOL_discretization.jl")
 for T in [DiffEqScaledOperator, DiffEqOperatorCombination, DiffEqOperatorComposition, GhostDerivativeOperator]
   (L::T)(u,p,t) = (update_coefficients!(L,u,p,t); L * u)
   (L::T)(du,u,p,t) = (update_coefficients!(L,u,p,t); mul!(du,L,u))
+end
+
+function __init__()
+  @require Zygote = "e88e6eb3-aa80-5325-afca-941959d7151f" begin
+    export VecJacOperator
+
+    include("vecjac_operators.jl")
+  end
 end
 
 export MatrixFreeOperator
