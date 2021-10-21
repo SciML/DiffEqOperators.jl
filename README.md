@@ -11,6 +11,7 @@ differential equations. It serves two purposes:
 1. Building fast lazy operators for high order non-uniform finite differences.
 2. Automated finite difference discretization of symbolically-defined PDEs.
 
+
 #### Note: (2) is still a work in progress!
 
 For the operators, both centered and
