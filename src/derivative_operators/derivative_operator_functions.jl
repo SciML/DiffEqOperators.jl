@@ -1,72 +1,100 @@
 #
 # The mul! methods that contract derivative operators with arrays.
 #
-# These methods handle the {N} dimension type parameter.
+# These methods handle the {N}-dimension type parameter.
 #
-# There are four methods.  One is a general method for multidimensional
-# arrays, and the others are short cuts for 1, 2 and 3 dimensions.  The 1 dimensional
+# There are four methods. One is a general method for multidimensional
+# arrays, and the others are shortcuts for 1, 2 ,and 3 dimensions. The 1-dimensional
 # method for AbstractVector is defined in convolutions.jl, and the
 # others are defined here.
 #
-# At the interior points of an evenly spaced grid, a finite difference
-# operator is a convolution.  Where possible, the heavy lifting is
-# done by the efficient conv!  routine from NNlib.  The routines
+# At the interior points of an evenly spaced grid, a finite-difference
+# operator is a convolution. Where possible, the heavy lifting is
+# done by the efficient conv! routine from NNlib. The routines
 # defined in convolutions.jl cover the cases where that isn't possible.
 #
 
 # Fallback mul! implementation for a single DerivativeOperator operating on an AbstractArray
 function LinearAlgebra.mul!(x_temp::AbstractArray{T}, A::DerivativeOperator{T,N}, M::AbstractArray{T}; overwrite = true) where {T,N}
 
-    # Check that x_temp has correct dimensions
+    # Check that x_temp has valid dimensions, allowing unnecessary padding in M
     v = zeros(ndims(x_temp))
-    v[N] = 2
-    @assert [size(x_temp)...]+v == [size(M)...]
+    v .= 2
+    @assert all(([size(x_temp)...] .== [size(M)...])
+        .| (([size(x_temp)...] .+ v) .== [size(M)...])
+        )
 
     # Check that axis of differentiation is in the dimensions of M and x_temp
-    ndimsM = ndims(M)
-    @assert N <= ndimsM
+    ndims_M = ndims(M)
+    @assert N <= ndims_M
+    @assert size(x_temp, N) + 2 == size(M, N) # differentiated dimension must be padded
 
-    dimsM = [axes(M)...]
     alldims = [1:ndims(M);]
     otherdims = setdiff(alldims, N)
 
     idx = Any[first(ind) for ind in axes(M)]
-    itershape = tuple(dimsM[otherdims]...)
     nidx = length(otherdims)
+
+    dims_M = [axes(M)...]
+    dims_x_temp = [axes(x_temp)...]
+    minimal_padding_indices = map(enumerate(dims_x_temp)) do (dim, val)
+        if dim == N || length(dims_x_temp[dim]) == length(dims_M[dim])
+            Colon()
+        else
+            dims_M[dim][begin+1:end-1]
+        end
+    end
+    minimally_padded_M = view(M, minimal_padding_indices...)
+
+    itershape = tuple(dims_x_temp[otherdims]...)
     indices = Iterators.drop(CartesianIndices(itershape), 0)
 
     setindex!(idx, :, N)
     for I in indices
+        # replace all elements of idx with corresponding elt of I, except at index N
         Base.replace_tuples!(nidx, idx, idx, otherdims, I)
-        mul!(view(x_temp, idx...), A, view(M, idx...), overwrite = overwrite)
+        mul!(view(x_temp, idx...), A, view(minimally_padded_M, idx...), overwrite = overwrite)
     end
 end
 
 # A more efficient mul! implementation for a single, regular-grid, centered difference,
-# scalar coefficient, non-winding, DerivativeOperator operating on a 2D or 3D AbstractArray
+# scalar coefficient, non-winding, DerivativeOperator operating on a 2-D or 3-D AbstractArray
 for MT in [2,3]
     @eval begin
         function LinearAlgebra.mul!(x_temp::AbstractArray{T,$MT}, A::DerivativeOperator{T,N,false,T2,S1,S2,T3}, M::AbstractArray{T,$MT}) where
                                                                             {T,N,T2,SL,S1<:SArray{Tuple{SL},T,1,SL},S2,T3<:Union{Nothing,Number}}
-            # Check that x_temp has correct dimensions
+            # Check that x_temp has valid dimensions, allowing unnecessary padding in M
             v = zeros(ndims(x_temp))
-            v[N] = 2
-            @assert [size(x_temp)...]+v == [size(M)...]
+            v .= 2
+            @assert all(([size(x_temp)...] .== [size(M)...])
+                .| (([size(x_temp)...] .+ v) .== [size(M)...])
+                )
 
             # Check that axis of differentiation is in the dimensions of M and x_temp
-            ndimsM = ndims(M)
-            @assert N <= ndimsM
+            ndims_x_temp = ndims(x_temp)
+            @assert N <= ndims_x_temp
+            @assert size(x_temp, N) + 2 == size(M, N) # differentiated dimension must be padded
 
             # Determine padding for NNlib.conv!
             bpc = A.boundary_point_count
-            pad = zeros(Int64,ndimsM)
+            pad = zeros(Int64, ndims_x_temp)
             pad[N] = bpc
 
             # Reshape x_temp for NNlib.conv!
             _x_temp = reshape(x_temp, (size(x_temp)...,1,1))
 
             # Reshape M for NNlib.conv!
-            _M = reshape(M, (size(M)...,1,1))
+            dims_M = [axes(M)...]
+            dims_x_temp = [axes(x_temp)...]
+            minimal_padding_indices = map(enumerate(dims_x_temp)) do (dim, val)
+                if dim == N || length(dims_x_temp[dim]) == length(dims_M[dim])
+                    Colon()
+                else
+                    dims_M[dim][begin+1:end-1]
+                end
+            end
+            minimally_padded_M = view(M, minimal_padding_indices...)
+            _M = reshape(minimally_padded_M, (size(minimally_padded_M)...,1,1))
 
             # Setup W, the kernel for NNlib.conv!
             s = A.stencil_coefs
@@ -84,20 +112,20 @@ for MT in [2,3]
 
             # Now deal with boundaries
             if bpc > 0
-                dimsM = [axes(M)...]
-                alldims = [1:ndims(M);]
+                dims_minimal_M = [axes(minimally_padded_M)...]
+                alldims = [1:ndims(minimally_padded_M);]
                 otherdims = setdiff(alldims, N)
 
-                idx = Any[first(ind) for ind in axes(M)]
-                itershape = tuple(dimsM[otherdims]...)
+                idx = Any[first(ind) for ind in axes(minimally_padded_M)]
+                itershape = tuple(dims_minimal_M[otherdims]...)
                 nidx = length(otherdims)
                 indices = Iterators.drop(CartesianIndices(itershape), 0)
 
                 setindex!(idx, :, N)
                 for I in indices
                     Base.replace_tuples!(nidx, idx, idx, otherdims, I)
-                    convolve_BC_left!(view(x_temp, idx...), view(M, idx...), A)
-                    convolve_BC_right!(view(x_temp, idx...), view(M, idx...), A)
+                    convolve_BC_left!(view(x_temp, idx...), view(minimally_padded_M, idx...), A)
+                    convolve_BC_right!(view(x_temp, idx...), view(minimally_padded_M, idx...), A)
                 end
             end
         end
@@ -117,7 +145,7 @@ end
 function *(c::Number, A::DerivativeOperator{T,N,Wind}) where {T,N,Wind}
     coefficients = A.coefficients === nothing ? oneunit(T) .* c : c .* A.coefficients
     DerivativeOperator{T,N,Wind,typeof(A.dx),typeof(A.stencil_coefs),
-                       typeof(A.low_boundary_coefs),typeof(coefficients),
+                       typeof(A.low_boundary_coefs),typeof(A.high_boundary_coefs),typeof(coefficients),
                        typeof(A.coeff_func)}(
         A.derivative_order, A.approximation_order,
         A.dx, A.len, A.stencil_length,
@@ -125,7 +153,7 @@ function *(c::Number, A::DerivativeOperator{T,N,Wind}) where {T,N,Wind}
         A.boundary_stencil_length,
         A.boundary_point_count,
         A.low_boundary_coefs,
-        A.high_boundary_coefs,coefficients,A.coeff_func)
+        A.high_boundary_coefs,A.offside,coefficients,A.coeff_func)
 end
 
 function *(c::AbstractVector{<:Number}, A::DerivativeOperator{T,N,Wind}) where {T,N,Wind}
@@ -134,7 +162,7 @@ function *(c::AbstractVector{<:Number}, A::DerivativeOperator{T,N,Wind}) where {
     end
     coefficients = A.coefficients === nothing ? c : c .* A.coefficients
     DerivativeOperator{T,N,Wind,typeof(A.dx),typeof(A.stencil_coefs),
-                       typeof(A.low_boundary_coefs),typeof(coefficients),
+                       typeof(A.low_boundary_coefs),typeof(A.high_boundary_coefs),typeof(coefficients),
                        typeof(A.coeff_func)}(
         A.derivative_order, A.approximation_order,
         A.dx, A.len, A.stencil_length,
@@ -142,13 +170,13 @@ function *(c::AbstractVector{<:Number}, A::DerivativeOperator{T,N,Wind}) where {
         A.boundary_stencil_length,
         A.boundary_point_count,
         A.low_boundary_coefs,
-        A.high_boundary_coefs,coefficients,A.coeff_func)
+        A.high_boundary_coefs,A.offside,coefficients,A.coeff_func)
 end
 
 ###########################################
 
 # A more efficient mul! implementation for compositions of operators which may include regular-grid, centered difference,
-# scalar coefficient, non-winding, DerivativeOperator, operating on a 2D or 3D AbstractArray
+# scalar coefficient, non-winding, DerivativeOperator, operating on a 2-D or 3-D AbstractArray
 function LinearAlgebra.mul!(x_temp::AbstractArray{T,2}, A::AbstractDiffEqCompositeOperator, M::AbstractArray{T,2}) where {T}
 
     # opsA operators satisfy conditions for NNlib.conv! call, opsB operators do not
@@ -169,7 +197,7 @@ function LinearAlgebra.mul!(x_temp::AbstractArray{T,2}, A::AbstractDiffEqComposi
         pad = zeros(Int64, ndimsM)
 
         # compute dimensions of interior kernel W
-        # Here we still use A.ops since operators in opsB may indicate that
+        # Here, we still use A.ops since operators in opsB may indicate that
         # we have more padding to account for
         for L in A.ops
             axis = typeof(L).parameters[2]
@@ -299,7 +327,7 @@ function LinearAlgebra.mul!(x_temp::AbstractArray{T,2}, A::AbstractDiffEqComposi
             end
         end
 
-        # Here we compute mul! (additively) for every operator in opsB
+        # Here, we compute mul! (additively) for every operator in opsB
 
         operating_dims = zeros(Int64,2)
         # need to consider all dimensions and operators to determine the truncation
@@ -381,7 +409,7 @@ function LinearAlgebra.mul!(x_temp::AbstractArray{T,2}, A::AbstractDiffEqComposi
 end
 
 # A more efficient mul! implementation for compositions of operators which may include regular-grid, centered difference,
-# scalar coefficient, non-winding, DerivativeOperator, operating on a 2D or 3D AbstractArray
+# scalar coefficient, non-winding, DerivativeOperator, operating on a 2-D or 3-D AbstractArray
 function LinearAlgebra.mul!(x_temp::AbstractArray{T,3}, A::AbstractDiffEqCompositeOperator, M::AbstractArray{T,3}) where {T}
 
     # opsA operators satisfy conditions for NNlib.conv! call, opsB operators do not
@@ -402,7 +430,7 @@ function LinearAlgebra.mul!(x_temp::AbstractArray{T,3}, A::AbstractDiffEqComposi
         pad = zeros(Int64, ndimsM)
 
         # compute dimensions of interior kernel W
-        # Here we still use A.ops since operators in opsB may indicate that
+        # Here, we still use A.ops since operators in opsB may indicate that
         # we have more padding to account for
         for L in A.ops
             axis = typeof(L).parameters[2]
@@ -582,7 +610,7 @@ function LinearAlgebra.mul!(x_temp::AbstractArray{T,3}, A::AbstractDiffEqComposi
             end
         end
 
-        # Here we compute mul! (additively) for every operator in opsB
+        # Here, we compute mul! (additively) for every operator in opsB
 
         operating_dims = zeros(Int64,3)
         # need to consider all dimensions and operators to determine the truncation
