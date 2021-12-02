@@ -43,7 +43,7 @@ SciMLBase = "1.11"
 SparseDiffTools = "1.17"
 StaticArrays = "0.10, 0.11, 0.12, 1.0"
 SymbolicUtils = "0.11, 0.12, 0.13, 0.14, 0.15, 0.16, 0.17, 0.18"
-julia = "1"
+julia = "1.6"
 
 [extras]
 FillArrays = "1a297f60-69ca-5386-bcde-b61e274b549b"
