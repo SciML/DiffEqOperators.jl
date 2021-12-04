@@ -142,7 +142,7 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
 
             bclocs = map(e->substitute.(indvars,e),edgevals) # location of the boundary conditions e.g. (t,0.0,y)
             edgemaps = Dict(bclocs .=> [spacevals[e...] for e in edges])
-            initmaps = depvars
+            
             if t != nothing
                 initmaps = substitute.(depvars,[t=>tspan[1]])
             end
@@ -198,13 +198,31 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
             # Generate initial conditions and bc equations
             for bc in pdesys.bcs
                 bcdepvar = first(get_depvars(bc.lhs, depvar_ops))
+                # Make sure the bcdepvar is one of the depvars
                 if any(u->isequal(operation(u),operation(bcdepvar)),depvars)
+                    # Check whether the bc is an initial condition
+                    is_ic = false
                     if t != nothing && operation(bc.lhs) isa Sym && !any(x -> isequal(x, t.val), arguments(bc.lhs))
+                        # Look for u(t,0) case
+                        depvar = bc.lhs # e.g. u(t,0)
+                        bcop = identity
+                        is_ic = true
+                    elseif t != nothing && operation(bc.lhs) isa Differential
+                        # Look for Dt(u(t,0)) case
+                        depvar = arguments(bc.lhs)[1] # e.g. u(t,0)
+                        if operation(depvar) isa Sym && !any(x -> isequal(x, t.val), arguments(depvar))
+                            bcop = operation(bc.lhs) # e.g. Dt
+                            is_ic = true
+                        end
+                    end
+                    if is_ic
                         # initial condition
-                        # Assume in the form `u(...) ~ ...` for now
-                        i = findfirst(isequal(bc.lhs),initmaps)
+                        # Assume in the form `u(...) ~ ...` or `Dt(u(...)) ~ ...` for now
+                        # find the index of the depvar
+                        i = findfirst(isequal(depvar),initmaps)
                         if i !== nothing
-                            push!(u0,vec(depvarsdisc[i] .=> substitute.((bc.rhs,),gridvals)))
+                            # bcop is identity for u(...) and Dt for Dt(u(...))
+                            push!(u0,vec(bcop.(depvarsdisc[i]) .=> substitute.((bc.rhs,),gridvals)))
                         end
                     else
                         # Algebraic equations for BCs
@@ -221,7 +239,7 @@ function SciMLBase.symbolic_discretize(pdesys::ModelingToolkit.PDESystem,discret
                             # Replace symbol in the bc lhs with the spatial discretized term
                             lhs = substitute(lhs,depvarbcmaps[i])
                             rhs = substitute.((bc.rhs,),edgemaps[bcargs])
-                            lhs = lhs isa Vector ? lhs : [lhs] # handle 1D
+                            lhs = lhs isa Array ? lhs : [lhs] # handle 1D
                             push!(bceqs,lhs .~ rhs)
                         end
                     end
@@ -404,6 +422,8 @@ end
 
 function SciMLBase.discretize(pdesys::ModelingToolkit.PDESystem,discretization::DiffEqOperators.MOLFiniteDifference)
     sys, tspan = SciMLBase.symbolic_discretize(pdesys,discretization)
+    # Lower order for higher-order ODEs (e.g. wave equation)
+    sys = sys isa NonlinearSystem ? sys : ode_order_lowering(sys)
     if tspan == nothing
         return prob = NonlinearProblem(sys, ones(length(sys.states)))
     else
