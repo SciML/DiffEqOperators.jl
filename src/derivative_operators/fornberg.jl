@@ -1,20 +1,27 @@
 #############################################################
-# Fornberg algorithm
+#= Fornberg algorithm
 
-# This implements the Fornberg (1988) algorithm (https://doi.org/10.1090/S0025-5718-1988-0935077-0)
-# to obtain Finite Difference weights over arbitrary points to arbitrary order.
+This implements the Fornberg (1988) algorithm (https://doi.org/10.1090/S0025-5718-1988-0935077-0)
+and hermite-based finite difference Fornberg(2020) algorithm (https://doi.org/10.1093/imanum/draa006)
+to obtain Finite Difference weights over arbitrary points to arbitrary order.
 
-function calculate_weights(order::Int, x0::T, x::AbstractVector) where T<:Real
-    #=
+Inputs:
         order: The derivative order for which we need the coefficients
         x0   : The point in the array 'x' for which we need the coefficients
         x    : A dummy array with relative coordinates, e.g., central differences
                need coordinates centred at 0 while those at boundaries need
                coordinates starting from 0 to the end point
+        dfdx : optional argument to consider weights of the first-derivative of function or not
+                if    dfdx == false (default kwarg), implies Fornberg(1988)
+                      dfdx == true,                  implies Fornberg(2020)
 
-        The approximation order of the stencil is automatically determined from
-        the number of requested stencil points.
-    =#
+    Outputs:
+        if dfdx == false (default kwarg),   _C : weights to approximate derivative of required order using function values only.
+                                 else,   _D,_E : weights to approximate derivative of required order using function and its first- 
+                                                 derivative values respectively.                                             
+
+=#
+function calculate_weights(order::Int, x0::T, x::AbstractVector; dfdx::Bool = false) where T<:Real
     N = length(x)
     @assert order < N "Not enough points for the requested order."
     M = order
@@ -56,5 +63,23 @@ function calculate_weights(order::Int, x0::T, x::AbstractVector) where T<:Real
     =#
     _C = C[:,end]
     _C[div(N,2)+1] -= sum(_C)
-    return _C
+     if dfdx == false
+        return _C
+     else
+        A = x .- x';
+        s = sum(1 ./ (A + I(N)), dims = 1) .- 1;
+        cp = factorial.(0:M);
+        cc = C./cp'
+        c̃ = zeros(N, M+2);
+        for k in 1:M+1
+           c̃[:,k+1] = sum(cc[:,1:k].*cc[:,k:-1:1], dims = 2);
+        end
+        E = c̃[:,1:M+1] - (x .- x0).*c̃[:,2:M+2];
+        D = c̃[:,2:M+2] + 2*E.*s';
+        D = D.*cp';
+        E = E.*cp';
+
+        _D = D[:,end];   _E = E[:,end]
+        return _D, _E
+    end
 end
