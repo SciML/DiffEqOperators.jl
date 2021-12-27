@@ -39,17 +39,6 @@ if GROUP == "All" || GROUP == "OperatorInterface"
     # @time @safetestset "Linear Complementarity Problem Examples" begin include("DerivativeOperators/lcp.jl"); include("DerivativeOperators/lcp_split.jl") end
 end
 
-if GROUP == "All" || GROUP == "MOLFiniteDifference"
-    @time @safetestset "MOLFiniteDifference Interface" begin include("MOL/MOLtest.jl") end
-    #@time @safetestset "MOLFiniteDifference Interface: Linear Convection" begin include("MOL/MOL_1D_Linear_Convection.jl") end
-    @time @safetestset "MOLFiniteDifference Interface: 1D Linear Diffusion" begin include("MOL/MOL_1D_Linear_Diffusion.jl") end
-    @time @safetestset "MOLFiniteDifference Interface: 1D Non-Linear Diffusion" begin include("MOL/MOL_1D_NonLinear_Diffusion.jl") end
-    @time @safetestset "MOLFiniteDifference Interface: 2D Diffusion" begin include("MOL/MOL_2D_Diffusion.jl") end
-    @time @safetestset "MOLFiniteDifference Interface: 1D HigherOrder" begin include("MOL/MOL_1D_HigherOrder.jl") end
-    @time @safetestset "MOLFiniteDifference Interface: 1D Partial DAE" begin include("MOL/MOL_1D_PDAE.jl") end
-    @time @safetestset "MOLFiniteDifference Interface: Stationary Nonlinear Problems" begin include("MOL/MOL_NonlinearProblem.jl") end
-end
-
 if GROUP == "All" || GROUP == "Misc"
     @time @safetestset "Utilities Tests" begin include("Misc/utils.jl") end
     @time @safetestset "JacVec Operators Interface" begin include("Misc/jacvec_operators.jl") end
