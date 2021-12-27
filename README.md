@@ -6,12 +6,9 @@
 [![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](http://diffeqoperators.sciml.ai/dev/)
 
 DiffEqOperators.jl is a package for finite difference discretization of partial
-differential equations. It serves two purposes:
+differential equations. It allows building fast lazy operators for high order non-uniform finite differences in an arbitrary number of dimensions, including vector calculus operators.
 
-1. Building fast lazy operators for high order non-uniform finite differences.
-2. Automated finite difference discretization of symbolically-defined PDEs.
-
-#### Note: (2) is still a work in progress!
+For automatic Method of Lines discretization of PDEs, better suited to nonlinear systems of equations and more complex boundary conditions, please see [MethodOfLines.jl](https://www.github.com/SciML/MethodOfLines.jl)
 
 For the operators, both centered and
 [upwind](https://en.wikipedia.org/wiki/Upwind_scheme) operators are provided,
@@ -29,43 +26,7 @@ For information on using the package,
 [in-development documentation](https://diffeqoperators.sciml.ai/dev/) for the version of
 the documentation which contains the unreleased features.
 
-## Example 1: Automated Finite Difference Solution to the Heat Equation
-
-```julia
-using OrdinaryDiffEq, ModelingToolkit, DiffEqOperators, DomainSets
-
-# Parameters, variables, and derivatives
-@parameters t x
-@variables u(..)
-Dt = Differential(t)
-Dxx = Differential(x)^2
-
-# 1D PDE and boundary conditions
-eq  = Dt(u(t,x)) ~ Dxx(u(t,x))
-bcs = [u(0,x) ~ cos(x),
-       u(t,0) ~ exp(-t),
-       u(t,Float64(pi)) ~ -exp(-t)]
-
-# Space and time domains
-domains = [t ∈ Interval(0.0,1.0),
-           x ∈ Interval(0.0,Float64(pi))]
-
-# PDE system
-@named pdesys = PDESystem(eq,bcs,domains,[t,x],[u(t,x)])
-
-# Method of lines discretization
-dx = 0.1
-order = 2
-discretization = MOLFiniteDifference([x=>dx],t;centered_order=order)
-
-# Convert the PDE problem into an ODE problem
-prob = discretize(pdesys,discretization)
-
-# Solve ODE problem
-sol = solve(prob,Tsit5(),saveat=0.1)
-```
-
-## Example 2: Finite Difference Operator Solution for the Heat Equation
+## Example 1: Finite Difference Operator Solution for the Heat Equation
 
 ```julia
 using DiffEqOperators, OrdinaryDiffEq
