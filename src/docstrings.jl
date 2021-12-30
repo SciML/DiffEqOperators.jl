@@ -8,15 +8,18 @@ CenteredDifference
 
 
 @doc """
-    calculate_weights(n::Int, x₀::Real, x::Vector)
+    calculate_weights(n::Int, x₀::Real, x::Vector; dfdx::Bool = false)
 
-Return a vector `c` such that `c⋅f.(x)` approximates ``f^{(n)}(x₀)`` for a smooth `f`.
+(Default kwarg `dfdx == false`)Return a vector `c` such that `c⋅f.(x)` approximates ``f^{(n)}(x₀)`` for a smooth `f`.
+(kwarg `dfdx == true`)Returnvectors `d` and `e` such that `d⋅f.(x) + e⋅f'.(x)` approximates ``f^{(n)}(x₀)`` for a smooth `f`.
 
 The points `x` need not be evenly spaced.
 
 The stencil `c` has the highest approximation order possible given values of `f` at `length(x)` points. More precisely, if `x` has length `m`, there is a function `g` such that ``g(y) = f(y) + O(y-x₀)^{m-n+?}`` and ``c⋅f.(x) = g'(x₀)``.
+The stencil `d` and `e` has the highest approximation order possible given values of `f` at `length(x)` points. More precisely, if `x` has length `m`, there is a function `g` such that ``g(y) = f(y) + O(y-x₀)^{m-n+?}`` and ``d⋅f.(x) + e⋅f'.(x) = g'(x₀)``.
 
-The algorithm is due to [Fornberg](https://doi.org/10.1090/S0025-5718-1988-0935077-0), with a [modification](http://epubs.siam.org/doi/pdf/10.1137/S0036144596322507) to improve stability.
+The algorithm is due to [Fornberg, 1988](https://doi.org/10.1090/S0025-5718-1988-0935077-0), with a [modification](http://epubs.siam.org/doi/pdf/10.1137/S0036144596322507) to improve stability,
+& [Fornberg, 2020](https://doi.org/10.1093/imanum/draa006)
 """
 calculate_weights
 
