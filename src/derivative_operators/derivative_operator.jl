@@ -163,6 +163,8 @@ function CenteredDifference{N}(derivative_order::Int,
         )
 end
 
+struct CompleteCenteredDifference{N} end
+
 """
 A helper function to compute the coefficients of a derivative operator including the boundary coefficients in the centered scheme.
 """
@@ -331,6 +333,8 @@ function UpwindDifference{N}(derivative_order::Int,
         high_boundary_coefs,offside,coefficients,coeff_func
         )
 end
+
+struct CompleteUpwindDifference{N} end
 
 """
 A helper function to compute the coefficients of a derivative operator including the boundary coefficients in the upwind scheme.
