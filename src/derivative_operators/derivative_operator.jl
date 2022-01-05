@@ -193,9 +193,6 @@ function CompleteCenteredDifference{N}(derivative_order::Int,
 
     coefficients            = fill!(Vector{T}(undef,len),0)
 
-    compute_coeffs!(coeff_func, coefficients)
-
-
 
     DerivativeOperator{T,N,false,T,typeof(stencil_coefs),
     typeof(low_boundary_coefs),typeof(high_boundary_coefs),typeof(coefficients),
@@ -363,8 +360,8 @@ function CompleteUpwindDifference{N}(derivative_order::Int,
     _high_boundary_coefs     = SVector{boundary_stencil_length, T}[convert(SVector{boundary_stencil_length, T}, ((-1/dx)^derivative_order) * calculate_weights(derivative_order, oneunit(T)*x0, high_boundary_x)) for x0 in R_boundary_deriv_spots]
     high_boundary_coefs = convert(SVector{boundary_point_count + offside},_high_boundary_coefs)
 
-    coefficients = zeros(T,len)
-    compute_coeffs!(coeff_func, coefficients)
+    coefficients = fill!(Vector{T}(undef,len),0)
+
 
     DerivativeOperator{T,N,true,T,typeof(stencil_coefs),
     typeof(low_boundary_coefs),typeof(high_boundary_coefs),Vector{T},
