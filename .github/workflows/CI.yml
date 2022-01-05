@@ -9,12 +9,10 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    continue-on-error: ${{ matrix.group == 'MOLFiniteDifference' }}
     strategy:
       matrix:
         group:
           - OperatorInterface
-          - MOLFiniteDifference
           - Multithreading
           - Misc
         version:
