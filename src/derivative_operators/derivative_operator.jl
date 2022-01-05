@@ -184,7 +184,7 @@ function CompleteCenteredDifference{N}(derivative_order::Int,
 
     stencil_coefs           = convert(SVector{stencil_length, T}, (1/dx^derivative_order) * calculate_weights(derivative_order, zero(T), dummy_x))
     _low_boundary_coefs     = SVector{boundary_stencil_length, T}[convert(SVector{boundary_stencil_length, T}, (1/dx^derivative_order) * calculate_weights(derivative_order, oneunit(T)*x0, left_boundary_x)) for x0 in L_boundary_deriv_spots]
-    low_boundary_coefs      = convert(SVector{boundary_point_count},vcat(_low_boundary_coefs)
+    low_boundary_coefs      = convert(SVector{boundary_point_count},vcat(_low_boundary_coefs))
 
     # _high_boundary_coefs    = SVector{boundary_stencil_length, T}[convert(SVector{boundary_stencil_length, T}, (1/dx^derivative_order) * calculate_weights(derivative_order, oneunit(T)*x0, reverse(right_boundary_x))) for x0 in R_boundary_deriv_spots]
     high_boundary_coefs      = convert(SVector{boundary_point_count},reverse(map(reverse, _low_boundary_coefs*(-1)^derivative_order)))
