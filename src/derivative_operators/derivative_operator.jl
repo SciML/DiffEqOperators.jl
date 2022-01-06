@@ -133,7 +133,7 @@ function CenteredDifference{N}(derivative_order::Int,
     low_boundary_x          = [zero(T); cumsum(dx[1:boundary_stencil_length-1])]
     high_boundary_x         = cumsum(dx[end-boundary_stencil_length+1:end])
     # Because it's a N x (N+2) operator, the last stencil on the sides are the [b,0,x,x,x,x] stencils, not the [0,x,x,x,x,x] stencils, since we're never solving for the derivative at the boundary point.
-    deriv_spots             = (-div(stencil_length,2)+1) : -1
+    deriv_spots             = (-div(stencil_length,2)+1) : -1>
 
     stencil_coefs           = [convert(SVector{stencil_length, T}, calculate_weights(derivative_order, zero(T), generate_coordinates(i, stencil_x, dummy_x, dx))) for i in interior_x]
     _low_boundary_coefs     = SVector{boundary_stencil_length, T}[convert(SVector{boundary_stencil_length, T},
@@ -181,8 +181,8 @@ function CompleteCenteredDifference{N}(derivative_order::Int,
     boundary_point_count    = div(stencil_length,2) # -1 due to the ghost point
     # Because it's a N x (N+2) operator, the last stencil on the sides are the [b,0,x,x,x,x] stencils, not the [0,x,x,x,x,x] stencils, since we're never solving for the derivative at the boundary point.
     #deriv_spots             = (-div(stencil_length,2)+1) : -1  # unused
-    L_boundary_deriv_spots  = left_boundary_x[0:div(stencil_length,2)]
-    R_boundary_deriv_spots  = right_boundary_x[0:div(stencil_length,2)]
+    L_boundary_deriv_spots  = left_boundary_x[1:div(stencil_length,2)]
+    R_boundary_deriv_spots  = right_boundary_x[1:div(stencil_length,2)]
 
     stencil_coefs           = convert(SVector{stencil_length, T}, (1/dx^derivative_order) * calculate_weights(derivative_order, zero(T), dummy_x))
     _low_boundary_coefs     = SVector{boundary_stencil_length, T}[convert(SVector{boundary_stencil_length, T}, (1/dx^derivative_order) * calculate_weights(derivative_order, oneunit(T)*x0, left_boundary_x)) for x0 in L_boundary_deriv_spots]
@@ -208,29 +208,33 @@ function CompleteCenteredDifference{N}(derivative_order::Int,
     )
 end
 
-struct CompleteCenteredDifference{N} end
 
 """
-A helper function to compute the coefficients of a derivative operator including the boundary coefficients in the centered scheme.
+A helper function to compute the coefficients of a derivative operator including the boundary coefficients in the half centered scheme. See table 2 in https://web.njit.edu/~jiang/math712/fornberg.pdf
 """
-function FoorwardHalfDifference(derivative_order::Int,
+function CompleteHalfCenteredDifference(derivative_order::Int,
     approximation_order::Int, dx::T,
-    len::Int, coeff_func=1) where {T<:Real,N}
+    len::Int, isforward=false) where {T<:Real,N}
     @assert approximation_order>1 "approximation_order must be greater than 1."
-    stencil_length          = derivative_order + approximation_order - 1 + (derivative_order+approximation_order)%2
+    stencil_length          = approximation_order + 2*floor(derivative_order/2) + 2*(approximation_order%2)
     boundary_stencil_length = derivative_order + approximation_order
-    dummy_x                 = -div(stencil_length,2) : div(stencil_length,2)
-    left_boundary_x         = 0:(boundary_stencil_length-1)
-    right_boundary_x        = reverse(-boundary_stencil_length+1:0)
+    endpoint = (stencil_length-1)/2
+    dummy_x                 = -endpoint : endpoint
+    left_boundary_x         = -1:(boundary_stencil_length-1)
+    right_boundary_x        = reverse(-boundary_stencil_length+1:1)
 
-    boundary_point_count    = div(stencil_length,2)# -1 due to the ghost point
+    # ? Is fornberg valid when taking an x0 outside of the stencil i.e at the boundary?
+    xoffset = isforward ? convert(T, 0.5) : convert(T, -0.5)
+
+
+    boundary_point_count    = div(stencil_length,2) # -1 due to the ghost point
     # Because it's a N x (N+2) operator, the last stencil on the sides are the [b,0,x,x,x,x] stencils, not the [0,x,x,x,x,x] stencils, since we're never solving for the derivative at the boundary point.
     #deriv_spots             = (-div(stencil_length,2)+1) : -1  # unused
-    L_boundary_deriv_spots  = left_boundary_x[0:div(stencil_length,2)]
-    R_boundary_deriv_spots  = right_boundary_x[0:div(stencil_length,2)]
+    L_boundary_deriv_spots  = left_boundary_x[1:div(stencil_length,2)]
+    R_boundary_deriv_spots  = right_boundary_x[1:div(stencil_length,2)]
 
-    stencil_coefs           = convert(SVector{stencil_length, T}, (1/dx^derivative_order) * calculate_weights(derivative_order, convert(T, 0.5), dummy_x))
-    _low_boundary_coefs     = SVector{boundary_stencil_length, T}[convert(SVector{boundary_stencil_length, T}, (1/dx^derivative_order) * calculate_weights(derivative_order, oneunit(T)*x0 + convert(T, 0.5), left_boundary_x)) for x0 in L_boundary_deriv_spots]
+    stencil_coefs           = convert(SVector{stencil_length, T}, (1/dx^derivative_order) * calculate_weights(derivative_order, zero(T), dummy_x))
+    _low_boundary_coefs     = SVector{boundary_stencil_length, T}[convert(SVector{boundary_stencil_length, T}, (1/dx^derivative_order) * calculate_weights(derivative_order, oneunit(T)*x0+xoffset, left_boundary_x)) for x0 in L_boundary_deriv_spots]
     low_boundary_coefs      = convert(SVector{boundary_point_count},vcat(_low_boundary_coefs))
 
     # _high_boundary_coefs    = SVector{boundary_stencil_length, T}[convert(SVector{boundary_stencil_length, T}, (1/dx^derivative_order) * calculate_weights(derivative_order, oneunit(T)*x0, reverse(right_boundary_x))) for x0 in R_boundary_deriv_spots]
@@ -241,47 +245,7 @@ function FoorwardHalfDifference(derivative_order::Int,
     coefficients            = fill!(Vector{T}(undef,len),0)
 
 
-    DerivativeOperator{T,1,false,T,typeof(stencil_coefs),
-    typeof(low_boundary_coefs),typeof(high_boundary_coefs),typeof(coefficients),
-    typeof(coeff_func)}(
-    derivative_order, approximation_order, dx, len, stencil_length,
-    stencil_coefs,
-    boundary_stencil_length,
-    boundary_point_count,
-    low_boundary_coefs,
-    high_boundary_coefs,offside,coefficients,coeff_func
-    )
-end
-
-function ReverseHalfDifference(derivative_order::Int,
-    approximation_order::Int, dx::T,
-    len::Int, coeff_func=1) where {T<:Real,N}
-    @assert approximation_order>1 "approximation_order must be greater than 1."
-    stencil_length          = derivative_order + approximation_order - 1 + (derivative_order+approximation_order)%2
-    boundary_stencil_length = derivative_order + approximation_order
-    dummy_x                 = -div(stencil_length,2) : div(stencil_length,2)
-    left_boundary_x         = 0:(boundary_stencil_length-1)
-    right_boundary_x        = reverse(-boundary_stencil_length+1:0)
-
-    boundary_point_count    = div(stencil_length,2)# -1 due to the ghost point
-    # Because it's a N x (N+2) operator, the last stencil on the sides are the [b,0,x,x,x,x] stencils, not the [0,x,x,x,x,x] stencils, since we're never solving for the derivative at the boundary point.
-    #deriv_spots             = (-div(stencil_length,2)+1) : -1  # unused
-    L_boundary_deriv_spots  = left_boundary_x[0:div(stencil_length,2)]
-    R_boundary_deriv_spots  = right_boundary_x[0:div(stencil_length,2)]
-
-    stencil_coefs           = convert(SVector{stencil_length, T}, (1/dx^derivative_order) * calculate_weights(derivative_order, convert(T, -0.5), dummy_x))
-    _low_boundary_coefs     = SVector{boundary_stencil_length, T}[convert(SVector{boundary_stencil_length, T}, (1/dx^derivative_order) * calculate_weights(derivative_order, oneunit(T)*x0 + convert(T, -0.5), left_boundary_x)) for x0 in L_boundary_deriv_spots]
-    low_boundary_coefs      = convert(SVector{boundary_point_count},vcat(_low_boundary_coefs))
-
-    # _high_boundary_coefs    = SVector{boundary_stencil_length, T}[convert(SVector{boundary_stencil_length, T}, (1/dx^derivative_order) * calculate_weights(derivative_order, oneunit(T)*x0, reverse(right_boundary_x))) for x0 in R_boundary_deriv_spots]
-    high_boundary_coefs      = convert(SVector{boundary_point_count},reverse(map(reverse, _low_boundary_coefs*(-1)^derivative_order)))
-
-    offside = 0
-
-    coefficients            = fill!(Vector{T}(undef,len),0)
-
-
-    DerivativeOperator{T,1,false,T,typeof(stencil_coefs),
+    DerivativeOperator{T,N,false,T,typeof(stencil_coefs),
     typeof(low_boundary_coefs),typeof(high_boundary_coefs),typeof(coefficients),
     typeof(coeff_func)}(
     derivative_order, approximation_order, dx, len, stencil_length,
