@@ -182,7 +182,6 @@ function CompleteCenteredDifference{N}(derivative_order::Int,
     # Because it's a N x (N+2) operator, the last stencil on the sides are the [b,0,x,x,x,x] stencils, not the [0,x,x,x,x,x] stencils, since we're never solving for the derivative at the boundary point.
     #deriv_spots             = (-div(stencil_length,2)+1) : -1  # unused
     L_boundary_deriv_spots  = left_boundary_x[1:div(stencil_length,2)]
-    R_boundary_deriv_spots  = right_boundary_x[1:div(stencil_length,2)]
 
     stencil_coefs           = convert(SVector{stencil_length, T}, (1/dx^derivative_order) * calculate_weights(derivative_order, zero(T), dummy_x))
     _low_boundary_coefs     = SVector{boundary_stencil_length, T}[convert(SVector{boundary_stencil_length, T}, (1/dx^derivative_order) * calculate_weights(derivative_order, oneunit(T)*x0, left_boundary_x)) for x0 in L_boundary_deriv_spots]
@@ -217,28 +216,30 @@ function CompleteHalfCenteredDifference(derivative_order::Int,
     len::Int, isforward=false) where {T<:Real,N}
     @assert approximation_order>1 "approximation_order must be greater than 1."
     stencil_length          = approximation_order + 2*floor(derivative_order/2) + 2*(approximation_order%2)
+    centered_stencil_length = derivative_order + approximation_order - 1 + (derivative_order+approximation_order)%2
     boundary_stencil_length = derivative_order + approximation_order
     endpoint = (stencil_length-1)/2
     dummy_x                 = -endpoint : endpoint
-    left_boundary_x         = -1:(boundary_stencil_length-1)
-    right_boundary_x        = reverse(-boundary_stencil_length+1:1)
+    left_boundary_x         = 0:(boundary_stencil_length-1)
+    right_boundary_x        = reverse(-boundary_stencil_length+1:0)
 
     # ? Is fornberg valid when taking an x0 outside of the stencil i.e at the boundary?
-    xoffset = isforward ? convert(T, 0.5) : convert(T, -0.5)
+    xoffset = convert(T, 0.5).*(-div(centered_stencil_length,2) : div(centered_stencil_length,2))
 
 
     boundary_point_count    = div(stencil_length,2) # -1 due to the ghost point
     # Because it's a N x (N+2) operator, the last stencil on the sides are the [b,0,x,x,x,x] stencils, not the [0,x,x,x,x,x] stencils, since we're never solving for the derivative at the boundary point.
     #deriv_spots             = (-div(stencil_length,2)+1) : -1  # unused
     L_boundary_deriv_spots  = left_boundary_x[1:div(stencil_length,2)]
-    R_boundary_deriv_spots  = right_boundary_x[1:div(stencil_length,2)]
 
     stencil_coefs           = convert(SVector{stencil_length, T}, (1/dx^derivative_order) * calculate_weights(derivative_order, zero(T), dummy_x))
-    _low_boundary_coefs     = SVector{boundary_stencil_length, T}[convert(SVector{boundary_stencil_length, T}, (1/dx^derivative_order) * calculate_weights(derivative_order, oneunit(T)*x0+xoffset, left_boundary_x)) for x0 in L_boundary_deriv_spots]
+    # For each boundary point, for each tappoint in the half offset central difference stencil, we need to calculate the coefficients for the stencil.
+    _low_boundary_coefs     = [convert(SVector{centered_stencil_length}, SVector{boundary_stencil_length, T}[convert(SVector{boundary_stencil_length, T}, (1/dx^derivative_order) * calculate_weights(derivative_order, oneunit(T)*x0+offset, left_boundary_x)) for offset in xoffset]) for x0 in L_boundary_deriv_spots]
     low_boundary_coefs      = convert(SVector{boundary_point_count},vcat(_low_boundary_coefs))
 
     # _high_boundary_coefs    = SVector{boundary_stencil_length, T}[convert(SVector{boundary_stencil_length, T}, (1/dx^derivative_order) * calculate_weights(derivative_order, oneunit(T)*x0, reverse(right_boundary_x))) for x0 in R_boundary_deriv_spots]
-    high_boundary_coefs      = convert(SVector{boundary_point_count},reverse(map(reverse, _low_boundary_coefs*(-1)^derivative_order)))
+    inner_reverse(v::AbstractVector) = reverse(map.((x->reverse(x*(-1)^derivative_order),), v)) # reverse 3 ayers deep to get the high boundary cooeffs, but don't reverse in terms of the offset
+    high_boundary_coefs      = convert(SVector{boundary_point_count}, inner_reverse(_low_boundary_coefs))
 
     offside = 0
 
