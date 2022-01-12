@@ -183,7 +183,7 @@ function LinearAlgebra.mul!(x_temp::AbstractArray{T,2}, A::AbstractDiffEqComposi
     opsA = DerivativeOperator[]
     opsB = DerivativeOperator[]
     for L in A.ops
-        if (L.coefficients isa Number || L.coefficients === nothing) && use_winding(L) == false && L.dx isa Number
+        if (L.coefficients isa Number || L.coefficients === nothing) && use_winding(L) === false && L.dx isa Number
             push!(opsA, L)
         else
             push!(opsB,L)
@@ -416,7 +416,7 @@ function LinearAlgebra.mul!(x_temp::AbstractArray{T,3}, A::AbstractDiffEqComposi
     opsA = DerivativeOperator[]
     opsB = DerivativeOperator[]
     for L in A.ops
-        if (L.coefficients isa Number || L.coefficients === nothing) && use_winding(L) == false && L.dx isa Number
+        if (L.coefficients isa Number || L.coefficients === nothing) && use_winding(L) === false && L.dx isa Number
             push!(opsA, L)
         else
             push!(opsB,L)
