@@ -9,7 +9,7 @@ using SciMLBase: AbstractDiffEqLinearOperator, AbstractDiffEqCompositeOperator, 
 import SciMLBase: getops
 using SparseDiffTools
 using SparseArrays, ForwardDiff, BandedMatrices, NNlib, LazyArrays, BlockBandedMatrices, LoopVectorization
-using LazyBandedMatrices, ModelingToolkit
+using LazyBandedMatrices
 using RuntimeGeneratedFunctions
 using Requires
 RuntimeGeneratedFunctions.init(@__MODULE__)
@@ -56,9 +56,6 @@ include("docstrings.jl")
 ### Concretizations
 include("derivative_operators/concretization.jl")
 
-### MOL
-include("MOLFiniteDifference/MOL_discretization.jl")
-
 # The (u,p,t) and (du,u,p,t) interface
 for T in [DiffEqScaledOperator, DiffEqOperatorCombination, DiffEqOperatorComposition, GhostDerivativeOperator]
   (L::T)(u,p,t) = (update_coefficients!(L,u,p,t); L * u)
@@ -82,9 +79,7 @@ export DirichletBC, Dirichlet0BC, NeumannBC, Neumann0BC, RobinBC, GeneralBC, Mul
        MultiDimDirectionalBC, ComposedMultiDimBC
 export compose, decompose, perpsize, square_norm, square_norm!, dot_product, dot_product!, cross_product,
        cross_product!
-export discretize, symbolic_discretize
 
 export GhostDerivativeOperator
-export MOLFiniteDifference, center_align, edge_align
 export BoundaryConditionError
 end # module
