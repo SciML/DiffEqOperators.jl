@@ -22,7 +22,6 @@ SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 SparseDiffTools = "47a9eef4-7e08-11e9-0b38-333d64bd3804"
 StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 SuiteSparse = "4607b0f0-06f3-5cda-b6b1-a6196a1729e9"
-SymbolicUtils = "d1185830-fcd6-423d-90d6-eec64667417b"
 
 [compat]
 BandedMatrices = "0.15.11, 0.16"
@@ -40,7 +39,6 @@ RuntimeGeneratedFunctions = "0.4, 0.5"
 SciMLBase = "1.11"
 SparseDiffTools = "1.17"
 StaticArrays = "0.10, 0.11, 0.12, 1.0"
-SymbolicUtils = "0.11, 0.12, 0.13, 0.14, 0.15, 0.16, 0.17, 0.18"
 julia = "1.6"
 
 [extras]
