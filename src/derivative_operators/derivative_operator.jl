@@ -163,12 +163,10 @@ function CenteredDifference{N}(derivative_order::Int,
         )
 end
 
-struct CompleteCenteredDifference{N} end
-
 """
 A helper function to compute the coefficients of a derivative operator including the boundary coefficients in the centered scheme.
 """
-function CompleteCenteredDifference{N}(derivative_order::Int,
+function CompleteCenteredDifference(derivative_order::Int,
     approximation_order::Int, dx::T,
     len::Int, coeff_func=1) where {T<:Real,N}
     @assert approximation_order>1 "approximation_order must be greater than 1."
@@ -209,11 +207,10 @@ end
 
 
 """
-A helper function to compute the coefficients of a derivative operator including the boundary coefficients in the half centered scheme. See table 2 in https://web.njit.edu/~jiang/math712/fornberg.pdf
+A helper function to compute the coefficients of a derivative operator including the boundary coefficients in the half offset centered scheme. See table 2 in https://web.njit.edu/~jiang/math712/fornberg.pdf
 """
 function CompleteHalfCenteredDifference(derivative_order::Int,
-    approximation_order::Int, dx::T,
-    len::Int, isforward=false) where {T<:Real,N}
+    approximation_order::Int, dx::T) where {T<:Real,N}
     @assert approximation_order>1 "approximation_order must be greater than 1."
     stencil_length          = approximation_order + 2*floor(derivative_order/2) + 2*(approximation_order%2)
     centered_stencil_length = derivative_order + approximation_order - 1 + (derivative_order+approximation_order)%2
@@ -234,7 +231,7 @@ function CompleteHalfCenteredDifference(derivative_order::Int,
 
     stencil_coefs           = convert(SVector{stencil_length, T}, (1/dx^derivative_order) * calculate_weights(derivative_order, zero(T), dummy_x))
     # For each boundary point, for each tappoint in the half offset central difference stencil, we need to calculate the coefficients for the stencil.
-    _low_boundary_coefs     = [convert(SVector{centered_stencil_length}, SVector{boundary_stencil_length, T}[convert(SVector{boundary_stencil_length, T}, (1/dx^derivative_order) * calculate_weights(derivative_order, oneunit(T)*x0+offset, left_boundary_x)) for offset in xoffset]) for x0 in L_boundary_deriv_spots]
+    _low_boundary_coefs     = [Dict([offset => convert(SVector{boundary_stencil_length, T}, (1/dx^derivative_order) * calculate_weights(derivative_order, oneunit(T)*x0+offset, left_boundary_x)) for offset in xoffset]) for x0 in L_boundary_deriv_spots]
     low_boundary_coefs      = convert(SVector{boundary_point_count},vcat(_low_boundary_coefs))
 
     # _high_boundary_coefs    = SVector{boundary_stencil_length, T}[convert(SVector{boundary_stencil_length, T}, (1/dx^derivative_order) * calculate_weights(derivative_order, oneunit(T)*x0, reverse(right_boundary_x))) for x0 in R_boundary_deriv_spots]
@@ -384,14 +381,12 @@ function UpwindDifference{N}(derivative_order::Int,
         )
 end
 
-struct CompleteUpwindDifference{N} end
-
 """
 A helper function to compute the coefficients of a derivative operator including the boundary coefficients in the upwind scheme.
 """
-function CompleteUpwindDifference{N}(derivative_order::Int,
+function CompleteUpwindDifference(derivative_order::Int,
     approximation_order::Int, dx::T,
-    len::Int, coeff_func=1; offside::Int=0) where {T<:Real,N}
+    offside::Int=0) where {T<:Real,N}
 
     @assert offside > -1 "Number of offside points should be non-negative"
     @assert offside <= div(derivative_order + approximation_order - 1,2) "Number of offside points should not exceed the primary wind points"
