@@ -1,5 +1,5 @@
 using DiffEqBase,
-    DiffEqOperators, ForwardDiff, LinearAlgebra, SparseDiffTools, Test
+    DiffEqOperators, ForwardDiff, LinearAlgebra, SparseDiffTools, Test, LinearSolve
 const A = rand(300, 300)
 f(du, u) = mul!(du, A, u)
 f(u) = A * u
@@ -7,8 +7,8 @@ x = rand(300)
 v = rand(300)
 du = similar(x)
 
-cache1 = ForwardDiff.Dual{SparseDiffTools.DeivVecTag}.(x, v)
-cache2 = ForwardDiff.Dual{SparseDiffTools.DeivVecTag}.(x, v)
+cache1 = ForwardDiff.Dual{typeof(ForwardDiff.Tag(SparseDiffTools.DeivVecTag(),eltype(x))),eltype(x),1}.(x, ForwardDiff.Partials.(tuple.(reshape(v, size(x)))))
+cache2 = ForwardDiff.Dual{typeof(ForwardDiff.Tag(SparseDiffTools.DeivVecTag(),eltype(x))),eltype(x),1}.(x, ForwardDiff.Partials.(tuple.(reshape(v, size(x)))))
 @test num_jacvec!(du, f, x, v) ≈ ForwardDiff.jacobian(f, similar(x), x) * v rtol =
     1e-6
 @test num_jacvec!(du, f, x, v, similar(v), similar(v)) ≈
@@ -81,13 +81,11 @@ ff2 = ODEFunction(
     jac_prototype = JacVecOperator{Float64}(lorenz, u0, autodiff = false),
 )
 
-
 for ff in [ff1, ff2]
     prob = ODEProblem(ff, u0, tspan)
     @test solve(prob, TRBDF2()).retcode == :Success
-    @test solve(prob, TRBDF2(linsolve = LinSolveGMRES())).retcode == :Success
+    @test solve(prob, TRBDF2(linsolve = KrylovJL_GMRES())).retcode == :Success
     @test solve(prob, Exprb32()).retcode == :Success
-    @test_broken sol = solve(prob, Rosenbrock23())
-    @test_broken sol =
-        solve(prob, Rosenbrock23(linsolve = LinSolveGMRES(tol = 1e-10)))
+    @test sol = solve(prob, Rosenbrock23()).retcode == :Success
+    @test sol = solve(prob, Rosenbrock23(linsolve = KrylovJL_GMRES())).retcode == :Success
 end

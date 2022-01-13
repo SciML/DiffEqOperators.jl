@@ -43,7 +43,6 @@ if GROUP == "All" || GROUP == "Misc"
     @time @safetestset "Utilities Tests" begin include("Misc/utils.jl") end
     @time @safetestset "JacVec Operators Interface" begin include("Misc/jacvec_operators.jl") end
     @time @safetestset "VecJac Operators Interface" begin include("Misc/vecjac_operators.jl") end
-    @time @safetestset "JacVec Operator Integration Test" begin include("Misc/jacvec_integration_test.jl") end
 end
 
 if !is_APPVEYOR && (GROUP == "All" || GROUP == "Multithreading")

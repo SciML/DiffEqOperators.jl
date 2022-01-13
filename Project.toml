@@ -13,7 +13,6 @@ LazyArrays = "5078a376-72f3-5289-bfd5-ec5146d43c02"
 LazyBandedMatrices = "d7e5e226-e90b-4449-9968-0f923699bf6f"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 LoopVectorization = "bdcacae8-1622-11e9-2a5c-532679323890"
-ModelingToolkit = "961ee093-0014-501f-94e3-6117800e7a78"
 NNlib = "872c559c-99b0-510c-b3b7-b6c96a88d5cd"
 NonlinearSolve = "8913a72c-1f9b-4ce2-8d82-65094dcecaec"
 Requires = "ae029012-a4dd-5104-9daa-d747884805df"
@@ -23,7 +22,6 @@ SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 SparseDiffTools = "47a9eef4-7e08-11e9-0b38-333d64bd3804"
 StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 SuiteSparse = "4607b0f0-06f3-5cda-b6b1-a6196a1729e9"
-SymbolicUtils = "d1185830-fcd6-423d-90d6-eec64667417b"
 
 [compat]
 BandedMatrices = "0.15.11, 0.16"
@@ -34,7 +32,6 @@ ForwardDiff = "0.10"
 LazyArrays = "0.17, 0.18, 0.19, 0.20, 0.21, 0.22"
 LazyBandedMatrices = "0.5, 0.6, 0.7"
 LoopVectorization = "0.12"
-ModelingToolkit = "7, 8"
 NNlib = "0.6, 0.7"
 NonlinearSolve = "0.3.7"
 Requires = "1"
@@ -42,11 +39,11 @@ RuntimeGeneratedFunctions = "0.4, 0.5"
 SciMLBase = "1.11"
 SparseDiffTools = "1.17"
 StaticArrays = "0.10, 0.11, 0.12, 1.0"
-SymbolicUtils = "0.11, 0.12, 0.13, 0.14, 0.15, 0.16, 0.17, 0.18"
 julia = "1.6"
 
 [extras]
 FillArrays = "1a297f60-69ca-5386-bcde-b61e274b549b"
+LinearSolve = "7ed4a6bd-45f5-4d41-b270-4a48e9bafcae"
 OrdinaryDiffEq = "1dea7af3-3e70-54e6-95c3-0bf5283fa5ed"
 Parameters = "d96e819e-fc66-5662-9728-84c9c7592b0a"
 Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
@@ -56,4 +53,4 @@ Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 Zygote = "e88e6eb3-aa80-5325-afca-941959d7151f"
 
 [targets]
-test = ["FillArrays", "OrdinaryDiffEq", "Parameters", "Random", "SafeTestsets", "SpecialFunctions", "Test", "Zygote"]
+test = ["FillArrays", "LinearSolve", "OrdinaryDiffEq", "Parameters", "Random", "SafeTestsets", "SpecialFunctions", "Test", "Zygote"]
