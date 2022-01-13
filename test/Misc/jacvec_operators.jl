@@ -1,5 +1,5 @@
 using DiffEqBase,
-    DiffEqOperators, ForwardDiff, LinearAlgebra, SparseDiffTools, Test
+    DiffEqOperators, ForwardDiff, LinearAlgebra, SparseDiffTools, Test, LinearSolve
 const A = rand(300, 300)
 f(du, u) = mul!(du, A, u)
 f(u) = A * u
