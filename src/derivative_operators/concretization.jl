@@ -45,10 +45,67 @@ end
 LinearAlgebra.Array(A::DerivativeOperator{T}, N::Int=A.len) where T =
     copyto!(zeros(T, N, N+2), A, N)
 
-SparseArrays.SparseMatrixCSC(A::DerivativeOperator{T}, N::Int=A.len) where T =
-    copyto!(spzeros(T, N, N+2), A, N)
+function SparseArrays.SparseMatrixCSC(A::DerivativeOperator{T}, N::Int=A.len) where T
+    bl = A.boundary_point_count
+    stencil_length = A.stencil_length
+    stencil_pivot = use_winding(A) ? (1 + stencil_length%2) : div(stencil_length,2)
+    bstl = A.boundary_stencil_length
+
+    coeff   = A.coefficients
+    get_coeff = if coeff isa AbstractVector
+        i -> coeff[i]
+    elseif coeff isa Number
+        i -> coeff
+    else
+        i -> true
+    end
+
+    Is = Int[]
+    Js = Int[]
+    Vs = T[]
+    
+    nvalues = 2*bl * bstl + (N - 2*bl) * stencil_length
+    sizehint!(Is, nvalues)
+    sizehint!(Js, nvalues)
+    sizehint!(Vs, nvalues)
+
+    for i in 1:bl
+        cur_coeff   = get_coeff(i)
+        cur_stencil = use_winding(A) && cur_coeff < 0 ? reverse(A.low_boundary_coefs[i]) : A.low_boundary_coefs[i]
+        append!(Is, ((i for j in 1:bstl)...))
+        append!(Js, 1:bstl)
+        append!(Vs, cur_coeff * cur_stencil)
+    end
+
+    for i in bl+1:N-bl
+        cur_coeff   = get_coeff(i)
+        stencil     = eltype(A.stencil_coefs) <: AbstractVector ? A.stencil_coefs[i-bl] : A.stencil_coefs
+        cur_stencil = use_winding(A) && cur_coeff < 0 ? reverse(stencil) : stencil
+        append!(Is, ((i for j in 1:stencil_length)...))
+        append!(Js, i+1-stencil_pivot:i-stencil_pivot+stencil_length)
+        append!(Vs, cur_coeff * cur_stencil)
+    end
+
+    for i in N-bl+1:N
+        cur_coeff   = get_coeff(i)
+        cur_stencil = use_winding(A) && cur_coeff < 0 ? reverse(A.high_boundary_coefs[i-N+bl]) : A.high_boundary_coefs[i-N+bl]
+        append!(Is, ((i for j in N-bstl+3:N+2)...))
+        append!(Js, N-bstl+3:N+2)
+        append!(Vs, cur_coeff * cur_stencil)
+    end
+
+   # ensure efficient allocation
+    @assert length(Is) == nvalues
+    @assert length(Js) == nvalues
+    @assert length(Vs) == nvalues
+
+    return sparse(Is, Js, Vs, N, N+2)
+end
 
 SparseArrays.sparse(A::DerivativeOperator{T}, N::Int=A.len) where T = SparseMatrixCSC(A,N)
+
+Base.copyto!(L::AbstractSparseArray{T}, A::DerivativeOperator{T}, N::Int) where T =
+    copyto!(L, sparse(A))
 
 function BandedMatrices.BandedMatrix(A::DerivativeOperator{T}, N::Int=A.len) where T
     stencil_length = A.stencil_length

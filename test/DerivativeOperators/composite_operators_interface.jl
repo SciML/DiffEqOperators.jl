@@ -1,4 +1,4 @@
-using Test, LinearAlgebra, Random, DiffEqOperators
+using Test, LinearAlgebra, Random, SparseArrays, DiffEqOperators
 using DiffEqBase
 using DiffEqBase: isconstant
 using DiffEqOperators: DiffEqScaledOperator, DiffEqOperatorCombination, DiffEqOperatorComposition
@@ -22,6 +22,8 @@ using DiffEqOperators: DiffEqScaledOperator, DiffEqOperatorCombination, DiffEqOp
   @test opnorm(L) ≈ opnorm(Lfull)
   @test size(L) == size(Lfull)
   @test L[1,2] ≈ Lfull[1,2]
+  Lsparse = sparse(L)
+  @test Lsparse == Lfull
   u = [1.0, 2.0]; du = zeros(2)
   @test L * u ≈ Lfull * u
   mul!(du, L, u); @test du ≈ Lfull * u

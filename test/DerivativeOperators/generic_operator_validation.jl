@@ -14,6 +14,8 @@ for dor in 1:4, aor in 2:2:6
     Dr = CenteredDifference(dor,aor,dx[1],length(x)-2)
     Dir = CenteredDifference(dor,aor,dx,length(x)-2)
 
+    @test sparse(Dr)==Array(Dr)
+
     @test sparse(Dr)≈sparse(Dir)
     @test Array(Dr)≈Array(Dir)
 

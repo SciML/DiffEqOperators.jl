@@ -3,6 +3,16 @@
 # operator types are lazy and maintain the structure used to build them.
 
 
+# Define a helper function `sparse1` that handles
+# `DiffEqArrayOperator` and `DiffEqScaledOperator`.
+# We should define `sparse` for these types in `SciMLBase` instead,
+# but that package doesn't know anything about sparse arrays yet, so
+# we'll introduce a temporary work-around here.
+sparse1(A) = sparse(A)
+sparse1(A::DiffEqArrayOperator) = sparse1(A.A)
+sparse1(A::DiffEqScaledOperator) = A.coeff * sparse1(A.op)
+
+
 # Linear Combination
 struct DiffEqOperatorCombination{T,O<:Tuple{Vararg{AbstractDiffEqLinearOperator{T}}},
     C<:AbstractVector{T}} <: AbstractDiffEqCompositeOperator{T}
@@ -13,7 +23,7 @@ struct DiffEqOperatorCombination{T,O<:Tuple{Vararg{AbstractDiffEqLinearOperator{
         for i in 2:length(ops)
             @assert size(ops[i]) == size(ops[1]) "Operators must be of the same size to be combined! Mismatch between $(ops[i]) and $(ops[i-1]), which are operators $i and $(i-1) respectively"
         end
-        if cache == nothing
+        if cache === nothing
             cache = zeros(T, size(ops[1], 1))
         end
         new{T,typeof(ops),typeof(cache)}(ops, cache)
@@ -36,6 +46,7 @@ getops(L::DiffEqOperatorCombination) = L.ops
 Matrix(L::DiffEqOperatorCombination) = sum(Matrix, L.ops)
 convert(::Type{AbstractMatrix}, L::DiffEqOperatorCombination) =
   sum(op -> convert(AbstractMatrix, op), L.ops)
+SparseArrays.sparse(L::DiffEqOperatorCombination) = sum(sparse1, L.ops)
 
 size(L::DiffEqOperatorCombination, args...) = size(L.ops[1], args...)
 getindex(L::DiffEqOperatorCombination, i::Int) = sum(op -> op[i], L.ops)
@@ -64,7 +75,7 @@ struct DiffEqOperatorComposition{T,O<:Tuple{Vararg{AbstractDiffEqLinearOperator{
       @assert size(ops[i-1], 1) == size(ops[i], 2) "Operations do not have compatible sizes! Mismatch between $(ops[i]) and $(ops[i-1]), which are operators $i and $(i-1) respectively."
     end
 
-    if caches == nothing
+    if caches === nothing
       # Construct a list of caches to be used by mul! and ldiv!
       caches = []
       for op in ops[1:end-1]
@@ -89,6 +100,7 @@ getops(L::DiffEqOperatorComposition) = L.ops
 Matrix(L::DiffEqOperatorComposition) = prod(Matrix, reverse(L.ops))
 convert(::Type{AbstractMatrix}, L::DiffEqOperatorComposition) =
   prod(op -> convert(AbstractMatrix, op), reverse(L.ops))
+SparseArrays.sparse(L::DiffEqOperatorComposition) = prod(sparse1, reverse(L.ops))
 
 size(L::DiffEqOperatorComposition) = (size(L.ops[end], 1), size(L.ops[1], 2))
 size(L::DiffEqOperatorComposition, m::Integer) = size(L)[m]
