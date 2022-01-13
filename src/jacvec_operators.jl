@@ -42,8 +42,8 @@ mutable struct JacVecOperator{T,F,T1,T2,uType,P,tType,O} <:
         opnorm = true,
     ) where {T}
         if autodiff
-            cache1 = ForwardDiff.Dual{typeof(ForwardDiff.Tag(SparseDiffTools.DeivVecTag(),eltype(x))),eltype(x),1}.(u, ForwardDiff.Partials.(tuple.(u)))
-            cache2 = ForwardDiff.Dual{typeof(ForwardDiff.Tag(SparseDiffTools.DeivVecTag(),eltype(x))),eltype(x),1}.(u, ForwardDiff.Partials.(tuple.(u)))
+            cache1 = ForwardDiff.Dual{typeof(ForwardDiff.Tag(SparseDiffTools.DeivVecTag(),eltype(u))),eltype(u),1}.(u, ForwardDiff.Partials.(tuple.(u)))
+            cache2 = ForwardDiff.Dual{typeof(ForwardDiff.Tag(SparseDiffTools.DeivVecTag(),eltype(u))),eltype(u),1}.(u, ForwardDiff.Partials.(tuple.(u)))
         else
             cache1 = similar(u)
             cache2 = similar(u)
