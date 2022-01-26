@@ -55,6 +55,8 @@ function calculate_weights(order::Int, x0::T, x::AbstractVector) where T<:Real
         http://epubs.siam.org/doi/pdf/10.1137/S0036144596322507 - Modified Fornberg Algorithm
     =#
     _C = C[:,end]
-    _C[div(N,2)+1] -= sum(_C)
+    if order != 0
+        _C[div(N,2)+1] -= sum(_C)
+    end
     return _C
 end

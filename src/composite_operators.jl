@@ -19,19 +19,19 @@ struct DiffEqOperatorCombination{T,O<:Tuple{Vararg{AbstractDiffEqLinearOperator{
         new{T,typeof(ops),typeof(cache)}(ops, cache)
     end
 end
-+(ops::AbstractDiffEqLinearOperator...) = DiffEqOperatorCombination(ops)
-+(op::AbstractDiffEqLinearOperator, A::AbstractMatrix) = op + DiffEqArrayOperator(A)
-+(op::AbstractDiffEqLinearOperator{T}, α::UniformScaling) where T = op + UniformScaling(T(α.λ))(size(op,1))
-+(A::AbstractMatrix, op::AbstractDiffEqLinearOperator) = op + A
-+(α::UniformScaling, op::AbstractDiffEqLinearOperator) = op + α
-+(L1::DiffEqOperatorCombination, L2::AbstractDiffEqLinearOperator) = DiffEqOperatorCombination((L1.ops..., L2))
-+(L1::AbstractDiffEqLinearOperator, L2::DiffEqOperatorCombination) = DiffEqOperatorCombination((L1, L2.ops...))
-+(L1::DiffEqOperatorCombination, L2::DiffEqOperatorCombination) = DiffEqOperatorCombination((L1.ops..., L2.ops...))
--(L1::AbstractDiffEqLinearOperator, L2::AbstractDiffEqLinearOperator) = L1 + (-L2)
--(L::AbstractDiffEqLinearOperator, A::AbstractMatrix) = L + (-A)
--(A::AbstractMatrix, L::AbstractDiffEqLinearOperator) = A + (-L)
--(L::AbstractDiffEqLinearOperator, α::UniformScaling) = L + (-α)
--(α::UniformScaling, L::AbstractDiffEqLinearOperator) = α + (-L)
+Base.:+(ops::AbstractDiffEqLinearOperator...) = DiffEqOperatorCombination(ops)
+Base.:+(op::AbstractDiffEqLinearOperator, A::AbstractMatrix) = op + DiffEqArrayOperator(A)
+Base.:+(op::AbstractDiffEqLinearOperator{T}, α::UniformScaling) where T = op + UniformScaling(T(α.λ))(size(op,1))
+Base.:+(A::AbstractMatrix, op::AbstractDiffEqLinearOperator) = op + A
+Base.:+(α::UniformScaling, op::AbstractDiffEqLinearOperator) = op + α
+Base.:+(L1::DiffEqOperatorCombination, L2::AbstractDiffEqLinearOperator) = DiffEqOperatorCombination((L1.ops..., L2))
+Base.:+(L1::AbstractDiffEqLinearOperator, L2::DiffEqOperatorCombination) = DiffEqOperatorCombination((L1, L2.ops...))
+Base.:+(L1::DiffEqOperatorCombination, L2::DiffEqOperatorCombination) = DiffEqOperatorCombination((L1.ops..., L2.ops...))
+Base.:-(L1::AbstractDiffEqLinearOperator, L2::AbstractDiffEqLinearOperator) = L1 + (-L2)
+Base.:-(L::AbstractDiffEqLinearOperator, A::AbstractMatrix) = L + (-A)
+Base.:-(A::AbstractMatrix, L::AbstractDiffEqLinearOperator) = A + (-L)
+Base.:-(L::AbstractDiffEqLinearOperator, α::UniformScaling) = L + (-α)
+Base.:-(α::UniformScaling, L::AbstractDiffEqLinearOperator) = α + (-L)
 getops(L::DiffEqOperatorCombination) = L.ops
 Matrix(L::DiffEqOperatorCombination) = sum(Matrix, L.ops)
 convert(::Type{AbstractMatrix}, L::DiffEqOperatorCombination) =
@@ -40,8 +40,8 @@ convert(::Type{AbstractMatrix}, L::DiffEqOperatorCombination) =
 size(L::DiffEqOperatorCombination, args...) = size(L.ops[1], args...)
 getindex(L::DiffEqOperatorCombination, i::Int) = sum(op -> op[i], L.ops)
 getindex(L::DiffEqOperatorCombination, I::Vararg{Int, N}) where {N} = sum(op -> op[I...], L.ops)
-*(L::DiffEqOperatorCombination, x::AbstractArray) = sum(op -> op * x, L.ops)
-*(x::AbstractArray, L::DiffEqOperatorCombination) = sum(op -> x * op, L.ops)
+Base.:*(L::DiffEqOperatorCombination, x::AbstractArray) = sum(op -> op * x, L.ops)
+Base.:*(x::AbstractArray, L::DiffEqOperatorCombination) = sum(op -> x * op, L.ops)
 /(L::DiffEqOperatorCombination, x::AbstractArray) = sum(op -> op / x, L.ops)
 \(x::AbstractArray, L::DiffEqOperatorCombination) = sum(op -> x \ op, L.ops)
 function mul!(y::AbstractVector, L::DiffEqOperatorCombination, b::AbstractVector)
@@ -77,13 +77,20 @@ struct DiffEqOperatorComposition{T,O<:Tuple{Vararg{AbstractDiffEqLinearOperator{
     new{T,typeof(ops),typeof(caches)}(ops, caches)
   end
 end
-*(ops::AbstractDiffEqLinearOperator...) = DiffEqOperatorComposition(reverse(ops))
+# this is needed to not break dispatch in MethodOfLines
+function Base.:*(ops::AbstractDiffEqLinearOperator...) 
+  try 
+    return DiffEqOperatorComposition(reverse(ops))
+  catch e
+    return 1
+  end
+end
 ∘(L1::AbstractDiffEqLinearOperator, L2::AbstractDiffEqLinearOperator) = DiffEqOperatorComposition((L2, L1))
-*(L1::DiffEqOperatorComposition, L2::AbstractDiffEqLinearOperator) = DiffEqOperatorComposition((L2, L1.ops...))
+Base.:*(L1::DiffEqOperatorComposition, L2::AbstractDiffEqLinearOperator) = DiffEqOperatorComposition((L2, L1.ops...))
 ∘(L1::DiffEqOperatorComposition, L2::AbstractDiffEqLinearOperator) = DiffEqOperatorComposition((L2, L1.ops...))
-*(L1::AbstractDiffEqLinearOperator, L2::DiffEqOperatorComposition) = DiffEqOperatorComposition((L2.ops..., L1))
+Base.:*(L1::AbstractDiffEqLinearOperator, L2::DiffEqOperatorComposition) = DiffEqOperatorComposition((L2.ops..., L1))
 ∘(L1::AbstractDiffEqLinearOperator, L2::DiffEqOperatorComposition) = DiffEqOperatorComposition((L2.ops..., L1))
-*(L1::DiffEqOperatorComposition, L2::DiffEqOperatorComposition) = DiffEqOperatorComposition((L2.ops..., L1.ops...))
+Base.:*(L1::DiffEqOperatorComposition, L2::DiffEqOperatorComposition) = DiffEqOperatorComposition((L2.ops..., L1.ops...))
 ∘(L1::DiffEqOperatorComposition, L2::DiffEqOperatorComposition) = DiffEqOperatorComposition((L2.ops..., L1.ops...))
 getops(L::DiffEqOperatorComposition) = L.ops
 Matrix(L::DiffEqOperatorComposition) = prod(Matrix, reverse(L.ops))
@@ -93,8 +100,8 @@ convert(::Type{AbstractMatrix}, L::DiffEqOperatorComposition) =
 size(L::DiffEqOperatorComposition) = (size(L.ops[end], 1), size(L.ops[1], 2))
 size(L::DiffEqOperatorComposition, m::Integer) = size(L)[m]
 opnorm(L::DiffEqOperatorComposition) = prod(opnorm, L.ops)
-*(L::DiffEqOperatorComposition, x::AbstractArray) = foldl((acc, op) -> op*acc, L.ops; init=x)
-*(x::AbstractArray, L::DiffEqOperatorComposition) = foldl((acc, op) -> acc*op, reverse(L.ops); init=x)
+Base.:*(L::DiffEqOperatorComposition, x::AbstractArray) = foldl((acc, op) -> op*acc, L.ops; init=x)
+Base.:*(x::AbstractArray, L::DiffEqOperatorComposition) = foldl((acc, op) -> acc*op, reverse(L.ops); init=x)
 /(L::DiffEqOperatorComposition, x::AbstractArray) = foldl((acc, op) -> op/acc, L.ops; init=x)
 /(x::AbstractArray, L::DiffEqOperatorComposition) = foldl((acc, op) -> acc/op, L.ops; init=x)
 \(L::DiffEqOperatorComposition, x::AbstractArray) = foldl((acc, op) -> op\acc, reverse(L.ops); init=x)
