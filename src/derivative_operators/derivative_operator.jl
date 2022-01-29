@@ -220,10 +220,10 @@ function CompleteHalfCenteredDifference(derivative_order::Int,
     left_boundary_x         = 1:(boundary_stencil_length)
     right_boundary_x        = reverse(-boundary_stencil_length:-1)
 
-    # ? Is fornberg valid when taking an x0 outside of the stencil i.e at the boundary?
-    xoffset = 1.5:boundary_stencil_length-0.5
-
     boundary_point_count    = div(centered_stencil_length,2) # -1 due to the ghost point
+    # ? Is fornberg valid when taking an x0 outside of the stencil i.e at the boundary?
+    xoffset = range(1.5, length=boundary_point_count, step = 1.0)
+
     # Because it's a N x (N+2) operator, the last stencil on the sides are the [b,0,x,x,x,x] stencils, not the [0,x,x,x,x,x] stencils, since we're never solving for the derivative at the boundary point.
     #deriv_spots             = (-div(stencil_length,2)+1) : -1  # unused
     L_boundary_deriv_spots  = xoffset[1:div(centered_stencil_length,2)]
