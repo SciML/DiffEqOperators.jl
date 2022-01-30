@@ -144,6 +144,34 @@ end
     @test BandedMatrix(L) ≈ correct
 end
 
+@testset "Correctness of Uniform Stencils, Complete" begin
+    weights = []
+    
+    push!(weights, ([-0.5,0,0.5], [1.,-2.,1.], [-1/2,1.,0.,-1.,1/2]))
+    push!(weights, ([1/12, -2/3,0,2/3,-1/12], [-1/12,4/3,-5/2,4/3,-1/12], [1/8,-1.,13/8,0.,-13/8,1.,-1/8]))
+
+    for d in 1:3
+        for (i,a) in enumerate([2,4])
+            D = CompleteCenteredDifference(d,a,1.0)
+
+            @test all(isapprox.(D.stencil_coefs, weights[i][d], atol=1e-10))
+        end
+    end
+end
+
+@testset "Correctness of Uniform Stencils, Complete Half" begin
+    weights = (([.5, .5], [-1/16, 9/16, 9/16, -1/16]),
+               ([-1., 1.], [1/24, -9/8, 9/8, -1/24]))
+    for (i,a) in enumerate([2,4])
+        for d in 0:1
+            D = CompleteHalfCenteredDifference(d,a,1.0)
+            @test all(D.stencil_coefs .≈ weights[d+1][i]) 
+        end
+    end
+
+end
+
+
 @testset "Correctness of Non-Uniform Stencils" begin
     x = [0., 0.08, 0.1, 0.15, 0.19, 0.26, 0.29]
     nx = length(x)
