@@ -171,6 +171,25 @@ end
 
 end
 
+@testset "Correctness of Uniform Upwind Stencils" begin
+    weights = (
+        (
+            [-1.0, 1.0], 
+            [-1., 3., -3., 1.]
+        ),
+        (
+            [-3/2, 2., -1/2],
+            [-5/2, 9., -12., 7., -3/2]
+        )
+    )
+    for (i,a) in enumerate(1:2)
+        for (j,d) in enumerate([1,3])
+            D = CompleteUpwindDifference(d,a,1.0,0)
+            @test all(isapprox.(D.stencil_coefs, weights[i][j], atol=1e-10))
+        end
+    end
+end
+
 
 @testset "Correctness of Non-Uniform Stencils" begin
     x = [0., 0.08, 0.1, 0.15, 0.19, 0.26, 0.29]
