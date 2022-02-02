@@ -324,6 +324,7 @@ function UpwindDifference{N}(derivative_order::Int,
         )
 end
 
+
 # TODO implement the non-uniform grid
 function UpwindDifference{N}(derivative_order::Int,
                           approximation_order::Int, dx::AbstractVector{T},
@@ -407,20 +408,20 @@ function CompleteUpwindDifference(derivative_order::Int,
     high_boundary_x         = 0.0:-1.0:-(boundary_stencil_length-1.0)
     R_boundary_deriv_spots = 0.0:-1.0:-(boundary_stencil_length-2.0)
     _high_boundary_coefs     = SVector{boundary_stencil_length, T}[convert(SVector{boundary_stencil_length, T}, ((-1/dx)^derivative_order) * calculate_weights(derivative_order, oneunit(T)*x0, high_boundary_x)) for x0 in R_boundary_deriv_spots]
-    high_boundary_coefs = convert(SVector{boundary_point_count + offside},_high_boundary_coefs)
+    high_boundary_coefs = convert(SVector{boundary_point_count + offside},reverse(_high_boundary_coefs))
 
-    coefficients = fill!(Vector{T}(undef,len),0)
+    coefficients = nothing
 
 
-    DerivativeOperator{T,N,true,T,typeof(stencil_coefs),
-    typeof(low_boundary_coefs),typeof(high_boundary_coefs),Vector{T},
-    typeof(coeff_func)}(
-    derivative_order, approximation_order, dx, len, stencil_length,
+    DerivativeOperator{T,Nothing,true,T,typeof(stencil_coefs),
+    typeof(low_boundary_coefs),typeof(high_boundary_coefs),Nothing,
+    Nothing}(
+    derivative_order, approximation_order, dx, 1, stencil_length,
     stencil_coefs,
     boundary_stencil_length,
     boundary_point_count,
     low_boundary_coefs,
-    high_boundary_coefs,offside,coefficients,coeff_func
+    high_boundary_coefs,offside,coefficients,nothing
     )
 end
 
