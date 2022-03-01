@@ -10,6 +10,11 @@ non-uniform finite differences.
     see [MethodOfLines.jl](https://github.com/SciML/MethodOfLines.jl).
 
 
+!!! warn
+
+    This library is not complete, especially for higher dimensional operators.
+    Use with caution.
+    
 For the operators, both centered and
 [upwind](https://en.wikipedia.org/wiki/Upwind_scheme) operators are provided,
 for domains of any dimension, arbitrarily spaced grids, and for any order of accuracy.
