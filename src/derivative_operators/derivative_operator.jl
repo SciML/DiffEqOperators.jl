@@ -293,13 +293,12 @@ function CompleteHalfCenteredDifference(derivative_order::Int,
 end
 
 function CompleteHalfCenteredDifference(derivative_order::Int,
-    approximation_order::Int, dx::T) where {T<:Real,N}
+    approximation_order::Int, dx::T) where {T<:AbstractVector{<:Real},N}
     @assert approximation_order > 1 "approximation_order must be greater than 1."
     centered_stencil_length = approximation_order + 2 * Int(floor(derivative_order / 2)) + (approximation_order % 2)
     boundary_stencil_length = derivative_order + approximation_order
     endpoint = div(centered_stencil_length, 2)
     x = [0.0, cumsum(dx)...]
-    #TODO Improve interpolation
     hx = [(x[i] + x[i+1]) / 2 for i in 1:length(x)-1]
 
 
@@ -315,7 +314,7 @@ function CompleteHalfCenteredDifference(derivative_order::Int,
 
     R_boundary_deriv_spots = hx[length(hx):-1:length(hx)-div(centered_stencil_length, 2)+1]
 
-    stencil_coefs = [convert(SVector{centered_stencil_length,T}, calculate_weights(derivative_order, hx[i], x[i-endpoint+1:i+endpoint])) for i in endpoint+1:length(hx)-endpoint, 2)]
+    stencil_coefs = [convert(SVector{centered_stencil_length,T}, calculate_weights(derivative_order, hx[i], x[i-endpoint+1:i+endpoint])) for i in endpoint+1:length(hx)-endpoint]
     # For each boundary point, for each tappoint in the half offset central difference stencil, we need to calculate the coefficients for the stencil.
 
 
@@ -510,6 +509,57 @@ function CompleteUpwindDifference(derivative_order::Int,
     )
 end
 
+# TODO implement the non-uniform grid
+function CompleteUpwindDifference{N}(derivative_order::Int,
+    approximation_order::Int, dx::AbstractVector{T},
+    len::Int, coeff_func=1; offside::Int=0) where {T<:Real,N}
+
+    @assert offside > -1 "Number of offside points should be non-negative"
+    @assert offside <= div(derivative_order + approximation_order - 1, 2) "Number of offside points should not exceed the primary wind points"
+
+    stencil_length = derivative_order + approximation_order
+    boundary_stencil_length = derivative_order + approximation_order
+    boundary_point_count = boundary_stencil_length - 1 - offside
+
+    endpoint = div(centered_stencil_length, 2)
+
+    x = [0.0, cumsum(dx)...]
+    hx = [(x[i] + x[i+1]) / 2 for i in 1:length(x)-1]
+
+
+    low_boundary_x = @view(x[1:boundary_stencil_length])
+    high_boundary_x = @view(x[end-boundary_stencil_length+1:end])
+
+    L_boundary_deriv_spots = x[1:boundary_stencil_length-1-offside]
+    # Because it's a N x (N+2) operator, the last stencil on the sides are the [b,0,x,x,x,x] stencils, not the [0,x,x,x,x,x] stencils, since we're never solving for the derivative at the boundary point.
+    #deriv_spots             = (-div(stencil_length,2)+1) : -1  # unused
+
+    R_boundary_deriv_spots = x[end-boundary_stencil_length+1:end]
+
+    stencil_coefs = [convert(SVector{centered_stencil_length,T}, calculate_weights(derivative_order, x[i], x[i-offside:i+stencil_length-1-offside])) for i in boundary_stencil_length-offside:length(x)-boundary_stencil_length]
+    # For each boundary point, for each tappoint in the half offset central difference stencil, we need to calculate the coefficients for the stencil.
+
+
+    _low_boundary_coefs = [convert(SVector{boundary_stencil_length,T}, calculate_weights(derivative_order, offset, low_boundary_x)) for offset in L_boundary_deriv_spots]
+    low_boundary_coefs = convert(SVector{boundary_point_count}, _low_boundary_coefs)
+
+    _high_boundary_coefs = [convert(SVector{boundary_stencil_length,T}, calculate_weights(derivative_order, offset, high_boundary_x)) for offset in R_boundary_deriv_spots]
+    high_boundary_coefs = convert(SVector{boundary_point_count}, _high_boundary_coefs)
+    # _high_boundary_coefs    = SVector{boundary_stencil_length, T}[convert(SVector{boundary_stencil_length, T}, (1/dx^derivative_order) * calculate_weights(derivative_order, oneunit(T)*x0, reverse(right_boundary_x))) for x0 in R_boundary_deriv_spots]
+
+    offside = 0
+    coefficients = nothing
+
+    DerivativeOperator{T,Nothing,false,T,typeof(stencil_coefs),
+        typeof(low_boundary_coefs),typeof(high_boundary_coefs),typeof(coefficients),Nothing}(
+        derivative_order, approximation_order, dx, 1, centered_stencil_length,
+        stencil_coefs,
+        boundary_stencil_length,
+        boundary_point_count,
+        low_boundary_coefs,
+        high_boundary_coefs, offside, coefficients, nothing
+    )
+end
 
 CenteredDifference(args...) = CenteredDifference{1}(args...)
 UpwindDifference(args...;kwargs...) = UpwindDifference{1}(args...;kwargs...)
