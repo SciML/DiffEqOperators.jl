@@ -474,7 +474,6 @@ function CompleteUpwindDifference(derivative_order::Int,
     offside::Int=0) where {T<:Real,N}
 
     @assert offside > -1 "Number of offside points should be non-negative"
-    @assert offside <= div(derivative_order + approximation_order - 1,2) "Number of offside points should not exceed the primary wind points"
 
     stencil_length          = derivative_order + approximation_order
     boundary_stencil_length = derivative_order + approximation_order
@@ -514,7 +513,6 @@ function CompleteUpwindDifference(derivative_order::Int,
     approximation_order::Int, x::AbstractVector{T}, offside::Int=0) where {T<:Real,N}
 
     @assert offside > -1 "Number of offside points should be non-negative"
-    @assert offside <= div(derivative_order + approximation_order - 1, 2) "Number of offside points should not exceed the primary wind points"
 
     stencil_length = derivative_order + approximation_order
     boundary_stencil_length = derivative_order + approximation_order
