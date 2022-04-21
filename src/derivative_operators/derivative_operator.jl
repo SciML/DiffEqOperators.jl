@@ -315,7 +315,7 @@ function CompleteHalfCenteredDifference(derivative_order::Int,
 
     R_boundary_deriv_spots = hx[length(hx):-1:length(hx)-div(centered_stencil_length, 2)+1]
 
-    stencil_coefs = [convert(SVector{centered_stencil_length,eltype(x)}, calculate_weights(derivative_order, hx[i], x[i-endpoint+1:i+endpoint])) for i in endpoint+1:length(hx)-endpoint]
+    stencil_coefs = [convert(SVector{centered_stencil_length,eltype(x)}, calculate_weights(derivative_order, hx[i], x[i-endpoint+1:i+endpoint])) for i in endpoint+1:length(x)-endpoint]
     # For each boundary point, for each tappoint in the half offset central difference stencil, we need to calculate the coefficients for the stencil.
 
 
