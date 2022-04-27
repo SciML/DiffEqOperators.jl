@@ -227,7 +227,7 @@ function CompleteCenteredDifference(derivative_order::Int,
 
 
     high_boundary_coefs = SVector{boundary_stencil_length,T}[convert(SVector{boundary_stencil_length,T},
-        calculate_weights(derivative_order, high_boundary_x[end-i], high_boundary_x)) for i in boundary_point_count+1:-1:0]
+        calculate_weights(derivative_order, high_boundary_x[end-i], high_boundary_x)) for i in 0:boundary_point_count-1]
 
     offside = 0
     coefficients = nothing
