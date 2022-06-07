@@ -8,7 +8,7 @@
 ## This Package is in the Process of being Deprecated
 ## Alternatives:
 - For automated finite difference discretization of symbolically-defined PDEs, see [MethodOfLines.jl](https://github.com/SciML/MethodOfLines.jl).
-- For MatrixFreeOperators, and other non-derivative operators, see [SciMlOperators.jl](https://github.com/SciML/SciMlOperators.jl).
+- For MatrixFreeOperators, and other non-derivative operators, see [SciMLOperators.jl](https://github.com/SciML/SciMLOperators.jl).
 - For VecJacOperators and JacVecOperators, see [SparseDiffTools.jl](https://github.com/SciML/SparseDiffTools.jl).
 
 # README
