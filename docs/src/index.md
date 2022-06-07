@@ -11,7 +11,7 @@
 
 !!! note 
 
-    For MatrixFreeOperators, and other non-derivative operators, see [SciMlOperators.jl](https://github.com/SciML/SciMlOperators.jl).
+    For MatrixFreeOperators, and other non-derivative operators, see [SciMLOperators.jl](https://github.com/SciML/SciMLOperators.jl).
 
 !!! note
 
