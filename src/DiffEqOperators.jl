@@ -56,6 +56,13 @@ include("docstrings.jl")
 ### Concretizations
 include("derivative_operators/concretization.jl")
 
+@warn("DiffEqOperators.jl is in the process of being deprecated.\n
+       - For automated PDE discretization, see MethodOfLines.jl\n
+       - For MatrixFreeOperators, and other non-derivative operators, see SciMLOperators.jl\n
+       - For VecJacOperators and JacVecOperators, see SparseDiffTools.jl")
+
+
+
 # The (u,p,t) and (du,u,p,t) interface
 for T in [DiffEqScaledOperator, DiffEqOperatorCombination, DiffEqOperatorComposition, GhostDerivativeOperator]
   (L::T)(u,p,t) = (update_coefficients!(L,u,p,t); L * u)

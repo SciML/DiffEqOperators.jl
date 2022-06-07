@@ -1,14 +1,25 @@
 # DiffEqOperators.jl
 
-DiffEqOperators.jl is a package for finite difference discretization of partial
-differential equations. It is for building fast lazy operators for high order
-non-uniform finite differences.
+!!! warn
+
+    This package is in the process of being deprecated. See below for alternatives
 
 !!! note
 
     For automated finite difference discretization of symbolically-defined PDEs,
     see [MethodOfLines.jl](https://github.com/SciML/MethodOfLines.jl).
 
+!!! note 
+
+    For MatrixFreeOperators, and other non-derivative operators, see [SciMLOperators.jl](https://github.com/SciML/SciMLOperators.jl).
+
+!!! note
+
+    For VecJacOperators and JacVecOperators, see [SparseDiffTools.jl](https://github.com/SciML/SparseDiffTools.jl).
+
+DiffEqOperators.jl is a package for finite difference discretization of partial
+differential equations. It is for building fast lazy operators for high order
+non-uniform finite differences.
 
 !!! warn
 
