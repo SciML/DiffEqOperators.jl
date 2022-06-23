@@ -8,15 +8,15 @@
 # u(x, t=0) = u₀(x)
 #
 # For `a = b = 0` and `u₀(x) = sin(2πx)` a solution is given by:
-u_analytic(x, t) = sin(2*π*x) * exp(-t*(2*π)^2)
+u_analytic(x, t) = sin(2 * π * x) * exp(-t * (2 * π)^2)
 #
 # We want to reproduce it numerically
 #
 using DiffEqOperators, OrdinaryDiffEq
 
 nknots = 100
-h = 1.0/(nknots+1)
-knots = range(h, step=h, length=nknots)
+h = 1.0 / (nknots + 1)
+knots = range(h, step = h, length = nknots)
 ord_deriv = 2
 ord_approx = 2
 
@@ -27,13 +27,13 @@ t0 = 0.0
 t1 = 0.03
 u0 = u_analytic.(knots, t0)
 
-step(u,p,t) = Δ*bc*u
+step(u, p, t) = Δ * bc * u
 prob = ODEProblem(step, u0, (t0, t1))
 alg = KenCarp4()
 sol = solve(prob, alg)
 
 using Test
-@test u_analytic.(knots, t1) ≈ sol[end] rtol=1e-3
+@test u_analytic.(knots, t1)≈sol[end] rtol=1e-3
 
 # Because the creation of boundary conditions is cheap, we can
 # implement time-dependent boundary conditions as follows:

@@ -14,8 +14,8 @@ end
 
 function cartesian_to_linear(I::CartesianIndex, s)  #Not sure if there is a builtin that does this - convert cartesian index to linear index of an array of size s
     out = I[1]
-    for i in 1:length(s)-1
-        out += (I[i+1]-1)*prod(s[1:i])
+    for i in 1:(length(s) - 1)
+        out += (I[i + 1] - 1) * prod(s[1:i])
     end
     return out
 end
@@ -28,4 +28,4 @@ perpindex(A, dim::Integer) = A[setdiff(1:length(A), dim)]
 """
 the size of A perpendicular to dim
 """
-perpsize(A::AbstractArray{T,N}, dim::Integer) where {T,N} = size(A)[setdiff(1:N, dim)]
+perpsize(A::AbstractArray{T, N}, dim::Integer) where {T, N} = size(A)[setdiff(1:N, dim)]
