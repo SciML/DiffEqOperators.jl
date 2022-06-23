@@ -4,7 +4,7 @@ A function that creates a tuple of CartesianIndices of unit length and `N` dimen
 function unit_indices(N::Int) #create unit CartesianIndex for each dimension
     out = Vector{CartesianIndex{N}}(undef, N)
     null = zeros(Int64, N)
-    for i in 1:N
+    for i = 1:N
         unit_i = copy(null)
         unit_i[i] = 1
         out[i] = CartesianIndex(Tuple(unit_i))
@@ -14,8 +14,8 @@ end
 
 function cartesian_to_linear(I::CartesianIndex, s)  #Not sure if there is a builtin that does this - convert cartesian index to linear index of an array of size s
     out = I[1]
-    for i in 1:length(s)-1
-        out += (I[i+1]-1)*prod(s[1:i])
+    for i = 1:length(s)-1
+        out += (I[i+1] - 1) * prod(s[1:i])
     end
     return out
 end

@@ -4,16 +4,25 @@ compute_coeffs(coeff_func, current_coeffs)
 ```
 Calculates the coefficients for the stencil of UpwindDifference operators.
 """
-function compute_coeffs!(coeff_func::Number, current_coeffs::AbstractVector{T}) where {T<:Number}
+function compute_coeffs!(
+    coeff_func::Number,
+    current_coeffs::AbstractVector{T},
+) where {T<:Number}
     return current_coeffs .+= coeff_func
 end
 
-function compute_coeffs!(coeff_func::AbstractVector{T}, current_coeffs::AbstractVector{T}) where {T<:Number}
-     return current_coeffs[:] += coeff_func
+function compute_coeffs!(
+    coeff_func::AbstractVector{T},
+    current_coeffs::AbstractVector{T},
+) where {T<:Number}
+    return current_coeffs[:] += coeff_func
 end
 
 # Coefficient functions when coeff_func is a Function and current_coeffs exists
-function compute_coeffs!(coeff_func::Function, current_coeffs::AbstractVector{T}) where {T<:Number}
+function compute_coeffs!(
+    coeff_func::Function,
+    current_coeffs::AbstractVector{T},
+) where {T<:Number}
     if hasmethod(coeff_func, (Vector{T},))
         current_coeffs[:] = coeff_func(current_coeffs)
     else
@@ -42,10 +51,17 @@ function compute_coeffs!(coeff_func::Function, current_coeffs::AbstractVector{T}
     # end
 end
 
-compute_coeffs(coeff_func::Number, current_coeffs::AbstractVector{T}) where {T<:Number} = current_coeffs .+ coeff_func
-compute_coeffs(coeff_func::AbstractVector{T}, current_coeffs::AbstractVector{T}) where {T<:Number} = coeff_func + current_coeffs
+compute_coeffs(coeff_func::Number, current_coeffs::AbstractVector{T}) where {T<:Number} =
+    current_coeffs .+ coeff_func
+compute_coeffs(
+    coeff_func::AbstractVector{T},
+    current_coeffs::AbstractVector{T},
+) where {T<:Number} = coeff_func + current_coeffs
 
-function compute_coeffs(coeff_func::Function, current_coeffs::AbstractVector{T}) where {T<:Number}
+function compute_coeffs(
+    coeff_func::Function,
+    current_coeffs::AbstractVector{T},
+) where {T<:Number}
     if hasmethod(coeff_func, (Vector{T},))
         return coeff_func(current_coeffs)
     else

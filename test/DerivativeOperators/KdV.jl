@@ -3,92 +3,99 @@ using DiffEqOperators, OrdinaryDiffEq, LinearAlgebra
 
 @testset "KdV equation (Single Solition)" begin
     N = 21
-    Δx = 1/(N-1)
+    Δx = 1 / (N - 1)
     r = 0.5
 
     # x = 10:Δx:30;
-    x = -10:Δx:10;
+    x = -10:Δx:10
     # ϕ(x,t) = (r/2)*sech.((sqrt(r)*(x-r*t)/2)-7).^2 # solution of the single forward moving wave
-    ϕ(x,t) = (1/2)*sech.((x .- t)/2).^2 # solution of the single forward moving wave
+    ϕ(x, t) = (1 / 2) * sech.((x .- t) / 2) .^ 2 # solution of the single forward moving wave
 
-    u0 = ϕ(x,0);
-    oriu = zeros(size(x));
+    u0 = ϕ(x, 0)
+    oriu = zeros(size(x))
 
     #const du3 = zeros(size(x));
-    du = zeros(size(x));
+    du = zeros(size(x))
     # const temp = zeros(size(x));
 
     # A = CenteredDifference(1,2,Δx,length(x),:Dirichlet0,:Dirichlet0);
-    A = UpwindDifference{Float64}(1,3,Δx,length(x),-1);
+    A = UpwindDifference{Float64}(1, 3, Δx, length(x), -1)
     # C = CenteredDifference(3,2,Δx,length(x),:Dirichlet0,:Dirichlet0);
     #C = UpwindDifference{Float64}(3,3,Δx,length(x),-1);
 
     KdV = function (du, u, p, t)
         # bc = DirichletBC(ϕ(-10-Δx,t),ϕ(10+Δx,t))
-        bc = GeneralBC([0,1,-6*ϕ(-10,t),0,-1],[0,1,-6*ϕ(10,t),0,-1],Δx,3)
+        bc = GeneralBC([0, 1, -6 * ϕ(-10, t), 0, -1], [0, 1, -6 * ϕ(10, t), 0, -1], Δx, 3)
         #mul!(du3,C,bc*u)
-        mul!(du,A,bc*u)
+        mul!(du, A, bc * u)
         # @. temp = -0.5*u*du - 0.25*du3
         # copyto!(du,temp)
 
     end
 
-    single_solition = ODEProblem(KdV, u0, (0.,5.));
-    soln = solve(single_solition,Tsit5(),abstol=1e-6,reltol=1e-6);
+    single_solition = ODEProblem(KdV, u0, (0.0, 5.0))
+    soln = solve(single_solition, Tsit5(), abstol = 1e-6, reltol = 1e-6)
 
     #=
     for t in 0:0.5:5
         @show maximum(soln(t)-ϕ(x,t))
     end
     =#
-    for t in 0:0.5:5
-        @test soln(t) ≈ ϕ(x,t) atol = 0.01;
+    for t = 0:0.5:5
+        @test soln(t) ≈ ϕ(x, t) atol = 0.01
     end
 
     # Using Biased Upwinds with 1 offside point
-    A2 = UpwindDifference{Float64}(1,3,Δx,length(x),-1,offside=1);
+    A2 = UpwindDifference{Float64}(1, 3, Δx, length(x), -1, offside = 1)
     KdV = function (du, u, p, t)
-        bc = GeneralBC([0,1,-6*ϕ(-10,t),0,-1],[0,1,-6*ϕ(10,t),0,-1],Δx,3)
-        mul!(du,A2,bc*u)
+        bc = GeneralBC([0, 1, -6 * ϕ(-10, t), 0, -1], [0, 1, -6 * ϕ(10, t), 0, -1], Δx, 3)
+        mul!(du, A2, bc * u)
     end
-    single_solition = ODEProblem(KdV, u0, (0.,5.));
-    soln = solve(single_solition,Tsit5(),abstol=1e-6,reltol=1e-6);
-    for t in 0:0.5:5
-        @test soln(t) ≈ ϕ(x,t) atol = 0.01;
+    single_solition = ODEProblem(KdV, u0, (0.0, 5.0))
+    soln = solve(single_solition, Tsit5(), abstol = 1e-6, reltol = 1e-6)
+    for t = 0:0.5:5
+        @test soln(t) ≈ ϕ(x, t) atol = 0.01
     end
 
-    A3 = UpwindDifference{Float64}(1,3,Δx*ones(length(x)+1),length(x),-1,offside=1);
+    A3 = UpwindDifference{Float64}(
+        1,
+        3,
+        Δx * ones(length(x) + 1),
+        length(x),
+        -1,
+        offside = 1,
+    )
     KdV = function (du, u, p, t)
-        bc = GeneralBC([0,1,-6*ϕ(-10,t),0,-1],[0,1,-6*ϕ(10,t),0,-1],Δx,3)
-        mul!(du,A3,bc*u)
+        bc = GeneralBC([0, 1, -6 * ϕ(-10, t), 0, -1], [0, 1, -6 * ϕ(10, t), 0, -1], Δx, 3)
+        mul!(du, A3, bc * u)
     end
-    single_solition = ODEProblem(KdV, u0, (0.,5.));
-    soln = solve(single_solition,Tsit5(),abstol=1e-6,reltol=1e-6);
-    for t in 0:0.5:5
-        @test soln(t) ≈ ϕ(x,t) atol = 0.01;
+    single_solition = ODEProblem(KdV, u0, (0.0, 5.0))
+    soln = solve(single_solition, Tsit5(), abstol = 1e-6, reltol = 1e-6)
+    for t = 0:0.5:5
+        @test soln(t) ≈ ϕ(x, t) atol = 0.01
     end
 
     # Using Biased Upwinds with 2 offside points
-    A4 = UpwindDifference{Float64}(1,4,Δx,length(x),-1,offside=2);
+    A4 = UpwindDifference{Float64}(1, 4, Δx, length(x), -1, offside = 2)
     KdV = function (du, u, p, t)
-        bc = GeneralBC([0,1,-6*ϕ(-10,t),0,-1],[0,1,-6*ϕ(10,t),0,-1],Δx,3)
-        mul!(du,A4,bc*u)
+        bc = GeneralBC([0, 1, -6 * ϕ(-10, t), 0, -1], [0, 1, -6 * ϕ(10, t), 0, -1], Δx, 3)
+        mul!(du, A4, bc * u)
     end
-    single_solition = ODEProblem(KdV, u0, (0.,5.));
-    soln = solve(single_solition,Tsit5(),abstol=1e-6,reltol=1e-6);
-    for t in 0:0.5:5
-        @test soln(t) ≈ ϕ(x,t) atol = 0.01;
+    single_solition = ODEProblem(KdV, u0, (0.0, 5.0))
+    soln = solve(single_solition, Tsit5(), abstol = 1e-6, reltol = 1e-6)
+    for t = 0:0.5:5
+        @test soln(t) ≈ ϕ(x, t) atol = 0.01
     end
 
-    A5 = UpwindDifference{Float64}(1,4,Δx,length(x),1,offside=2);
+    A5 = UpwindDifference{Float64}(1, 4, Δx, length(x), 1, offside = 2)
     KdV = function (du, u, p, t)
-        bc = GeneralBC([0,1,-6*ϕ(-10,t),0,-1],[0,1,-6*ϕ(10,t),0,-1],Δx,3)
-        mul!(du,-1*A5,bc*u)
+        bc = GeneralBC([0, 1, -6 * ϕ(-10, t), 0, -1], [0, 1, -6 * ϕ(10, t), 0, -1], Δx, 3)
+        mul!(du, -1 * A5, bc * u)
     end
-    single_solition = ODEProblem(KdV, u0, (0.,5.));
-    soln = solve(single_solition,Tsit5(),abstol=1e-6,reltol=1e-6);
-    for t in 0:0.5:5
-        @test soln(t) ≈ ϕ(x,t) atol = 0.01;
+    single_solition = ODEProblem(KdV, u0, (0.0, 5.0))
+    soln = solve(single_solition, Tsit5(), abstol = 1e-6, reltol = 1e-6)
+    for t = 0:0.5:5
+        @test soln(t) ≈ ϕ(x, t) atol = 0.01
     end
 end
 

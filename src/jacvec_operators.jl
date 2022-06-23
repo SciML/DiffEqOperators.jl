@@ -42,24 +42,25 @@ mutable struct JacVecOperator{T,F,T1,T2,uType,P,tType,O} <:
         opnorm = true,
     ) where {T}
         if autodiff
-            cache1 = ForwardDiff.Dual{typeof(ForwardDiff.Tag(SparseDiffTools.DeivVecTag(),eltype(u))),eltype(u),1}.(u, ForwardDiff.Partials.(tuple.(u)))
-            cache2 = ForwardDiff.Dual{typeof(ForwardDiff.Tag(SparseDiffTools.DeivVecTag(),eltype(u))),eltype(u),1}.(u, ForwardDiff.Partials.(tuple.(u)))
+            cache1 =
+                ForwardDiff.Dual{
+                    typeof(ForwardDiff.Tag(SparseDiffTools.DeivVecTag(), eltype(u))),
+                    eltype(u),
+                    1,
+                }.(u, ForwardDiff.Partials.(tuple.(u)))
+            cache2 =
+                ForwardDiff.Dual{
+                    typeof(ForwardDiff.Tag(SparseDiffTools.DeivVecTag(), eltype(u))),
+                    eltype(u),
+                    1,
+                }.(u, ForwardDiff.Partials.(tuple.(u)))
         else
             cache1 = similar(u)
             cache2 = similar(u)
         end
         p === nothing ? P = Any : P = typeof(p)
         t === nothing ? tType = Any : tType = typeof(t)
-        new{
-            T,
-            typeof(f),
-            typeof(cache1),
-            typeof(cache2),
-            typeof(u),
-            P,
-            tType,
-            typeof(opnorm),
-        }(
+        new{T,typeof(f),typeof(cache1),typeof(cache2),typeof(u),P,tType,typeof(opnorm)}(
             f,
             cache1,
             cache2,
@@ -112,24 +113,14 @@ function Base.:*(L::JacVecOperator, x::AbstractVector)
 end
 
 
-function LinearAlgebra.mul!(
-    du::AbstractVector,
-    L::JacVecOperator,
-    x::AbstractVector,
-)
+function LinearAlgebra.mul!(du::AbstractVector, L::JacVecOperator, x::AbstractVector)
     du = reshape(du, size(L.u))
     let p = L.p, t = L.t
         if L.cache1 === nothing
             if L.autodiff
                 auto_jacvec!(du, (_du, _u) -> L.f(_du, _u, p, t), L.u, x)
             else
-                num_jacvec!(
-                    du,
-                    (_du, _u) -> L.f(_du, _u, p, t),
-                    L.u,
-                    x;
-                    compute_f0 = true,
-                )
+                num_jacvec!(du, (_du, _u) -> L.f(_du, _u, p, t), L.u, x; compute_f0 = true)
             end
         else
             if L.autodiff
@@ -183,14 +174,7 @@ mutable struct AnalyticalJacVecOperator{T,F,uType,P,tType,O} <:
         u === nothing ? uType = Any : uType = typeof(u)
         p === nothing ? P = Any : P = typeof(p)
         t === nothing ? tType = Any : tType = typeof(t)
-        new{T,typeof(f),uType,P,tType,typeof(opnorm)}(
-            f,
-            u,
-            p,
-            t,
-            ishermitian,
-            opnorm,
-        )
+        new{T,typeof(f),uType,P,tType,typeof(opnorm)}(f, u, p, t, ishermitian, opnorm)
     end
     function AnalyticalJacVecOperator(f, u, args...; kwargs...)
         AnalyticalJacVecOperator{eltype(u)}(f, u, args...; kwargs...)

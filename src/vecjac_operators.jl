@@ -44,16 +44,7 @@ mutable struct VecJacOperator{T,F,T1,T2,uType,P,tType,O} <:
         cache2 = similar(u)
         p === nothing ? P = Any : P = typeof(p)
         t === nothing ? tType = Any : tType = typeof(t)
-        new{
-            T,
-            typeof(f),
-            typeof(cache1),
-            typeof(cache2),
-            typeof(u),
-            P,
-            tType,
-            typeof(opnorm),
-        }(
+        new{T,typeof(f),typeof(cache1),typeof(cache2),typeof(u),P,tType,typeof(opnorm)}(
             f,
             cache1,
             cache2,
@@ -104,11 +95,7 @@ function Base.:*(L::VecJacOperator, x::AbstractVector)
     return mul!(similar(vec(L.u)), L, x)
 end
 
-function LinearAlgebra.mul!(
-    du::AbstractVector,
-    L::VecJacOperator,
-    x::AbstractVector,
-)
+function LinearAlgebra.mul!(du::AbstractVector, L::VecJacOperator, x::AbstractVector)
     du = reshape(du, size(L.u))
     let p = L.p, t = L.t
         if L.cache1 === nothing
@@ -129,27 +116,14 @@ function LinearAlgebra.mul!(
                         compute_f0 = true,
                     )
                 else
-                    num_vecjac!(
-                        du,
-                        _u -> L.f(_u, p, t),
-                        L.u,
-                        x;
-                        compute_f0 = true,
-                    )
+                    num_vecjac!(du, _u -> L.f(_u, p, t), L.u, x; compute_f0 = true)
                 end
             end
         else
             if L.autodiff
                 # For autodiff prefer non-inplace function
                 if hasmethod(L.f, typeof.((L.u, L.p, L.t)))
-                    auto_vecjac!(
-                        du,
-                        _u -> L.f(_u, p, t),
-                        L.u,
-                        x,
-                        L.cache1,
-                        L.cache2,
-                    )
+                    auto_vecjac!(du, _u -> L.f(_u, p, t), L.u, x, L.cache1, L.cache2)
                 else
                     auto_vecjac!(
                         du,
