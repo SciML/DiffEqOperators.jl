@@ -6,7 +6,6 @@ See also: [`UpwindDifference`](@ref)
 """
 CenteredDifference
 
-
 @doc """
     calculate_weights(n::Int, x₀::Real, x::Vector)
 
@@ -19,7 +18,6 @@ The stencil `c` has the highest approximation order possible given values of `f`
 The algorithm is due to [Fornberg](https://doi.org/10.1090/S0025-5718-1988-0935077-0), with a [modification](http://epubs.siam.org/doi/pdf/10.1137/S0036144596322507) to improve stability.
 """
 calculate_weights
-
 
 @doc """
     DerivativeOperator{T<:Real,N,Wind,T2,S1,S2<:SVector,T3,F}(<fields>)
@@ -74,7 +72,6 @@ See also: [`AbstractBC`](@ref), [`CenteredDifference`](@ref), [`UpwindDifference
 """
 DerivativeOperator
 
-
 @doc """
     abstract type AbstractBC{T}
 
@@ -115,7 +112,6 @@ See also: [`DerivativeOperator`](@ref), [`PeriodicBC`](@ref) [`NeumannBC`](@ref)
 """
 AbstractBC
 
-
 @doc """
     PeriodicBC{T}()
 
@@ -139,7 +135,6 @@ dimension.
 See also: [`AbstractBC`](@ref)
 """
 PeriodicBC
-
 
 """
     q = RobinBC(l, r, dx::T, approximation_order) where T # When this BC extends a dimension with a uniform step size

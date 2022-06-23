@@ -1,6 +1,5 @@
 using SparseArrays, DiffEqOperators, LinearAlgebra, Random,
-    Test, BandedMatrices, FillArrays
-
+      Test, BandedMatrices, FillArrays
 
 # Analytic solutions to higher order operators.
 # Do not modify unless you are completely certain of the changes.
@@ -11,29 +10,29 @@ function fourth_deriv_approx_stencil(N)
     A[1, 1:8] = [3.5 -56 / 3 42.5 -54.0 251 / 6 -20.0 5.5 -2 / 3]
     A[2, 1:8] = [2 / 3 -11 / 6 0.0 31 / 6 -22 / 3 4.5 -4 / 3 1 / 6]
 
-    A[N-1, N-5:end] = reverse([2 / 3 -11 / 6 0.0 31 / 6 -22 / 3 4.5 -4 / 3 1 / 6], dims=2)
-    A[N, N-5:end] = reverse([3.5 -56 / 3 42.5 -54.0 251 / 6 -20.0 5.5 -2 / 3], dims=2)
+    A[N - 1, (N - 5):end] = reverse([2 / 3 -11 / 6 0.0 31 / 6 -22 / 3 4.5 -4 / 3 1 / 6],
+                                    dims = 2)
+    A[N, (N - 5):end] = reverse([3.5 -56 / 3 42.5 -54.0 251 / 6 -20.0 5.5 -2 / 3], dims = 2)
 
-    for i in 3:N-2
-        A[i, i-2:i+4] = [-1 / 6 2.0 -13 / 2 28 / 3 -13 / 2 2.0 -1 / 6]
+    for i in 3:(N - 2)
+        A[i, (i - 2):(i + 4)] = [-1 / 6 2.0 -13 / 2 28 / 3 -13 / 2 2.0 -1 / 6]
     end
     return A
 end
 
-
 function second_deriv_fourth_approx_stencil(N)
     A = zeros(N, N + 2)
     A[1, 1:6] = [5 / 6 -15 / 12 -1 / 3 7 / 6 -6 / 12 5 / 60]
-    A[N, N-3:end] = [1 / 12 -6 / 12 14 / 12 -4 / 12 -15 / 12 10 / 12]
-    for i in 2:N-1
-        A[i, i-1:i+3] = [-1 / 12 4 / 3 -5 / 2 4 / 3 -1 / 12]
+    A[N, (N - 3):end] = [1 / 12 -6 / 12 14 / 12 -4 / 12 -15 / 12 10 / 12]
+    for i in 2:(N - 1)
+        A[i, (i - 1):(i + 3)] = [-1 / 12 4 / 3 -5 / 2 4 / 3 -1 / 12]
     end
     return A
 end
 
 function second_derivative_stencil(N)
     A = zeros(N, N + 2)
-    for i in 1:N, j in 1:N+2
+    for i in 1:N, j in 1:(N + 2)
         (j - i == 0 || j - i == 2) && (A[i, j] = 1)
         j - i == 1 && (A[i, j] = -2)
     end
@@ -100,12 +99,12 @@ function analyticCtrFourTwoIrr()
     A
 end
 
-
-function convert_by_multiplication(::Type{Array}, A::AbstractDerivativeOperator{T}, N::Int=A.dimension) where {T}
+function convert_by_multiplication(::Type{Array}, A::AbstractDerivativeOperator{T},
+                                   N::Int = A.dimension) where {T}
     @assert N >= A.stencil_length # stencil must be able to fit in the matrix
     mat = zeros(T, (N, N + 2))
     v = zeros(T, N + 2)
-    for i = 1:N+2
+    for i in 1:(N + 2)
         v[i] = one(T)
         #=
             calculating the effect on a unit vector to get the matrix of transformation
@@ -148,13 +147,15 @@ end
     weights = []
 
     push!(weights, ([-0.5, 0, 0.5], [1.0, -2.0, 1.0], [-1 / 2, 1.0, 0.0, -1.0, 1 / 2]))
-    push!(weights, ([1 / 12, -2 / 3, 0, 2 / 3, -1 / 12], [-1 / 12, 4 / 3, -5 / 2, 4 / 3, -1 / 12], [1 / 8, -1.0, 13 / 8, 0.0, -13 / 8, 1.0, -1 / 8]))
+    push!(weights,
+          ([1 / 12, -2 / 3, 0, 2 / 3, -1 / 12], [-1 / 12, 4 / 3, -5 / 2, 4 / 3, -1 / 12],
+           [1 / 8, -1.0, 13 / 8, 0.0, -13 / 8, 1.0, -1 / 8]))
 
     for d in 1:3
         for (i, a) in enumerate([2, 4])
             D = CompleteCenteredDifference(d, a, 1.0)
 
-            @test all(isapprox.(D.stencil_coefs, weights[i][d], atol=1e-10))
+            @test all(isapprox.(D.stencil_coefs, weights[i][d], atol = 1e-10))
         end
     end
 end
@@ -163,81 +164,67 @@ end
     weights = []
 
     push!(weights, ([-0.5, 0, 0.5], [1.0, -2.0, 1.0], [-1 / 2, 1.0, 0.0, -1.0, 1 / 2]))
-    push!(weights, ([1 / 12, -2 / 3, 0, 2 / 3, -1 / 12], [-1 / 12, 4 / 3, -5 / 2, 4 / 3, -1 / 12], [1 / 8, -1.0, 13 / 8, 0.0, -13 / 8, 1.0, -1 / 8]))
+    push!(weights,
+          ([1 / 12, -2 / 3, 0, 2 / 3, -1 / 12], [-1 / 12, 4 / 3, -5 / 2, 4 / 3, -1 / 12],
+           [1 / 8, -1.0, 13 / 8, 0.0, -13 / 8, 1.0, -1 / 8]))
 
     for d in 1:3
         for (i, a) in enumerate([2, 4])
             D = CompleteCenteredDifference(d, a, 0.0:1.0:10.0)
             @show D.stencil_coefs
 
-            @test all(isapprox.(D.stencil_coefs[end], weights[i][d], atol=1e-10))
+            @test all(isapprox.(D.stencil_coefs[end], weights[i][d], atol = 1e-10))
         end
     end
 end
 
 @testset "Correctness of Uniform Stencils, Complete Half" begin
     weights = (([0.5, 0.5], [-1 / 16, 9 / 16, 9 / 16, -1 / 16]),
-        ([-1.0, 1.0], [1 / 24, -9 / 8, 9 / 8, -1 / 24]))
+               ([-1.0, 1.0], [1 / 24, -9 / 8, 9 / 8, -1 / 24]))
     for (i, a) in enumerate([2, 4])
         for d in 0:1
             D = CompleteHalfCenteredDifference(d, a, 1.0)
-            @test all(D.stencil_coefs .≈ weights[d+1][i])
+            @test all(D.stencil_coefs .≈ weights[d + 1][i])
         end
     end
-
 end
 
 @testset "Correctness of Non-Uniform Stencils, Complete Half" begin
     weights = (([0.5, 0.5], [-1 / 16, 9 / 16, 9 / 16, -1 / 16]),
-        ([-1.0, 1.0], [1 / 24, -9 / 8, 9 / 8, -1 / 24]))
+               ([-1.0, 1.0], [1 / 24, -9 / 8, 9 / 8, -1 / 24]))
     for (i, a) in enumerate([2, 4])
         for d in 0:1
             D = CompleteHalfCenteredDifference(d, a, 0.0:1.0:5.0)
-            @test all(D.stencil_coefs[end] .≈ weights[d+1][i])
+            @test all(D.stencil_coefs[end] .≈ weights[d + 1][i])
         end
     end
-
 end
 
-
 @testset "Correctness of Uniform Upwind Stencils" begin
-    weights = (
-        (
-            [-1.0, 1.0],
-            [-1.0, 3.0, -3.0, 1.0]
-        ),
-        (
-            [-3 / 2, 2.0, -1 / 2],
-            [-5 / 2, 9.0, -12.0, 7.0, -3 / 2]
-        )
-    )
+    weights = (([-1.0, 1.0],
+                [-1.0, 3.0, -3.0, 1.0]),
+               ([-3 / 2, 2.0, -1 / 2],
+                [-5 / 2, 9.0, -12.0, 7.0, -3 / 2]))
     for (i, a) in enumerate(1:2)
         for (j, d) in enumerate([1, 3])
             D = CompleteUpwindDifference(d, a, 1.0, 0)
-            @test all(isapprox.(D.stencil_coefs, weights[i][j], atol=1e-10))
+            @test all(isapprox.(D.stencil_coefs, weights[i][j], atol = 1e-10))
         end
     end
 end
 
 @testset "Correctness of Non-Uniform Upwind Stencils" begin
-    weights = (
-        (
-            [-1.0, 1.0],
-            [-1.0, 3.0, -3.0, 1.0]
-        ),
-        (
-            [-3 / 2, 2.0, -1 / 2],
-            [-5 / 2, 9.0, -12.0, 7.0, -3 / 2]
-        )
-    )
+    weights = (([-1.0, 1.0],
+                [-1.0, 3.0, -3.0, 1.0]),
+               ([-3 / 2, 2.0, -1 / 2],
+                [-5 / 2, 9.0, -12.0, 7.0, -3 / 2]))
     for (i, a) in enumerate(1:2)
         for (j, d) in enumerate([1, 3])
             D = CompleteUpwindDifference(d, a, 0.0:1.0:10.0, 0)
-            @test all(isapprox.(D.stencil_coefs[end], weights[i][j], atol=1e-10))
+            @test all(isapprox.(D.stencil_coefs[end], weights[i][j], atol = 1e-10))
         end
     end
 end
-
 
 @testset "Correctness of Non-Uniform Stencils" begin
     x = [0.0, 0.08, 0.1, 0.15, 0.19, 0.26, 0.29]
@@ -250,7 +237,7 @@ end
 
     # Check that stencils agree with correct
     for (i, coefs) in enumerate(L.stencil_coefs)
-        @test Array(coefs) ≈ correct[i, correct[i, :].!=0.0]
+        @test Array(coefs) ≈ correct[i, correct[i, :] .!= 0.0]
     end
     @test Array(L) ≈ correct
     @test sparse(L) ≈ correct
@@ -262,7 +249,7 @@ end
 
     # Check that stencils agree with correct
     for (i, coefs) in enumerate(L.stencil_coefs)
-        @test Array(coefs) ≈ correct[i, correct[i, :].!=0.0]
+        @test Array(coefs) ≈ correct[i, correct[i, :] .!= 0.0]
     end
     @test Array(L) ≈ correct
     @test sparse(L) ≈ correct
@@ -274,11 +261,11 @@ end
 
     # Check that stencils agree with correct
     for (i, coefs) in enumerate(L.stencil_coefs)
-        @test Array(coefs) ≈ correct[i, correct[i, :].!=0.0]
+        @test Array(coefs) ≈ correct[i, correct[i, :] .!= 0.0]
     end
-    @test Array(L)[2:end-1, :] ≈ correct
-    @test sparse(L)[2:end-1, :] ≈ correct
-    @test BandedMatrix(L)[2:end-1, :] ≈ correct
+    @test Array(L)[2:(end - 1), :] ≈ correct
+    @test sparse(L)[2:(end - 1), :] ≈ correct
+    @test BandedMatrix(L)[2:(end - 1), :] ≈ correct
 
     # Second-Order Fourth Derivative
     L = CenteredDifference(4, 2, dx, nx - 2)
@@ -286,11 +273,11 @@ end
 
     # Check that stencils agree with correct
     for (i, coefs) in enumerate(L.stencil_coefs)
-        @test Array(coefs) ≈ correct[i, correct[i, :].!=0.0]
+        @test Array(coefs) ≈ correct[i, correct[i, :] .!= 0.0]
     end
-    @test Array(L)[2:end-1, :] ≈ correct
-    @test sparse(L)[2:end-1, :] ≈ correct
-    @test BandedMatrix(L)[2:end-1, :] ≈ correct
+    @test Array(L)[2:(end - 1), :] ≈ correct
+    @test sparse(L)[2:(end - 1), :] ≈ correct
+    @test BandedMatrix(L)[2:(end - 1), :] ≈ correct
 end
 
 # tests for full and sparse function
@@ -306,7 +293,6 @@ end
     @test sparse(A) == second_derivative_stencil(N)
     @test BandedMatrix(A) == second_derivative_stencil(N)
     @test opnorm(A, Inf) == opnorm(correct, Inf)
-
 
     # testing higher derivative and approximation concretization
     N = 20
@@ -333,8 +319,9 @@ end
     N = 1000
     d_order = 4
     approx_order = 10
-    y = collect(1:1.0:N+2) .^ 4 - 2 * collect(1:1.0:N+2) .^ 3 + collect(1:1.0:N+2) .^ 2
-    y = convert(Array{BigFloat,1}, y)
+    y = collect(1:1.0:(N + 2)) .^ 4 - 2 * collect(1:1.0:(N + 2)) .^ 3 +
+        collect(1:1.0:(N + 2)) .^ 2
+    y = convert(Array{BigFloat, 1}, y)
 
     A = CenteredDifference(d_order, approx_order, one(BigFloat), N)
     correct = convert_by_multiplication(Array, A, N)
@@ -377,12 +364,16 @@ end
     d_order = 2
     approx_order = 2
 
-    xarrs = Vector{Union{Array,StepRangeLen}}(undef, 0)
-    yarrs = Vector{Union{Array,StepRangeLen}}(undef, 0)
-    push!(xarrs, range(0, stop=1, length=N))
-    push!(yarrs, range(0, stop=1, length=M))
-    push!(xarrs, vcat(xarrs[1][1:floor(Int, N / 2)] .^ 0.2020, xarrs[1][ceil(Int, N / 2):end] .^ 2.015))
-    push!(yarrs, vcat(yarrs[1][1:floor(Int, M / 2)] .^ 1.793, yarrs[1][ceil(Int, M / 2):end] .^ 2.019))
+    xarrs = Vector{Union{Array, StepRangeLen}}(undef, 0)
+    yarrs = Vector{Union{Array, StepRangeLen}}(undef, 0)
+    push!(xarrs, range(0, stop = 1, length = N))
+    push!(yarrs, range(0, stop = 1, length = M))
+    push!(xarrs,
+          vcat(xarrs[1][1:floor(Int, N / 2)] .^ 0.2020,
+               xarrs[1][ceil(Int, N / 2):end] .^ 2.015))
+    push!(yarrs,
+          vcat(yarrs[1][1:floor(Int, M / 2)] .^ 1.793,
+               yarrs[1][ceil(Int, M / 2):end] .^ 2.019))
 
     for (i, xarr, yarr) in zip(1:2, xarrs, yarrs)
         if i == 1
@@ -392,23 +383,23 @@ end
             dx = diff(xarr)
             dy = diff(yarr)
         end
-        F = [x^2 + y for x = xarr, y = yarr]
+        F = [x^2 + y for x in xarr, y in yarr]
 
         A = CenteredDifference(d_order, approx_order, dx, length(xarr) - 2)
         B = i == 1 ? CenteredDifference(d_order, approx_order, dy, length(yarr)) :
             CenteredDifference(d_order, approx_order, dy, length(yarr) - 2)
 
-        @test A * F ≈ 2 * ones(N - 2, M) atol = 1e-9
+        @test A * F≈2 * ones(N - 2, M) atol=1e-9
 
         # Operators are defined such that
         # B must be applied to F from the left
         @test all(abs.(B * F') .<= 1e-8)
         @test all(abs.(A * (B * F')') .<= 1e-4)
 
-        G = [x^2 + y^2 for x = xarr, y = yarr]
+        G = [x^2 + y^2 for x in xarr, y in yarr]
 
-        @test A * G ≈ 2 * ones(N - 2, M) atol = 1e-9
-        @test B * G' ≈ 2 * ones(M - 2, N) atol = 1e-8
+        @test A * G≈2 * ones(N - 2, M) atol=1e-9
+        @test B * G'≈2 * ones(M - 2, N) atol=1e-8
         @test all(abs.(A * (B * G')') .<= 1e-4)
     end
 end
@@ -417,8 +408,8 @@ end
     A = CenteredDifference(2, 2, 10.0, 3)
 
     scalar_ans = [0.033 -0.066 0.033 0.0 0.0
-        0.0 0.033 -0.066 0.033 0.0
-        0.0 0.0 0.033 -0.066 0.033]
+                  0.0 0.033 -0.066 0.033 0.0
+                  0.0 0.0 0.033 -0.066 0.033]
     @test Array(3.3 * A) ≈ scalar_ans
 end
 
@@ -440,10 +431,10 @@ end
     @test (B * x) .* c ≈ cB * x
     @test (C * x) .* c ≈ cC * x
 
-    @test_throws DimensionMismatch ones(10) * A
-    @test_throws DimensionMismatch ones(10) * cA
-    @test_throws DimensionMismatch ones(10) * B
-    @test_throws DimensionMismatch ones(10) * C
+    @test_throws DimensionMismatch ones(10)*A
+    @test_throws DimensionMismatch ones(10)*cA
+    @test_throws DimensionMismatch ones(10)*B
+    @test_throws DimensionMismatch ones(10)*C
 end
 
 # These tests are broken due to the implementation 2.2*LD creating a DerivativeOperator

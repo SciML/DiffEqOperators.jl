@@ -7,13 +7,13 @@ f = 1.0
 a = -1.0
 b = 2.0
 
-u_analytic(x) = f/2*x^2 + (b-a-f/2) * x + a
+u_analytic(x) = f / 2 * x^2 + (b - a - f / 2) * x + a
 
 # We would like to recompute this solution numerically
 using DiffEqOperators
 
 nknots = 10
-h = 1.0/(nknots+1)
+h = 1.0 / (nknots + 1)
 ord_deriv = 2
 ord_approx = 2
 
@@ -26,8 +26,8 @@ bc = DirichletBC(a, b)
 # We see that `Δ` is a (lazy) matrix with the Laplace stencil extended over the boundaries.
 # And `bc` acts by padding the values just outside the boundaries.
 
-u = (Δ*bc) \ fill(f, nknots)
-knots = range(h, step=h, length=nknots)
+u = (Δ * bc) \ fill(f, nknots)
+knots = range(h, step = h, length = nknots)
 
 # Since we used a second order approximation and the analytic solution itself was a second-order
 # polynomial, we expect them to be equal up to rounding errors:
