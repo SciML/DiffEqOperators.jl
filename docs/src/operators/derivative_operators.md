@@ -230,3 +230,7 @@ Additionally, the function `sparse` is overloaded to give the most efficient
 matrix type for a given operator. For these operators it's `BandedMatrix` unless
 the boundary conditions are `PeriodicBC`, in which case it's `SparseMatrixCSC`.
 The concretizations are made to act on `vec(u)`.
+
+## Performance Note:
+
+To get the derivative, one can use `D * Q * u`. However, in some cases, it may be more efficient to implement this as `sparse(D) * Array(Q * u)`.
