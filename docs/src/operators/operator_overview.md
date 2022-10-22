@@ -1,7 +1,7 @@
 # Operator Overview
 
 The operators in DiffEqOperators.jl are instantiations of the `AbstractSciMLOperator`
-interface. This is documented in [SciMLBase](https://diffeq.sciml.ai/stable/features/diffeq_operator/). Thus each of the operators
+interface. This is documented in [SciMLBase](https://docs.sciml.ai/DiffEqDocs/stable/features/diffeq_operator/). Thus each of the operators
 have the functions and traits as defined for the operator interface. In addition,
 the DiffEqOperators.jl operators satisfy the following properties:
 

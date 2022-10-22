@@ -7,11 +7,11 @@
 !!! note
 
     For automated finite difference discretization of symbolically-defined PDEs,
-    see [MethodOfLines.jl](https://github.com/SciML/MethodOfLines.jl).
+    see [MethodOfLines.jl](https://docs.sciml.ai/MethodOfLines/stable/).
 
 !!! note 
 
-    For MatrixFreeOperators, and other non-derivative operators, see [SciMLOperators.jl](https://github.com/SciML/SciMLOperators.jl).
+    For MatrixFreeOperators, and other non-derivative operators, see [SciMLOperators.jl](https://docs.sciml.ai/SciMLOperators/stable/).
 
 !!! note
 

@@ -1,8 +1,7 @@
 # DiffEqOperators.jl
 
 [![Join the chat at https://julialang.zulipchat.com #sciml-bridged](https://img.shields.io/static/v1?label=Zulip&message=chat&color=9558b2&labelColor=389826)](https://julialang.zulipchat.com/#narrow/stream/279055-sciml-bridged)
-[![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](http://diffeqoperators.sciml.ai/stable/)
-[![Global Docs](https://img.shields.io/badge/docs-SciML-blue.svg)](https://docs.sciml.ai/dev/modules/DiffEqOperators/)
+[![Global Docs](https://img.shields.io/badge/docs-SciML-blue.svg)](https://docs.sciml.ai/DiffEqOperators/stable/)
 
 [![codecov](https://codecov.io/gh/SciML/DiffEqOperatorsjl/branch/master/graph/badge.svg)](https://codecov.io/gh/SciML/DiffEqOperators.jl)
 [![Build Status](https://github.com/SciML/DiffEqOperators.jl/workflows/CI/badge.svg)](https://github.com/SciML/DiffEqOperators.jl/actions?query=workflow%3ACI)
@@ -13,15 +12,15 @@
 
 ## This Package is in the Process of being Deprecated
 ## Alternatives:
-- For automated finite difference discretization of symbolically-defined PDEs, see [MethodOfLines.jl](https://github.com/SciML/MethodOfLines.jl).
-- For MatrixFreeOperators, and other non-derivative operators, see [SciMLOperators.jl](https://github.com/SciML/SciMLOperators.jl).
+- For automated finite difference discretization of symbolically-defined PDEs, see [MethodOfLines.jl](https://docs.sciml.ai/MethodOfLines/stable/).
+- For MatrixFreeOperators, and other non-derivative operators, see [SciMLOperators.jl](https://docs.sciml.ai/SciMLOperators/stable/).
 - For VecJacOperators and JacVecOperators, see [SparseDiffTools.jl](https://github.com/SciML/SparseDiffTools.jl).
 
 # README
 DiffEqOperators.jl is a package for finite difference discretization of partial
 differential equations. It allows building lazy operators for high order non-uniform finite differences in an arbitrary number of dimensions, including vector calculus operators.
 
-For automatic Method of Lines discretization of PDEs, better suited to nonlinear systems of equations and more complex boundary conditions, please see [MethodOfLines.jl](https://www.github.com/SciML/MethodOfLines.jl)
+For automatic Method of Lines discretization of PDEs, better suited to nonlinear systems of equations and more complex boundary conditions, please see [MethodOfLines.jl](https://docs.sciml.ai/MethodOfLines/stable/)
 
 For the operators, both centered and
 [upwind](https://en.wikipedia.org/wiki/Upwind_scheme) operators are provided,
@@ -35,8 +34,8 @@ and parallelism, etc. Any operator can be concretized as an `Array`, a
 ## Documentation
 
 For information on using the package,
-[see the stable documentation](https://diffeqoperators.sciml.ai/stable/). Use the
-[in-development documentation](https://diffeqoperators.sciml.ai/dev/) for the version of
+[see the stable documentation](https://docs.sciml.ai/DiffEqOperators/stable/). Use the
+[in-development documentation](https://docs.sciml.ai/DiffEqOperators/dev/) for the version of
 the documentation which contains the unreleased features.
 
 ## Example 1: Finite Difference Operator Solution for the Heat Equation
