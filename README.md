@@ -3,7 +3,7 @@
 [![Join the chat at https://julialang.zulipchat.com #sciml-bridged](https://img.shields.io/static/v1?label=Zulip&message=chat&color=9558b2&labelColor=389826)](https://julialang.zulipchat.com/#narrow/stream/279055-sciml-bridged)
 [![Global Docs](https://img.shields.io/badge/docs-SciML-blue.svg)](https://docs.sciml.ai/DiffEqOperators/stable/)
 
-[![codecov](https://codecov.io/gh/SciML/DiffEqOperatorsjl/branch/master/graph/badge.svg)](https://codecov.io/gh/SciML/DiffEqOperators.jl)
+[![codecov](https://codecov.io/gh/SciML/DiffEqOperators.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/SciML/DiffEqOperators.jl)
 [![Build Status](https://github.com/SciML/DiffEqOperators.jl/workflows/CI/badge.svg)](https://github.com/SciML/DiffEqOperators.jl/actions?query=workflow%3ACI)
 [![Build status](https://badge.buildkite.com/0bc9acab7cf614b556a704cfe8422a5e3ab0cfbf3dbec83af7.svg)](https://buildkite.com/julialang/diffeqoperators-dot-jl)
 
