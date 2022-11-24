@@ -63,8 +63,8 @@ end
     @test mul!(zeros(2), A, [0.1, 0.1]) == [0.1, 0.2]
     @test mul!(zeros(2), C, [0.1, 0.1]) == [0.2, 0.4]
     @test_throws DimensionMismatch mul!(zeros(2, 3), A, zeros(3, 2))
-    @test mul!(zeros(2, 2), A, [0.1 0.1; 0.1 0.1]) == [0.1 0.1 0.2 0.2]
-    @test mul!(zeros(2, 2), C, [0.1 0.1; 0.1 0.1]) == [0.2 0.2 0.4 0.4]
+    @test mul!(zeros(2, 2), A, [0.1 0.1; 0.1 0.1]) == [0.1 0.1; 0.2 0.2]
+    @test mul!(zeros(2, 2), C, [0.1 0.1; 0.1 0.1]) == [0.2 0.2; 0.4 0.4]
 end
 
 @testset "Matrix Free Operator example" begin
