@@ -196,7 +196,7 @@ version = "6.108.0"
 deps = ["BandedMatrices", "BlockBandedMatrices", "DiffEqBase", "DomainSets", "ForwardDiff", "LazyArrays", "LazyBandedMatrices", "LinearAlgebra", "LoopVectorization", "NNlib", "Requires", "RuntimeGeneratedFunctions", "SciMLBase", "SparseArrays", "SparseDiffTools", "StaticArrays", "SuiteSparse"]
 path = "/home/runner/work/DiffEqOperators.jl/DiffEqOperators.jl"
 uuid = "9fdde737-9c7f-55bf-ade8-46b3f136cc48"
-version = "4.43.1"
+version = "4.44.0"
 
 [[deps.DiffResults]]
 deps = ["StaticArraysCore"]
