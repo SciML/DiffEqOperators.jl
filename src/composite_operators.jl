@@ -14,7 +14,7 @@ sparse1(A::DiffEqScaledOperator) = A.coeff * sparse1(A.op)
 # Linear Combination
 struct DiffEqOperatorCombination{T, O <: Tuple{Vararg{AbstractDiffEqLinearOperator{T}}},
                                  C <: AbstractVector{T}} <:
-       AbstractDiffEqCompositeOperator{T}
+       SciMLBase.AbstractDiffEqCompositeOperator{T}
     ops::O
     cache::C
     function DiffEqOperatorCombination(ops; cache = nothing)
@@ -77,7 +77,7 @@ end
 # Composition (A ∘ B)
 struct DiffEqOperatorComposition{T, O <: Tuple{Vararg{AbstractDiffEqLinearOperator{T}}},
                                  C <: Tuple{Vararg{AbstractVector{T}}}} <:
-       AbstractDiffEqCompositeOperator{T}
+       SciMLBase.AbstractDiffEqCompositeOperator{T}
     ops::O # stored in the order of application
     caches::C
     function DiffEqOperatorComposition(ops; caches = nothing)
