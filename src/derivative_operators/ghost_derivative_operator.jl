@@ -8,7 +8,7 @@ function *(L::AbstractDiffEqLinearOperator{T}, Q::AbstractBC{T}) where {T}
     return GhostDerivativeOperator{T, typeof(L), typeof(Q)}(L, Q)
 end
 
-function *(L::AbstractDiffEqCompositeOperator{T}, Q::AbstractBC{T}) where {T}
+function *(L::SciMLBase.AbstractDiffEqCompositeOperator{T}, Q::AbstractBC{T}) where {T}
     return sum(map(op -> op * Q, L.ops))
 end
 

@@ -24,7 +24,7 @@ calculate_weights
 
 Represent a finite-difference derivative operator.
 
-These operators implement the `DiffEqBase.AbstractDiffEqLinearOperator` interface. Therefore, `eltype` returns `T`.
+These operators implement the `SciMLBase.AbstractDiffEqLinearOperator` interface. Therefore, `eltype` returns `T`.
 
 These operators can be contracted over an arbitrary dimension, given by the type parameter `N`.
 
@@ -34,7 +34,7 @@ The finite-difference methods are defined for `DerivativeOperator`. In particula
 
 The key data are three stencils of coefficients, stored in `SVector`s. The interior stencil, stored in `stencil_coefs::S1`, is the normal one used in the interior of the grid. The others, `low_boundary_coefs::S2` and `high_boundary_coefs::S2`, are used where the normal stencil would jut out of the grid boundary. These can have a different length than the interior stencil, hence the two types.
 
-When the operator is applied by `mul!`, these stencils are multiplied by the vector in the `coefficients` field. It is set to `coeff_func.(1:len)` in `UpwindDifference`, which seems odd, because `len` is not the stencil length. Scalar multiplication is absorbed into this vector, as required by the `DiffEqBase.AbstractDiffEqLinearOperator` interface.
+When the operator is applied by `mul!`, these stencils are multiplied by the vector in the `coefficients` field. It is set to `coeff_func.(1:len)` in `UpwindDifference`, which seems odd, because `len` is not the stencil length. Scalar multiplication is absorbed into this vector, as required by the `SciMLBase.AbstractDiffEqLinearOperator` interface.
 
 The `coefficients` field appears to be a more general `DifferentialEquations` thing. There is an `update_coefficients!` method.
 

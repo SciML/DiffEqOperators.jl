@@ -184,7 +184,7 @@ end
 
 # A more efficient mul! implementation for compositions of operators which may include regular-grid, centered difference,
 # scalar coefficient, non-winding, DerivativeOperator, operating on a 2-D or 3-D AbstractArray
-function LinearAlgebra.mul!(x_temp::AbstractArray{T, 2}, A::AbstractDiffEqCompositeOperator,
+function LinearAlgebra.mul!(x_temp::AbstractArray{T, 2}, A::SciMLBase.AbstractDiffEqCompositeOperator,
                             M::AbstractArray{T, 2}) where {T}
 
     # opsA operators satisfy conditions for NNlib.conv! call, opsB operators do not
@@ -447,7 +447,7 @@ end
 
 # A more efficient mul! implementation for compositions of operators which may include regular-grid, centered difference,
 # scalar coefficient, non-winding, DerivativeOperator, operating on a 2-D or 3-D AbstractArray
-function LinearAlgebra.mul!(x_temp::AbstractArray{T, 3}, A::AbstractDiffEqCompositeOperator,
+function LinearAlgebra.mul!(x_temp::AbstractArray{T, 3}, A::SciMLBase.AbstractDiffEqCompositeOperator,
                             M::AbstractArray{T, 3}) where {T}
 
     # opsA operators satisfy conditions for NNlib.conv! call, opsB operators do not
