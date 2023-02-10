@@ -6,3 +6,5 @@ Manifest.toml
 *.png
 *.gif
 docs/build
+.*.swo
+.*.swp
