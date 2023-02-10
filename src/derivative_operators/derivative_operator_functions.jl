@@ -15,7 +15,16 @@
 #
 
 # Fallback mul! implementation for a single DerivativeOperator operating on an AbstractArray
+function LinearAlgebra.mul!(x_temp::AbstractVecOrMat{T}, A::DerivativeOperator{T, N},
+                            M::AbstractVecOrMat{T}; overwrite = true) where {T, N}
+    _mul!(x_temp, A, M; overwrite = overwrite)
+end
 function LinearAlgebra.mul!(x_temp::AbstractArray{T}, A::DerivativeOperator{T, N},
+                            M::AbstractArray{T}; overwrite = true) where {T, N}
+    _mul!(x_temp, A, M; overwrite = overwrite)
+end
+
+function _mul!(x_temp::AbstractArray{T}, A::DerivativeOperator{T, N},
                             M::AbstractArray{T}; overwrite = true) where {T, N}
 
     # Check that x_temp has valid dimensions, allowing unnecessary padding in M
@@ -138,7 +147,14 @@ end
 
 ###########################################
 
-function *(A::DerivativeOperator{T, N}, M::AbstractArray{T}) where {T <: Real, N}
+function Base.:*(A::DerivativeOperator{T, N}, M::AbstractVecOrMat{T}) where {T <: Real, N}
+    _mul(A, M)
+end
+function Base.:*(A::DerivativeOperator{T, N}, M::AbstractArray{T}) where {T <: Real, N}
+    _mul(A, M)
+end
+
+function _mul(A::DerivativeOperator{T, N}, M::AbstractArray{T}) where {T <: Real, N}
     size_x_temp = [size(M)...]
     size_x_temp[N] -= 2
     x_temp = zeros(promote_type(eltype(A), eltype(M)), size_x_temp...)
