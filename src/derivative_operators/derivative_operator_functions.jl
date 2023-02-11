@@ -25,7 +25,7 @@ function LinearAlgebra.mul!(x_temp::AbstractArray{T}, A::DerivativeOperator{T, N
 end
 
 function _mul!(x_temp::AbstractArray{T}, A::DerivativeOperator{T, N},
-                            M::AbstractArray{T}; overwrite = true) where {T, N}
+               M::AbstractArray{T}; overwrite = true) where {T, N}
 
     # Check that x_temp has valid dimensions, allowing unnecessary padding in M
     v = zeros(ndims(x_temp))
