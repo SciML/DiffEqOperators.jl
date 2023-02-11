@@ -20,7 +20,7 @@ function Base.size(M::MatrixFreeOperator)
         error("M.size is nothing, please define size as a tuple of integers")
     return M.size
 end
-@inline function Base.size(M::MatrixFreeOperator, n)
+@inline function Base.size(M::MatrixFreeOperator, n::Integer)
     M.size === nothing &&
         error("M.size is nothing, please define size as a tuple of integers")
     n <= 0 && error("dimension out of range")

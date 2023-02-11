@@ -1,5 +1,5 @@
 mutable struct VecJacOperator{T, F, T1, T2, uType, P, tType, O} <:
-               DiffEqBase.AbstractDiffEqLinearOperator{T}
+               AbstractDiffEqLinearOperator{T}
     f::F
     cache1::T1
     cache2::T2
