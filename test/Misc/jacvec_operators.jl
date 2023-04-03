@@ -84,9 +84,9 @@ ff2 = ODEFunction(lorenz,
 
 for ff in [ff1, ff2]
     prob = ODEProblem(ff, u0, tspan)
-    @test solve(prob, TRBDF2()).retcode == :Success
-    @test solve(prob, TRBDF2(linsolve = KrylovJL_GMRES())).retcode == :Success
-    @test solve(prob, Exprb32()).retcode == :Success
-    @test sol = solve(prob, Rosenbrock23()).retcode == :Success
-    @test sol = solve(prob, Rosenbrock23(linsolve = KrylovJL_GMRES())).retcode == :Success
+    @test solve(prob, TRBDF2()).retcode == ReturnCode.Success
+    @test solve(prob, TRBDF2(linsolve = KrylovJL_GMRES())).retcode == ReturnCode.Success
+    @test solve(prob, Exprb32()).retcode == ReturnCode.Success
+    @test sol = solve(prob, Rosenbrock23()).retcode == ReturnCode.Success
+    @test sol = solve(prob, Rosenbrock23(linsolve = KrylovJL_GMRES())).retcode == ReturnCode.Success
 end
