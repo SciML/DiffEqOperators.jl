@@ -39,6 +39,7 @@ const is_TRAVIS = haskey(ENV, "TRAVIS")
     end
 
     if GROUP == "All" || GROUP == "Misc"
+        @time @safetestset "Aqua" begin include("aqua.jl") end
         @time @safetestset "Utilities Tests" begin include("Misc/utils.jl") end
         @time @safetestset "JacVec Operators Interface" begin include("Misc/jacvec_operators.jl") end
         @time @safetestset "VecJac Operators Interface" begin include("Misc/vecjac_operators.jl") end
